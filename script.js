@@ -77,14 +77,20 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
 
     let user;
     try {
-        const response = await fetch(`${WORKER_URL}/user/${id}`);
+        console.log(`Fetching user: ${WORKER_URL}/user/${id}`);
+        const response = await fetch(`${WORKER_URL}/user/${id}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
         }
         user = await response.json();
+        console.log('User data:', user);
     } catch (e) {
-        alert(`Failed to fetch user: ${e.message || 'Unknown error'}`);
+        console.error('User fetch error:', e);
+        alert(`Failed to fetch user: ${e.message || 'Network error - check console for details'}`);
         showScreen('discord');
         return;
     }
@@ -94,14 +100,20 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
 
     let member;
     try {
-        const response = await fetch(`${WORKER_URL}/member/${id}`);
+        console.log(`Fetching member: ${WORKER_URL}/member/${id}`);
+        const response = await fetch(`${WORKER_URL}/member/${id}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
         }
         member = await response.json();
+        console.log('Member data:', member);
     } catch (e) {
-        alert(`Failed to fetch member: ${e.message || 'Unknown error'}`);
+        console.error('Member fetch error:', e);
+        alert(`Failed to fetch member: ${e.message || 'Network error - check console for details'}`);
         showScreen('discord');
         return;
     }
