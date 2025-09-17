@@ -4,7 +4,7 @@ const GUILD_ID = '1310656642672627752';
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1417260030851551273/KGKnWF3mwTt7mNWmC3OTAPWcWJSl1FnQ3-Ub-l1-xpk46tOsAYAtIhRTlti2qxjJSOds';
 const LOA_LINK = 'https://dyno.gg/form/e4c75cbc';
 const HANDBOOK_LINK = 'https://docs.google.com/document/d/1SB48S4SiuT9_npDhgU1FT_CxAjdKGn40IpqUQKm2Nek/edit?usp=sharing';
-const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev/'; // Replace with your Cloudflare Worker URL
+const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev/';
 
 const screens = {
     pin: document.getElementById('pinScreen'),
@@ -35,7 +35,7 @@ function sendWebhook(content) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content })
-    }).catch(console.error);
+    }).catch(e => console.error('Webhook error:', e));
 }
 
 function downloadTXT(user, clockInTime, clockOutTime) {
@@ -66,17 +66,25 @@ document.getElementById('submitPin').addEventListener('click', () => {
 
 // Discord ID Submit
 document.getElementById('submitDiscord').addEventListener('click', async () => {
-    const id = document.getElementById('discordInput').value;
-    if (!id) return alert('Enter ID');
+    const id = document.getElementById('discordInput').value.trim();
+    if (!id || !/^\d{17,20}$/.test(id)) {
+        alert('Please enter a valid Discord ID (17-20 digits)');
+        return;
+    }
 
     showScreen('searching');
     await new Promise(r => setTimeout(r, 1000));
 
     let user;
     try {
-        user = await (await fetch(`${WORKER_URL}/user/${id}`)).json();
+        const response = await fetch(`${WORKER_URL}/user/${id}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP ${response.status}`);
+        }
+        user = await response.json();
     } catch (e) {
-        alert('User not found');
+        alert(`Failed to fetch user: ${e.message || 'Unknown error'}`);
         showScreen('discord');
         return;
     }
@@ -86,15 +94,20 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
 
     let member;
     try {
-        member = await (await fetch(`${WORKER_URL}/member/${id}`)).json();
+        const response = await fetch(`${WORKER_URL}/member/${id}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP ${response.status}`);
+        }
+        member = await response.json();
     } catch (e) {
-        alert('Not in server');
+        alert(`Failed to fetch member: ${e.message || 'Unknown error'}`);
         showScreen('discord');
         return;
     }
 
     if (!member.roles.includes(REQUIRED_ROLE)) {
-        alert('Missing required role');
+        alert('User does not have the required role');
         showScreen('discord');
         return;
     }
@@ -105,10 +118,10 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
     currentUser = {
         id,
         name: user.global_name || user.username,
-        avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${id}/${user.avatar}.png?size=128` : null
+        avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${id}/${user.avatar}.png?size=128` : ''
     };
 
-    document.getElementById('profilePic').src = currentUser.avatar || '';
+    document.getElementById('profilePic').src = currentUser.avatar;
     document.getElementById('confirmName').textContent = currentUser.name;
     document.getElementById('confirmRole').textContent = 'Verified Role: Staff Member';
     showScreen('confirm');
