@@ -64,10 +64,15 @@
     <div id="mainScreen" class="screen">
         <div class="container">
             <img src="https://media.discordapp.net/attachments/1315278404009988107/1315740695365025792/Utilities_960_x_540_px.png?ex=68cba0c3&is=68ca4f43&hm=4312aac383b6083018e4f61be765405ea807bff0e45ebf227545babc3ffec2a6&=&format=webp&quality=lossless&width=1056&height=594" alt="Cirkle Logo" class="logo">
-            <h1>👋 Welcome, <span id="welcomeName"></span></h1>
+            <div class="user-header">
+                <img id="mainProfilePic" src="" alt="Profile" class="profile-img">
+                <h1>👋 Welcome, <span id="welcomeName"></span></h1>
+            </div>
             <p>Time clocked in: <span id="clockInTime"></span></p>
             <p>Current running period: <span id="runningPeriod"></span></p>
             <button id="clockOutBtn">Clock out</button>
+            <button id="myRolesBtn">My Roles</button>
+            <button id="myTasksBtn">My Tasks</button>
             <button id="loaBtn">Submit an LOA</button>
             <button id="handbookBtn">Handbooks</button>
             <div class="toggle-container">
@@ -77,6 +82,30 @@
                 </label>
                 <span>Dark Mode</span>
             </div>
+        </div>
+        <footer>© Cirkle Development 2024</footer>
+    </div>
+
+    <!-- My Roles Screen -->
+    <div id="rolesScreen" class="screen">
+        <div class="container">
+            <button id="backToMainRoles" class="back-btn">← Back</button>
+            <h2>My Roles</h2>
+            <ul id="rolesList"></ul>
+        </div>
+        <footer>© Cirkle Development 2024</footer>
+    </div>
+
+    <!-- My Tasks Screen -->
+    <div id="tasksScreen" class="screen">
+        <div class="container">
+            <button id="backToMainTasks" class="back-btn">← Back</button>
+            <h2>My Tasks</h2>
+            <div class="task-input">
+                <input type="text" id="taskInput" placeholder="Enter a new task...">
+                <button id="addTaskBtn">Add Task</button>
+            </div>
+            <ul id="tasksList"></ul>
         </div>
         <footer>© Cirkle Development 2024</footer>
     </div>

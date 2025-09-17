@@ -10,11 +10,13 @@ const screens = {
     pin: document.getElementById('pinScreen'),
     discord: document.getElementById('discordScreen'),
     searching: document.getElementById('searchingScreen'),
-    roles: document.getElementById('rolesScreen'),
+    roles: document.getElementById('rolesScreen'), // Loading screen
     cherry: document.getElementById('cherryScreen'),
     confirm: document.getElementById('confirmScreen'),
     clocking: document.getElementById('clockingScreen'),
     main: document.getElementById('mainScreen'),
+    myRoles: document.getElementById('rolesScreen'), // New roles screen
+    tasks: document.getElementById('tasksScreen'),
     goodbye: document.getElementById('goodbyeScreen')
 };
 
@@ -54,6 +56,55 @@ function downloadTXT(user, clockInTime, clockOutTime) {
 
 let currentUser = null;
 let clockInTime = null;
+let currentTasks = [];
+
+// Load Tasks
+function loadTasks() {
+    const savedTasks = localStorage.getItem(`tasks_${currentUser.id}`);
+    currentTasks = savedTasks ? JSON.parse(savedTasks) : [];
+    renderTasks();
+}
+
+function saveTasks() {
+    localStorage.setItem(`tasks_${currentUser.id}`, JSON.stringify(currentTasks));
+}
+
+function renderTasks() {
+    const list = document.getElementById('tasksList');
+    list.innerHTML = '';
+    currentTasks.forEach((task, index) => {
+        const li = document.createElement('li');
+        li.className = 'task-item';
+        li.innerHTML = `
+            <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
+            <span>${task.text}</span>
+        `;
+        const checkbox = li.querySelector('.task-checkbox');
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                li.classList.add('completed');
+                setTimeout(() => {
+                    currentTasks.splice(index, 1);
+                    saveTasks();
+                    renderTasks();
+                }, 5000);
+            } else {
+                li.classList.remove('completed');
+                task.completed = false;
+                saveTasks();
+            }
+        });
+        if (task.completed) {
+            li.classList.add('completed');
+            setTimeout(() => {
+                currentTasks.splice(index, 1);
+                saveTasks();
+                renderTasks();
+            }, 5000);
+        }
+        list.appendChild(li);
+    });
+}
 
 // PIN Submit
 document.getElementById('submitPin').addEventListener('click', () => {
@@ -132,7 +183,8 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
     currentUser = {
         id,
         name: user.global_name || user.username,
-        avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${id}/${user.avatar}.png?size=128` : ''
+        avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${id}/${user.avatar}.png?size=128` : '',
+        roles: member.roles // Store roles array
     };
 
     document.getElementById('profilePic').src = currentUser.avatar;
@@ -154,6 +206,7 @@ document.getElementById('clockInBtn').addEventListener('click', () => {
         updateMainScreen();
         showScreen('main');
         startAutoLogoutCheck();
+        loadTasks(); // Load tasks on clock in
     }, 2000);
 });
 
@@ -167,6 +220,47 @@ document.getElementById('clockOutBtn').addEventListener('click', () => {
     showScreen('goodbye');
     clearInterval(autoLogoutInterval);
 });
+
+// My Roles Button
+document.getElementById('myRolesBtn').addEventListener('click', () => {
+    const list = document.getElementById('rolesList');
+    list.innerHTML = '';
+    currentUser.roles.forEach(roleId => {
+        const li = document.createElement('li');
+        li.textContent = `Role ID: ${roleId}`; // Customize to fetch role names if needed via Worker
+        list.appendChild(li);
+    });
+    showScreen('myRoles');
+});
+
+// Back from Roles
+document.getElementById('backToMainRoles').addEventListener('click', () => showScreen('main'));
+
+// My Tasks Button
+document.getElementById('myTasksBtn').addEventListener('click', () => {
+    loadTasks();
+    showScreen('tasks');
+});
+
+// Add Task
+document.getElementById('addTaskBtn').addEventListener('click', () => {
+    const input = document.getElementById('taskInput');
+    const text = input.value.trim();
+    if (text) {
+        currentTasks.push({ text, completed: false });
+        saveTasks();
+        renderTasks();
+        input.value = '';
+    }
+});
+
+// Enter on Task Input
+document.getElementById('taskInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') document.getElementById('addTaskBtn').click();
+});
+
+// Back from Tasks
+document.getElementById('backToMainTasks').addEventListener('click', () => showScreen('main'));
 
 // Other Buttons
 document.getElementById('loaBtn').addEventListener('click', () => window.open(LOA_LINK, '_blank'));
@@ -199,6 +293,7 @@ window.addEventListener('load', () => {
             updateMainScreen();
             showScreen('main');
             startAutoLogoutCheck();
+            loadTasks(); // Load tasks on resume
         }
     } else {
         showScreen('pin');
@@ -209,6 +304,7 @@ function updateMainScreen() {
     document.getElementById('welcomeName').textContent = currentUser.name;
     document.getElementById('clockInTime').textContent = new Date(clockInTime).toLocaleString();
     document.getElementById('runningPeriod').textContent = formatTime(Date.now() - clockInTime);
+    document.getElementById('mainProfilePic').src = currentUser.avatar;
     setInterval(() => {
         if (currentUser) {
             document.getElementById('runningPeriod').textContent = formatTime(Date.now() - clockInTime);

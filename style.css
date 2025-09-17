@@ -95,10 +95,11 @@ button:hover {
 }
 
 .profile-img {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
-    margin: 20px 0;
+    margin: 0 10px 20px 0;
+    vertical-align: middle;
 }
 
 .logo {
@@ -106,6 +107,13 @@ button:hover {
     height: auto;
     margin-bottom: 20px;
     border-radius: 10px;
+}
+
+.user-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
 }
 
 .loading-screen h2 {
@@ -201,4 +209,59 @@ footer {
     font-size: 12px;
     color: var(--text-color);
     opacity: 0.7;
+}
+
+/* New Styles for Roles and Tasks */
+.back-btn {
+    width: auto;
+    padding: 10px 20px;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--text-color);
+}
+
+ul {
+    list-style: none;
+    text-align: left;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+li {
+    padding: 10px;
+    margin: 5px 0;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.task-input {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.task-input input {
+    flex: 1;
+    text-align: left;
+}
+
+.task-input button {
+    width: auto;
+    padding: 15px 20px;
+}
+
+.task-item {
+    transition: opacity 0.3s, text-decoration 0.3s;
+}
+
+.task-item.completed {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+.task-checkbox {
+    margin-right: 10px;
 }
