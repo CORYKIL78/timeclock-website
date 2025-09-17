@@ -1,10 +1,10 @@
 const PIN = '1406';
-const BOT_TOKEN = 'MTQxNzkxNTg5NjYzNDI3Nzg4OA.GMu4rv.T_Tru0HtZoaVbL57qxFDWb8rjR3Pj4OpaoaIvU';
 const REQUIRED_ROLE = '1315346851616002158';
 const GUILD_ID = '1310656642672627752';
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1417260030851551273/KGKnWF3mwTt7mNWmC3OTAPWcWJSl1FnQ3-Ub-l1-xpk46tOsAYAtIhRTlti2qxjJSOds';
 const LOA_LINK = 'https://dyno.gg/form/e4c75cbc';
 const HANDBOOK_LINK = 'https://docs.google.com/document/d/1SB48S4SiuT9_npDhgU1FT_CxAjdKGn40IpqUQKm2Nek/edit?usp=sharing';
+const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev/'; // Replace with your Cloudflare Worker URL
 
 const screens = {
     pin: document.getElementById('pinScreen'),
@@ -72,10 +72,9 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
     showScreen('searching');
     await new Promise(r => setTimeout(r, 1000));
 
-    const headers = { Authorization: `Bot ${BOT_TOKEN}` };
     let user;
     try {
-        user = await (await fetch(`https://discord.com/api/v10/users/${id}`, { headers })).json();
+        user = await (await fetch(`${WORKER_URL}/user/${id}`)).json();
     } catch (e) {
         alert('User not found');
         showScreen('discord');
@@ -87,7 +86,7 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
 
     let member;
     try {
-        member = await (await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${id}`, { headers })).json();
+        member = await (await fetch(`${WORKER_URL}/member/${id}`)).json();
     } catch (e) {
         alert('Not in server');
         showScreen('discord');
@@ -111,7 +110,7 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
 
     document.getElementById('profilePic').src = currentUser.avatar || '';
     document.getElementById('confirmName').textContent = currentUser.name;
-    document.getElementById('confirmRole').textContent = 'Verified Role: Staff Member'; // Customize label as needed
+    document.getElementById('confirmRole').textContent = 'Verified Role: Staff Member';
     showScreen('confirm');
 });
 
@@ -165,7 +164,6 @@ window.addEventListener('load', () => {
         clockInTime = parseInt(savedTime);
         const now = Date.now();
         if (now - clockInTime > 24 * 60 * 60 * 1000) {
-            // Auto clock out if >24h
             sendWebhook(`💤 ${currentUser.name} has been auto clocked out (inactive).`);
             downloadTXT(currentUser, clockInTime, now);
             localStorage.clear();
@@ -183,8 +181,7 @@ window.addEventListener('load', () => {
 function updateMainScreen() {
     document.getElementById('welcomeName').textContent = currentUser.name;
     document.getElementById('clockInTime').textContent = new Date(clockInTime).toLocaleString();
-    const running = formatTime(Date.now() - clockInTime);
-    document.getElementById('runningPeriod').textContent = running;
+    document.getElementById('runningPeriod').textContent = formatTime(Date.now() - clockInTime);
     setInterval(() => {
         if (currentUser) {
             document.getElementById('runningPeriod').textContent = formatTime(Date.now() - clockInTime);
@@ -204,5 +201,5 @@ function startAutoLogoutCheck() {
             showScreen('goodbye');
             clearInterval(autoLogoutInterval);
         }
-    }, 60000); // Check every minute
+    }, 60000);
 }
