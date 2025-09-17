@@ -4,7 +4,7 @@ const GUILD_ID = '1310656642672627752';
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1417260030851551273/KGKnWF3mwTt7mNWmC3OTAPWcWJSl1FnQ3-Ub-l1-xpk46tOsAYAtIhRTlti2qxjJSOds';
 const LOA_LINK = 'https://dyno.gg/form/e4c75cbc';
 const HANDBOOK_LINK = 'https://docs.google.com/document/d/1SB48S4SiuT9_npDhgU1FT_CxAjdKGn40IpqUQKm2Nek/edit?usp=sharing';
-const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev/';
+const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev';
 
 const screens = {
     pin: document.getElementById('pinScreen'),
@@ -77,10 +77,11 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
 
     let user;
     try {
-        console.log(`Fetching user: ${WORKER_URL}/user/${id}`);
+        console.log(`Attempting to fetch user: ${WORKER_URL}/user/${id}`);
         const response = await fetch(`${WORKER_URL}/user/${id}`, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors'
         });
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -89,7 +90,7 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
         user = await response.json();
         console.log('User data:', user);
     } catch (e) {
-        console.error('User fetch error:', e);
+        console.error('User fetch error:', e, { url: `${WORKER_URL}/user/${id}` });
         alert(`Failed to fetch user: ${e.message || 'Network error - check console for details'}`);
         showScreen('discord');
         return;
@@ -100,10 +101,11 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
 
     let member;
     try {
-        console.log(`Fetching member: ${WORKER_URL}/member/${id}`);
+        console.log(`Attempting to fetch member: ${WORKER_URL}/member/${id}`);
         const response = await fetch(`${WORKER_URL}/member/${id}`, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors'
         });
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -112,7 +114,7 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
         member = await response.json();
         console.log('Member data:', member);
     } catch (e) {
-        console.error('Member fetch error:', e);
+        console.error('Member fetch error:', e, { url: `${WORKER_URL}/member/${id}` });
         alert(`Failed to fetch member: ${e.message || 'Network error - check console for details'}`);
         showScreen('discord');
         return;
