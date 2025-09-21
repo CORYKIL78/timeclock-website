@@ -94,6 +94,23 @@ button:hover {
     transform: scale(1.02);
 }
 
+#discordLoginBtn {
+    background: #5865F2; /* Discord brand color */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+#discordLoginBtn::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background: url('https://discord.com/assets/2c21aeda9de33b6a81a8e615c3199f6c.svg') no-repeat center;
+    background-size: cover;
+}
+
 .profile-img {
     width: 60px;
     height: 60px;
@@ -211,7 +228,6 @@ footer {
     opacity: 0.7;
 }
 
-/* New Styles for Roles and Tasks */
 .back-btn {
     width: auto;
     padding: 10px 20px;

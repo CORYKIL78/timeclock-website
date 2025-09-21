@@ -5,17 +5,19 @@ const WEBHOOK_URL = 'https://discord.com/api/webhooks/1417260030851551273/KGKnWF
 const LOA_LINK = 'https://dyno.gg/form/e4c75cbc';
 const HANDBOOK_LINK = 'https://docs.google.com/document/d/1SB48S4SiuT9_npDhgU1FT_CxAjdKGn40IpqUQKm2Nek/edit?usp=sharing';
 const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev';
+const CLIENT_ID = '1417915896634277888'; // From Discord Developer Portal > OAuth2 > General
+const REDIRECT_URI = 'https://corykil78.github.io/timeclock-website'; // Your GitHub Pages URL
 
 const screens = {
     pin: document.getElementById('pinScreen'),
     discord: document.getElementById('discordScreen'),
     searching: document.getElementById('searchingScreen'),
-    roles: document.getElementById('rolesScreen'), // Loading screen
+    roles: document.getElementById('rolesScreen'),
     cherry: document.getElementById('cherryScreen'),
     confirm: document.getElementById('confirmScreen'),
     clocking: document.getElementById('clockingScreen'),
     main: document.getElementById('mainScreen'),
-    myRoles: document.getElementById('rolesScreen'), // New roles screen
+    myRoles: document.getElementById('rolesScreen'),
     tasks: document.getElementById('tasksScreen'),
     goodbye: document.getElementById('goodbyeScreen')
 };
@@ -58,7 +60,6 @@ let currentUser = null;
 let clockInTime = null;
 let currentTasks = [];
 
-// Load Tasks
 function loadTasks() {
     const savedTasks = localStorage.getItem(`tasks_${currentUser.id}`);
     currentTasks = savedTasks ? JSON.parse(savedTasks) : [];
@@ -115,34 +116,40 @@ document.getElementById('submitPin').addEventListener('click', () => {
     }
 });
 
-// Discord ID Submit
-document.getElementById('submitDiscord').addEventListener('click', async () => {
-    const id = document.getElementById('discordInput').value.trim();
-    if (!id || !/^\d{17,20}$/.test(id)) {
-        alert('Please enter a valid Discord ID (17-20 digits)');
-        return;
-    }
+// Discord Login
+document.getElementById('discordLoginBtn').addEventListener('click', () => {
+    const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify`;
+    window.location.href = oauthUrl;
+});
+
+// Handle OAuth2 Redirect
+async function handleOAuthRedirect() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    if (!code) return;
 
     showScreen('searching');
     await new Promise(r => setTimeout(r, 1000));
 
     let user;
     try {
-        console.log(`Attempting to fetch user: ${WORKER_URL}/user/${id}`);
-        const response = await fetch(`${WORKER_URL}/user/${id}`, {
+        console.log(`Authenticating with code: ${code}`);
+        const response = await fetch(`${WORKER_URL}/auth?code=${code}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
             mode: 'cors'
         });
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
         }
         user = await response.json();
         console.log('User data:', user);
+        // Clear URL params
+        window.history.replaceState({}, document.title, window.location.pathname);
     } catch (e) {
-        console.error('User fetch error:', e, { url: `${WORKER_URL}/user/${id}` });
-        alert(`Failed to fetch user: ${e.message || 'Network error - check console for details'}`);
+        console.error('Auth error:', e, { url: `${WORKER_URL}/auth?code=${code}` });
+        alert(`Failed to authenticate: ${e.message || 'Network error - check console'}`);
         showScreen('discord');
         return;
     }
@@ -152,8 +159,8 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
 
     let member;
     try {
-        console.log(`Attempting to fetch member: ${WORKER_URL}/member/${id}`);
-        const response = await fetch(`${WORKER_URL}/member/${id}`, {
+        console.log(`Fetching member: ${WORKER_URL}/member/${user.id}`);
+        const response = await fetch(`${WORKER_URL}/member/${user.id}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
             mode: 'cors'
@@ -165,8 +172,8 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
         member = await response.json();
         console.log('Member data:', member);
     } catch (e) {
-        console.error('Member fetch error:', e, { url: `${WORKER_URL}/member/${id}` });
-        alert(`Failed to fetch member: ${e.message || 'Network error - check console for details'}`);
+        console.error('Member fetch error:', e, { url: `${WORKER_URL}/member/${user.id}` });
+        alert(`Failed to fetch member: ${e.message || 'Network error - check console'}`);
         showScreen('discord');
         return;
     }
@@ -181,17 +188,17 @@ document.getElementById('submitDiscord').addEventListener('click', async () => {
     await new Promise(r => setTimeout(r, 1000));
 
     currentUser = {
-        id,
+        id: user.id,
         name: user.global_name || user.username,
-        avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${id}/${user.avatar}.png?size=128` : '',
-        roles: member.roles // Store roles array
+        avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : '',
+        roles: member.roles
     };
 
     document.getElementById('profilePic').src = currentUser.avatar;
     document.getElementById('confirmName').textContent = currentUser.name;
     document.getElementById('confirmRole').textContent = 'Verified Role: Staff Member';
     showScreen('confirm');
-});
+}
 
 // Clock In
 document.getElementById('clockInBtn').addEventListener('click', () => {
@@ -206,7 +213,7 @@ document.getElementById('clockInBtn').addEventListener('click', () => {
         updateMainScreen();
         showScreen('main');
         startAutoLogoutCheck();
-        loadTasks(); // Load tasks on clock in
+        loadTasks();
     }, 2000);
 });
 
@@ -227,7 +234,7 @@ document.getElementById('myRolesBtn').addEventListener('click', () => {
     list.innerHTML = '';
     currentUser.roles.forEach(roleId => {
         const li = document.createElement('li');
-        li.textContent = `Role ID: ${roleId}`; // Customize to fetch role names if needed via Worker
+        li.textContent = `Role ID: ${roleId}`;
         list.appendChild(li);
     });
     showScreen('myRoles');
@@ -272,7 +279,7 @@ document.getElementById('modeToggle').addEventListener('change', (e) => {
     localStorage.setItem('darkMode', e.target.checked);
 });
 
-// Load Session on Start
+// Load Session or Handle OAuth
 window.addEventListener('load', () => {
     const savedUser = localStorage.getItem('currentUser');
     const savedTime = localStorage.getItem('clockInTime');
@@ -293,10 +300,15 @@ window.addEventListener('load', () => {
             updateMainScreen();
             showScreen('main');
             startAutoLogoutCheck();
-            loadTasks(); // Load tasks on resume
+            loadTasks();
         }
     } else {
-        showScreen('pin');
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('code')) {
+            handleOAuthRedirect();
+        } else {
+            showScreen('pin');
+        }
     }
 });
 
