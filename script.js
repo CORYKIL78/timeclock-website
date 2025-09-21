@@ -5,7 +5,7 @@ const WEBHOOK_URL = 'https://discord.com/api/webhooks/1417260030851551273/KGKnWF
 const LOA_LINK = 'https://dyno.gg/form/e4c75cbc';
 const HANDBOOK_LINK = 'https://docs.google.com/document/d/1SB48S4SiuT9_npDhgU1FT_CxAjdKGn40IpqUQKm2Nek/edit?usp=sharing';
 const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev';
-const CLIENT_ID = 'Y1417915896634277888'; // Replace with your Discord Client ID
+const CLIENT_ID = '1417915896634277888'; // Replace with your Discord Client ID
 const REDIRECT_URI = 'https://corykil78.github.io/timeclock-website';
 
 const screens = {
