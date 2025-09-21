@@ -5,8 +5,8 @@ const WEBHOOK_URL = 'https://discord.com/api/webhooks/1417260030851551273/KGKnWF
 const LOA_LINK = 'https://dyno.gg/form/e4c75cbc';
 const HANDBOOK_LINK = 'https://docs.google.com/document/d/1SB48S4SiuT9_npDhgU1FT_CxAjdKGn40IpqUQKm2Nek/edit?usp=sharing';
 const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev';
-const CLIENT_ID = '1417915896634277888'; // From Discord Developer Portal > OAuth2 > General
-const REDIRECT_URI = 'https://corykil78.github.io/timeclock-website'; // Your GitHub Pages URL
+const CLIENT_ID = 'Y1417915896634277888'; // Replace with your Discord Client ID
+const REDIRECT_URI = 'https://corykil78.github.io/timeclock-website';
 
 const screens = {
     pin: document.getElementById('pinScreen'),
@@ -23,8 +23,9 @@ const screens = {
 };
 
 function showScreen(screenId) {
-    Object.values(screens).forEach(s => s.classList.remove('active'));
-    screens[screenId].classList.add('active');
+    console.log(`Showing screen: ${screenId}`); // Debug
+    Object.values(screens).forEach(s => s && s.classList.remove('active'));
+    if (screens[screenId]) screens[screenId].classList.add('active');
 }
 
 function formatTime(ms) {
@@ -72,6 +73,7 @@ function saveTasks() {
 
 function renderTasks() {
     const list = document.getElementById('tasksList');
+    if (!list) return;
     list.innerHTML = '';
     currentTasks.forEach((task, index) => {
         const li = document.createElement('li');
@@ -117,16 +119,26 @@ document.getElementById('submitPin').addEventListener('click', () => {
 });
 
 // Discord Login
-document.getElementById('discordLoginBtn').addEventListener('click', () => {
-    const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify`;
-    window.location.href = oauthUrl;
-});
+const discordBtn = document.getElementById('discordLoginBtn');
+if (discordBtn) {
+    discordBtn.addEventListener('click', () => {
+        console.log('Discord login button clicked'); // Debug
+        const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify`;
+        console.log('Redirecting to:', oauthUrl);
+        window.location.href = oauthUrl;
+    });
+} else {
+    console.error('Discord login button not found');
+}
 
 // Handle OAuth2 Redirect
 async function handleOAuthRedirect() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    if (!code) return;
+    if (!code) {
+        console.log('No OAuth code in URL');
+        return;
+    }
 
     showScreen('searching');
     await new Promise(r => setTimeout(r, 1000));
@@ -141,11 +153,12 @@ async function handleOAuthRedirect() {
         });
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+            const errorMsg = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+            alert(`Authentication failed: ${errorMsg}. Check console for details.`);
+            throw new Error(errorMsg);
         }
         user = await response.json();
         console.log('User data:', user);
-        // Clear URL params
         window.history.replaceState({}, document.title, window.location.pathname);
     } catch (e) {
         console.error('Auth error:', e, { url: `${WORKER_URL}/auth?code=${code}` });
@@ -167,7 +180,9 @@ async function handleOAuthRedirect() {
         });
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+            const errorMsg = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+            alert(`Member fetch failed: ${errorMsg}. Check console for details.`);
+            throw new Error(errorMsg);
         }
         member = await response.json();
         console.log('Member data:', member);
@@ -281,13 +296,19 @@ document.getElementById('modeToggle').addEventListener('change', (e) => {
 
 // Load Session or Handle OAuth
 window.addEventListener('load', () => {
+    console.log('Page loaded, checking state'); // Debug
     const savedUser = localStorage.getItem('currentUser');
     const savedTime = localStorage.getItem('clockInTime');
     const darkMode = localStorage.getItem('darkMode') === 'true';
     document.getElementById('modeToggle').checked = darkMode;
     document.body.classList.toggle('dark', darkMode);
 
-    if (savedUser && savedTime) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('code')) {
+        console.log('OAuth code detected, handling redirect');
+        handleOAuthRedirect();
+    } else if (savedUser && savedTime) {
+        console.log('Restoring saved session');
         currentUser = JSON.parse(savedUser);
         clockInTime = parseInt(savedTime);
         const now = Date.now();
@@ -303,12 +324,8 @@ window.addEventListener('load', () => {
             loadTasks();
         }
     } else {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('code')) {
-            handleOAuthRedirect();
-        } else {
-            showScreen('pin');
-        }
+        console.log('No session or code, showing PIN screen');
+        showScreen('pin');
     }
 });
 
