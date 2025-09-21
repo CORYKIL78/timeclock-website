@@ -1,0 +1,14 @@
+* [33mafd589a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fixed Client ID
+* [33mb892668[m Fix Discord OAuth button and redirect handling
+*   [33me33a79f[m Merge branch 'main' of https://github.com/CORYKIL78/timeclock-website
+[32m|[m[33m\[m  
+[32m|[m * [33maba1e70[m Create CNAME
+* [33m|[m [33m04a28c7[m Add Discord OAuth2 for secure login
+[33m|[m[33m/[m  
+* [33m5ad08bc[m Add My Roles, My Tasks, and profile icon
+* [33m6663b1a[m Fix CORS and add detailed fetch debugging
+* [33mf72b0eb[m Add detailed error logging for Worker fetch
+* [33ma0d6c97[m Improve Discord ID error handling
+* [33m5c32d75[m Update script.js with Cloudflare Worker URL
+* [33ma0f1516[m Add timeclock website files
+* [33mdd820f2[m Initial commit
