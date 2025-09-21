@@ -7,24 +7,21 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Sidebar -->
-    <div id="sidebar">
+    <!-- Sidebar (shown after login) -->
+    <div id="sidebar" class="sidebar hidden">
         <div class="sidebar-header">
             <img id="sidebarProfilePic" src="" alt="Profile" class="profile-img">
         </div>
-        <button id="sidebarToggle">☰</button>
+        <button id="sidebarToggle" class="sidebar-toggle">☰</button>
         <nav id="sidebarNav">
             <button id="myProfileBtn">My Profile</button>
             <button id="myRolesBtn">My Roles</button>
             <button id="myTasksBtn">My Tasks</button>
-            <button id="submitAbsenceBtn">Submit Absence</button>
             <button id="absencesBtn">Absences</button>
             <button id="payslipsBtn">Payslips</button>
             <button id="disciplinariesBtn">Disciplinaries</button>
-            <button id="loaBtn">Submit an LOA</button>
             <button id="handbookBtn">Handbooks</button>
-            <button id="mainLogInBtn" style="display: none;">Log In</button>
-            <button id="clockOutBtn">Log Out</button>
+            <button id="clockOutBtn">Clock Out</button>
             <div class="toggle-container">
                 <label class="switch">
                     <input type="checkbox" id="modeToggle">
@@ -35,8 +32,8 @@
         </nav>
     </div>
 
-    <!-- Notification Panel -->
-    <div id="notificationPanel">
+    <!-- Notification Panel (shown after login) -->
+    <div id="notificationPanel" class="notifications hidden">
         <h3>Notifications</h3>
         <ul id="notificationList"></ul>
     </div>
@@ -90,16 +87,16 @@
             <img id="profilePic" src="" alt="Profile" class="profile-img">
             <h2 id="confirmName"></h2>
             <p id="confirmRole"></p>
-            <button id="logInBtn">Log In</button>
+            <button id="clockInBtn">Clock In</button>
         </div>
         <footer>© Cirkle Development 2025</footer>
     </div>
 
-    <!-- Log In Loading -->
+    <!-- Clock In Loading -->
     <div id="clockingScreen" class="screen loading-screen">
         <div class="container">
             <div class="black-bg">
-                <h2>Logging in, please wait!</h2>
+                <h2>Clocking in, please wait!</h2>
                 <div class="spinner"></div>
             </div>
         </div>
@@ -162,21 +159,32 @@
     </div>
     <div id="portalWelcomeScreen" class="screen">
         <div class="container">
+            <img src="https://media.discordapp.net/attachments/1315278404009988107/1315740695365025792/Utilities_960_x_540_px.png?ex=68cba0c3&is=68ca4f43&hm=4312aac383b6083018e4f61be765405ea807bff0e45ebf227545babc3ffec2a6&=&format=webp&quality=lossless&width=1056&height=594" alt="Cirkle Logo" class="logo">
             <h2>Welcome to the Cirkle Staff Portal, <span id="portalWelcomeName"></span>!</h2>
             <p>You will be redirected to the main menu shortly...</p>
         </div>
         <footer>© Cirkle Development 2025</footer>
     </div>
 
-    <!-- Main Menu -->
+    <!-- Main Menu (Staff) -->
     <div id="mainMenuScreen" class="screen">
-        <div class="container">
+        <div class="container main-menu">
             <img src="https://media.discordapp.net/attachments/1315278404009988107/1315740695365025792/Utilities_960_x_540_px.png?ex=68cba0c3&is=68ca4f43&hm=4312aac383b6083018e4f61be765405ea807bff0e45ebf227545babc3ffec2a6&=&format=webp&quality=lossless&width=1056&height=594" alt="Cirkle Logo" class="logo">
-            <div class="user-header">
-                <h1>👋 Welcome, <span id="welcomeName"></span></h1>
-            </div>
-            <p>Time logged in: <span id="clockInTime"></span></p>
-            <p>Current session duration: <span id="runningPeriod"></span></p>
+            <h1>Welcome, <span id="welcomeName"></span></h1>
+            <p>Time clocked in: <span id="clockInTime"></span></p>
+            <p>Current running period: <span id="runningPeriod"></span></p>
+        </div>
+        <footer>© Cirkle Development 2025</footer>
+    </div>
+
+    <!-- HR Main Menu -->
+    <div id="hrMainMenuScreen" class="screen">
+        <div class="container main-menu">
+            <img src="https://media.discordapp.net/attachments/1315278404009988107/1315740695365025792/Utilities_960_x_540_px.png?ex=68cba0c3&is=68ca4f43&hm=4312aac383b6083018e4f61be765405ea807bff0e45ebf227545babc3ffec2a6&=&format=webp&quality=lossless&width=1056&height=594" alt="Cirkle Logo" class="logo">
+            <h1>HR Portal - Welcome, <span id="hrWelcomeName"></span></h1>
+            <button id="hrAddPayslipBtn">Add Payslip</button>
+            <button id="hrManageAbsencesBtn">Manage Absences</button>
+            <button id="hrViewEmployeesBtn">View Employee List</button>
         </div>
         <footer>© Cirkle Development 2025</footer>
     </div>
@@ -202,34 +210,28 @@
         <footer>© Cirkle Development 2025</footer>
     </div>
 
-    <!-- Submit Absence Screen -->
-    <div id="submitAbsenceScreen" class="screen">
-        <div class="container">
-            <button class="back-btn">← Back</button>
-            <h2>Submit Absence</h2>
-            <label>Type:
-                <select id="absenceType">
-                    <option value="Sick Leave">Sick Leave</option>
-                    <option value="Personal Leave">Personal Leave</option>
-                    <option value="Vacation">Vacation</option>
-                </select>
-            </label>
-            <label>Comment: <textarea id="absenceComment"></textarea></label>
-            <label>Start Date: <input type="date" id="absenceStart"></label>
-            <label>End Date: <input type="date" id="absenceEnd"></label>
-            <p id="absenceDays"></p>
-            <button id="submitAbsenceFormBtn">Submit</button>
-        </div>
-        <footer>© Cirkle Development 2025</footer>
-    </div>
-
     <!-- Absences Screen -->
     <div id="absencesScreen" class="screen">
         <div class="container">
             <button class="back-btn">← Back</button>
             <h2>Absences</h2>
+            <button id="submitAbsenceBtn">Submit Absence</button>
+            <div id="submitAbsenceForm" class="hidden">
+                <label>Type:
+                    <select id="absenceType">
+                        <option value="Sick Leave">Sick Leave</option>
+                        <option value="Personal Leave">Personal Leave</option>
+                        <option value="Vacation">Vacation</option>
+                    </select>
+                </label>
+                <label>Comment: <textarea id="absenceComment"></textarea></label>
+                <label>Start Date: <input type="date" id="absenceStart"></label>
+                <label>End Date: <input type="date" id="absenceEnd"></label>
+                <p id="absenceDays"></p>
+                <button id="submitAbsenceFormBtn">Submit</button>
+            </div>
             <div class="tabs">
-                <button class="tab-btn" data-tab="pending">Pending</button>
+                <button class="tab-btn active" data-tab="pending">Pending</button>
                 <button class="tab-btn" data-tab="approved">Approved</button>
                 <button class="tab-btn" data-tab="rejected">Rejected</button>
             </div>
@@ -282,19 +284,6 @@
         <footer>© Cirkle Development 2025</footer>
     </div>
 
-    <!-- HR Home Screen -->
-    <div id="hrHomeScreen" class="screen">
-        <div class="container">
-            <div class="user-header">
-                <h1>👋 Welcome to HR Portal, <span id="hrWelcomeName"></span></h1>
-            </div>
-            <button id="hrAddPayslipBtn">Add Payslip</button>
-            <button id="hrManageAbsencesBtn">Manage Absences</button>
-            <button id="hrViewEmployeesBtn">View Employee List</button>
-        </div>
-        <footer>© Cirkle Development 2025</footer>
-    </div>
-
     <!-- HR Add Payslip Screen -->
     <div id="hrAddPayslipScreen" class="screen">
         <div class="container">
@@ -329,7 +318,7 @@
     <!-- Goodbye Screen -->
     <div id="goodbyeScreen" class="screen">
         <div class="container">
-            <h1>👋 Goodbye, <span id="goodbyeName"></span>. Please remember to log in tomorrow!</h1>
+            <h1>👋 Goodbye, <span id="goodbyeName"></span>. Please remember to clock in tomorrow!</h1>
         </div>
         <footer>© Cirkle Development 2025</footer>
     </div>
