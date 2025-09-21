@@ -49,7 +49,8 @@ const screens = {
 const modals = {
     hrEmployeeProfile: document.getElementById('hrEmployeeProfileModal'),
     addStrike: document.getElementById('addStrikeModal'),
-    rejectAbsence: document.getElementById('rejectAbsenceModal')
+    rejectAbsence: document.getElementById('rejectAbsenceModal'),
+    resetProfile: document.getElementById('resetProfileModal')
 };
 
 let currentUser = null;
@@ -58,6 +59,7 @@ let currentTasks = [];
 let employees = JSON.parse(localStorage.getItem('employees')) || [];
 let notifications = [];
 let isHR = false;
+let isClockedIn = false;
 
 function showScreen(screenId) {
     console.log(`Showing screen: ${screenId}`);
@@ -133,6 +135,15 @@ function updateEmployee(employee) {
     } else {
         employees.push(employee);
     }
+    saveEmployees();
+}
+
+function resetEmployeeData(userId) {
+    employees = employees.filter(e => e.id !== userId);
+    localStorage.removeItem(`tasks_${userId}`);
+    localStorage.removeItem(`notifications_${userId}`);
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('clockInTime');
     saveEmployees();
 }
 
@@ -322,6 +333,7 @@ async function handleOAuthRedirect() {
         document.getElementById('hrWelcomeName').textContent = currentUser.name;
         showScreen('hrMainMenu');
         renderNotifications();
+        updateSidebarProfile();
     } else {
         if (!member.roles.includes(REQUIRED_ROLE)) {
             alert('User does not have the required role');
@@ -393,34 +405,60 @@ document.getElementById('setupCompleteBtn').addEventListener('click', () => {
     }, 3000);
 });
 
+// Continue from Confirmation Screen
+document.getElementById('continueBtn').addEventListener('click', () => {
+    showScreen('portalWelcome');
+    document.getElementById('portalWelcomeName').textContent = currentUser.profile.name;
+    setTimeout(() => {
+        showScreen('mainMenu');
+        updateSidebarProfile();
+        renderNotifications();
+        updateMainScreen();
+    }, 3000);
+});
+
 // Clock In
 document.getElementById('clockInBtn').addEventListener('click', () => {
-    clockInTime = Date.now();
-    localStorage.setItem('clockInTime', clockInTime);
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    sendWebhook(`☀️ ${currentUser.profile.name} has clocked in!`);
-    showScreen('clocking');
-    setTimeout(() => {
-        updateMainScreen();
-        showScreen('mainMenu');
-        startAutoLogoutCheck();
-        loadTasks();
-        renderNotifications();
-        updateSidebarProfile();
-    }, 2000);
+    if (!isClockedIn) {
+        clockInTime = Date.now();
+        localStorage.setItem('clockInTime', clockInTime);
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        sendWebhook(`☀️ ${currentUser.profile.name} has clocked in!`);
+        isClockedIn = true;
+        showScreen('clocking');
+        setTimeout(() => {
+            updateMainScreen();
+            showScreen('mainMenu');
+            startAutoLogoutCheck();
+            loadTasks();
+            renderNotifications();
+            updateSidebarProfile();
+        }, 2000);
+    } else {
+        alert('You are already clocked in!');
+    }
 });
 
 // Clock Out
 document.getElementById('clockOutBtn').addEventListener('click', () => {
-    const clockOutTime = Date.now();
-    sendWebhook(`💤 ${currentUser.profile.name} has clocked out!`);
-    downloadTXT(currentUser, clockInTime, clockOutTime);
-    localStorage.clear();
-    employees = [];
-    saveEmployees();
-    document.getElementById('goodbyeName').textContent = currentUser.profile.name;
-    showScreen('goodbye');
-    clearInterval(autoLogoutInterval);
+    if (isClockedIn) {
+        const clockOutTime = Date.now();
+        sendWebhook(`💤 ${currentUser.profile.name} has clocked out!`);
+        downloadTXT(currentUser, clockInTime, clockOutTime);
+        localStorage.clear();
+        employees = [];
+        saveEmployees();
+        document.getElementById('goodbyeName').textContent = currentUser.profile.name;
+        showScreen('goodbye');
+        clearInterval(autoLogoutInterval);
+        isClockedIn = false;
+    } else {
+        localStorage.clear();
+        employees = [];
+        saveEmployees();
+        document.getElementById('goodbyeName').textContent = currentUser.profile.name;
+        showScreen('goodbye');
+    }
 });
 
 // Sidebar Toggle
@@ -451,6 +489,24 @@ document.getElementById('saveProfileBtn').addEventListener('click', () => {
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
     alert('Profile saved');
     showScreen('mainMenu');
+});
+
+// Reset Profile
+document.getElementById('resetProfileBtn').addEventListener('click', () => {
+    showModal('resetProfile');
+});
+
+document.getElementById('confirmResetBtn').addEventListener('click', () => {
+    resetEmployeeData(currentUser.id);
+    currentUser = null;
+    clockInTime = null;
+    isClockedIn = false;
+    closeModal('resetProfile');
+    showScreen('setupWelcome');
+});
+
+document.getElementById('cancelResetBtn').addEventListener('click', () => {
+    closeModal('resetProfile');
 });
 
 // My Roles
@@ -792,6 +848,7 @@ window.addEventListener('load', () => {
         currentUser = JSON.parse(savedUser);
         notifications = JSON.parse(localStorage.getItem(`notifications_${currentUser.id}`)) || [];
         clockInTime = parseInt(savedTime);
+        isClockedIn = true;
         const now = Date.now();
         if (now - clockInTime > 24 * 60 * 60 * 1000) {
             sendWebhook(`💤 ${currentUser.profile.name} has been auto clocked out (inactive).`);
@@ -816,20 +873,28 @@ window.addEventListener('load', () => {
 
 function updateMainScreen() {
     document.getElementById('welcomeName').textContent = currentUser.profile.name;
-    document.getElementById('mainProfilePic').src = currentUser.avatar;
-    document.getElementById('clockInTime').textContent = new Date(clockInTime).toLocaleString();
-    document.getElementById('runningPeriod').textContent = formatTime(Date.now() - clockInTime);
-    setInterval(() => {
-        if (currentUser) {
-            document.getElementById('runningPeriod').textContent = formatTime(Date.now() - clockInTime);
-        }
-    }, 1000);
+    const clockInStatus = document.getElementById('clockInStatus');
+    const runningPeriodContainer = document.getElementById('runningPeriodContainer');
+    if (isClockedIn) {
+        clockInStatus.classList.remove('hidden');
+        runningPeriodContainer.classList.remove('hidden');
+        document.getElementById('clockInTime').textContent = new Date(clockInTime).toLocaleString();
+        document.getElementById('runningPeriod').textContent = formatTime(Date.now() - clockInTime);
+        setInterval(() => {
+            if (currentUser && isClockedIn) {
+                document.getElementById('runningPeriod').textContent = formatTime(Date.now() - clockInTime);
+            }
+        }, 1000);
+    } else {
+        clockInStatus.classList.add('hidden');
+        runningPeriodContainer.classList.add('hidden');
+    }
 }
 
 let autoLogoutInterval;
 function startAutoLogoutCheck() {
     autoLogoutInterval = setInterval(() => {
-        if (Date.now() - clockInTime > 24 * 60 * 60 * 1000) {
+        if (isClockedIn && Date.now() - clockInTime > 24 * 60 * 60 * 1000) {
             const clockOutTime = Date.now();
             sendWebhook(`💤 ${currentUser.profile.name} has been auto clocked out (24h limit).`);
             downloadTXT(currentUser, clockInTime, clockOutTime);
@@ -839,6 +904,7 @@ function startAutoLogoutCheck() {
             document.getElementById('goodbyeName').textContent = currentUser.profile.name;
             showScreen('goodbye');
             clearInterval(autoLogoutInterval);
+            isClockedIn = false;
         }
     }, 60000);
 }

@@ -87,7 +87,7 @@
             <img id="profilePic" src="" alt="Profile" class="profile-img">
             <h2 id="confirmName"></h2>
             <p id="confirmRole"></p>
-            <button id="clockInBtn">Clock In</button>
+            <button id="continueBtn">Continue</button>
         </div>
         <footer>© Cirkle Development 2025</footer>
     </div>
@@ -171,8 +171,9 @@
         <div class="container main-menu">
             <img src="https://media.discordapp.net/attachments/1315278404009988107/1315740695365025792/Utilities_960_x_540_px.png?ex=68cba0c3&is=68ca4f43&hm=4312aac383b6083018e4f61be765405ea807bff0e45ebf227545babc3ffec2a6&=&format=webp&quality=lossless&width=1056&height=594" alt="Cirkle Logo" class="logo">
             <h1>Welcome, <span id="welcomeName"></span></h1>
-            <p>Time clocked in: <span id="clockInTime"></span></p>
-            <p>Current running period: <span id="runningPeriod"></span></p>
+            <button id="clockInBtn">Clock In</button>
+            <p id="clockInStatus" class="hidden">Time clocked in: <span id="clockInTime"></span></p>
+            <p id="runningPeriodContainer" class="hidden">Current running period: <span id="runningPeriod"></span></p>
         </div>
         <footer>© Cirkle Development 2025</footer>
     </div>
@@ -206,6 +207,7 @@
                 </select>
             </label>
             <button id="saveProfileBtn">Save Profile</button>
+            <button id="resetProfileBtn">Reset Profile</button>
         </div>
         <footer>© Cirkle Development 2025</footer>
     </div>
@@ -364,6 +366,15 @@
             <h2>Reject Absence</h2>
             <label>Reason: <textarea id="rejectReason"></textarea></label>
             <button id="submitRejectBtn">Submit</button>
+        </div>
+    </div>
+    <div id="resetProfileModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Reset Profile</h2>
+            <p>Are you sure you want to reset all your profile data? This will clear your profile, absences, payslips, strikes, tasks, and notifications, and you will need to go through the setup process again.</p>
+            <button id="confirmResetBtn">Confirm</button>
+            <button id="cancelResetBtn">Cancel</button>
         </div>
     </div>
 
