@@ -5,8 +5,8 @@ const WEBHOOK_URL = 'https://discord.com/api/webhooks/1417260030851551273/KGKnWF
 const LOA_LINK = 'https://dyno.gg/form/e4c75cbc';
 const HANDBOOK_LINK = 'https://docs.google.com/document/d/1SB48S4SiuT9_npDhgU1FT_CxAjdKGn40IpqUQKm2Nek/edit?usp=sharing';
 const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev';
-const CLIENT_ID = '1417915896634277888'; // Replace with your Discord Client ID
-const REDIRECT_URI = 'https://corykil78.github.io/timeclock-website';
+const CLIENT_ID = '1417915896634277888'; // Replace with your numeric Discord Client ID (no 'Y')
+const REDIRECT_URI = 'https://corykil78.github.io/timeclock-website'; // Exact URL, no trailing slash
 
 const screens = {
     pin: document.getElementById('pinScreen'),
@@ -23,7 +23,7 @@ const screens = {
 };
 
 function showScreen(screenId) {
-    console.log(`Showing screen: ${screenId}`); // Debug
+    console.log(`Showing screen: ${screenId}`);
     Object.values(screens).forEach(s => s && s.classList.remove('active'));
     if (screens[screenId]) screens[screenId].classList.add('active');
 }
@@ -122,9 +122,10 @@ document.getElementById('submitPin').addEventListener('click', () => {
 const discordBtn = document.getElementById('discordLoginBtn');
 if (discordBtn) {
     discordBtn.addEventListener('click', () => {
-        console.log('Discord login button clicked'); // Debug
+        console.log('Discord login button clicked');
         const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify`;
         console.log('Redirecting to:', oauthUrl);
+        console.log('Using redirect_uri:', REDIRECT_URI); // Debug URI
         window.location.href = oauthUrl;
     });
 } else {
@@ -146,6 +147,7 @@ async function handleOAuthRedirect() {
     let user;
     try {
         console.log(`Authenticating with code: ${code}`);
+        console.log('Using redirect_uri for Worker:', REDIRECT_URI); // Debug URI
         const response = await fetch(`${WORKER_URL}/auth?code=${code}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
@@ -296,7 +298,7 @@ document.getElementById('modeToggle').addEventListener('change', (e) => {
 
 // Load Session or Handle OAuth
 window.addEventListener('load', () => {
-    console.log('Page loaded, checking state'); // Debug
+    console.log('Page loaded, checking state');
     const savedUser = localStorage.getItem('currentUser');
     const savedTime = localStorage.getItem('clockInTime');
     const darkMode = localStorage.getItem('darkMode') === 'true';
