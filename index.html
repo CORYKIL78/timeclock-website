@@ -14,12 +14,15 @@
         </div>
         <button id="sidebarToggle" class="sidebar-toggle">☰</button>
         <nav id="sidebarNav">
+            <button id="homeBtn">Home</button>
             <button id="myProfileBtn">My Profile</button>
             <button id="myRolesBtn">My Roles</button>
             <button id="myTasksBtn">My Tasks</button>
             <button id="absencesBtn">Absences</button>
             <button id="payslipsBtn">Payslips</button>
             <button id="disciplinariesBtn">Disciplinaries</button>
+            <button id="mailBtn">Mail</button>
+            <button id="timeclockBtn">Timeclock</button>
             <button id="handbookBtn">Handbooks</button>
             <button id="clockOutBtn">Clock Out</button>
             <div class="toggle-container">
@@ -38,18 +41,8 @@
         <ul id="notificationList"></ul>
     </div>
 
-    <!-- PIN Screen -->
-    <div id="pinScreen" class="screen active">
-        <div class="container">
-            <img src="https://media.discordapp.net/attachments/1315278404009988107/1315740695365025792/Utilities_960_x_540_px.png?ex=68cba0c3&is=68ca4f43&hm=4312aac383b6083018e4f61be765405ea807bff0e45ebf227545babc3ffec2a6&=&format=webp&quality=lossless&width=1056&height=594" alt="Cirkle Logo" class="logo">
-            <input type="password" id="pinInput" placeholder="Enter PIN" maxlength="4">
-            <button id="submitPin">Submit</button>
-        </div>
-        <footer>© Cirkle Development 2025</footer>
-    </div>
-
-    <!-- Discord Login Screen -->
-    <div id="discordScreen" class="screen">
+    <!-- Discord Login Screen (starting screen) -->
+    <div id="discordScreen" class="screen active">
         <div class="container">
             <img src="https://media.discordapp.net/attachments/1315278404009988107/1315740695365025792/Utilities_960_x_540_px.png?ex=68cba0c3&is=68ca4f43&hm=4312aac383b6083018e4f61be765405ea807bff0e45ebf227545babc3ffec2a6&=&format=webp&quality=lossless&width=1056&height=594" alt="Cirkle Logo" class="logo">
             <h2>Login with Discord</h2>
@@ -178,18 +171,6 @@
         <footer>© Cirkle Development 2025</footer>
     </div>
 
-    <!-- HR Main Menu -->
-    <div id="hrMainMenuScreen" class="screen">
-        <div class="container main-menu">
-            <img src="https://media.discordapp.net/attachments/1315278404009988107/1315740695365025792/Utilities_960_x_540_px.png?ex=68cba0c3&is=68ca4f43&hm=4312aac383b6083018e4f61be765405ea807bff0e45ebf227545babc3ffec2a6&=&format=webp&quality=lossless&width=1056&height=594" alt="Cirkle Logo" class="logo">
-            <h1>HR Portal - Welcome, <span id="hrWelcomeName"></span></h1>
-            <button id="hrAddPayslipBtn">Add Payslip</button>
-            <button id="hrManageAbsencesBtn">Manage Absences</button>
-            <button id="hrViewEmployeesBtn">View Employee List</button>
-        </div>
-        <footer>© Cirkle Development 2025</footer>
-    </div>
-
     <!-- My Profile Screen -->
     <div id="myProfileScreen" class="screen">
         <div class="container">
@@ -286,37 +267,6 @@
         <footer>© Cirkle Development 2025</footer>
     </div>
 
-    <!-- HR Add Payslip Screen -->
-    <div id="hrAddPayslipScreen" class="screen">
-        <div class="container">
-            <button class="back-btn">← Back</button>
-            <h2>Add Payslip</h2>
-            <h3>Select Employee</h3>
-            <ul id="hrEmployeeListForPayslip"></ul>
-        </div>
-        <footer>© Cirkle Development 2025</footer>
-    </div>
-
-    <!-- HR Manage Absences Screen -->
-    <div id="hrManageAbsencesScreen" class="screen">
-        <div class="container">
-            <button class="back-btn">← Back</button>
-            <h2>Manage Absences</h2>
-            <ul id="hrPendingAbsencesList"></ul>
-        </div>
-        <footer>© Cirkle Development 2025</footer>
-    </div>
-
-    <!-- HR Employee List Screen -->
-    <div id="hrEmployeeListScreen" class="screen">
-        <div class="container">
-            <button class="back-btn">← Back</button>
-            <h2>Employee List</h2>
-            <div id="hrEmployeeGrid" class="employee-grid"></div>
-        </div>
-        <footer>© Cirkle Development 2025</footer>
-    </div>
-
     <!-- Goodbye Screen -->
     <div id="goodbyeScreen" class="screen">
         <div class="container">
@@ -326,48 +276,6 @@
     </div>
 
     <!-- Modals -->
-    <div id="hrEmployeeProfileModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Employee Profile</h2>
-            <img id="hrEmployeeAvatar" src="" alt="Profile" class="profile-img">
-            <p>Discord: <span id="hrEmployeeDiscordName"></span></p>
-            <label>Name: <input type="text" id="hrEmployeeName"></label>
-            <label>Department:
-                <select id="hrEmployeeDepartment">
-                    <option value="Development Department">Development Department</option>
-                    <option value="Customer Relations Department">Customer Relations Department</option>
-                    <option value="Careers Department">Careers Department</option>
-                </select>
-            </label>
-            <p>Strikes: <span id="hrEmployeeStrikesCount"></span></p>
-            <button id="hrSaveEmployeeBtn">Save</button>
-            <button id="hrAddStrikeBtn">Add Strike</button>
-        </div>
-    </div>
-    <div id="addStrikeModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Add Strike</h2>
-            <label>Level:
-                <select id="strikeLevel">
-                    <option value="Minor">Minor</option>
-                    <option value="Major">Major</option>
-                    <option value="Severe">Severe</option>
-                </select>
-            </label>
-            <label>Details: <textarea id="strikeDetails"></textarea></label>
-            <button id="submitStrikeBtn">Submit</button>
-        </div>
-    </div>
-    <div id="rejectAbsenceModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Reject Absence</h2>
-            <label>Reason: <textarea id="rejectReason"></textarea></label>
-            <button id="submitRejectBtn">Submit</button>
-        </div>
-    </div>
     <div id="resetProfileModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
