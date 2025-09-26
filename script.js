@@ -99,7 +99,8 @@ async function sendWebhook(content) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content })
         });
-        if (!response.ok) throw new Error(`Webhook failed: ${response.status}`);
+        if (!response.ok) throw new Error(`Webhook failed: ${response.status} ${await response.text()}`);
+        console.log('Webhook sent successfully');
     } catch (e) {
         console.error('Webhook error:', e);
     }
@@ -108,7 +109,8 @@ async function sendWebhook(content) {
 async function sendEmbed(channelId, embed) {
     try {
         const response = await fetch(`${WORKER_URL}/postEmbed?channel_id=${channelId}&embed_json=${encodeURIComponent(JSON.stringify(embed))}`);
-        if (!response.ok) throw new Error(`Embed failed: ${response.status}`);
+        if (!response.ok) throw new Error(`Embed failed: ${response.status} ${await response.text()}`);
+        console.log('Embed sent successfully to channel:', channelId);
     } catch (e) {
         console.error('Embed error:', e);
     }
@@ -117,7 +119,8 @@ async function sendEmbed(channelId, embed) {
 async function sendDM(userId, message) {
     try {
         const response = await fetch(`${WORKER_URL}/sendDM?user_id=${userId}&message=${encodeURIComponent(message)}`);
-        if (!response.ok) throw new Error(`DM failed: ${response.status}`);
+        if (!response.ok) throw new Error(`DM failed: ${response.status} ${await response.text()}`);
+        console.log('DM sent successfully to user:', userId);
     } catch (e) {
         console.error('DM error:', e);
     }
@@ -249,6 +252,7 @@ function renderTasks() {
 
 document.getElementById('discordLoginBtn').addEventListener('click', () => {
     const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify&prompt=none`;
+    console.log('Initiating OAuth redirect:', oauthUrl);
     window.location.href = oauthUrl;
 });
 
@@ -256,14 +260,18 @@ async function handleOAuthRedirect() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const error = urlParams.get('error');
+    console.log('OAuth callback received:', { code, error, url: window.location.href });
+
     if (error) {
-        console.error('OAuth error:', urlParams.get('error_description'));
+        console.error('OAuth error:', urlParams.get('error_description') || 'Unknown error');
         showModal('alert', `OAuth error: ${urlParams.get('error_description') || 'Unknown error'}`);
         window.history.replaceState({}, document.title, REDIRECT_URI);
         showScreen('discord');
         return;
     }
+
     if (!code) {
+        console.log('No OAuth code provided, showing discord screen');
         showScreen('discord');
         return;
     }
@@ -271,6 +279,7 @@ async function handleOAuthRedirect() {
     // Prevent reprocessing if already logged in
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser && JSON.parse(savedUser).id) {
+        console.log('Found existing user session, redirecting to mainMenu');
         currentUser = JSON.parse(savedUser);
         showScreen('mainMenu');
         updateSidebarProfile();
@@ -284,6 +293,7 @@ async function handleOAuthRedirect() {
 
     let user;
     try {
+        console.log('Fetching user data from Worker:', `${WORKER_URL}/auth?code=${code}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`);
         const response = await fetch(`${WORKER_URL}/auth?code=${code}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
@@ -294,9 +304,10 @@ async function handleOAuthRedirect() {
             throw new Error(`Auth failed: ${response.status} ${errorText}`);
         }
         user = await response.json();
+        console.log('User data received:', user);
         window.history.replaceState({}, document.title, REDIRECT_URI);
     } catch (e) {
-        console.error('Auth fetch error:', e);
+        console.error('Auth fetch error:', e.message);
         showModal('alert', `Failed to authenticate: ${e.message}. Please check console for details.`);
         showScreen('discord');
         return;
@@ -307,6 +318,7 @@ async function handleOAuthRedirect() {
 
     let member;
     try {
+        console.log('Fetching member data:', `${WORKER_URL}/member/${user.id}`);
         const response = await fetch(`${WORKER_URL}/member/${user.id}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
@@ -317,8 +329,9 @@ async function handleOAuthRedirect() {
             throw new Error(`Member fetch failed: ${response.status} ${errorText}`);
         }
         member = await response.json();
+        console.log('Member data received:', member);
     } catch (e) {
-        console.error('Member fetch error:', e);
+        console.error('Member fetch error:', e.message);
         showModal('alert', `Failed to fetch member: ${e.message}. Please check console for details.`);
         showScreen('discord');
         return;
@@ -340,6 +353,7 @@ async function handleOAuthRedirect() {
     await new Promise(r => setTimeout(r, 1000));
 
     if (!member.roles.includes(REQUIRED_ROLE)) {
+        console.log('User lacks required role:', REQUIRED_ROLE);
         showModal('alert', 'User does not have the required role');
         showScreen('discord');
         return;
@@ -347,8 +361,10 @@ async function handleOAuthRedirect() {
 
     const profile = getEmployee(currentUser.id).profile;
     if (!profile.name) {
+        console.log('No profile name, redirecting to setupWelcome');
         showScreen('setupWelcome');
     } else {
+        console.log('Profile found, redirecting to confirm screen');
         document.getElementById('profilePic').src = currentUser.avatar;
         document.getElementById('confirmName').textContent = profile.name;
         document.getElementById('confirmRole').textContent = 'Verified Role: Staff Member';
@@ -388,9 +404,11 @@ document.getElementById('setupDepartmentContinueBtn').addEventListener('click', 
             if (currentUser.roles.includes(deptRole)) {
                 updateEmployee(currentUser);
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                console.log('Role verification successful, redirecting to setupComplete');
                 showScreen('setupComplete');
                 playSuccessSound();
             } else {
+                console.log('Role verification failed for department:', currentUser.profile.department);
                 showModal('alert', 'Role verification failed');
                 showScreen('setupDepartment');
             }
@@ -401,6 +419,7 @@ document.getElementById('setupDepartmentContinueBtn').addEventListener('click', 
 });
 
 document.getElementById('setupCompleteBtn').addEventListener('click', () => {
+    console.log('Setup complete, redirecting to portalWelcome');
     showScreen('portalWelcome');
     document.getElementById('portalWelcomeName').textContent = currentUser.profile.name;
     setTimeout(() => {
@@ -412,6 +431,7 @@ document.getElementById('setupCompleteBtn').addEventListener('click', () => {
 });
 
 document.getElementById('continueBtn').addEventListener('click', () => {
+    console.log('Continue button clicked, redirecting to portalWelcome');
     showScreen('portalWelcome');
     document.getElementById('portalWelcomeName').textContent = currentUser.profile.name;
     setTimeout(() => {
@@ -574,7 +594,7 @@ function renderAbsences(tab) {
     });
 }
 
-function acknowledgeRejection(absenceId) {
+window.acknowledgeRejection = function(absenceId) {
     const absence = currentUser.absences.find(a => a.id === absenceId);
     if (absence) {
         absence.status = 'rejected-acknowledged';
@@ -582,7 +602,7 @@ function acknowledgeRejection(absenceId) {
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         renderAbsences('rejected');
     }
-}
+};
 
 document.getElementById('payslipsBtn').addEventListener('click', () => {
     showScreen('payslips');
@@ -784,11 +804,11 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
         const reader = new FileReader();
         reader.onload = async () => {
             attachment = reader.result;
-            sendMail(recipient, subject, body, attachment);
+            await sendMail(recipient, subject, body, attachment);
         };
         reader.readAsDataURL(file);
     } else {
-        sendMail(recipient, subject, body, null);
+        await sendMail(recipient, subject, body, null);
     }
 });
 
@@ -942,9 +962,13 @@ window.addEventListener('load', () => {
     document.getElementById('modeToggle').checked = darkMode;
     document.body.classList.toggle('dark', darkMode);
 
+    console.log('Window loaded, checking OAuth state:', { savedUser: !!savedUser, savedTime: !!savedTime, code: new URLSearchParams(window.location.search).get('code') });
+
     if (new URLSearchParams(window.location.search).get('code')) {
+        console.log('Detected OAuth code, processing redirect');
         handleOAuthRedirect();
     } else if (savedUser) {
+        console.log('Found saved user, loading session');
         currentUser = JSON.parse(savedUser);
         notifications = JSON.parse(localStorage.getItem(`notifications_${currentUser.id}`)) || [];
         if (savedTime) {
@@ -952,6 +976,7 @@ window.addEventListener('load', () => {
             isClockedIn = true;
             const now = Date.now();
             if (now - clockInTime > 24 * 60 * 60 * 1000) {
+                console.log('Session expired, auto clocking out');
                 sendWebhook(`💤 ${currentUser.profile.name} has been auto clocked out (inactive).`);
                 downloadTXT(currentUser, clockInTime, now, clockInActions.join(', '));
                 currentUser.profile.lastClockIn = new Date(clockInTime).toLocaleString();
@@ -960,6 +985,7 @@ window.addEventListener('load', () => {
                 localStorage.removeItem('clockInTime');
                 showScreen('discord');
             } else {
+                console.log('Valid session, redirecting to mainMenu');
                 updateMainScreen();
                 showScreen('mainMenu');
                 startAutoLogoutCheck();
@@ -968,13 +994,15 @@ window.addEventListener('load', () => {
                 updateSidebarProfile();
             }
         } else {
-            showScreen('mainMenu');
+            console.log('No active clock-in, redirecting to mainMenu');
             updateMainScreen();
+            showScreen('mainMenu');
             loadTasks();
             renderNotifications();
             updateSidebarProfile();
         }
     } else {
+        console.log('No user session, showing discord screen');
         showScreen('discord');
     }
 });
@@ -982,6 +1010,7 @@ window.addEventListener('load', () => {
 window.addEventListener('hashchange', () => {
     const screenId = window.location.hash.slice(1);
     if (screens[screenId]) {
+        console.log('Hash changed, showing screen:', screenId);
         showScreen(screenId);
         if (screenId === 'myRoles') document.getElementById('myRolesBtn').click();
         else if (screenId === 'tasks') document.getElementById('myTasksBtn').click();
