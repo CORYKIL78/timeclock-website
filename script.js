@@ -270,11 +270,22 @@ function resetEmployeeData(userId) {
     saveEmployees();
 }
 
-function addNotification(type, message, link, userId = currentUser.id) {
+async function addNotification(type, message, link, userId = currentUser.id) {
+    const emp = getEmployee(userId);
     notifications.push({ id: Date.now().toString(), type, message, link, read: false, timestamp: new Date().toLocaleString() });
     localStorage.setItem(`notifications_${userId}`, JSON.stringify(notifications));
     playNotificationSound();
     renderNotifications();
+    await sendEmbed(NOTIFICATION_CHANNEL, {
+        title: `New Notification for ${emp.profile.name || 'User'}`,
+        fields: [
+            { name: 'Type', value: type.charAt(0).toUpperCase() + type.slice(1), inline: true },
+            { name: 'User', value: `<@${userId}> (${emp.profile.name || 'User'})`, inline: true },
+            { name: 'Message', value: message, inline: false },
+            { name: 'Timestamp', value: new Date().toLocaleString(), inline: true }
+        ],
+        color: 0x00ff00
+    });
 }
 
 function renderNotifications() {
@@ -1009,9 +1020,9 @@ document.getElementById('updateProfileBtn').addEventListener('click', () => {
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         showModal('alert', '<span class="success-tick"></span> Profile updated successfully!');
         playSuccessSound();
+        addNotification('profile', 'Your profile has been updated!', 'myProfile');
         document.getElementById('profileName').textContent = name;
         document.getElementById('profileEmail').textContent = email;
-        addNotification('profile', 'Your profile has been updated!', 'myProfile');
     } else {
         showModal('alert', 'Please enter a valid name and email');
     }
@@ -1037,9 +1048,9 @@ document.getElementById('submitDeptChangeBtn').addEventListener('click', () => {
         closeModal('deptChange');
         showModal('alert', '<span class="success-tick"></span> Request to change department has been sent.');
         playSuccessSound();
+        addNotification('department', 'Department change request submitted!', 'myProfile');
         document.getElementById('profileDepartment').textContent = emp.profile.department;
         document.getElementById('profileDepartment').classList.add('pending-department');
-        addNotification('department', 'Department change request submitted!', 'myProfile');
     } else {
         showModal('alert', 'Please select a department');
     }
@@ -1055,6 +1066,7 @@ document.getElementById('confirmResetBtn').addEventListener('click', () => {
     showScreen('setupWelcome');
     showModal('alert', '<span class="success-tick"></span> Profile reset successfully!');
     playSuccessSound();
+    addNotification('profile', 'Your profile has been reset!', 'discord');
 });
 
 document.getElementById('myRolesBtn').addEventListener('click', () => {

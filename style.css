@@ -136,7 +136,13 @@ textarea {
     resize: vertical;
 }
 
-button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn) {
+#taskInput {
+    height: 60px;
+    padding: 16px;
+    font-size: 18px;
+}
+
+button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn) {
     width: 100%;
     padding: 12px;
     margin: 8px 0;
@@ -149,17 +155,17 @@ button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn) {
     transition: background 0.2s var(--transition-ease), transform 0.1s var(--transition-ease), box-shadow 0.2s var(--transition-ease);
 }
 
-button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):hover {
+button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):hover {
     background: #0056b3;
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn) {
+body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn) {
     background: #1e90ff;
 }
 
-body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):hover {
+body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):hover {
     background: #1873cc;
 }
 
@@ -211,8 +217,8 @@ body.dark #logoutBtn {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    width: 60px;
-    height: 60px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     display: none;
     align-items: center;
@@ -228,8 +234,8 @@ body.dark #logoutBtn {
 #composeMailBtn::before {
     content: '';
     display: inline-block;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     background: url('https://cdn-icons-png.flaticon.com/512/561/561226.png') no-repeat center;
     background-size: cover;
 }
@@ -248,6 +254,20 @@ body.dark #composeMailBtn {
 }
 
 body.dark #composeMailBtn:hover {
+    background: #1873cc;
+}
+
+#addTaskBtn {
+    width: auto;
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+body.dark #addTaskBtn {
+    background: #1e90ff;
+}
+
+body.dark #addTaskBtn:hover {
     background: #1873cc;
 }
 
