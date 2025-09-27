@@ -23,14 +23,10 @@
             <button id="disciplinariesBtn">Disciplinaries</button>
             <button id="timeclockBtn">Timeclock</button>
             <button id="mailBtn">Mail</button>
-            <button id="logoutBtn">Logout</button>
         </div>
-        <div class="toggle-container">
-            <label class="switch">
-                <input type="checkbox" id="modeToggle">
-                <span class="slider"></span>
-            </label>
-            <span>Dark Mode</span>
+        <div class="sidebar-footer">
+            <button id="notificationBtn" title="Notifications">🔔</button>
+            <button id="logoutBtn" title="Log Out">🚪</button>
         </div>
     </div>
 
@@ -50,10 +46,14 @@
     <div id="composeMailModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h2>Compose Mail</h2>
-            <input type="text" id="mailRecipient" placeholder="Recipient">
-            <textarea id="mailContent" placeholder="Message"></textarea>
-            <button id="sendMailBtn">Send</button>
+            <div class="mail-compose">
+                <h2>Compose Mail</h2>
+                <select id="mailRecipient">
+                    <option value="">Select Recipient</option>
+                </select>
+                <textarea id="mailContent" placeholder="Message"></textarea>
+                <button id="sendMailBtn">Send</button>
+            </div>
         </div>
     </div>
     <div id="resetProfileModal" class="modal">
@@ -64,12 +64,38 @@
             <button id="confirmResetBtn">Confirm</button>
         </div>
     </div>
+    <div id="absenceRequestModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Request Absence</h2>
+            <select id="absenceType">
+                <option value="Sick Leave">Sick Leave</option>
+                <option value="Vacation">Vacation</option>
+                <option value="Personal Leave">Personal Leave</option>
+            </select>
+            <input type="date" id="absenceStartDate">
+            <input type="date" id="absenceEndDate">
+            <textarea id="absenceComment" placeholder="Comment"></textarea>
+            <button id="submitAbsenceBtn">Submit</button>
+        </div>
+    </div>
+    <div id="deptChangeModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Change Department</h2>
+            <p>Which department do you wish to change to?</p>
+            <label><input type="radio" name="newDepartment" value="Development Department"> Development</label>
+            <label><input type="radio" name="newDepartment" value="Customer Relations Department"> Customer Relations</label>
+            <label><input type="radio" name="newDepartment" value="Careers Department"> Careers</label>
+            <button id="submitDeptChangeBtn">Submit</button>
+        </div>
+    </div>
 
     <!-- Screens -->
     <div id="discordScreen" class="screen">
         <div class="container">
             <img class="logo" src="https://via.placeholder.com/150" alt="Logo">
-            <h1>Staff Portal</h1>
+            <h1>Welcome, please log in using Discord</h1>
             <button id="discordLoginBtn">Login with Discord</button>
         </div>
     </div>
@@ -93,10 +119,9 @@
     </div>
     <div id="confirmScreen" class="screen">
         <div class="container">
-            <h2>Verification Complete</h2>
-            <p>Name: <span id="confirmName"></span></p>
-            <p>Role: <span id="confirmRole"></span></p>
-            <button id="continueBtn">Continue</button>
+            <h2>Profile Found</h2>
+            <p>Please select "Finalise" to continue.</p>
+            <button id="continueBtn">Finalise</button>
         </div>
     </div>
     <div id="setupWelcomeScreen" class="screen">
@@ -108,21 +133,22 @@
     </div>
     <div id="setupEmailScreen" class="screen">
         <div class="container">
-            <h2>Enter Email</h2>
+            <h2>Please add your email</h2>
             <input type="email" id="setupEmailInput" placeholder="Email">
             <button id="setupEmailContinueBtn">Continue</button>
         </div>
     </div>
     <div id="setupNameScreen" class="screen">
         <div class="container">
-            <h2>Enter Name</h2>
-            <input type="text" id="setupNameInput" placeholder="Name">
+            <h2>Let's give you a proper identity</h2>
+            <p>Please insert your first and last name (not your real one, the one you use in the server)</p>
+            <input type="text" id="setupNameInput" placeholder="First Last">
             <button id="setupNameContinueBtn">Continue</button>
         </div>
     </div>
     <div id="setupDepartmentScreen" class="screen">
         <div class="container">
-            <h2>Select Department</h2>
+            <h2>Finally, let's select your department</h2>
             <label><input type="radio" name="department" value="Development Department"> Development</label>
             <label><input type="radio" name="department" value="Customer Relations Department"> Customer Relations</label>
             <label><input type="radio" name="department" value="Careers Department"> Careers</label>
@@ -131,26 +157,32 @@
     </div>
     <div id="setupVerifyScreen" class="screen loading-screen">
         <div class="container black-bg">
-            <h2>Verifying Department...</h2>
+            <h2>Verifying...</h2>
             <div class="spinner"></div>
+            <p class="loading-text">Just setting up your profile</p>
+            <p class="loading-text">Creating your unique interface</p>
+            <p class="loading-text">Finalising</p>
         </div>
     </div>
     <div id="setupCompleteScreen" class="screen">
         <div class="container">
-            <h2>Setup Complete!</h2>
+            <h2>Welcome, <span id="setupWelcomeName"></span>, to your new Staff Portal!</h2>
+            <p>Let's take a look around!</p>
             <button id="setupCompleteBtn">Continue</button>
         </div>
     </div>
     <div id="portalWelcomeScreen" class="screen">
         <div class="container">
-            <h2>Welcome, <span id="portalWelcomeName"></span>!</h2>
+            <h2>Welcome back, <span id="portalWelcomeName"></span>!</h2>
+            <p>Previous login: <span id="portalLastLogin"></span></p>
+            <button id="portalLoginBtn">Log In</button>
         </div>
     </div>
     <div id="mainMenuScreen" class="screen">
         <div class="container">
             <div class="user-header">
                 <img id="mainProfilePic" class="profile-img" src="" alt="Profile">
-                <h2>Welcome, <span id="mainWelcomeName"></span></h2>
+                <h2>Welcome, <span id="mainWelcomeName"></span>!</h2>
             </div>
             <p>Staff Portal Dashboard</p>
         </div>
@@ -161,6 +193,17 @@
             <p>Name: <span id="profileName"></span></p>
             <p>Email: <span id="profileEmail"></span></p>
             <p>Department: <span id="profileDepartment"></span></p>
+            <input type="text" id="updateNameInput" placeholder="Update Name">
+            <input type="email" id="updateEmailInput" placeholder="Update Email">
+            <button id="updateProfileBtn">Update Profile</button>
+            <button id="changeDeptBtn">Change Department</button>
+            <div class="toggle-container">
+                <label class="switch">
+                    <input type="checkbox" id="modeToggle">
+                    <span class="slider"></span>
+                </label>
+                <span>Dark Mode</span>
+            </div>
             <button id="resetProfileBtn">Reset Profile</button>
         </div>
     </div>
@@ -184,17 +227,6 @@
         <div class="container">
             <h2>Absences</h2>
             <button id="requestAbsenceBtn">Request Absence</button>
-            <div id="absenceForm" class="hidden">
-                <select id="absenceType">
-                    <option value="Sick Leave">Sick Leave</option>
-                    <option value="Vacation">Vacation</option>
-                    <option value="Personal Leave">Personal Leave</option>
-                </select>
-                <input type="date" id="absenceStartDate">
-                <input type="date" id="absenceEndDate">
-                <textarea id="absenceComment" placeholder="Comment"></textarea>
-                <button id="submitAbsenceBtn">Submit</button>
-            </div>
             <div class="tabs">
                 <button class="tab-btn active" data-tab="pending">Pending</button>
                 <button class="tab-btn" data-tab="approved">Approved</button>
@@ -220,8 +252,10 @@
             <h2>Timeclock</h2>
             <div id="clockDisplay"></div>
             <button id="clockInBtn">Clock In</button>
-            <button id="clockOutBtn" disabled>Clock Out</button>
-            <div id="timeclockActions"></div>
+            <button id="clockOutBtn" class="hidden">Clock Out</button>
+            <div id="sessionInfo" class="session-item hidden"></div>
+            <h3>Previous Sessions</h3>
+            <div id="previousSessions" class="session-list"></div>
         </div>
     </div>
     <div id="mailScreen" class="screen">
@@ -237,7 +271,7 @@
         </div>
     </div>
 
-    <footer>Staff Portal © 2025</footer>
+    <footer>© Cirkle Development 2025</footer>
 
     <script src="script.js"></script>
 </body>

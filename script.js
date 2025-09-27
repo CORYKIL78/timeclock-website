@@ -9,10 +9,10 @@ const WEBHOOK_URL = 'https://discord.com/api/webhooks/1417260030851551273/KGKnWF
 const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev';
 const CLIENT_ID = '1417915896634277888';
 const REDIRECT_URI = 'https://corykil78.github.io/timeclock-website';
-const SUCCESS_SOUND_URL = 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_9d4a8d3f8d.mp3';
+const SUCCESS_SOUND_URL = 'https://cdn.pixabay.com/audio/2023/01/07/audio_cae2a6c2fc.mp3';
 const ABSENCE_CHANNEL = '1417583684525232291';
-const TIMECLOCK_CHANNEL = '1417583684525232291';
-const NOTIFICATION_CHANNEL = '1417583684525232291';
+const TIMECLOCK_CHANNEL = '1322975014110236716';
+const NOTIFICATION_CHANNEL = '1322975014110236716';
 
 const screens = {
     discord: document.getElementById('discordScreen'),
@@ -40,9 +40,11 @@ const screens = {
 };
 
 const modals = {
-    resetProfile: document.getElementById('resetProfileModal'),
     alert: document.getElementById('alertModal'),
-    composeMail: document.getElementById('composeMailModal')
+    composeMail: document.getElementById('composeMailModal'),
+    resetProfile: document.getElementById('resetProfileModal'),
+    absenceRequest: document.getElementById('absenceRequestModal'),
+    deptChange: document.getElementById('deptChangeModal')
 };
 
 let currentUser = null;
@@ -53,6 +55,8 @@ let notifications = [];
 let isClockedIn = false;
 let clockInActions = [];
 let clockInInterval = null;
+let previousSessions = JSON.parse(localStorage.getItem('previousSessions')) || [];
+let roleNames = {};
 
 function showScreen(screenId) {
     console.log('Showing screen:', screenId);
@@ -150,7 +154,7 @@ function downloadTXT(user, clockInTime, clockOutTime, actions) {
     const duration = formatTime(clockOutTime - clockInTime);
     const inStr = new Date(clockInTime).toLocaleString();
     const outStr = new Date(clockOutTime).toLocaleString();
-    const txt = `Clock in: ${inStr}\nClock out: ${outStr}\nPeriod: ${duration}\nActions: ${actions || 'None'}`;
+    const txt = `Clock in: ${inStr}\nClock out: ${outStr}\nDuration: ${duration}\nActions: ${actions.join(', ') || 'None'}`;
     const blob = new Blob([txt], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -158,6 +162,7 @@ function downloadTXT(user, clockInTime, clockOutTime, actions) {
     a.download = `timeclock_${user.profile.name.replace(/[^a-z0-9]/gi, '_')}_${inStr.replace(/[^a-z0-9]/gi, '_')}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+    return { id: Date.now().toString(), clockIn: inStr, clockOut: outStr, duration, actions: actions.join(', ') };
 }
 
 function saveEmployees() {
@@ -172,7 +177,9 @@ function getEmployee(id) {
         strikes: [], 
         payslips: [], 
         mail: [], 
-        onLOA: false 
+        onLOA: false,
+        pendingDeptChange: null,
+        lastLogin: null
     };
 }
 
@@ -191,6 +198,7 @@ function resetEmployeeData(userId) {
     employees = employees.filter(e => e.id !== userId);
     localStorage.removeItem(`tasks_${userId}`);
     localStorage.removeItem(`notifications_${userId}`);
+    localStorage.removeItem(`previousSessions_${userId}`);
     localStorage.removeItem('currentUser');
     localStorage.removeItem('clockInTime');
     saveEmployees();
@@ -211,18 +219,26 @@ function renderNotifications() {
     }
     list.innerHTML = '';
     notifications.forEach((notif, index) => {
-        if (!notif.read) {
-            const li = document.createElement('li');
-            li.textContent = notif.message;
-            if (index === 0) li.classList.add('latest');
-            li.addEventListener('click', () => {
-                notifications[index].read = true;
-                localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
-                if (notif.link) showScreen(notif.link);
-                renderNotifications();
-            });
-            list.appendChild(li);
-        }
+        const li = document.createElement('li');
+        li.textContent = notif.message;
+        if (index === 0) li.classList.add('latest');
+        const deleteBtn = document.createElement('span');
+        deleteBtn.className = 'delete-notification';
+        deleteBtn.innerHTML = '🗑';
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            notifications.splice(index, 1);
+            localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
+            renderNotifications();
+        });
+        li.appendChild(deleteBtn);
+        li.addEventListener('click', () => {
+            notifications[index].read = true;
+            localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
+            if (notif.link) showScreen(notif.link);
+            renderNotifications();
+        });
+        list.appendChild(li);
     });
 }
 
@@ -274,6 +290,41 @@ function renderTasks() {
     });
 }
 
+function renderPreviousSessions() {
+    const list = document.getElementById('previousSessions');
+    if (!list) return;
+    list.innerHTML = '';
+    previousSessions = JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`)) || [];
+    previousSessions.forEach(session => {
+        const div = document.createElement('div');
+        div.className = 'session-item';
+        div.innerHTML = `
+            <p>Clock In: ${session.clockIn}</p>
+            <p>Clock Out: ${session.clockOut}</p>
+            <p>Duration: ${session.duration}</p>
+            <p>Actions: ${session.actions || 'None'}</p>
+            <a href="#" data-session-id="${session.id}">Download</a>
+        `;
+        div.querySelector('a').addEventListener('click', (e) => {
+            e.preventDefault();
+            const txt = `Clock in: ${session.clockIn}\nClock out: ${session.clockOut}\nDuration: ${session.duration}\nActions: ${session.actions || 'None'}`;
+            const blob = new Blob([txt], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `timeclock_${currentUser.profile.name.replace(/[^a-z0-9]/gi, '_')}_${session.clockIn.replace(/[^a-z0-9]/gi, '_')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+        list.appendChild(div);
+    });
+}
+
+function updateSidebarProfile() {
+    const emp = getEmployee(currentUser.id);
+    document.getElementById('sidebarProfilePic').src = currentUser.avatar || 'https://via.placeholder.com/100';
+}
+
 function updateMainScreen() {
     console.log('Updating main screen for user:', currentUser.id);
     const emp = getEmployee(currentUser.id);
@@ -286,14 +337,30 @@ function updateMainScreen() {
     } else {
         document.getElementById('clockInBtn').disabled = isClockedIn;
         document.getElementById('clockOutBtn').disabled = !isClockedIn;
+        document.getElementById('clockOutBtn').classList.toggle('hidden', !isClockedIn);
+        document.getElementById('sessionInfo').classList.toggle('hidden', !isClockedIn);
     }
+    renderPreviousSessions();
 }
 
-document.getElementById('discordLoginBtn').addEventListener('click', () => {
-    const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify&prompt=none`;
-    console.log('Initiating OAuth redirect:', oauthUrl);
-    window.location.href = oauthUrl;
-});
+async function fetchRoleNames() {
+    try {
+        const response = await fetch(`${WORKER_URL}/roles/${GUILD_ID}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors'
+        });
+        if (!response.ok) throw new Error(`Role fetch failed: ${response.status} ${await response.text()}`);
+        const roles = await response.json();
+        roleNames = roles.reduce((acc, role) => {
+            acc[role.id] = role.name;
+            return acc;
+        }, {});
+        console.log('Role names fetched:', roleNames);
+    } catch (e) {
+        console.error('Role fetch error:', e);
+    }
+}
 
 async function handleOAuthRedirect() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -316,11 +383,13 @@ async function handleOAuthRedirect() {
             try {
                 currentUser = JSON.parse(savedUser);
                 if (currentUser.id) {
-                    console.log('Found valid session, redirecting to mainMenu');
-                    showScreen('mainMenu');
+                    console.log('Found valid session, redirecting to portalWelcome');
+                    const emp = getEmployee(currentUser.id);
+                    document.getElementById('portalWelcomeName').textContent = emp.profile.name;
+                    document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
+                    showScreen('portalWelcome');
                     updateSidebarProfile();
                     renderNotifications();
-                    updateMainScreen();
                     return;
                 } else {
                     console.log('Invalid saved user data, clearing');
@@ -335,19 +404,20 @@ async function handleOAuthRedirect() {
         return;
     }
 
-    // Prevent reprocessing the same code
     if (localStorage.getItem('lastProcessedCode') === code) {
-        console.log('Code already processed, redirecting to mainMenu');
+        console.log('Code already processed, redirecting to portalWelcome');
         window.history.replaceState({}, document.title, REDIRECT_URI);
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
             try {
                 currentUser = JSON.parse(savedUser);
                 if (currentUser.id) {
-                    showScreen('mainMenu');
+                    const emp = getEmployee(currentUser.id);
+                    document.getElementById('portalWelcomeName').textContent = emp.profile.name;
+                    document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
+                    showScreen('portalWelcome');
                     updateSidebarProfile();
                     renderNotifications();
-                    updateMainScreen();
                     return;
                 }
             } catch (e) {
@@ -400,7 +470,7 @@ async function handleOAuthRedirect() {
         });
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Member fetch failed: ${response.status} ${errorText}`);
+            throw new Error(`Member fetch failed: ${response.status} ${await response.text()}`);
         }
         member = await response.json();
         console.log('Member data received:', member);
@@ -413,6 +483,8 @@ async function handleOAuthRedirect() {
         return;
     }
 
+    await fetchRoleNames();
+
     currentUser = {
         id: user.id,
         name: user.global_name || user.username,
@@ -422,7 +494,9 @@ async function handleOAuthRedirect() {
         absences: getEmployee(user.id).absences || [],
         strikes: getEmployee(user.id).strikes || [],
         payslips: getEmployee(user.id).payslips || [],
-        mail: getEmployee(user.id).mail || []
+        mail: getEmployee(user.id).mail || [],
+        pendingDeptChange: getEmployee(user.id).pendingDeptChange || null,
+        lastLogin: getEmployee(user.id).lastLogin || null
     };
 
     showScreen('cherry');
@@ -437,23 +511,139 @@ async function handleOAuthRedirect() {
         return;
     }
 
-    // Save user session
+    const emp = getEmployee(currentUser.id);
+    emp.lastLogin = new Date().toLocaleString();
+    updateEmployee(emp);
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
     console.log('User session saved:', currentUser.id);
 
-    const profile = getEmployee(currentUser.id).profile;
-    if (!profile.name) {
+    if (!currentUser.profile.name) {
         console.log('No profile name, redirecting to setupWelcome');
         showScreen('setupWelcome');
     } else {
-        console.log('Profile found, redirecting to confirm screen');
-        document.getElementById('confirmName').textContent = profile.name;
-        document.getElementById('confirmRole').textContent = 'Verified Role: Staff';
-        showScreen('confirm');
+        console.log('Profile found, redirecting to portalWelcome');
+        document.getElementById('portalWelcomeName').textContent = emp.profile.name;
+        document.getElementById('portalLastLogin').textContent = emp.lastLogin;
+        showScreen('portalWelcome');
     }
 
     window.history.replaceState({}, document.title, REDIRECT_URI);
 }
+
+function startTutorial() {
+    console.log('Starting tutorial');
+    showScreen('mainMenu');
+    updateSidebarProfile();
+    renderNotifications();
+    updateMainScreen();
+
+    const steps = [
+        {
+            element: document.querySelector('.sidebar-toggle'),
+            text: 'This is the side menu. You can access different pages.',
+            action: () => document.querySelector('.sidebar-toggle').click()
+        },
+        {
+            element: document.getElementById('sidebarNav'),
+            text: 'These are all of your pages. You can submit LOAs, view disciplinaries, payslips, etc!',
+            action: () => setTimeout(() => {
+                document.getElementById('mailBtn').click();
+            }, 6000)
+        },
+        {
+            element: document.getElementById('composeMailBtn'),
+            text: 'Compose mail here!',
+            action: () => document.getElementById('composeMailBtn').click()
+        },
+        {
+            element: document.getElementById('mailContent'),
+            text: 'Tutorial complete! Check your mail for a welcome message.',
+            action: () => {
+                const emp = getEmployee(currentUser.id);
+                emp.mail = emp.mail || [];
+                emp.mail.push({
+                    from: 'Cirkle Development',
+                    content: `Dear ${emp.profile.name}, Welcome to your new Staff Portal. You are now finished this tutorial. Please have a look around and get familiar with everything. We hope you like it! Kind Regards, Cirkle Development.`,
+                    timestamp: new Date().toLocaleString()
+                });
+                updateEmployee(emp);
+                addNotification('welcome', 'Welcome to your Staff Portal!', 'mail');
+                renderMail();
+            }
+        }
+    ];
+
+    let currentStep = 0;
+
+    function showStep() {
+        if (currentStep >= steps.length) {
+            document.querySelectorAll('.tutorial-ring, .tutorial-text').forEach(el => el.remove());
+            return;
+        }
+
+        const step = steps[currentStep];
+        document.querySelectorAll('.tutorial-ring, .tutorial-text').forEach(el => el.remove());
+
+        if (step.element) {
+            const rect = step.element.getBoundingClientRect();
+            const ring = document.createElement('div');
+            ring.className = 'tutorial-ring';
+            ring.style.width = `${rect.width + 20}px`;
+            ring.style.height = `${rect.height + 20}px`;
+            ring.style.left = `${rect.left - 10}px`;
+            ring.style.top = `${rect.top - 10}px`;
+            document.body.appendChild(ring);
+
+            const text = document.createElement('div');
+            text.className = 'tutorial-text';
+            text.textContent = step.text;
+            document.body.appendChild(text);
+
+            step.element.addEventListener('click', () => {
+                currentStep++;
+                step.action();
+                showStep();
+            }, { once: true });
+        } else {
+            currentStep++;
+            showStep();
+        }
+    }
+
+    showStep();
+}
+
+function renderMail() {
+    const content = document.getElementById('mailContent');
+    if (!content) return;
+    content.innerHTML = '';
+    const emp = getEmployee(currentUser.id);
+    emp.mail.forEach((m, index) => {
+        const div = document.createElement('div');
+        div.className = 'mail-item';
+        div.innerHTML = `
+            <p><strong>From:</strong> ${m.from}</p>
+            <p>${m.content}</p>
+            <p><em>${m.timestamp}</em></p>
+        `;
+        content.appendChild(div);
+    });
+
+    const recipientSelect = document.getElementById('mailRecipient');
+    recipientSelect.innerHTML = '<option value="">Select Recipient</option>';
+    employees.filter(e => e.profile.name && e.id !== currentUser.id).forEach(e => {
+        const option = document.createElement('option');
+        option.value = e.id;
+        option.textContent = e.profile.name;
+        recipientSelect.appendChild(option);
+    });
+}
+
+document.getElementById('discordLoginBtn').addEventListener('click', () => {
+    const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify&prompt=none`;
+    console.log('Initiating OAuth redirect:', oauthUrl);
+    window.location.href = oauthUrl;
+});
 
 document.getElementById('setupStartBtn').addEventListener('click', () => {
     console.log('Setup start button clicked');
@@ -462,11 +652,11 @@ document.getElementById('setupStartBtn').addEventListener('click', () => {
 
 document.getElementById('setupEmailContinueBtn').addEventListener('click', () => {
     const email = document.getElementById('setupEmailInput').value.trim();
-    if (email) {
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         currentUser.profile.email = email;
         showScreen('setupName');
     } else {
-        showModal('alert', 'Please enter your email');
+        showModal('alert', 'Please enter a valid email with @ and a domain (e.g., example.com)');
     }
 });
 
@@ -476,7 +666,7 @@ document.getElementById('setupNameContinueBtn').addEventListener('click', () => 
         currentUser.profile.name = name;
         showScreen('setupDepartment');
     } else {
-        showModal('alert', 'Please enter your name');
+        showModal('alert', 'Please enter your first and last name');
     }
 });
 
@@ -490,42 +680,44 @@ document.getElementById('setupDepartmentContinueBtn').addEventListener('click', 
             if (currentUser.roles.includes(deptRole)) {
                 updateEmployee(currentUser);
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                console.log('Role verification successful, redirecting to setupComplete');
-                showScreen('setupComplete');
+                console.log('Role verification successful, redirecting to confirm');
+                showScreen('confirm');
                 playSuccessSound();
             } else {
                 console.log('Role verification failed for department:', currentUser.profile.department);
                 showModal('alert', 'Role verification failed');
                 showScreen('setupDepartment');
             }
-        }, 2000);
+        }, 20000);
     } else {
         showModal('alert', 'Please select a department');
     }
 });
 
-document.getElementById('setupCompleteBtn').addEventListener('click', () => {
-    console.log('Setup complete, redirecting to portalWelcome');
-    showScreen('portalWelcome');
-    document.getElementById('portalWelcomeName').textContent = currentUser.profile.name;
-    setTimeout(() => {
-        showScreen('mainMenu');
-        updateSidebarProfile();
-        renderNotifications();
-        updateMainScreen();
-    }, 3000);
+document.getElementById('continueBtn').addEventListener('click', () => {
+    console.log('Finalise button clicked, redirecting to setupComplete');
+    showScreen('setupComplete');
+    document.getElementById('setupWelcomeName').textContent = currentUser.profile.name;
+    setTimeout(() => startTutorial(), 3000);
 });
 
-document.getElementById('continueBtn').addEventListener('click', () => {
-    console.log('Continue button clicked, redirecting to portalWelcome');
-    showScreen('portalWelcome');
-    document.getElementById('portalWelcomeName').textContent = currentUser.profile.name;
-    setTimeout(() => {
-        showScreen('mainMenu');
-        updateSidebarProfile();
-        renderNotifications();
-        updateMainScreen();
-    }, 3000);
+document.getElementById('portalLoginBtn').addEventListener('click', () => {
+    console.log('Portal login button clicked, redirecting to mainMenu');
+    showScreen('mainMenu');
+    updateSidebarProfile();
+    renderNotifications();
+    updateMainScreen();
+});
+
+document.getElementById('mainProfilePic').addEventListener('click', () => {
+    showScreen('myProfile');
+    const emp = getEmployee(currentUser.id);
+    document.getElementById('profileName').textContent = emp.profile.name || 'N/A';
+    document.getElementById('profileEmail').textContent = emp.profile.email || 'N/A';
+    document.getElementById('profileDepartment').textContent = emp.profile.department || 'N/A';
+    document.getElementById('profileDepartment').classList.toggle('pending-department', !!emp.pendingDeptChange);
+    document.getElementById('updateNameInput').value = emp.profile.name || '';
+    document.getElementById('updateEmailInput').value = emp.profile.email || '';
 });
 
 document.getElementById('homeBtn').addEventListener('click', () => {
@@ -540,6 +732,55 @@ document.getElementById('myProfileBtn').addEventListener('click', () => {
     document.getElementById('profileName').textContent = emp.profile.name || 'N/A';
     document.getElementById('profileEmail').textContent = emp.profile.email || 'N/A';
     document.getElementById('profileDepartment').textContent = emp.profile.department || 'N/A';
+    document.getElementById('profileDepartment').classList.toggle('pending-department', !!emp.pendingDeptChange);
+    document.getElementById('updateNameInput').value = emp.profile.name || '';
+    document.getElementById('updateEmailInput').value = emp.profile.email || '';
+});
+
+document.getElementById('updateProfileBtn').addEventListener('click', () => {
+    const name = document.getElementById('updateNameInput').value.trim();
+    const email = document.getElementById('updateEmailInput').value.trim();
+    if (name && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        const emp = getEmployee(currentUser.id);
+        emp.profile.name = name;
+        emp.profile.email = email;
+        updateEmployee(emp);
+        currentUser.profile = emp.profile;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        showModal('alert', '<span class="success-tick"></span> Profile updated successfully!');
+        playSuccessSound();
+        document.getElementById('profileName').textContent = name;
+        document.getElementById('profileEmail').textContent = email;
+    } else {
+        showModal('alert', 'Please enter a valid name and email');
+    }
+});
+
+document.getElementById('changeDeptBtn').addEventListener('click', () => {
+    showModal('deptChange');
+});
+
+document.getElementById('submitDeptChangeBtn').addEventListener('click', () => {
+    const selectedDept = document.querySelector('input[name="newDepartment"]:checked');
+    if (selectedDept) {
+        const emp = getEmployee(currentUser.id);
+        emp.pendingDeptChange = selectedDept.value;
+        updateEmployee(emp);
+        currentUser.pendingDeptChange = emp.pendingDeptChange;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        sendEmbed(ABSENCE_CHANNEL, {
+            title: 'Department Change Request',
+            description: `User: <@${currentUser.id}> (${emp.profile.name})\nRequested Department: ${selectedDept.value}`,
+            color: 0xffff00
+        });
+        closeModal('deptChange');
+        showModal('alert', '<span class="success-tick"></span> Request to change department has been sent.');
+        playSuccessSound();
+        document.getElementById('profileDepartment').textContent = emp.profile.department;
+        document.getElementById('profileDepartment').classList.add('pending-department');
+    } else {
+        showModal('alert', 'Please select a department');
+    }
 });
 
 document.getElementById('resetProfileBtn').addEventListener('click', () => {
@@ -556,9 +797,9 @@ document.getElementById('myRolesBtn').addEventListener('click', () => {
     showScreen('myRoles');
     const list = document.getElementById('rolesList');
     list.innerHTML = '';
-    currentUser.roles.forEach(role => {
+    currentUser.roles.forEach(roleId => {
         const li = document.createElement('li');
-        li.textContent = role;
+        li.textContent = `${roleNames[roleId] || 'Unknown Role'} (${roleId})`;
         list.appendChild(li);
     });
 });
@@ -584,7 +825,7 @@ document.getElementById('absencesBtn').addEventListener('click', () => {
 });
 
 document.getElementById('requestAbsenceBtn').addEventListener('click', () => {
-    document.getElementById('absenceForm').classList.toggle('hidden');
+    showModal('absenceRequest');
 });
 
 document.getElementById('submitAbsenceBtn').addEventListener('click', async () => {
@@ -605,8 +846,8 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
         description: `User: <@${currentUser.id}> (${emp.profile.name})\nType: ${type}\nStart: ${startDate}\nEnd: ${endDate}\nComment: ${comment}`,
         color: 0xffff00
     });
-    document.getElementById('absenceForm').classList.add('hidden');
-    showModal('alert', 'Absence request submitted');
+    closeModal('absenceRequest');
+    showModal('alert', '<span class="success-tick"></span> Successfully Submitted!');
     playSuccessSound();
     renderAbsences('pending');
 });
@@ -683,11 +924,19 @@ document.getElementById('clockInBtn').addEventListener('click', async () => {
     clockInActions = [];
     document.getElementById('clockInBtn').disabled = true;
     document.getElementById('clockOutBtn').disabled = false;
+    document.getElementById('clockOutBtn').classList.remove('hidden');
+    document.getElementById('sessionInfo').classList.remove('hidden');
     const emp = getEmployee(currentUser.id);
     await sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked in at ${new Date().toLocaleString()}`);
+    showModal('alert', '<span class="success-tick"></span> You have clocked in!');
+    playSuccessSound();
     clockInInterval = setInterval(() => {
         const elapsed = Date.now() - clockInTime;
-        document.getElementById('clockDisplay').textContent = formatTime(elapsed);
+        document.getElementById('sessionInfo').innerHTML = `
+            <p>Session started: ${new Date(clockInTime).toLocaleString()}</p>
+            <p>Elapsed: ${formatTime(elapsed)}</p>
+            <p>Actions: ${clockInActions.join(', ') || 'None'}</p>
+        `;
     }, 1000);
 });
 
@@ -697,28 +946,26 @@ document.getElementById('clockOutBtn').addEventListener('click', async () => {
     isClockedIn = false;
     document.getElementById('clockInBtn').disabled = false;
     document.getElementById('clockOutBtn').disabled = true;
-    document.getElementById('clockDisplay').textContent = '';
+    document.getElementById('clockOutBtn').classList.add('hidden');
+    document.getElementById('sessionInfo').classList.add('hidden');
+    document.getElementById('sessionInfo').innerHTML = '';
     const emp = getEmployee(currentUser.id);
     await sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()}`);
-    downloadTXT(currentUser, clockInTime, clockOutTime, clockInActions.join(', '));
+    const session = downloadTXT(currentUser, clockInTime, clockOutTime, clockInActions);
+    previousSessions = JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`)) || [];
+    previousSessions.unshift(session);
+    localStorage.setItem(`previousSessions_${currentUser.id}`, JSON.stringify(previousSessions));
     localStorage.removeItem('clockInTime');
     clockInTime = null;
+    clockInActions = [];
+    showModal('alert', '<span class="success-tick"></span> You have clocked out. Please remember to clock back in again tomorrow!');
+    playSuccessSound();
+    renderPreviousSessions();
 });
 
 document.getElementById('mailBtn').addEventListener('click', () => {
     showScreen('mail');
-    const content = document.getElementById('mailContent');
-    content.innerHTML = '';
-    const emp = getEmployee(currentUser.id);
-    emp.mail.forEach(m => {
-        const div = document.createElement('div');
-        div.innerHTML = `
-            <p>From: ${m.from}</p>
-            <p>Message: ${m.content}</p>
-            <p>Timestamp: ${m.timestamp}</p>
-        `;
-        content.appendChild(div);
-    });
+    renderMail();
 });
 
 document.getElementById('composeMailBtn').addEventListener('click', () => {
@@ -726,103 +973,105 @@ document.getElementById('composeMailBtn').addEventListener('click', () => {
 });
 
 document.getElementById('sendMailBtn').addEventListener('click', () => {
-    const recipient = document.getElementById('mailRecipient').value.trim();
+    const recipientId = document.getElementById('mailRecipient').value;
     const content = document.getElementById('mailContent').value.trim();
-    if (!recipient || !content) {
-        showModal('alert', 'Please fill all fields');
+    if (!recipientId || !content) {
+        showModal('alert', 'Please select a recipient and enter a message');
         return;
     }
-    const emp = employees.find(e => e.profile.name === recipient);
-    if (!emp) {
-        showModal('alert', 'Recipient not found');
-        return;
-    }
-    emp.mail = emp.mail || [];
-    emp.mail.push({
-        from: currentUser.profile.name,
+    const emp = getEmployee(currentUser.id);
+    const recipient = getEmployee(recipientId);
+    recipient.mail = recipient.mail || [];
+    recipient.mail.push({
+        from: emp.profile.name,
         content,
         timestamp: new Date().toLocaleString()
     });
-    updateEmployee(emp);
+    updateEmployee(recipient);
+    sendDM(recipientId, `New message from ${emp.profile.name}: ${content}`);
     closeModal('composeMail');
-    showModal('alert', 'Mail sent');
+    showModal('alert', '<span class="success-tick"></span> Message sent successfully!');
     playSuccessSound();
+    document.getElementById('mailContent').value = '';
+});
+
+document.getElementById('notificationBtn').addEventListener('click', () => {
+    const panel = document.getElementById('notificationPanel');
+    panel.classList.toggle('hidden');
 });
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
-    console.log('Logging out, clearing currentUser');
+    console.log('Logging out user:', currentUser.id);
+    const emp = getEmployee(currentUser.id);
+    document.getElementById('goodbyeName').textContent = emp.profile.name || 'User';
     localStorage.removeItem('currentUser');
-    localStorage.removeItem('clockInTime');
     localStorage.removeItem('lastProcessedCode');
-    document.getElementById('goodbyeName').textContent = currentUser.profile.name;
+    localStorage.removeItem('clockInTime');
+    if (isClockedIn) {
+        clearInterval(clockInInterval);
+        isClockedIn = false;
+        const session = downloadTXT(currentUser, clockInTime, Date.now(), clockInActions);
+        previousSessions = JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`)) || [];
+        previousSessions.unshift(session);
+        localStorage.setItem(`previousSessions_${currentUser.id}`, JSON.stringify(previousSessions));
+        sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()} due to logout`);
+    }
     showScreen('goodbye');
-    setTimeout(() => showScreen('discord'), 3000);
+    setTimeout(() => showScreen('discord'), 2000);
 });
 
-document.querySelector('.sidebar-toggle').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('extended');
+document.getElementById('sidebar').addEventListener('click', (e) => {
+    if (e.target.classList.contains('sidebar-toggle')) {
+        document.getElementById('sidebar').classList.toggle('extended');
+    }
 });
-
-function updateSidebarProfile() {
-    console.log('Updating sidebar profile');
-    document.getElementById('sidebarProfilePic').src = currentUser.avatar || 'https://via.placeholder.com/100';
-}
 
 document.getElementById('modeToggle').addEventListener('change', (e) => {
     document.body.classList.toggle('dark', e.target.checked);
     localStorage.setItem('darkMode', e.target.checked);
 });
 
-document.querySelectorAll('.close').forEach(close => {
-    close.addEventListener('click', () => closeModal(close.parentNode.parentNode.id));
+document.querySelectorAll('.modal .close').forEach(closeBtn => {
+    closeBtn.addEventListener('click', () => {
+        const modal = closeBtn.closest('.modal');
+        const modalId = Object.keys(modals).find(id => modals[id] === modal);
+        closeModal(modalId);
+    });
 });
 
-window.addEventListener('load', () => {
-    console.log('Window loaded, checking OAuth state');
+// Initialize
+(function init() {
+    console.log('Initializing Staff Portal');
     const savedUser = localStorage.getItem('currentUser');
-    const darkMode = localStorage.getItem('darkMode') === 'true';
-    document.getElementById('modeToggle').checked = darkMode;
-    document.body.classList.toggle('dark', darkMode);
-
-    if (new URLSearchParams(window.location.search).get('code')) {
-        console.log('Detected OAuth code, processing redirect');
-        handleOAuthRedirect();
-    } else if (savedUser) {
+    const savedClockIn = localStorage.getItem('clockInTime');
+    if (savedClockIn) {
+        clockInTime = parseInt(savedClockIn);
+        isClockedIn = true;
+        clockInInterval = setInterval(() => {
+            const elapsed = Date.now() - clockInTime;
+            document.getElementById('sessionInfo').innerHTML = `
+                <p>Session started: ${new Date(clockInTime).toLocaleString()}</p>
+                <p>Elapsed: ${formatTime(elapsed)}</p>
+                <p>Actions: ${clockInActions.join(', ') || 'None'}</p>
+            `;
+        }, 1000);
+    }
+    if (savedUser) {
         try {
             currentUser = JSON.parse(savedUser);
             if (currentUser.id) {
-                console.log('Found saved user, loading mainMenu');
-                showScreen('mainMenu');
+                const emp = getEmployee(currentUser.id);
+                document.getElementById('portalWelcomeName').textContent = emp.profile.name;
+                document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
+                showScreen('portalWelcome');
                 updateSidebarProfile();
                 renderNotifications();
-                updateMainScreen();
-            } else {
-                console.log('Invalid saved user, showing discord screen');
-                localStorage.removeItem('currentUser');
-                showScreen('discord');
+                return;
             }
         } catch (e) {
             console.error('Error parsing saved user:', e);
             localStorage.removeItem('currentUser');
-            showScreen('discord');
         }
-    } else {
-        console.log('No user session, showing discord screen');
-        showScreen('discord');
     }
-});
-
-window.addEventListener('hashchange', () => {
-    const screenId = window.location.hash.slice(1);
-    if (screens[screenId]) {
-        console.log('Hash changed, showing screen:', screenId);
-        showScreen(screenId);
-        if (screenId === 'mainMenu') updateMainScreen();
-        else if (screenId === 'tasks') document.getElementById('tasksBtn').click();
-        else if (screenId === 'absences') document.getElementById('absencesBtn').click();
-        else if (screenId === 'payslips') document.getElementById('payslipsBtn').click();
-        else if (screenId === 'disciplinaries') document.getElementById('disciplinariesBtn').click();
-        else if (screenId === 'timeclock') document.getElementById('timeclockBtn').click();
-        else if (screenId === 'mail') document.getElementById('mailBtn').click();
-    }
-});
+    handleOAuthRedirect();
+})();
