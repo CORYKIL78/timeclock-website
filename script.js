@@ -76,9 +76,9 @@ function showScreen(screenId) {
         window.location.hash = screenId;
         const sidebar = document.getElementById('sidebar');
         const notificationPanel = document.getElementById('notificationPanel');
-        if (['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail', 'notifications'].includes(screenId)) {
+        if (['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail'].includes(screenId)) {
             sidebar.classList.remove('hidden');
-            notificationPanel.classList.toggle('hidden', screenId === 'notifications');
+            notificationPanel.classList.remove('hidden');
         } else {
             sidebar.classList.add('hidden');
             notificationPanel.classList.add('hidden');
@@ -95,6 +95,7 @@ function showModal(modalId, message = '') {
     if (modal) {
         if (modalId === 'alert' && message.includes('success-tick')) {
             modal.classList.add('success');
+            playSuccessSound();
             setTimeout(() => closeModal(modalId), 2000);
         } else {
             modal.classList.remove('success');
@@ -116,7 +117,7 @@ function closeModal(modalId) {
 
 function playSuccessSound() {
     const audio = new Audio(SUCCESS_SOUND_URL);
-    audio.play().catch(e => console.error('Sound error:', e));
+    audio.play().catch(e => console.error('Success sound error:', e));
 }
 
 function playNotificationSound() {
@@ -228,9 +229,9 @@ function resetEmployeeData(userId) {
     saveEmployees();
 }
 
-function addNotification(type, message, link) {
+function addNotification(type, message, link, userId = currentUser.id) {
     notifications.push({ id: Date.now().toString(), type, message, link, read: false, timestamp: new Date().toLocaleString() });
-    localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
+    localStorage.setItem(`notifications_${userId}`, JSON.stringify(notifications));
     playNotificationSound();
     renderNotifications();
 }
@@ -571,7 +572,7 @@ function startTutorial() {
     const steps = [
         {
             element: document.querySelector('.sidebar-toggle'),
-            text: 'This is the side menu. You can access different pages.',
+            text: 'This is the side menu. Click to expand and access different pages.',
             action: () => document.querySelector('.sidebar-toggle').click()
         },
         {
@@ -583,7 +584,7 @@ function startTutorial() {
         },
         {
             element: document.getElementById('composeMailBtn'),
-            text: 'Compose mail here!',
+            text: 'Click this icon to compose a new mail!',
             action: () => document.getElementById('composeMailBtn').click()
         },
         {
@@ -594,7 +595,7 @@ function startTutorial() {
                 emp.mail = emp.mail || [];
                 emp.mail.push({
                     from: 'Cirkle Development',
-                    content: `Dear ${emp.profile.name}, Welcome to your new Staff Portal. You are now finished this tutorial. Please have a look around and get familiar with everything. We hope you like it! Kind Regards, Cirkle Development.`,
+                    content: `Dear ${emp.profile.name}, Welcome to your new Staff Portal. You are now finished with this tutorial. Please have a look around and get familiar with everything. We hope you like it! Kind Regards, Cirkle Development.`,
                     timestamp: new Date().toLocaleString()
                 });
                 updateEmployee(emp);
@@ -647,15 +648,18 @@ function startTutorial() {
 function renderMail() {
     const inboxContent = document.getElementById('mailContent');
     const sentContent = document.getElementById('sentContent');
-    if (!inboxContent || !sentContent) return;
+    const draftsContent = document.getElementById('draftsContent');
+    if (!inboxContent || !sentContent || !draftsContent) return;
     inboxContent.innerHTML = '';
     sentContent.innerHTML = '';
+    draftsContent.innerHTML = '';
     const emp = getEmployee(currentUser.id);
     emp.mail.forEach(m => {
         const div = document.createElement('div');
         div.className = 'mail-item';
         div.innerHTML = `
             <p><strong>From:</strong> ${m.from}</p>
+            <p><strong>Subject:</strong> ${m.subject}</p>
             <p>${m.content}</p>
             <p><em>${m.timestamp}</em></p>
         `;
@@ -665,20 +669,58 @@ function renderMail() {
         const div = document.createElement('div');
         div.className = 'mail-item';
         div.innerHTML = `
-            <p><strong>To:</strong> ${m.to}</p>
+            <p><strong>To:</strong> ${m.to.join(', ')}</p>
+            <p><strong>Subject:</strong> ${m.subject}</p>
             <p>${m.content}</p>
             <p><em>${m.timestamp}</em></p>
         `;
         sentContent.appendChild(div);
     });
+    emp.drafts.forEach((d, index) => {
+        const div = document.createElement('div');
+        div.className = 'mail-item';
+        div.innerHTML = `
+            <p><strong>To:</strong> ${d.recipients.join(', ') || 'None'}</p>
+            <p><strong>Subject:</strong> ${d.subject || 'No Subject'}</p>
+            <p>${d.content}</p>
+            <p><em>${d.timestamp}</em></p>
+            <div class="draft-actions">
+                <button class="edit-draft" data-index="${index}">Edit</button>
+                <button class="delete-draft" data-index="${index}">Delete</button>
+            </div>
+        `;
+        draftsContent.appendChild(div);
+    });
 
-    const recipientSelect = document.getElementById('mailRecipient');
-    recipientSelect.innerHTML = '<option value="">Select Recipient</option>';
+    const recipientSelect = document.getElementById('mailRecipients');
+    recipientSelect.innerHTML = '<option value="">Select Recipients</option>';
     employees.filter(e => e.profile.name && e.id !== currentUser.id).forEach(e => {
         const option = document.createElement('option');
         option.value = e.id;
         option.textContent = e.profile.name;
         recipientSelect.appendChild(option);
+    });
+
+    draftsContent.querySelectorAll('.edit-draft').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const index = btn.dataset.index;
+            const draft = emp.drafts[index];
+            document.getElementById('mailRecipients').value = draft.recipientIds;
+            document.getElementById('mailSubject').value = draft.subject;
+            document.getElementById('mailContent').value = draft.content;
+            document.getElementById('sendMailBtn').dataset.draftIndex = index;
+            showModal('composeMail');
+        });
+    });
+
+    draftsContent.querySelectorAll('.delete-draft').forEach(btn => {
+        btn.addEventListener('click', () => {
+            emp.drafts.splice(btn.dataset.index, 1);
+            updateEmployee(emp);
+            renderMail();
+            showModal('alert', '<span class="success-tick"></span> Draft deleted successfully!');
+            playSuccessSound();
+        });
     });
 }
 
@@ -794,6 +836,7 @@ document.getElementById('updateProfileBtn').addEventListener('click', () => {
         playSuccessSound();
         document.getElementById('profileName').textContent = name;
         document.getElementById('profileEmail').textContent = email;
+        addNotification('profile', 'Your profile has been updated!', 'myProfile');
     } else {
         showModal('alert', 'Please enter a valid name and email');
     }
@@ -821,6 +864,7 @@ document.getElementById('submitDeptChangeBtn').addEventListener('click', () => {
         playSuccessSound();
         document.getElementById('profileDepartment').textContent = emp.profile.department;
         document.getElementById('profileDepartment').classList.add('pending-department');
+        addNotification('department', 'Department change request submitted!', 'myProfile');
     } else {
         showModal('alert', 'Please select a department');
     }
@@ -834,6 +878,8 @@ document.getElementById('confirmResetBtn').addEventListener('click', () => {
     resetEmployeeData(currentUser.id);
     closeModal('resetProfile');
     showScreen('setupWelcome');
+    showModal('alert', '<span class="success-tick"></span> Profile reset successfully!');
+    playSuccessSound();
 });
 
 document.getElementById('myRolesBtn').addEventListener('click', () => {
@@ -861,6 +907,7 @@ document.getElementById('addTaskBtn').addEventListener('click', () => {
         document.getElementById('taskInput').value = '';
         showModal('alert', '<span class="success-tick"></span> Task added successfully!');
         playSuccessSound();
+        addNotification('task', 'New task added!', 'tasks');
     } else {
         showModal('alert', 'Please enter a task');
     }
@@ -896,6 +943,7 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     closeModal('absenceRequest');
     showModal('alert', '<span class="success-tick"></span> Successfully Submitted!');
     playSuccessSound();
+    addNotification('absence', 'Absence request submitted!', 'absences');
     renderAbsences('pending');
 });
 
@@ -977,6 +1025,7 @@ document.getElementById('clockInBtn').addEventListener('click', async () => {
     await sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked in at ${new Date().toLocaleString()}`);
     showModal('alert', '<span class="success-tick"></span> You have clocked in!');
     playSuccessSound();
+    addNotification('timeclock', 'You have clocked in!', 'timeclock');
     clockInInterval = setInterval(() => {
         const elapsed = Date.now() - clockInTime;
         document.getElementById('sessionInfo').innerHTML = `
@@ -1007,6 +1056,7 @@ document.getElementById('clockOutBtn').addEventListener('click', async () => {
     clockInActions = [];
     showModal('alert', '<span class="success-tick"></span> You have clocked out. Please remember to clock back in again tomorrow!');
     playSuccessSound();
+    addNotification('timeclock', 'You have clocked out!', 'timeclock');
     renderPreviousSessions();
 });
 
@@ -1033,8 +1083,12 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
     const recipientIds = Array.from(document.getElementById('mailRecipients').selectedOptions).map(opt => opt.value);
     const subject = document.getElementById('mailSubject').value.trim();
     const content = document.getElementById('mailContent').value.trim();
-    if (!recipientIds.length || !content) {
-        showModal('alert', 'Please select at least one recipient and enter a message');
+    if (!recipientIds.length || recipientIds.includes('')) {
+        showModal('alert', 'Please select at least one recipient');
+        return;
+    }
+    if (!content) {
+        showModal('alert', 'Please enter a message');
         return;
     }
     showModal('alert', 'Sending...');
@@ -1096,15 +1150,14 @@ document.getElementById('saveDraftBtn').addEventListener('click', () => {
     }
     updateEmployee(emp);
     closeModal('composeMail');
-    showModal('alert', '<span class="success-tick"></span> Drafted!');
+    showModal('alert', '<span class="success-tick"></span> Draft saved successfully!');
     playSuccessSound();
+    addNotification('mail', 'Mail draft saved!', 'mail');
     renderMail();
 });
 
 document.getElementById('cancelMailBtn').addEventListener('click', () => {
     closeModal('composeMail');
-    showModal('alert', '<span class="success-tick"></span> Successfully cancelled!');
-    playSuccessSound();
 });
 
 document.getElementById('mailScreen').addEventListener('click', (e) => {
@@ -1118,6 +1171,17 @@ document.getElementById('mailScreen').addEventListener('click', (e) => {
         updateTabSlider();
     }
 });
+
+function updateTabSlider() {
+    const activeTab = document.querySelector('.mail-tabs .tab-btn.active');
+    if (!activeTab) return;
+    const slider = document.querySelector('.tab-slider');
+    if (!slider) return;
+    const rect = activeTab.getBoundingClientRect();
+    const containerRect = document.querySelector('.mail-tabs').getBoundingClientRect();
+    slider.style.width = `${rect.width}px`;
+    slider.style.transform = `translateX(${rect.left - containerRect.left}px)`;
+}
 
 document.getElementById('notificationBtn').addEventListener('click', () => {
     showScreen('notifications');
