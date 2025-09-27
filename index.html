@@ -5,13 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Staff Portal</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <!-- Company Logo -->
-    <div id="companyLogo">
-        <img src="https://media.discordapp.net/attachments/1315278404009988107/1322985671773655200/Cirkledevblack.png?ex=68d8cd2c&is=68d77bac&hm=eb6d4623118549872254c7b294e5639a0c5a88aac8287a37bfde5c90be5907d4&=&format=webp&quality=lossless&width=1056&height=594" alt="Company Logo">
-    </div>
-
     <!-- Sidebar -->
     <div id="sidebar" class="sidebar hidden">
         <div class="sidebar-header">
@@ -29,18 +25,13 @@
             <button id="mailBtn">Mail</button>
         </div>
         <div class="sidebar-footer">
-            <button id="logoutBtn" title="Log Out">Log Out</button>
+            <button id="logoutBtn" class="action-btn" title="Log Out">Log Out</button>
         </div>
     </div>
 
     <!-- Notifications Panel -->
     <div id="notificationPanel" class="notifications hidden">
         <h3>Notifications</h3>
-        <div class="notification-controls">
-            <button id="selectAllBtn">Select All</button>
-            <button id="deselectAllBtn">Deselect All</button>
-            <button id="deleteSelectedBtn">Delete Selected</button>
-        </div>
         <ul id="notificationList"></ul>
     </div>
 
@@ -61,19 +52,13 @@
                 </select>
                 <input type="text" id="mailSubject" placeholder="Subject">
                 <textarea id="mailContent" placeholder="Message"></textarea>
+                <div id="mailError" class="mail-error hidden">Select at least one participant</div>
                 <div class="mail-actions">
                     <button id="sendMailBtn">Send</button>
                     <button id="saveDraftBtn">Save to Drafts</button>
                     <button id="cancelMailBtn">Cancel</button>
                 </div>
             </div>
-        </div>
-    </div>
-    <div id="viewMailModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="viewMailContent"></div>
-            <button class="reply-btn">Reply</button>
         </div>
     </div>
     <div id="resetProfileModal" class="modal">
@@ -108,6 +93,28 @@
             <label><input type="radio" name="newDepartment" value="Customer Relations Department"> Customer Relations</label>
             <label><input type="radio" name="newDepartment" value="Careers Department"> Careers</label>
             <button id="submitDeptChangeBtn">Submit</button>
+        </div>
+    </div>
+    <div id="viewMailModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="viewMailContent"></div>
+            <button id="replyMailBtn">Reply</button>
+        </div>
+    </div>
+    <div id="replyMailModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Reply to Mail</h2>
+            <textarea id="replyContent" placeholder="Your reply..."></textarea>
+            <button id="sendReplyBtn">Send Reply</button>
+        </div>
+    </div>
+    <div id="absenceDetailModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="absenceDetailContent"></div>
+            <button id="cancelAbsenceBtn">Cancel Absence</button>
         </div>
     </div>
 
@@ -205,6 +212,9 @@
                 <h2>Welcome, <span id="mainWelcomeName"></span>!</h2>
             </div>
             <p>Staff Portal Dashboard</p>
+            <div id="pieChartContainer">
+                <canvas id="pieChart" width="200" height="200"></canvas>
+            </div>
         </div>
     </div>
     <div id="myProfileScreen" class="screen">
@@ -238,7 +248,7 @@
             <h2>Tasks</h2>
             <div class="task-input">
                 <input type="text" id="taskInput" placeholder="Add a task">
-                <button id="addTaskBtn">Add</button>
+                <button id="addTaskBtn">&#8594;</button>
             </div>
             <ul id="tasksList"></ul>
         </div>
@@ -289,16 +299,14 @@
                 <button class="tab-btn" data-tab="sent">Sent</button>
                 <button class="tab-btn" data-tab="drafts">Drafts</button>
             </div>
-            <div class="mail-content">
-                <div id="inboxFolder" class="mail-folder active">
-                    <div id="mailContent"></div>
-                </div>
-                <div id="sentFolder" class="mail-folder">
-                    <div id="sentContent"></div>
-                </div>
-                <div id="draftsFolder" class="mail-folder">
-                    <div id="draftsContent"></div>
-                </div>
+            <div id="inboxFolder" class="mail-folder active">
+                <div id="mailContent"></div>
+            </div>
+            <div id="sentFolder" class="mail-folder">
+                <div id="sentContent"></div>
+            </div>
+            <div id="draftsFolder" class="mail-folder">
+                <div id="draftsContent"></div>
             </div>
         </div>
     </div>
@@ -308,7 +316,7 @@
         </div>
     </div>
 
-    <footer>© Cirkle Development 2024</footer>
+    <footer>© Cirkle Development 2025</footer>
 
     <script src="script.js"></script>
 </body>

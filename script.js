@@ -185,6 +185,7 @@ async function sendEmbed(channelId, embed) {
         const response = await fetch(`${WORKER_URL}/postEmbed?channel_id=${channelId}&embed_json=${encodeURIComponent(JSON.stringify(embed))}`);
         if (!response.ok) throw new Error(`Embed failed: ${response.status} ${await response.text()}`);
         console.log('Embed sent successfully to channel:', channelId);
+        return response.json(); // Assume the Worker returns the message ID in the response
     } catch (e) {
         console.error('Embed error:', e);
     }
@@ -261,13 +262,6 @@ function addNotification(type, message, link, userId = currentUser.id) {
     localStorage.setItem(`notifications_${userId}`, JSON.stringify(notifications));
     playNotificationSound();
     renderNotifications();
-    // Send notification embed to Discord
-    sendEmbed(NOTIFICATION_CHANNEL, {
-        title: 'New Notification',
-        description: `<@${userId}> new notification: ${message}`,
-        color: 0x00ff00,
-        timestamp: new Date().toISOString()
-    });
 }
 
 function renderNotifications() {
@@ -282,17 +276,13 @@ function renderNotifications() {
         const li = document.createElement('li');
         li.className = 'notification-item';
         li.innerHTML = `
-            <input type="checkbox" class="notification-checkbox" data-id="${notif.id}">
             <span>${notif.message} <em>(${notif.timestamp})</em></span>
         `;
-        const checkbox = li.querySelector('.notification-checkbox');
-        li.addEventListener('click', (e) => {
-            if (e.target !== checkbox) {
-                notifications[index].read = true;
-                localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
-                if (notif.link) showScreen(notif.link);
-                renderNotifications();
-            }
+        li.addEventListener('click', () => {
+            notifications.splice(index, 1);
+            localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
+            renderNotifications();
+            if (notif.link) showScreen(notif.link);
         });
         list.appendChild(li);
     });
@@ -1000,7 +990,6 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
             { name: 'Reason', value: type, inline: true },
             { name: 'Start Date', value: startDate, inline: true },
             { name: 'End Date', value: endDate, inline: true },
-            { name: 'Comment', value: comment, inline: false }
         ],
         footer: { text: 'Please accept/reject on the HR portal' },
         color: 0xffff00
@@ -1149,7 +1138,8 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
     const subject = document.getElementById('mailSubject').value.trim();
     const content = document.getElementById('mailContent').value.trim();
     if (!recipientIds.length || recipientIds.includes('')) {
-        showModal('alert', 'Please select at least one recipient');
+        document.getElementById('mailError').classList.remove('hidden');
+        setTimeout(() => document.getElementById('mailError').classList.add('hidden'), 2000);
         return;
     }
     if (!content) {
@@ -1247,28 +1237,6 @@ function updateTabSlider() {
     slider.style.width = `${rect.width}px`;
     slider.style.transform = `translateX(${rect.left - containerRect.left}px)`;
 }
-
-document.getElementById('selectAllBtn').addEventListener('click', () => {
-    document.querySelectorAll('.notification-checkbox').forEach(checkbox => {
-        checkbox.checked = true;
-    });
-});
-
-document.getElementById('deselectAllBtn').addEventListener('click', () => {
-    document.querySelectorAll('.notification-checkbox').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-});
-
-document.getElementById('deleteSelectedBtn').addEventListener('click', () => {
-    const checked = document.querySelectorAll('.notification-checkbox:checked');
-    const ids = Array.from(checked).map(cb => cb.dataset.id);
-    notifications = notifications.filter(n => !ids.includes(n.id));
-    localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
-    renderNotifications();
-    showModal('alert', '<span class="success-tick"></span> Selected notifications deleted!');
-    playSuccessSound();
-});
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
     console.log('Logging out user:', currentUser.id);
