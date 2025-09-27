@@ -8,7 +8,7 @@ const GUILD_ID = '1310656642672627752';
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1417260030851551273/KGKnWF3mwTt7mNWmC3OTAPWcWJSl1FnQ3-Ub-l1-xpk46tOsAYAtIhRTlti2qxjJSOds';
 const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev';
 const CLIENT_ID = '1417915896634277888';
-const REDIRECT_URI = 'https://corykil78.github.io/timeclock-website';
+const REDIRECT_URI = 'https://portal.cirkledevelopment.co.uk';
 const SUCCESS_SOUND_URL = 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_9d4a8d3f8d.mp3';
 const NOTIFICATION_SOUND_URL = 'https://cdn.pixabay.com/audio/2023/02/16/audio_d76a769fa6.mp3';
 const ABSENCE_CHANNEL = '1417583684525232291';
@@ -78,7 +78,7 @@ function showScreen(screenId) {
         const notificationPanel = document.getElementById('notificationPanel');
         if (['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail', 'notifications'].includes(screenId)) {
             sidebar.classList.remove('hidden');
-            notificationPanel.classList.toggle('hidden', screenId !== 'notifications');
+            notificationPanel.classList.toggle('hidden', screenId === 'notifications');
         } else {
             sidebar.classList.add('hidden');
             notificationPanel.classList.add('hidden');
@@ -593,13 +593,9 @@ function startTutorial() {
                 const emp = getEmployee(currentUser.id);
                 emp.mail = emp.mail || [];
                 emp.mail.push({
-                    id: Date.now().toString(),
                     from: 'Cirkle Development',
-                    senderId: 'system',
-                    subject: 'Welcome to Staff Portal',
                     content: `Dear ${emp.profile.name}, Welcome to your new Staff Portal. You are now finished this tutorial. Please have a look around and get familiar with everything. We hope you like it! Kind Regards, Cirkle Development.`,
-                    timestamp: new Date().toLocaleString(),
-                    thread: []
+                    timestamp: new Date().toLocaleString()
                 });
                 updateEmployee(emp);
                 addNotification('welcome', 'Welcome to your Staff Portal!', 'mail');
@@ -648,115 +644,36 @@ function startTutorial() {
     showStep();
 }
 
-function updateTabSlider() {
-    const activeTab = document.querySelector('.mail-tabs .tab-btn.active');
-    const slider = document.querySelector('.tab-slider');
-    if (activeTab && slider) {
-        const index = Array.from(document.querySelectorAll('.mail-tabs .tab-btn')).indexOf(activeTab);
-        const width = activeTab.offsetWidth;
-        const left = activeTab.offsetLeft;
-        slider.style.width = `${width}px`;
-        slider.style.transform = `translateX(${left}px)`;
-    }
-}
-
 function renderMail() {
     const inboxContent = document.getElementById('mailContent');
     const sentContent = document.getElementById('sentContent');
-    const draftsContent = document.getElementById('draftsContent');
-    if (!inboxContent || !sentContent || !draftsContent) return;
+    if (!inboxContent || !sentContent) return;
     inboxContent.innerHTML = '';
     sentContent.innerHTML = '';
-    draftsContent.innerHTML = '';
     const emp = getEmployee(currentUser.id);
-
     emp.mail.forEach(m => {
         const div = document.createElement('div');
         div.className = 'mail-item';
         div.innerHTML = `
             <p><strong>From:</strong> ${m.from}</p>
-            <p><strong>Subject:</strong> ${m.subject || 'No Subject'}</p>
             <p>${m.content}</p>
             <p><em>${m.timestamp}</em></p>
-            <span class="reply-btn" data-mail-id="${m.id}">↩</span>
-            ${m.thread && m.thread.length ? `
-                <div class="mail-thread">
-                    <h4>Replies:</h4>
-                    ${m.thread.map(t => `
-                        <div class="thread-item">
-                            <p><strong>From:</strong> ${t.from}</p>
-                            <p>${t.content}</p>
-                            <p><em>${t.timestamp}</em></p>
-                        </div>
-                    `).join('')}
-                </div>
-            ` : ''}
         `;
-        div.querySelector('.reply-btn').addEventListener('click', () => {
-            document.getElementById('mailRecipients').value = [m.senderId];
-            document.getElementById('mailSubject').value = `Re: ${m.subject || 'No Subject'}`;
-            document.getElementById('mailContent').value = `\n\n--- Original Message ---\nFrom: ${m.from}\n${m.content}`;
-            showModal('composeMail');
-        });
         inboxContent.appendChild(div);
     });
-
     emp.sentMail.forEach(m => {
         const div = document.createElement('div');
         div.className = 'mail-item';
         div.innerHTML = `
-            <p><strong>To:</strong> ${m.to.join(', ')}</p>
-            <p><strong>Subject:</strong> ${m.subject || 'No Subject'}</p>
+            <p><strong>To:</strong> ${m.to}</p>
             <p>${m.content}</p>
             <p><em>${m.timestamp}</em></p>
-            ${m.thread && m.thread.length ? `
-                <div class="mail-thread">
-                    <h4>Replies:</h4>
-                    ${m.thread.map(t => `
-                        <div class="thread-item">
-                            <p><strong>From:</strong> ${t.from}</p>
-                            <p>${t.content}</p>
-                            <p><em>${t.timestamp}</em></p>
-                        </div>
-                    `).join('')}
-                </div>
-            ` : ''}
         `;
         sentContent.appendChild(div);
     });
 
-    emp.drafts.forEach((d, index) => {
-        const div = document.createElement('div');
-        div.className = 'mail-item';
-        div.innerHTML = `
-            <p><strong>To:</strong> ${d.recipients.join(', ') || 'None'}</p>
-            <p><strong>Subject:</strong> ${d.subject || 'No Subject'}</p>
-            <p>${d.content}</p>
-            <p><em>${d.timestamp}</em></p>
-            <div class="draft-actions">
-                <button class="edit-draft-btn" data-index="${index}">Edit</button>
-                <button class="delete-draft-btn" data-index="${index}">Delete</button>
-            </div>
-        `;
-        div.querySelector('.edit-draft-btn').addEventListener('click', () => {
-            document.getElementById('mailRecipients').value = d.recipientIds;
-            document.getElementById('mailSubject').value = d.subject || '';
-            document.getElementById('mailContent').value = d.content;
-            document.getElementById('sendMailBtn').dataset.draftIndex = index;
-            showModal('composeMail');
-        });
-        div.querySelector('.delete-draft-btn').addEventListener('click', () => {
-            emp.drafts.splice(index, 1);
-            updateEmployee(emp);
-            showModal('alert', '<span class="success-tick"></span> Successfully deleted draft!');
-            playSuccessSound();
-            renderMail();
-        });
-        draftsContent.appendChild(div);
-    });
-
-    const recipientSelect = document.getElementById('mailRecipients');
-    recipientSelect.innerHTML = '<option value="">Select Recipients</option>';
+    const recipientSelect = document.getElementById('mailRecipient');
+    recipientSelect.innerHTML = '<option value="">Select Recipient</option>';
     employees.filter(e => e.profile.name && e.id !== currentUser.id).forEach(e => {
         const option = document.createElement('option');
         option.value = e.id;
