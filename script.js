@@ -55,9 +55,18 @@ let clockInActions = [];
 let clockInInterval = null;
 
 function showScreen(screenId) {
-    Object.values(screens).forEach(s => s && s.classList.remove('active'));
+    console.log('Showing screen:', screenId);
+    Object.values(screens).forEach(s => {
+        if (s) {
+            s.classList.remove('active');
+            s.style.opacity = '0';
+        }
+    });
     if (screens[screenId]) {
         screens[screenId].classList.add('active');
+        setTimeout(() => {
+            screens[screenId].style.opacity = '1';
+        }, 10);
         window.location.hash = screenId;
         const sidebar = document.getElementById('sidebar');
         const notificationPanel = document.getElementById('notificationPanel');
@@ -68,16 +77,27 @@ function showScreen(screenId) {
             sidebar.classList.add('hidden');
             notificationPanel.classList.add('hidden');
         }
+    } else {
+        console.error('Screen not found:', screenId);
+        showScreen('discord');
     }
 }
 
 function showModal(modalId, message = '') {
+    console.log('Showing modal:', modalId, message);
     document.getElementById('alertMessage').innerHTML = message;
-    modals[modalId].style.display = 'flex';
+    if (modals[modalId]) {
+        modals[modalId].style.display = 'flex';
+    } else {
+        console.error('Modal not found:', modalId);
+    }
 }
 
 function closeModal(modalId) {
-    modals[modalId].style.display = 'none';
+    console.log('Closing modal:', modalId);
+    if (modals[modalId]) {
+        modals[modalId].style.display = 'none';
+    }
 }
 
 function playSuccessSound() {
@@ -100,7 +120,7 @@ async function sendWebhook(content) {
             body: JSON.stringify({ content })
         });
         if (!response.ok) throw new Error(`Webhook failed: ${response.status} ${await response.text()}`);
-        console.log('Webhook sent successfully');
+        console.log('Webhook sent successfully:', content);
     } catch (e) {
         console.error('Webhook error:', e);
     }
@@ -167,6 +187,7 @@ function updateEmployee(employee) {
 }
 
 function resetEmployeeData(userId) {
+    console.log('Resetting employee data for user:', userId);
     employees = employees.filter(e => e.id !== userId);
     localStorage.removeItem(`tasks_${userId}`);
     localStorage.removeItem(`notifications_${userId}`);
@@ -184,7 +205,10 @@ function addNotification(type, message, link) {
 function renderNotifications() {
     notifications = JSON.parse(localStorage.getItem(`notifications_${currentUser.id}`)) || [];
     const list = document.getElementById('notificationList');
-    if (!list) return;
+    if (!list) {
+        console.error('Notification list element not found');
+        return;
+    }
     list.innerHTML = '';
     notifications.forEach((notif, index) => {
         if (!notif.read) {
@@ -250,8 +274,24 @@ function renderTasks() {
     });
 }
 
+function updateMainScreen() {
+    console.log('Updating main screen for user:', currentUser.id);
+    const emp = getEmployee(currentUser.id);
+    document.getElementById('mainWelcomeName').textContent = emp.profile.name || 'User';
+    document.getElementById('mainProfilePic').src = currentUser.avatar || 'https://via.placeholder.com/100';
+    if (emp.onLOA) {
+        showModal('alert', 'You are currently on a Leave of Absence');
+        document.getElementById('clockInBtn').disabled = true;
+        document.getElementById('clockOutBtn').disabled = true;
+    } else {
+        document.getElementById('clockInBtn').disabled = isClockedIn;
+        document.getElementById('clockOutBtn').disabled = !isClockedIn;
+    }
+}
+
 document.getElementById('discordLoginBtn').addEventListener('click', () => {
     const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify&prompt=none`;
+    console.log('Initiating OAuth redirect:', oauthUrl);
     window.location.href = oauthUrl;
 });
 
@@ -259,35 +299,75 @@ async function handleOAuthRedirect() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const error = urlParams.get('error');
+    console.log('OAuth callback received:', { code, error, url: window.location.href });
+
     if (error) {
-        console.error('OAuth error:', urlParams.get('error_description'));
+        console.error('OAuth error:', urlParams.get('error_description') || 'Unknown error');
         showModal('alert', `OAuth error: ${urlParams.get('error_description') || 'Unknown error'}`);
         window.history.replaceState({}, document.title, REDIRECT_URI);
         showScreen('discord');
         return;
     }
+
     if (!code) {
+        console.log('No OAuth code provided, checking for saved session');
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+            try {
+                currentUser = JSON.parse(savedUser);
+                if (currentUser.id) {
+                    console.log('Found valid session, redirecting to mainMenu');
+                    showScreen('mainMenu');
+                    updateSidebarProfile();
+                    renderNotifications();
+                    updateMainScreen();
+                    return;
+                } else {
+                    console.log('Invalid saved user data, clearing');
+                    localStorage.removeItem('currentUser');
+                }
+            } catch (e) {
+                console.error('Error parsing saved user:', e);
+                localStorage.removeItem('currentUser');
+            }
+        }
         showScreen('discord');
         return;
     }
 
-    // Prevent reprocessing if already logged in
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser && JSON.parse(savedUser).id) {
-        currentUser = JSON.parse(savedUser);
-        showScreen('mainMenu');
-        updateSidebarProfile();
-        renderNotifications();
-        updateMainScreen();
+    // Prevent reprocessing the same code
+    if (localStorage.getItem('lastProcessedCode') === code) {
+        console.log('Code already processed, redirecting to mainMenu');
+        window.history.replaceState({}, document.title, REDIRECT_URI);
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+            try {
+                currentUser = JSON.parse(savedUser);
+                if (currentUser.id) {
+                    showScreen('mainMenu');
+                    updateSidebarProfile();
+                    renderNotifications();
+                    updateMainScreen();
+                    return;
+                }
+            } catch (e) {
+                console.error('Error parsing saved user:', e);
+                localStorage.removeItem('currentUser');
+            }
+        }
+        showScreen('discord');
         return;
     }
 
+    localStorage.setItem('lastProcessedCode', code);
     showScreen('searching');
     await new Promise(r => setTimeout(r, 1000));
 
     let user;
     try {
-        const response = await fetch(`${WORKER_URL}/auth?code=${code}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`, {
+        const authUrl = `${WORKER_URL}/auth?code=${code}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+        console.log('Fetching user data from Worker:', authUrl);
+        const response = await fetch(authUrl, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
             mode: 'cors'
@@ -297,10 +377,12 @@ async function handleOAuthRedirect() {
             throw new Error(`Auth failed: ${response.status} ${errorText}`);
         }
         user = await response.json();
-        window.history.replaceState({}, document.title, REDIRECT_URI);
+        console.log('User data received:', user);
     } catch (e) {
-        console.error('Auth fetch error:', e);
-        showModal('alert', `Failed to authenticate: ${e.message}. Please check console for details.`);
+        console.error('Auth fetch error:', e.message);
+        showModal('alert', `Failed to authenticate: ${e.message}. Please try again.`);
+        localStorage.removeItem('lastProcessedCode');
+        window.history.replaceState({}, document.title, REDIRECT_URI);
         showScreen('discord');
         return;
     }
@@ -310,6 +392,7 @@ async function handleOAuthRedirect() {
 
     let member;
     try {
+        console.log('Fetching member data:', `${WORKER_URL}/member/${user.id}`);
         const response = await fetch(`${WORKER_URL}/member/${user.id}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
@@ -320,9 +403,12 @@ async function handleOAuthRedirect() {
             throw new Error(`Member fetch failed: ${response.status} ${errorText}`);
         }
         member = await response.json();
+        console.log('Member data received:', member);
     } catch (e) {
-        console.error('Member fetch error:', e);
-        showModal('alert', `Failed to fetch member: ${e.message}. Please check console for details.`);
+        console.error('Member fetch error:', e.message);
+        showModal('alert', `Failed to fetch member data: ${e.message}. Please try again.`);
+        localStorage.removeItem('lastProcessedCode');
+        window.history.replaceState({}, document.title, REDIRECT_URI);
         showScreen('discord');
         return;
     }
@@ -343,22 +429,36 @@ async function handleOAuthRedirect() {
     await new Promise(r => setTimeout(r, 1000));
 
     if (!member.roles.includes(REQUIRED_ROLE)) {
-        showModal('alert', 'You do not have manager permissions');
+        console.log('User lacks required role:', REQUIRED_ROLE);
+        showModal('alert', 'You do not have the required permissions');
+        localStorage.removeItem('lastProcessedCode');
+        window.history.replaceState({}, document.title, REDIRECT_URI);
         showScreen('discord');
         return;
     }
 
+    // Save user session
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    console.log('User session saved:', currentUser.id);
+
     const profile = getEmployee(currentUser.id).profile;
     if (!profile.name) {
+        console.log('No profile name, redirecting to setupWelcome');
         showScreen('setupWelcome');
     } else {
+        console.log('Profile found, redirecting to confirm screen');
         document.getElementById('confirmName').textContent = profile.name;
-        document.getElementById('confirmRole').textContent = 'Verified Role: Manager';
+        document.getElementById('confirmRole').textContent = 'Verified Role: Staff';
         showScreen('confirm');
     }
+
+    window.history.replaceState({}, document.title, REDIRECT_URI);
 }
 
-document.getElementById('setupStartBtn').addEventListener('click', () => showScreen('setupEmail'));
+document.getElementById('setupStartBtn').addEventListener('click', () => {
+    console.log('Setup start button clicked');
+    showScreen('setupEmail');
+});
 
 document.getElementById('setupEmailContinueBtn').addEventListener('click', () => {
     const email = document.getElementById('setupEmailInput').value.trim();
@@ -386,13 +486,15 @@ document.getElementById('setupDepartmentContinueBtn').addEventListener('click', 
         currentUser.profile.department = selectedDept.value;
         showScreen('setupVerify');
         setTimeout(() => {
-            const deptRole = DEPT_ROLES[currentUser.profile.department};
+            const deptRole = DEPT_ROLES[currentUser.profile.department];
             if (currentUser.roles.includes(deptRole)) {
                 updateEmployee(currentUser);
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                console.log('Role verification successful, redirecting to setupComplete');
                 showScreen('setupComplete');
                 playSuccessSound();
             } else {
+                console.log('Role verification failed for department:', currentUser.profile.department);
                 showModal('alert', 'Role verification failed');
                 showScreen('setupDepartment');
             }
@@ -403,29 +505,109 @@ document.getElementById('setupDepartmentContinueBtn').addEventListener('click', 
 });
 
 document.getElementById('setupCompleteBtn').addEventListener('click', () => {
+    console.log('Setup complete, redirecting to portalWelcome');
     showScreen('portalWelcome');
     document.getElementById('portalWelcomeName').textContent = currentUser.profile.name;
     setTimeout(() => {
         showScreen('mainMenu');
         updateSidebarProfile();
         renderNotifications();
+        updateMainScreen();
     }, 3000);
 });
 
 document.getElementById('continueBtn').addEventListener('click', () => {
+    console.log('Continue button clicked, redirecting to portalWelcome');
     showScreen('portalWelcome');
     document.getElementById('portalWelcomeName').textContent = currentUser.profile.name;
     setTimeout(() => {
         showScreen('mainMenu');
         updateSidebarProfile();
         renderNotifications();
+        updateMainScreen();
     }, 3000);
 });
 
-document.getElementById('homeBtn').addEventListener('click', () => showScreen('mainMenu'));
+document.getElementById('homeBtn').addEventListener('click', () => {
+    console.log('Home button clicked');
+    showScreen('mainMenu');
+    updateMainScreen();
+});
+
+document.getElementById('myProfileBtn').addEventListener('click', () => {
+    showScreen('myProfile');
+    const emp = getEmployee(currentUser.id);
+    document.getElementById('profileName').textContent = emp.profile.name || 'N/A';
+    document.getElementById('profileEmail').textContent = emp.profile.email || 'N/A';
+    document.getElementById('profileDepartment').textContent = emp.profile.department || 'N/A';
+});
+
+document.getElementById('resetProfileBtn').addEventListener('click', () => {
+    showModal('resetProfile');
+});
+
+document.getElementById('confirmResetBtn').addEventListener('click', () => {
+    resetEmployeeData(currentUser.id);
+    closeModal('resetProfile');
+    showScreen('setupWelcome');
+});
+
+document.getElementById('myRolesBtn').addEventListener('click', () => {
+    showScreen('myRoles');
+    const list = document.getElementById('rolesList');
+    list.innerHTML = '';
+    currentUser.roles.forEach(role => {
+        const li = document.createElement('li');
+        li.textContent = role;
+        list.appendChild(li);
+    });
+});
+
+document.getElementById('tasksBtn').addEventListener('click', () => {
+    showScreen('tasks');
+    loadTasks();
+});
+
+document.getElementById('addTaskBtn').addEventListener('click', () => {
+    const taskText = document.getElementById('taskInput').value.trim();
+    if (taskText) {
+        currentTasks.push({ text: taskText, completed: false });
+        saveTasks();
+        renderTasks();
+        document.getElementById('taskInput').value = '';
+    }
+});
 
 document.getElementById('absencesBtn').addEventListener('click', () => {
     showScreen('absences');
+    renderAbsences('pending');
+});
+
+document.getElementById('requestAbsenceBtn').addEventListener('click', () => {
+    document.getElementById('absenceForm').classList.toggle('hidden');
+});
+
+document.getElementById('submitAbsenceBtn').addEventListener('click', async () => {
+    const type = document.getElementById('absenceType').value;
+    const startDate = document.getElementById('absenceStartDate').value;
+    const endDate = document.getElementById('absenceEndDate').value;
+    const comment = document.getElementById('absenceComment').value.trim();
+    if (!startDate || !endDate || !comment) {
+        showModal('alert', 'Please fill all fields');
+        return;
+    }
+    const emp = getEmployee(currentUser.id);
+    emp.absences = emp.absences || [];
+    emp.absences.push({ id: Date.now().toString(), type, startDate, endDate, comment, status: 'pending' });
+    updateEmployee(emp);
+    await sendEmbed(ABSENCE_CHANNEL, {
+        title: 'New Absence Request',
+        description: `User: <@${currentUser.id}> (${emp.profile.name})\nType: ${type}\nStart: ${startDate}\nEnd: ${endDate}\nComment: ${comment}`,
+        color: 0xffff00
+    });
+    document.getElementById('absenceForm').classList.add('hidden');
+    showModal('alert', 'Absence request submitted');
+    playSuccessSound();
     renderAbsences('pending');
 });
 
@@ -441,212 +623,149 @@ function renderAbsences(tab) {
     const content = document.getElementById('absencesContent');
     if (!content) return;
     content.innerHTML = '';
-    employees.forEach(emp => {
-        emp.absences.filter(a => a.status === tab).forEach(a => {
-            const div = document.createElement('div');
-            div.className = `absence-item ${a.status}`;
-            div.innerHTML = `
-                <p>User: ${emp.profile.name}</p>
-                <p>Type: ${a.type}</p>
-                <p>Comment: ${a.comment}</p>
-                <p>Start: ${a.startDate}</p>
-                <p>End: ${a.endDate}</p>
-                ${a.status === 'pending' ? `
-                    <button onclick="approveAbsence('${emp.id}', '${a.id}')">Accept</button>
-                    <button onclick="showRejectAbsence('${emp.id}', '${a.id}')">Reject</button>
-                ` : ''}
-            `;
-            content.appendChild(div);
-        });
+    const emp = getEmployee(currentUser.id);
+    emp.absences.filter(a => a.status === tab).forEach(a => {
+        const div = document.createElement('div');
+        div.className = `absence-item ${a.status}`;
+        div.innerHTML = `
+            <p>Type: ${a.type}</p>
+            <p>Comment: ${a.comment}</p>
+            <p>Start: ${a.startDate}</p>
+            <p>End: ${a.endDate}</p>
+            ${a.status === 'rejected' ? `<p>Reason: ${a.reason || 'N/A'}</p>` : ''}
+        `;
+        content.appendChild(div);
     });
 }
 
-window.approveAbsence = async (userId, absenceId) => {
-    const emp = getEmployee(userId);
-    const absence = emp.absences.find(a => a.id === absenceId);
-    if (absence) {
-        absence.status = 'approved';
-        emp.onLOA = true;
-        updateEmployee(emp);
-        await sendDM(userId, `Your absence has been approved! Check your staff portal.`);
-        await sendEmbed(NOTIFICATION_CHANNEL, {
-            title: 'Absence Approved',
-            description: `User: <@${userId}> (${emp.profile.name})\nType: ${absence.type}\nStart: ${absence.startDate}\nEnd: ${absence.endDate}`,
-            color: 0x00ff00
-        });
-        addNotification(userId, 'absence', 'Your absence has been approved', 'absences');
-        showModal('alert', 'Absence approved');
-        playSuccessSound();
-        renderAbsences('pending');
-    }
-};
-
-window.showRejectAbsence = (userId, absenceId) => {
-    showModal('alert', `
-        <h2>Reject Absence</h2>
-        <input type="text" id="rejectReason" placeholder="Reason">
-        <button id="submitRejectBtn">Reject</button>
-    `);
-    document.getElementById('submitRejectBtn').addEventListener('click', async () => {
-        const reason = document.getElementById('rejectReason').value.trim();
-        if (!reason) {
-            showModal('alert', 'Please enter a reason');
-            return;
-        }
-        const emp = getEmployee(userId);
-        const absence = emp.absences.find(a => a.id === absenceId);
-        if (absence) {
-            absence.status = 'rejected';
-            absence.reason = reason;
-            updateEmployee(emp);
-            await sendDM(userId, `Your absence has been rejected. Reason: ${reason}. Check your staff portal.`);
-            await sendEmbed(NOTIFICATION_CHANNEL, {
-                title: 'Absence Rejected',
-                description: `User: <@${userId}> (${emp.profile.name})\nType: ${absence.type}\nReason: ${reason}`,
-                color: 0xff0000
-            });
-            addNotification(userId, 'absence', `Your absence has been rejected: ${reason}`, 'absences');
-            closeModal('alert');
-            showModal('alert', 'Absence rejected');
-            playSuccessSound();
-            renderAbsences('pending');
-        }
-    });
-};
-
 document.getElementById('payslipsBtn').addEventListener('click', () => {
     showScreen('payslips');
-    document.getElementById('payslipForm').classList.add('hidden');
-});
-
-document.getElementById('issuePayslipBtn').addEventListener('click', () => {
-    document.getElementById('payslipForm').classList.toggle('hidden');
-    document.getElementById('payslipUser').value = '';
-    renderUserSearch('payslipUser', 'userSearchResults');
-});
-
-document.getElementById('payslipUser').addEventListener('input', (e) => {
-    const query = e.target.value.trim();
-    if (query.length >= 3) {
-        renderUserSearch('payslipUser', 'userSearchResults');
-    } else {
-        document.getElementById('userSearchResults').innerHTML = '';
-    }
-});
-
-document.getElementById('submitPayslipBtn').addEventListener('click', () => {
-    const userName = document.getElementById('payslipUser').value.trim();
-    const file = document.getElementById('payslipFile').files[0];
-    if (!userName || !file) {
-        showModal('alert', 'Please select a user and file');
-        return;
-    }
-    const emp = employees.find(e => e.profile.name === userName);
-    if (!emp) {
-        showModal('alert', 'User not found');
-        return;
-    }
-    const reader = new FileReader();
-    reader.onload = async () => {
-        emp.payslips = emp.payslips || [];
-        emp.payslips.push({ timestamp: new Date().toLocaleString(), fileBase64: reader.result });
-        updateEmployee(emp);
-        await sendDM(emp.id, `Your payslip has been issued. Check your staff portal.`);
-        await sendEmbed(NOTIFICATION_CHANNEL, {
-            title: 'Payslip Issued',
-            description: `User: <@${emp.id}> (${emp.profile.name})\nTimestamp: ${new Date().toLocaleString()}`,
-            color: 0x007bff
-        });
-        addNotification(emp.id, 'payslip', 'New payslip available', 'payslips');
-        showModal('alert', 'Payslip issued');
-        playSuccessSound();
-        document.getElementById('payslipForm').classList.add('hidden');
-    };
-    reader.readAsDataURL(file);
+    const content = document.getElementById('payslipsContent');
+    content.innerHTML = '';
+    const emp = getEmployee(currentUser.id);
+    emp.payslips.forEach(p => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+            <p>Issued: ${p.timestamp}</p>
+            <a href="${p.fileBase64}" download="payslip_${p.timestamp.replace(/[^a-z0-9]/gi, '_')}.pdf">Download</a>
+        `;
+        content.appendChild(div);
+    });
 });
 
 document.getElementById('disciplinariesBtn').addEventListener('click', () => {
     showScreen('disciplinaries');
-    document.getElementById('disciplinaryForm').classList.add('hidden');
-});
-
-document.getElementById('issueDisciplinaryBtn').addEventListener('click', () => {
-    document.getElementById('disciplinaryForm').classList.toggle('hidden');
-    document.getElementById('disciplinaryUser').value = '';
-    renderUserSearch('disciplinaryUser', 'userSearchResultsDisciplinary');
-});
-
-document.getElementById('disciplinaryUser').addEventListener('input', (e) => {
-    const query = e.target.value.trim();
-    if (query.length >= 3) {
-        renderUserSearch('disciplinaryUser', 'userSearchResultsDisciplinary');
-    } else {
-        document.getElementById('userSearchResultsDisciplinary').innerHTML = '';
-    }
-});
-
-document.getElementById('submitDisciplinaryBtn').addEventListener('click', async () => {
-    const userName = document.getElementById('disciplinaryUser').value.trim();
-    const level = document.getElementById('strikeLevel').value;
-    const reason = document.getElementById('disciplinaryReason').value.trim();
-    const details = document.getElementById('disciplinaryDetails').value.trim();
-    const action = document.getElementById('disciplinaryAction').value.trim();
-    if (!userName || !reason || !details) {
-        showModal('alert', 'Please fill all required fields');
-        return;
-    }
-    const emp = employees.find(e => e.profile.name === userName);
-    if (!emp) {
-        showModal('alert', 'User not found');
-        return;
-    }
-    emp.strikes = emp.strikes || [];
-    emp.strikes.push({ level, reason, details, action: action || 'None', timestamp: new Date().toLocaleString() });
-    updateEmployee(emp);
-    await sendDM(emp.id, `You have been issued a ${level}: ${reason}. Check your staff portal.`);
-    await sendEmbed(NOTIFICATION_CHANNEL, {
-        title: 'Disciplinary Issued',
-        description: `User: <@${emp.id}> (${emp.profile.name})\nLevel: ${level}\nReason: ${reason}\nDetails: ${details}\nAction: ${action || 'None'}`,
-        color: 0xff0000
-    });
-    addNotification(emp.id, 'strike', `You have been issued a ${level}`, 'disciplinaries');
-    showModal('alert', 'Disciplinary issued');
-    playSuccessSound();
-    document.getElementById('disciplinaryForm').classList.add('hidden');
-});
-
-function renderUserSearch(inputId, resultsId) {
-    const query = document.getElementById(inputId).value.trim();
-    const results = document.getElementById(resultsId);
-    results.innerHTML = '';
-    const filtered = employees.filter(e => e.profile.name && e.profile.name.toLowerCase().startsWith(query.toLowerCase()));
-    filtered.forEach(emp => {
+    const content = document.getElementById('disciplinariesContent');
+    content.innerHTML = '';
+    const emp = getEmployee(currentUser.id);
+    emp.strikes.forEach(s => {
         const div = document.createElement('div');
-        div.className = 'user-search-item';
         div.innerHTML = `
-            <img src="${emp.avatar}" alt="${emp.profile.name}" style="width: 40px; height: 40px; border-radius: 50%;">
-            <span>${emp.profile.name}</span>
+            <p>Level: ${s.level}</p>
+            <p>Reason: ${s.reason}</p>
+            <p>Details: ${s.details}</p>
+            <p>Action: ${s.action}</p>
+            <p>Timestamp: ${s.timestamp}</p>
         `;
-        div.addEventListener('click', () => {
-            document.getElementById(inputId).value = emp.profile.name;
-            results.innerHTML = '';
-        });
-        results.appendChild(div);
+        content.appendChild(div);
     });
-}
+});
+
+document.getElementById('timeclockBtn').addEventListener('click', () => {
+    showScreen('timeclock');
+    updateMainScreen();
+});
+
+document.getElementById('clockInBtn').addEventListener('click', async () => {
+    clockInTime = Date.now();
+    localStorage.setItem('clockInTime', clockInTime);
+    isClockedIn = true;
+    clockInActions = [];
+    document.getElementById('clockInBtn').disabled = true;
+    document.getElementById('clockOutBtn').disabled = false;
+    const emp = getEmployee(currentUser.id);
+    await sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked in at ${new Date().toLocaleString()}`);
+    clockInInterval = setInterval(() => {
+        const elapsed = Date.now() - clockInTime;
+        document.getElementById('clockDisplay').textContent = formatTime(elapsed);
+    }, 1000);
+});
+
+document.getElementById('clockOutBtn').addEventListener('click', async () => {
+    const clockOutTime = Date.now();
+    clearInterval(clockInInterval);
+    isClockedIn = false;
+    document.getElementById('clockInBtn').disabled = false;
+    document.getElementById('clockOutBtn').disabled = true;
+    document.getElementById('clockDisplay').textContent = '';
+    const emp = getEmployee(currentUser.id);
+    await sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()}`);
+    downloadTXT(currentUser, clockInTime, clockOutTime, clockInActions.join(', '));
+    localStorage.removeItem('clockInTime');
+    clockInTime = null;
+});
+
+document.getElementById('mailBtn').addEventListener('click', () => {
+    showScreen('mail');
+    const content = document.getElementById('mailContent');
+    content.innerHTML = '';
+    const emp = getEmployee(currentUser.id);
+    emp.mail.forEach(m => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+            <p>From: ${m.from}</p>
+            <p>Message: ${m.content}</p>
+            <p>Timestamp: ${m.timestamp}</p>
+        `;
+        content.appendChild(div);
+    });
+});
+
+document.getElementById('composeMailBtn').addEventListener('click', () => {
+    showModal('composeMail');
+});
+
+document.getElementById('sendMailBtn').addEventListener('click', () => {
+    const recipient = document.getElementById('mailRecipient').value.trim();
+    const content = document.getElementById('mailContent').value.trim();
+    if (!recipient || !content) {
+        showModal('alert', 'Please fill all fields');
+        return;
+    }
+    const emp = employees.find(e => e.profile.name === recipient);
+    if (!emp) {
+        showModal('alert', 'Recipient not found');
+        return;
+    }
+    emp.mail = emp.mail || [];
+    emp.mail.push({
+        from: currentUser.profile.name,
+        content,
+        timestamp: new Date().toLocaleString()
+    });
+    updateEmployee(emp);
+    closeModal('composeMail');
+    showModal('alert', 'Mail sent');
+    playSuccessSound();
+});
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
+    console.log('Logging out, clearing currentUser');
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('clockInTime');
+    localStorage.removeItem('lastProcessedCode');
     document.getElementById('goodbyeName').textContent = currentUser.profile.name;
     showScreen('goodbye');
+    setTimeout(() => showScreen('discord'), 3000);
 });
 
-document.getElementById('sidebarToggle').addEventListener('click', () => {
+document.querySelector('.sidebar-toggle').addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('extended');
 });
 
 function updateSidebarProfile() {
-    document.getElementById('sidebarProfilePic').src = currentUser.avatar;
+    console.log('Updating sidebar profile');
+    document.getElementById('sidebarProfilePic').src = currentUser.avatar || 'https://via.placeholder.com/100';
 }
 
 document.getElementById('modeToggle').addEventListener('change', (e) => {
@@ -659,19 +778,36 @@ document.querySelectorAll('.close').forEach(close => {
 });
 
 window.addEventListener('load', () => {
+    console.log('Window loaded, checking OAuth state');
     const savedUser = localStorage.getItem('currentUser');
     const darkMode = localStorage.getItem('darkMode') === 'true';
     document.getElementById('modeToggle').checked = darkMode;
     document.body.classList.toggle('dark', darkMode);
 
     if (new URLSearchParams(window.location.search).get('code')) {
+        console.log('Detected OAuth code, processing redirect');
         handleOAuthRedirect();
     } else if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-        showScreen('mainMenu');
-        updateSidebarProfile();
-        renderNotifications();
+        try {
+            currentUser = JSON.parse(savedUser);
+            if (currentUser.id) {
+                console.log('Found saved user, loading mainMenu');
+                showScreen('mainMenu');
+                updateSidebarProfile();
+                renderNotifications();
+                updateMainScreen();
+            } else {
+                console.log('Invalid saved user, showing discord screen');
+                localStorage.removeItem('currentUser');
+                showScreen('discord');
+            }
+        } catch (e) {
+            console.error('Error parsing saved user:', e);
+            localStorage.removeItem('currentUser');
+            showScreen('discord');
+        }
     } else {
+        console.log('No user session, showing discord screen');
         showScreen('discord');
     }
 });
@@ -679,9 +815,14 @@ window.addEventListener('load', () => {
 window.addEventListener('hashchange', () => {
     const screenId = window.location.hash.slice(1);
     if (screens[screenId]) {
+        console.log('Hash changed, showing screen:', screenId);
         showScreen(screenId);
-        if (screenId === 'absences') document.getElementById('absencesBtn').click();
+        if (screenId === 'mainMenu') updateMainScreen();
+        else if (screenId === 'tasks') document.getElementById('tasksBtn').click();
+        else if (screenId === 'absences') document.getElementById('absencesBtn').click();
         else if (screenId === 'payslips') document.getElementById('payslipsBtn').click();
         else if (screenId === 'disciplinaries') document.getElementById('disciplinariesBtn').click();
+        else if (screenId === 'timeclock') document.getElementById('timeclockBtn').click();
+        else if (screenId === 'mail') document.getElementById('mailBtn').click();
     }
 });

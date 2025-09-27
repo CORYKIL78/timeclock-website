@@ -3,215 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cirkle Staff Portal</title>
+    <title>Staff Portal</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Sidebar (shown after login) -->
+    <!-- Sidebar -->
     <div id="sidebar" class="sidebar hidden">
         <div class="sidebar-header">
-            <img id="sidebarProfilePic" src="" alt="Profile" class="profile-img">
+            <img id="sidebarProfilePic" class="profile-img" src="" alt="Profile">
         </div>
-        <button id="sidebarToggle" class="sidebar-toggle">☰</button>
-        <nav id="sidebarNav">
+        <button class="sidebar-toggle">☰</button>
+        <div id="sidebarNav">
             <button id="homeBtn">Home</button>
             <button id="myProfileBtn">My Profile</button>
             <button id="myRolesBtn">My Roles</button>
-            <button id="myTasksBtn">My Tasks</button>
+            <button id="tasksBtn">Tasks</button>
             <button id="absencesBtn">Absences</button>
             <button id="payslipsBtn">Payslips</button>
             <button id="disciplinariesBtn">Disciplinaries</button>
-            <button id="mailBtn">Mail</button>
             <button id="timeclockBtn">Timeclock</button>
-            <button id="handbookBtn">Handbooks</button>
-            <button id="clockOutBtn">Clock Out</button>
-            <div class="toggle-container">
-                <label class="switch">
-                    <input type="checkbox" id="modeToggle">
-                    <span class="slider"></span>
-                </label>
-                <span>Dark Mode</span>
-            </div>
-        </nav>
+            <button id="mailBtn">Mail</button>
+            <button id="logoutBtn">Logout</button>
+        </div>
+        <div class="toggle-container">
+            <label class="switch">
+                <input type="checkbox" id="modeToggle">
+                <span class="slider"></span>
+            </label>
+            <span>Dark Mode</span>
+        </div>
     </div>
 
-    <!-- Notification Panel (shown after login) -->
+    <!-- Notifications -->
     <div id="notificationPanel" class="notifications hidden">
         <h3>Notifications</h3>
         <ul id="notificationList"></ul>
     </div>
 
-    <!-- Discord Login Screen (starting screen) -->
-    <div id="discordScreen" class="screen active">
+    <!-- Modals -->
+    <div id="alertModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="alertMessage"></div>
+        </div>
+    </div>
+    <div id="composeMailModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Compose Mail</h2>
+            <input type="text" id="mailRecipient" placeholder="Recipient">
+            <textarea id="mailContent" placeholder="Message"></textarea>
+            <button id="sendMailBtn">Send</button>
+        </div>
+    </div>
+    <div id="resetProfileModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Reset Profile</h2>
+            <p>Are you sure you want to reset your profile? This cannot be undone.</p>
+            <button id="confirmResetBtn">Confirm</button>
+        </div>
+    </div>
+
+    <!-- Screens -->
+    <div id="discordScreen" class="screen">
         <div class="container">
-            <img src="https://media.discordapp.net/attachments/1315278404009988107/1315740695365025792/Utilities_960_x_540_px.png?ex=68cba0c3&is=68ca4f43&hm=4312aac383b6083018e4f61be765405ea807bff0e45ebf227545babc3ffec2a6&=&format=webp&quality=lossless&width=1056&height=594" alt="Cirkle Logo" class="logo">
-            <h2>Login with Discord</h2>
+            <img class="logo" src="https://via.placeholder.com/150" alt="Logo">
+            <h1>Staff Portal</h1>
             <button id="discordLoginBtn">Login with Discord</button>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
-
-    <!-- Loading Screens -->
     <div id="searchingScreen" class="screen loading-screen">
-        <div class="container">
-            <h2>Authenticating...</h2>
+        <div class="container black-bg">
+            <h2>Searching...</h2>
             <div class="spinner"></div>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
     <div id="rolesScreen" class="screen loading-screen">
-        <div class="container">
-            <h2>Finding roles...</h2>
+        <div class="container black-bg">
+            <h2>Checking Roles...</h2>
             <div class="spinner"></div>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
     <div id="cherryScreen" class="screen loading-screen">
-        <div class="container">
-            <h2>Putting the cherry on top...</h2>
+        <div class="container black-bg">
+            <h2>Verifying...</h2>
             <div class="spinner"></div>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
-
-    <!-- Confirmation Screen -->
     <div id="confirmScreen" class="screen">
         <div class="container">
-            <img id="profilePic" src="" alt="Profile" class="profile-img">
-            <h2 id="confirmName"></h2>
-            <p id="confirmRole"></p>
+            <h2>Verification Complete</h2>
+            <p>Name: <span id="confirmName"></span></p>
+            <p>Role: <span id="confirmRole"></span></p>
             <button id="continueBtn">Continue</button>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
-
-    <!-- Clock In Loading -->
-    <div id="clockingScreen" class="screen loading-screen">
-        <div class="container">
-            <div class="black-bg">
-                <h2>Clocking in, please wait!</h2>
-                <div class="spinner"></div>
-            </div>
-        </div>
-        <footer>© Cirkle Development 2025</footer>
-    </div>
-
-    <!-- Setup Screens -->
     <div id="setupWelcomeScreen" class="screen">
         <div class="container">
-            <img src="https://media.discordapp.net/attachments/1315278404009988107/1315740695365025792/Utilities_960_x_540_px.png?ex=68cba0c3&is=68ca4f43&hm=4312aac383b6083018e4f61be765405ea807bff0e45ebf227545babc3ffec2a6&=&format=webp&quality=lossless&width=1056&height=594" alt="Cirkle Logo" class="logo">
-            <h2>Welcome to the Staff Portal</h2>
-            <p>It looks like this is your first time here. Let's set up your profile.</p>
-            <button id="setupStartBtn">Get Started</button>
+            <h2>Welcome!</h2>
+            <p>Please set up your profile to continue.</p>
+            <button id="setupStartBtn">Start</button>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
     <div id="setupEmailScreen" class="screen">
         <div class="container">
-            <h2>Enter Your Email</h2>
-            <input type="email" id="setupEmailInput" placeholder="Your email">
+            <h2>Enter Email</h2>
+            <input type="email" id="setupEmailInput" placeholder="Email">
             <button id="setupEmailContinueBtn">Continue</button>
-            <button class="back-btn">← Back</button>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
     <div id="setupNameScreen" class="screen">
         <div class="container">
-            <h2>Enter Your Name</h2>
-            <input type="text" id="setupNameInput" placeholder="Your name">
+            <h2>Enter Name</h2>
+            <input type="text" id="setupNameInput" placeholder="Name">
             <button id="setupNameContinueBtn">Continue</button>
-            <button class="back-btn">← Back</button>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
     <div id="setupDepartmentScreen" class="screen">
         <div class="container">
-            <h2>Select Your Department</h2>
-            <label><input type="radio" name="department" value="Development Department"> Development Department</label>
-            <label><input type="radio" name="department" value="Customer Relations Department"> Customer Relations Department</label>
-            <label><input type="radio" name="department" value="Careers Department"> Careers Department</label>
+            <h2>Select Department</h2>
+            <label><input type="radio" name="department" value="Development Department"> Development</label>
+            <label><input type="radio" name="department" value="Customer Relations Department"> Customer Relations</label>
+            <label><input type="radio" name="department" value="Careers Department"> Careers</label>
             <button id="setupDepartmentContinueBtn">Continue</button>
-            <button class="back-btn">← Back</button>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
     <div id="setupVerifyScreen" class="screen loading-screen">
-        <div class="container">
-            <h2>Verifying your details...</h2>
+        <div class="container black-bg">
+            <h2>Verifying Department...</h2>
             <div class="spinner"></div>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
     <div id="setupCompleteScreen" class="screen">
         <div class="container">
             <h2>Setup Complete!</h2>
-            <p>Your profile has been set up successfully.</p>
-            <button id="setupCompleteBtn">Continue to Portal</button>
+            <button id="setupCompleteBtn">Continue</button>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
     <div id="portalWelcomeScreen" class="screen">
         <div class="container">
-            <img src="https://media.discordapp.net/attachments/1315278404009988107/1315740695365025792/Utilities_960_x_540_px.png?ex=68cba0c3&is=68ca4f43&hm=4312aac383b6083018e4f61be765405ea807bff0e45ebf227545babc3ffec2a6&=&format=webp&quality=lossless&width=1056&height=594" alt="Cirkle Logo" class="logo">
-            <h2>Welcome to the Cirkle Staff Portal, <span id="portalWelcomeName"></span>!</h2>
-            <p>You will be redirected to the main menu shortly...</p>
+            <h2>Welcome, <span id="portalWelcomeName"></span>!</h2>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
-
-    <!-- Main Menu (Staff) -->
     <div id="mainMenuScreen" class="screen">
-        <div class="container main-menu">
-            <img src="https://media.discordapp.net/attachments/1315278404009988107/1315740695365025792/Utilities_960_x_540_px.png?ex=68cba0c3&is=68ca4f43&hm=4312aac383b6083018e4f61be765405ea807bff0e45ebf227545babc3ffec2a6&=&format=webp&quality=lossless&width=1056&height=594" alt="Cirkle Logo" class="logo">
-            <h1>Welcome, <span id="welcomeName"></span></h1>
-            <button id="clockInBtn">Clock In</button>
-            <p id="clockInStatus" class="hidden">Time clocked in: <span id="clockInTime"></span></p>
-            <p id="runningPeriodContainer" class="hidden">Current running period: <span id="runningPeriod"></span></p>
+        <div class="container">
+            <div class="user-header">
+                <img id="mainProfilePic" class="profile-img" src="" alt="Profile">
+                <h2>Welcome, <span id="mainWelcomeName"></span></h2>
+            </div>
+            <p>Staff Portal Dashboard</p>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
-
-    <!-- My Profile Screen -->
     <div id="myProfileScreen" class="screen">
         <div class="container">
-            <button class="back-btn">← Back</button>
             <h2>My Profile</h2>
-            <img id="profileAvatar" src="" alt="Profile" class="profile-img">
-            <p>Discord: <span id="profileDiscordName"></span></p>
-            <label>Name: <input type="text" id="profileName"></label>
-            <label>Email: <input type="email" id="profileEmail"></label>
-            <label>Department:
-                <select id="profileDepartment">
-                    <option value="Development Department">Development Department</option>
-                    <option value="Customer Relations Department">Customer Relations Department</option>
-                    <option value="Careers Department">Careers Department</option>
-                </select>
-            </label>
-            <button id="saveProfileBtn">Save Profile</button>
+            <p>Name: <span id="profileName"></span></p>
+            <p>Email: <span id="profileEmail"></span></p>
+            <p>Department: <span id="profileDepartment"></span></p>
             <button id="resetProfileBtn">Reset Profile</button>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
-
-    <!-- Absences Screen -->
+    <div id="myRolesScreen" class="screen">
+        <div class="container">
+            <h2>My Roles</h2>
+            <ul id="rolesList"></ul>
+        </div>
+    </div>
+    <div id="tasksScreen" class="screen">
+        <div class="container">
+            <h2>Tasks</h2>
+            <div class="task-input">
+                <input type="text" id="taskInput" placeholder="Add a task">
+                <button id="addTaskBtn">Add</button>
+            </div>
+            <ul id="tasksList"></ul>
+        </div>
+    </div>
     <div id="absencesScreen" class="screen">
         <div class="container">
-            <button class="back-btn">← Back</button>
             <h2>Absences</h2>
-            <button id="submitAbsenceBtn">Submit Absence</button>
-            <div id="submitAbsenceForm" class="hidden">
-                <label>Type:
-                    <select id="absenceType">
-                        <option value="Sick Leave">Sick Leave</option>
-                        <option value="Personal Leave">Personal Leave</option>
-                        <option value="Vacation">Vacation</option>
-                    </select>
-                </label>
-                <label>Comment: <textarea id="absenceComment"></textarea></label>
-                <label>Start Date: <input type="date" id="absenceStart"></label>
-                <label>End Date: <input type="date" id="absenceEnd"></label>
-                <p id="absenceDays"></p>
-                <button id="submitAbsenceFormBtn">Submit</button>
+            <button id="requestAbsenceBtn">Request Absence</button>
+            <div id="absenceForm" class="hidden">
+                <select id="absenceType">
+                    <option value="Sick Leave">Sick Leave</option>
+                    <option value="Vacation">Vacation</option>
+                    <option value="Personal Leave">Personal Leave</option>
+                </select>
+                <input type="date" id="absenceStartDate">
+                <input type="date" id="absenceEndDate">
+                <textarea id="absenceComment" placeholder="Comment"></textarea>
+                <button id="submitAbsenceBtn">Submit</button>
             </div>
             <div class="tabs">
                 <button class="tab-btn active" data-tab="pending">Pending</button>
@@ -220,71 +202,42 @@
             </div>
             <div id="absencesContent"></div>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
-
-    <!-- Payslips Screen -->
     <div id="payslipsScreen" class="screen">
         <div class="container">
-            <button class="back-btn">← Back</button>
             <h2>Payslips</h2>
-            <ul id="payslipsList"></ul>
+            <div id="payslipsContent"></div>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
-
-    <!-- Disciplinaries Screen -->
     <div id="disciplinariesScreen" class="screen">
         <div class="container">
-            <button class="back-btn">← Back</button>
             <h2>Disciplinaries</h2>
-            <ul id="strikesList"></ul>
+            <div id="disciplinariesContent"></div>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
-
-    <!-- My Roles Screen -->
-    <div id="myRolesScreen" class="screen">
+    <div id="timeclockScreen" class="screen">
         <div class="container">
-            <button class="back-btn">← Back</button>
-            <h2>My Roles</h2>
-            <ul id="rolesList"></ul>
+            <h2>Timeclock</h2>
+            <div id="clockDisplay"></div>
+            <button id="clockInBtn">Clock In</button>
+            <button id="clockOutBtn" disabled>Clock Out</button>
+            <div id="timeclockActions"></div>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
-
-    <!-- My Tasks Screen -->
-    <div id="tasksScreen" class="screen">
+    <div id="mailScreen" class="screen">
         <div class="container">
-            <button class="back-btn">← Back</button>
-            <h2>My Tasks</h2>
-            <div class="task-input">
-                <input type="text" id="taskInput" placeholder="Enter a new task...">
-                <button id="addTaskBtn">Add Task</button>
-            </div>
-            <ul id="tasksList"></ul>
+            <h2>Mail</h2>
+            <button id="composeMailBtn">Compose</button>
+            <div id="mailContent"></div>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
-
-    <!-- Goodbye Screen -->
     <div id="goodbyeScreen" class="screen">
         <div class="container">
-            <h1>👋 Goodbye, <span id="goodbyeName"></span>. Please remember to clock in tomorrow!</h1>
+            <h2>Goodbye, <span id="goodbyeName"></span></h2>
         </div>
-        <footer>© Cirkle Development 2025</footer>
     </div>
 
-    <!-- Modals -->
-    <div id="resetProfileModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Reset Profile</h2>
-            <p>Are you sure you want to reset all your profile data? This will clear your profile, absences, payslips, strikes, tasks, and notifications, and you will need to go through the setup process again.</p>
-            <button id="confirmResetBtn">Confirm</button>
-            <button id="cancelResetBtn">Cancel</button>
-        </div>
-    </div>
+    <footer>Staff Portal © 2025</footer>
 
     <script src="script.js"></script>
 </body>

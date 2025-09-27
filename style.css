@@ -8,6 +8,7 @@
     --info: #17a2b8;
     --warning: #ffc107;
     --shadow: 0 2px 4px rgba(0,0,0,0.1);
+    --tab-active-bg: #007bff;
 }
 
 body.dark {
@@ -20,6 +21,7 @@ body.dark {
     --info: #138496;
     --warning: #e0a800;
     --shadow: 0 2px 4px rgba(0,0,0,0.5);
+    --tab-active-bg: #1e90ff;
 }
 
 * {
@@ -33,9 +35,6 @@ body {
     background: var(--bg-color);
     color: var(--text-color);
     min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     transition: background 0.3s ease;
 }
 
@@ -51,6 +50,7 @@ body {
     background: var(--bg-color);
     opacity: 0;
     transition: opacity 0.5s ease;
+    z-index: 1;
 }
 
 .screen.active {
@@ -68,6 +68,7 @@ body {
     width: 500px;
     max-height: 90vh;
     overflow-y: auto;
+    z-index: 2;
 }
 
 body.dark .container {
@@ -250,6 +251,7 @@ footer {
     font-size: 12px;
     color: var(--secondary);
     opacity: 0.7;
+    z-index: 0;
 }
 
 .back-btn {
@@ -478,6 +480,7 @@ body.dark .modal-content {
     background: #e2e6ea;
     color: var(--text-color);
     border-radius: 4px;
+    cursor: pointer;
 }
 
 body.dark .tab-btn {
@@ -485,7 +488,7 @@ body.dark .tab-btn {
 }
 
 .tab-btn.active {
-    background: var(--tab-active-bg);
+    background: var(--primary);
     color: white;
 }
 
