@@ -46,7 +46,8 @@ const modals = {
     composeMail: document.getElementById('composeMailModal'),
     resetProfile: document.getElementById('resetProfileModal'),
     absenceRequest: document.getElementById('absenceRequestModal'),
-    deptChange: document.getElementById('deptChangeModal')
+    deptChange: document.getElementById('deptChangeModal'),
+    viewMail: document.getElementById('viewMailModal')
 };
 
 let currentUser = null;
@@ -59,6 +60,8 @@ let clockInActions = [];
 let clockInInterval = null;
 let previousSessions = JSON.parse(localStorage.getItem('previousSessions')) || [];
 let roleNames = {};
+let successAudio = null;
+let notificationAudio = null;
 
 function showScreen(screenId) {
     console.log('Showing screen:', screenId);
@@ -100,7 +103,9 @@ function showModal(modalId, message = '') {
         } else {
             modal.classList.remove('success');
         }
-        document.getElementById('alertMessage').innerHTML = message;
+        if (modalId === 'alert') {
+            document.getElementById('alertMessage').innerHTML = message;
+        }
         modal.style.display = 'flex';
     } else {
         console.error('Modal not found:', modalId);
@@ -115,14 +120,37 @@ function closeModal(modalId) {
     }
 }
 
+function preloadAudio() {
+    if (!successAudio) {
+        successAudio = new Audio(SUCCESS_SOUND_URL);
+        successAudio.preload = 'auto';
+        successAudio.load();
+        successAudio.oncanplaythrough = () => console.log('Success sound loaded');
+        successAudio.onerror = (e) => console.error('Success sound load error:', e);
+    }
+    if (!notificationAudio) {
+        notificationAudio = new Audio(NOTIFICATION_SOUND_URL);
+        notificationAudio.preload = 'auto';
+        notificationAudio.load();
+        notificationAudio.oncanplaythrough = () => console.log('Notification sound loaded');
+        notificationAudio.onerror = (e) => console.error('Notification sound load error:', e);
+    }
+}
+
 function playSuccessSound() {
-    const audio = new Audio(SUCCESS_SOUND_URL);
-    audio.play().catch(e => console.error('Success sound error:', e));
+    if (!successAudio) {
+        preloadAudio();
+    }
+    successAudio.currentTime = 0;
+    successAudio.play().catch(e => console.error('Success sound playback error:', e));
 }
 
 function playNotificationSound() {
-    const audio = new Audio(NOTIFICATION_SOUND_URL);
-    audio.play().catch(e => console.error('Notification sound error:', e));
+    if (!notificationAudio) {
+        preloadAudio();
+    }
+    notificationAudio.currentTime = 0;
+    notificationAudio.play().catch(e => console.error('Notification sound playback error:', e));
 }
 
 function showMailDeliveryAnimation() {
@@ -474,6 +502,7 @@ async function handleOAuthRedirect() {
         });
         if (!response.ok) {
             const errorText = await response.text();
+            console.error('Auth response error:', { status: response.status, errorText });
             throw new Error(`Auth failed: ${response.status} ${errorText}`);
         }
         user = await response.json();
@@ -595,8 +624,10 @@ function startTutorial() {
                 emp.mail = emp.mail || [];
                 emp.mail.push({
                     from: 'Cirkle Development',
+                    subject: 'Welcome to Staff Portal',
                     content: `Dear ${emp.profile.name}, Welcome to your new Staff Portal. You are now finished with this tutorial. Please have a look around and get familiar with everything. We hope you like it! Kind Regards, Cirkle Development.`,
-                    timestamp: new Date().toLocaleString()
+                    timestamp: new Date().toLocaleString(),
+                    senderId: 'system'
                 });
                 updateEmployee(emp);
                 addNotification('welcome', 'Welcome to your Staff Portal!', 'mail');
@@ -654,41 +685,70 @@ function renderMail() {
     sentContent.innerHTML = '';
     draftsContent.innerHTML = '';
     const emp = getEmployee(currentUser.id);
+    
     emp.mail.forEach(m => {
+        const sender = employees.find(e => e.id === m.senderId) || { id: m.senderId, avatar: 'https://via.placeholder.com/40' };
         const div = document.createElement('div');
         div.className = 'mail-item';
         div.innerHTML = `
-            <p><strong>From:</strong> ${m.from}</p>
-            <p><strong>Subject:</strong> ${m.subject}</p>
-            <p>${m.content}</p>
-            <p><em>${m.timestamp}</em></p>
+            <img src="${sender.avatar || 'https://via.placeholder.com/40'}" alt="Sender">
+            <span class="subject">${m.subject || 'No Subject'}</span>
+            <span class="timestamp">${m.timestamp}</span>
         `;
+        div.addEventListener('click', () => {
+            document.getElementById('viewMailContent').innerHTML = `
+                <p><strong>From:</strong> ${m.from}</p>
+                <p><strong>Subject:</strong> ${m.subject || 'No Subject'}</p>
+                <p>${m.content}</p>
+                <p><em>${m.timestamp}</em></p>
+            `;
+            showModal('viewMail');
+        });
         inboxContent.appendChild(div);
     });
+
     emp.sentMail.forEach(m => {
         const div = document.createElement('div');
         div.className = 'mail-item';
         div.innerHTML = `
-            <p><strong>To:</strong> ${m.to.join(', ')}</p>
-            <p><strong>Subject:</strong> ${m.subject}</p>
-            <p>${m.content}</p>
-            <p><em>${m.timestamp}</em></p>
+            <img src="${currentUser.avatar || 'https://via.placeholder.com/40'}" alt="Sender">
+            <span class="subject">${m.subject || 'No Subject'}</span>
+            <span class="timestamp">${m.timestamp}</span>
         `;
+        div.addEventListener('click', () => {
+            document.getElementById('viewMailContent').innerHTML = `
+                <p><strong>To:</strong> ${m.to.join(', ')}</p>
+                <p><strong>Subject:</strong> ${m.subject || 'No Subject'}</p>
+                <p>${m.content}</p>
+                <p><em>${m.timestamp}</em></p>
+            `;
+            showModal('viewMail');
+        });
         sentContent.appendChild(div);
     });
+
     emp.drafts.forEach((d, index) => {
         const div = document.createElement('div');
         div.className = 'mail-item';
         div.innerHTML = `
-            <p><strong>To:</strong> ${d.recipients.join(', ') || 'None'}</p>
-            <p><strong>Subject:</strong> ${d.subject || 'No Subject'}</p>
-            <p>${d.content}</p>
-            <p><em>${d.timestamp}</em></p>
+            <img src="${currentUser.avatar || 'https://via.placeholder.com/40'}" alt="Sender">
+            <span class="subject">${d.subject || 'No Subject'}</span>
+            <span class="timestamp">${d.timestamp}</span>
             <div class="draft-actions">
                 <button class="edit-draft" data-index="${index}">Edit</button>
                 <button class="delete-draft" data-index="${index}">Delete</button>
             </div>
         `;
+        div.addEventListener('click', (e) => {
+            if (e.target.classList.contains('edit-draft') || e.target.classList.contains('delete-draft')) return;
+            document.getElementById('viewMailContent').innerHTML = `
+                <p><strong>To:</strong> ${d.recipients.join(', ') || 'None'}</p>
+                <p><strong>Subject:</strong> ${d.subject || 'No Subject'}</p>
+                <p>${d.content}</p>
+                <p><em>${d.timestamp}</em></p>
+            `;
+            showModal('viewMail');
+        });
         draftsContent.appendChild(div);
     });
 
@@ -1064,10 +1124,10 @@ document.getElementById('mailBtn').addEventListener('click', () => {
     showScreen('mail');
     renderMail();
     document.querySelectorAll('.mail-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('.mail-tabs .tab-btn[data-tab="inbox"]').classList.add('active');
     document.getElementById('inboxFolder').classList.add('active');
     document.getElementById('sentFolder').classList.remove('active');
     document.getElementById('draftsFolder').classList.remove('active');
-    document.querySelector('.mail-tabs .tab-btn[data-tab="inbox"]').classList.add('active');
     updateTabSlider();
 });
 
@@ -1252,6 +1312,7 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
 // Initialize
 (function init() {
     console.log('Initializing Staff Portal');
+    preloadAudio();
     const savedUser = localStorage.getItem('currentUser');
     const savedClockIn = localStorage.getItem('clockInTime');
     if (savedClockIn) {

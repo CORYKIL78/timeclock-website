@@ -124,36 +124,32 @@ textarea {
     resize: vertical;
 }
 
-button {
+button:not(#sidebarNav button):not(.sidebar-toggle):not(#composeMailBtn) {
     width: 100%;
     padding: 12px;
     margin: 8px 0;
     border: none;
     border-radius: 6px;
-    background: transparent;
-    border: 1px solid var(--primary);
-    color: var(--primary);
+    background: var(--primary);
+    color: white;
     font-size: 16px;
     cursor: pointer;
     transition: background 0.2s var(--transition-ease), transform 0.1s var(--transition-ease), box-shadow 0.2s var(--transition-ease);
 }
 
-button:hover {
-    background: var(--primary);
+button:not(#sidebarNav button):not(.sidebar-toggle):not(#composeMailBtn):hover {
+    background: #0056b3;
     color: white;
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-body.dark button {
-    border-color: #1e90ff;
-    color: #1e90ff;
+body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#composeMailBtn) {
+    background: #1e90ff;
 }
 
-body.dark button:hover {
-    background: #1e90ff;
-    color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#composeMailBtn):hover {
+    background: #1873cc;
 }
 
 #notificationBtn, #logoutBtn {
@@ -378,8 +374,6 @@ footer {
     width: auto;
     padding: 10px 20px;
     margin-bottom: 20px;
-    border: 1px solid var(--secondary);
-    color: var(--secondary);
 }
 
 .back-btn:hover {
@@ -515,25 +509,26 @@ body.dark .sidebar {
 }
 
 #sidebarNav button {
-    background: transparent;
-    border: 1px solid var(--primary);
+    background: none;
+    border: none;
     color: var(--primary);
-    margin: 8px 10px;
+    font-size: 16px;
+    padding: 12px 20px;
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.2s var(--transition-ease);
 }
 
 #sidebarNav button:hover {
-    background: var(--primary);
-    color: white;
+    color: #0056b3;
 }
 
 body.dark #sidebarNav button {
-    border-color: #1e90ff;
     color: #1e90ff;
 }
 
 body.dark #sidebarNav button:hover {
-    background: #1e90ff;
-    color: white;
+    color: #1873cc;
 }
 
 .sidebar-footer {
@@ -761,7 +756,7 @@ body.dark .modal-content {
     display: flex;
     gap: 8px;
     justify-content: center;
-    margin: 15px 0;
+    margin: 20px 0 40px 0; /* Increased margin-bottom for spacing below tabs */
 }
 
 .tab-btn {
@@ -999,22 +994,54 @@ body.dark .mail-tabs {
 
 .mail-item {
     padding: 12px;
-    margin: 6px 0;
+    margin: 8px 20px;
     background: var(--mail-bg);
     border-radius: 6px;
     display: flex;
-    flex-direction: column;
-    gap: 5px;
-    transition: transform 0.2s var(--transition-ease);
-    position: relative;
+    align-items: center;
+    gap: 12px;
+    transition: transform 0.2s var(--transition-ease), background 0.2s var(--transition-ease);
+    cursor: pointer;
 }
 
 .mail-item:hover {
+    background: #e7f1ff;
     transform: translateX(5px);
 }
 
 body.dark .mail-item {
     background: #34495e;
+}
+
+body.dark .mail-item:hover {
+    background: #2c5282;
+}
+
+.mail-item img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.mail-item .subject {
+    flex: 1;
+    font-weight: bold;
+    color: #000;
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.dark .mail-item .subject {
+    color: #e0e0e0;
+}
+
+.mail-item .timestamp {
+    font-size: 12px;
+    color: var(--secondary);
+    flex-shrink: 0;
 }
 
 .reply-btn {
@@ -1034,7 +1061,7 @@ body.dark .mail-item {
 .draft-actions {
     display: flex;
     gap: 10px;
-    margin-top: 10px;
+    margin-left: auto;
 }
 
 .draft-actions button {
@@ -1155,6 +1182,7 @@ body.dark .notification-item {
     .modal-content { max-width: 95%; }
     .tutorial-text { font-size: 14px; padding: 8px 16px; }
     .mail-tabs .tab-btn { max-width: 100px; font-size: 14px; }
+    .mail-item { margin: 8px 10px; }
     #mailScreen .container { padding: 10px; }
     #notificationsScreen .container { padding: 10px; }
 }
