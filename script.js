@@ -46,7 +46,10 @@ const modals = {
     resetProfile: document.getElementById('resetProfileModal'),
     absenceRequest: document.getElementById('absenceRequestModal'),
     deptChange: document.getElementById('deptChangeModal'),
-    viewMail: document.getElementById('viewMailModal')
+    viewMail: document.getElementById('viewMailModal'),
+    replyMail: document.getElementById('replyMailModal'),
+    absenceDetail: document.getElementById('absenceDetailModal'),
+    confirmCancelAbsence: document.getElementById('confirmCancelAbsenceModal')
 };
 
 let currentUser = null;
@@ -61,6 +64,7 @@ let previousSessions = JSON.parse(localStorage.getItem('previousSessions')) || [
 let roleNames = {};
 let successAudio = null;
 let notificationAudio = null;
+let currentMail = null;
 
 function showScreen(screenId) {
     console.log('Showing screen:', screenId);
@@ -153,10 +157,9 @@ function playNotificationSound() {
 }
 
 function showMailDeliveryAnimation() {
-    const animation = document.createElement('div');
-    animation.className = 'mail-delivery-animation';
-    document.body.appendChild(animation);
-    setTimeout(() => animation.remove(), 1000);
+    const animation = document.getElementById('mailDeliveryAnimation');
+    animation.classList.remove('hidden');
+    setTimeout(() => animation.classList.add('hidden'), 1000);
 }
 
 function formatTime(ms) {
@@ -185,9 +188,19 @@ async function sendEmbed(channelId, embed) {
         const response = await fetch(`${WORKER_URL}/postEmbed?channel_id=${channelId}&embed_json=${encodeURIComponent(JSON.stringify(embed))}`);
         if (!response.ok) throw new Error(`Embed failed: ${response.status} ${await response.text()}`);
         console.log('Embed sent successfully to channel:', channelId);
-        return response.json(); // Assume the Worker returns the message ID in the response
+        return await response.json();
     } catch (e) {
         console.error('Embed error:', e);
+    }
+}
+
+async function updateEmbed(channelId, messageId, embed) {
+    try {
+        const response = await fetch(`${WORKER_URL}/updateEmbed?channel_id=${channelId}&message_id=${messageId}&embed_json=${encodeURIComponent(JSON.stringify(embed))}`);
+        if (!response.ok) throw new Error(`Embed update failed: ${response.status} ${await response.text()}`);
+        console.log('Embed updated successfully:', messageId);
+    } catch (e) {
+        console.error('Embed update error:', e);
     }
 }
 
@@ -408,6 +421,31 @@ async function fetchRoleNames() {
     }
 }
 
+async function fetchEmployees() {
+    try {
+        const response = await fetch(`${WORKER_URL}/members/${GUILD_ID}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors'
+        });
+        if (!response.ok) throw new Error(`Members fetch failed: ${response.status} ${await response.text()}`);
+        const members = await response.json();
+        employees = members.map(member => {
+            const existing = getEmployee(member.user.id);
+            return {
+                ...existing,
+                id: member.user.id,
+                avatar: member.user.avatar ? `https://cdn.discordapp.com/avatars/${member.user.id}/${member.user.avatar}.png?size=128` : 'https://via.placeholder.com/40',
+                roles: member.roles
+            };
+        });
+        saveEmployees();
+        console.log('Employees fetched:', employees);
+    } catch (e) {
+        console.error('Employees fetch error:', e);
+    }
+}
+
 async function handleOAuthRedirect() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
@@ -436,6 +474,7 @@ async function handleOAuthRedirect() {
                     showScreen('portalWelcome');
                     updateSidebarProfile();
                     renderNotifications();
+                    await fetchEmployees();
                     return;
                 } else {
                     console.log('Invalid saved user data, clearing');
@@ -464,6 +503,7 @@ async function handleOAuthRedirect() {
                     showScreen('portalWelcome');
                     updateSidebarProfile();
                     renderNotifications();
+                    await fetchEmployees();
                     return;
                 }
             } catch (e) {
@@ -531,6 +571,7 @@ async function handleOAuthRedirect() {
     }
 
     await fetchRoleNames();
+    await fetchEmployees();
 
     currentUser = {
         id: user.id,
@@ -611,6 +652,7 @@ function startTutorial() {
                 const emp = getEmployee(currentUser.id);
                 emp.mail = emp.mail || [];
                 emp.mail.push({
+                    id: Date.now().toString(),
                     from: 'Cirkle Development',
                     subject: 'Welcome to Staff Portal',
                     content: `Dear ${emp.profile.name}, Welcome to your new Staff Portal. You are now finished with this tutorial. Please have a look around and get familiar with everything. We hope you like it! Kind Regards, Cirkle Development.`,
@@ -665,7 +707,7 @@ function startTutorial() {
 }
 
 function renderMail() {
-    const inboxContent = document.getElementById('mailContent');
+    const inboxContent = document.getElementById('inboxContent');
     const sentContent = document.getElementById('sentContent');
     const draftsContent = document.getElementById('draftsContent');
     if (!inboxContent || !sentContent || !draftsContent) return;
@@ -674,75 +716,90 @@ function renderMail() {
     draftsContent.innerHTML = '';
     const emp = getEmployee(currentUser.id);
     
-    emp.mail.forEach(m => {
+    emp.mail.forEach((m, index) => {
         const sender = employees.find(e => e.id === m.senderId) || { id: m.senderId, avatar: 'https://via.placeholder.com/40' };
-        const div = document.createElement('div');
-        div.className = 'mail-item';
-        div.innerHTML = `
+        const li = document.createElement('li');
+        li.className = 'mail-item';
+        li.innerHTML = `
             <img src="${sender.avatar || 'https://via.placeholder.com/40'}" alt="Sender">
             <span class="subject">${m.subject || 'No Subject'}</span>
             <span class="timestamp">${m.timestamp}</span>
         `;
-        div.addEventListener('click', () => {
+        li.addEventListener('click', () => {
+            currentMail = { ...m, index };
             document.getElementById('viewMailContent').innerHTML = `
                 <p><strong>From:</strong> ${m.from}</p>
                 <p><strong>Subject:</strong> ${m.subject || 'No Subject'}</p>
                 <p>${m.content}</p>
                 <p><em>${m.timestamp}</em></p>
+                ${m.attachments ? m.attachments.map(file => `<p><a href="${file.url}" download="${file.name}">Download ${file.name}</a></p>`).join('') : ''}
+                ${m.thread && m.thread.length ? '<div class="mail-thread">' + m.thread.map(t => `
+                    <div class="thread-item">
+                        <p><strong>From:</strong> ${t.from}</p>
+                        <p>${t.content}</p>
+                        <p><em>${t.timestamp}</em></p>
+                    </div>
+                `).join('') + '</div>' : ''}
             `;
+            document.getElementById('replyMailBtn').classList.toggle('hidden', m.senderId === 'system');
             showModal('viewMail');
         });
-        inboxContent.appendChild(div);
+        inboxContent.appendChild(li);
     });
 
     emp.sentMail.forEach(m => {
-        const div = document.createElement('div');
-        div.className = 'mail-item';
-        div.innerHTML = `
+        const li = document.createElement('li');
+        li.className = 'mail-item';
+        li.innerHTML = `
             <img src="${currentUser.avatar || 'https://via.placeholder.com/40'}" alt="Sender">
             <span class="subject">${m.subject || 'No Subject'}</span>
             <span class="timestamp">${m.timestamp}</span>
         `;
-        div.addEventListener('click', () => {
+        li.addEventListener('click', () => {
             document.getElementById('viewMailContent').innerHTML = `
                 <p><strong>To:</strong> ${m.to.join(', ')}</p>
                 <p><strong>Subject:</strong> ${m.subject || 'No Subject'}</p>
                 <p>${m.content}</p>
                 <p><em>${m.timestamp}</em></p>
+                ${m.attachments ? m.attachments.map(file => `<p><a href="${file.url}" download="${file.name}">Download ${file.name}</a></p>`).join('') : ''}
             `;
+            document.getElementById('replyMailBtn').classList.add('hidden');
             showModal('viewMail');
         });
-        sentContent.appendChild(div);
+        sentContent.appendChild(li);
     });
 
     emp.drafts.forEach((d, index) => {
-        const div = document.createElement('div');
-        div.className = 'mail-item';
-        div.innerHTML = `
+        const li = document.createElement('li');
+        li.className = 'mail-item';
+        li.innerHTML = `
             <img src="${currentUser.avatar || 'https://via.placeholder.com/40'}" alt="Sender">
             <span class="subject">${d.subject || 'No Subject'}</span>
             <span class="timestamp">${d.timestamp}</span>
             <div class="draft-actions">
                 <button class="edit-draft" data-index="${index}">Edit</button>
                 <button class="delete-draft" data-index="${index}">Delete</button>
+                <button class="send-draft" data-index="${index}">Send</button>
             </div>
         `;
-        div.addEventListener('click', (e) => {
-            if (e.target.classList.contains('edit-draft') || e.target.classList.contains('delete-draft')) return;
+        li.addEventListener('click', (e) => {
+            if (e.target.classList.contains('edit-draft') || e.target.classList.contains('delete-draft') || e.target.classList.contains('send-draft')) return;
             document.getElementById('viewMailContent').innerHTML = `
                 <p><strong>To:</strong> ${d.recipients.join(', ') || 'None'}</p>
                 <p><strong>Subject:</strong> ${d.subject || 'No Subject'}</p>
                 <p>${d.content}</p>
                 <p><em>${d.timestamp}</em></p>
+                ${d.attachments ? d.attachments.map(file => `<p><a href="${file.url}" download="${file.name}">Download ${file.name}</a></p>`).join('') : ''}
             `;
+            document.getElementById('replyMailBtn').classList.add('hidden');
             showModal('viewMail');
         });
-        draftsContent.appendChild(div);
+        draftsContent.appendChild(li);
     });
 
     const recipientSelect = document.getElementById('mailRecipients');
-    recipientSelect.innerHTML = '<option value="">Select Recipients</option>';
-    employees.filter(e => e.profile.name && e.id !== currentUser.id).forEach(e => {
+    recipientSelect.innerHTML = '<option value="" disabled>Select Recipients</option>';
+    employees.filter(e => e.profile.name && e.id !== currentUser.id && e.roles.includes(REQUIRED_ROLE)).forEach(e => {
         const option = document.createElement('option');
         option.value = e.id;
         option.textContent = e.profile.name;
@@ -754,8 +811,9 @@ function renderMail() {
             const index = btn.dataset.index;
             const draft = emp.drafts[index];
             document.getElementById('mailRecipients').value = draft.recipientIds;
-            document.getElementById('mailSubject').value = draft.subject;
-            document.getElementById('mailContent').value = draft.content;
+            document.getElementById('mailSubject').value = draft.subject || '';
+            document.getElementById('mailContent').value = draft.content || '';
+            document.getElementById('mailAttachments').value = '';
             document.getElementById('sendMailBtn').dataset.draftIndex = index;
             showModal('composeMail');
         });
@@ -770,6 +828,75 @@ function renderMail() {
             playSuccessSound();
         });
     });
+
+    draftsContent.querySelectorAll('.send-draft').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const index = btn.dataset.index;
+            const draft = emp.drafts[index];
+            document.getElementById('mailRecipients').value = draft.recipientIds;
+            document.getElementById('mailSubject').value = draft.subject || '';
+            document.getElementById('mailContent').value = draft.content || '';
+            document.getElementById('mailAttachments').value = '';
+            document.getElementById('sendMailBtn').dataset.draftIndex = index;
+            sendDraft(index);
+        });
+    });
+}
+
+async function sendDraft(index) {
+    const recipientIds = Array.from(document.getElementById('mailRecipients').selectedOptions).map(opt => opt.value);
+    const subject = document.getElementById('mailSubject').value.trim();
+    const content = document.getElementById('mailContent').value.trim();
+    const files = document.getElementById('mailAttachments').files;
+    if (!recipientIds.length || recipientIds.includes('')) {
+        document.getElementById('mailError').classList.remove('hidden');
+        setTimeout(() => document.getElementById('mailError').classList.add('hidden'), 2000);
+        return;
+    }
+    if (!content) {
+        showModal('alert', 'Please enter a message');
+        return;
+    }
+    showModal('alert', 'Sending...');
+    await new Promise(r => setTimeout(r, 1000));
+    const emp = getEmployee(currentUser.id);
+    const timestamp = new Date().toLocaleString();
+    const attachments = await Promise.all(Array.from(files).map(async file => {
+        const reader = new FileReader();
+        return new Promise(resolve => {
+            reader.onload = () => resolve({ name: file.name, url: reader.result });
+            reader.readAsDataURL(file);
+        });
+    }));
+    const mailData = {
+        id: Date.now().toString(),
+        from: emp.profile.name,
+        senderId: currentUser.id,
+        to: recipientIds.map(id => getEmployee(id).profile.name),
+        recipientIds,
+        subject,
+        content,
+        timestamp,
+        attachments: attachments.length ? attachments : null,
+        thread: []
+    };
+    emp.sentMail = emp.sentMail || [];
+    emp.sentMail.push(mailData);
+    recipientIds.forEach(id => {
+        const recipient = getEmployee(id);
+        recipient.mail = recipient.mail || [];
+        recipient.mail.push(mailData);
+        updateEmployee(recipient);
+        sendDM(id, `New message from ${emp.profile.name}: ${subject}\n${content}`);
+        addNotification('mail', `New message from ${emp.profile.name}: ${subject}`, 'mail', id);
+    });
+    emp.drafts.splice(index, 1);
+    updateEmployee(emp);
+    showMailDeliveryAnimation();
+    showModal('alert', '<span class="success-tick"></span> Successfully sent!');
+    playSuccessSound();
+    addNotification('mail', 'Your mail has been sent!', 'mail');
+    renderMail();
 }
 
 document.getElementById('discordLoginBtn').addEventListener('click', () => {
@@ -821,7 +948,7 @@ document.getElementById('setupDepartmentContinueBtn').addEventListener('click', 
                 showModal('alert', 'Role verification failed');
                 showScreen('setupDepartment');
             }
-        }, 20000);
+        }, 2000);
     } else {
         showModal('alert', 'Please select a department');
     }
@@ -981,19 +1108,31 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     }
     const emp = getEmployee(currentUser.id);
     emp.absences = emp.absences || [];
-    emp.absences.push({ id: Date.now().toString(), type, startDate, endDate, comment, status: 'pending' });
+    const absence = {
+        id: Date.now().toString(),
+        type,
+        startDate,
+        endDate,
+        comment,
+        status: 'pending',
+        messageId: null
+    };
+    emp.absences.push(absence);
     updateEmployee(emp);
-    await sendEmbed(ABSENCE_CHANNEL, {
-        title: 'New Absence',
+    const embedResponse = await sendEmbed(ABSENCE_CHANNEL, {
+        title: 'New Absence Request',
         fields: [
             { name: 'User', value: `<@${currentUser.id}> (${emp.profile.name})`, inline: true },
             { name: 'Reason', value: type, inline: true },
             { name: 'Start Date', value: startDate, inline: true },
             { name: 'End Date', value: endDate, inline: true },
+            { name: 'Comment', value: comment, inline: false }
         ],
         footer: { text: 'Please accept/reject on the HR portal' },
         color: 0xffff00
     });
+    absence.messageId = embedResponse?.message_id;
+    updateEmployee(emp);
     closeModal('absenceRequest');
     showModal('alert', '<span class="success-tick"></span> Successfully Submitted!');
     playSuccessSound();
@@ -1002,31 +1141,114 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
 });
 
 document.getElementById('absencesScreen').addEventListener('click', (e) => {
-    if (e.target.classList.contains('tab-btn')) {
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    if (e.target.classList.contains('absence-tab-btn')) {
+        document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
         e.target.classList.add('active');
-        renderAbsences(e.target.dataset.tab);
+        const folder = e.target.dataset.tab;
+        document.getElementById('pendingFolder').classList.toggle('active', folder === 'pending');
+        document.getElementById('approvedFolder').classList.toggle('active', folder === 'approved');
+        document.getElementById('rejectedFolder').classList.toggle('active', folder === 'rejected');
+        updateAbsenceTabSlider();
+        renderAbsences(folder);
     }
 });
 
 function renderAbsences(tab) {
-    const content = document.getElementById('absencesContent');
-    if (!content) return;
-    content.innerHTML = '';
+    const pendingList = document.getElementById('pendingAbsences');
+    const approvedList = document.getElementById('approvedAbsences');
+    const rejectedList = document.getElementById('rejectedAbsences');
+    if (!pendingList || !approvedList || !rejectedList) return;
+    pendingList.innerHTML = '';
+    approvedList.innerHTML = '';
+    rejectedList.innerHTML = '';
     const emp = getEmployee(currentUser.id);
     emp.absences.filter(a => a.status === tab).forEach(a => {
-        const div = document.createElement('div');
-        div.className = `absence-item ${a.status}`;
-        div.innerHTML = `
-            <p>Type: ${a.type}</p>
-            <p>Comment: ${a.comment}</p>
-            <p>Start: ${a.startDate}</p>
-            <p>End: ${a.endDate}</p>
-            ${a.status === 'rejected' ? `<p>Reason: ${a.reason || 'N/A'}</p>` : ''}
+        const li = document.createElement('li');
+        li.className = `absence-item ${a.status}`;
+        li.innerHTML = `
+            <span>Type: ${a.type}</span>
+            <span>Start: ${a.startDate}</span>
+            <span>End: ${a.endDate}</span>
+            ${a.status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
+            ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
         `;
-        content.appendChild(div);
+        li.addEventListener('click', (e) => {
+            if (e.target.classList.contains('cancel-absence-btn')) return;
+            document.getElementById('absenceDetailContent').innerHTML = `
+                <p><strong>Type:</strong> ${a.type}</p>
+                <p><strong>Start:</strong> ${a.startDate}</p>
+                <p><strong>End:</strong> ${a.endDate}</p>
+                <p><strong>Comment:</strong> ${a.comment}</p>
+                <p><strong>Status:</strong> ${a.status.charAt(0).toUpperCase() + a.status.slice(1)}</p>
+                ${a.status === 'rejected' ? `<p><strong>Reason:</strong> ${a.reason || 'N/A'}</p>` : ''}
+            `;
+            document.getElementById('cancelAbsenceBtn').classList.toggle('hidden', a.status !== 'pending');
+            document.getElementById('cancelAbsenceBtn').dataset.id = a.id;
+            showModal('absenceDetail');
+        });
+        if (tab === 'pending') pendingList.appendChild(li);
+        else if (tab === 'approved') approvedList.appendChild(li);
+        else if (tab === 'rejected') rejectedList.appendChild(li);
+    });
+
+    pendingList.querySelectorAll('.cancel-absence-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('confirmCancelAbsenceBtn').dataset.id = btn.dataset.id;
+            showModal('confirmCancelAbsence');
+        });
     });
 }
+
+function updateAbsenceTabSlider() {
+    const activeTab = document.querySelector('.absence-tabs .absence-tab-btn.active');
+    if (!activeTab) return;
+    const slider = document.querySelector('.absence-tab-slider');
+    if (!slider) return;
+    const rect = activeTab.getBoundingClientRect();
+    const containerRect = document.querySelector('.absence-tabs').getBoundingClientRect();
+    slider.style.width = `${rect.width}px`;
+    slider.style.transform = `translateX(${rect.left - containerRect.left}px)`;
+}
+
+document.getElementById('cancelAbsenceBtn').addEventListener('click', () => {
+    document.getElementById('confirmCancelAbsenceBtn').dataset.id = document.getElementById('cancelAbsenceBtn').dataset.id;
+    showModal('confirmCancelAbsence');
+});
+
+document.getElementById('confirmCancelAbsenceBtn').addEventListener('click', async () => {
+    const absenceId = document.getElementById('confirmCancelAbsenceBtn').dataset.id;
+    const emp = getEmployee(currentUser.id);
+    const absenceIndex = emp.absences.findIndex(a => a.id === absenceId);
+    if (absenceIndex > -1) {
+        const absence = emp.absences[absenceIndex];
+        emp.absences.splice(absenceIndex, 1);
+        updateEmployee(emp);
+        if (absence.messageId) {
+            await updateEmbed(ABSENCE_CHANNEL, absence.messageId, {
+                title: 'Absence Request Cancelled',
+                fields: [
+                    { name: 'User', value: `<@${currentUser.id}> (${emp.profile.name})`, inline: true },
+                    { name: 'Reason', value: absence.type, inline: true },
+                    { name: 'Start Date', value: absence.startDate, inline: true },
+                    { name: 'End Date', value: absence.endDate, inline: true },
+                    { name: 'Comment', value: absence.comment, inline: false },
+                    { name: 'Status', value: 'ABSENCE CANCELLED', inline: false }
+                ],
+                color: 0xff0000
+            });
+        }
+        closeModal('confirmCancelAbsence');
+        closeModal('absenceDetail');
+        showModal('alert', '<span class="success-tick"></span> Cancelled Absence');
+        playSuccessSound();
+        addNotification('absence', 'Absence request cancelled!', 'absences');
+        renderAbsences('pending');
+    }
+});
+
+document.getElementById('noCancelAbsenceBtn').addEventListener('click', () => {
+    closeModal('confirmCancelAbsence');
+});
 
 document.getElementById('payslipsBtn').addEventListener('click', () => {
     showScreen('payslips');
@@ -1129,6 +1351,7 @@ document.getElementById('composeMailBtn').addEventListener('click', () => {
     document.getElementById('mailRecipients').value = [];
     document.getElementById('mailSubject').value = '';
     document.getElementById('mailContent').value = '';
+    document.getElementById('mailAttachments').value = '';
     delete document.getElementById('sendMailBtn').dataset.draftIndex;
     showModal('composeMail');
 });
@@ -1137,6 +1360,7 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
     const recipientIds = Array.from(document.getElementById('mailRecipients').selectedOptions).map(opt => opt.value);
     const subject = document.getElementById('mailSubject').value.trim();
     const content = document.getElementById('mailContent').value.trim();
+    const files = document.getElementById('mailAttachments').files;
     if (!recipientIds.length || recipientIds.includes('')) {
         document.getElementById('mailError').classList.remove('hidden');
         setTimeout(() => document.getElementById('mailError').classList.add('hidden'), 2000);
@@ -1150,6 +1374,13 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
     await new Promise(r => setTimeout(r, 1000));
     const emp = getEmployee(currentUser.id);
     const timestamp = new Date().toLocaleString();
+    const attachments = await Promise.all(Array.from(files).map(async file => {
+        const reader = new FileReader();
+        return new Promise(resolve => {
+            reader.onload = () => resolve({ name: file.name, url: reader.result });
+            reader.readAsDataURL(file);
+        });
+    }));
     const mailData = {
         id: Date.now().toString(),
         from: emp.profile.name,
@@ -1159,6 +1390,7 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
         subject,
         content,
         timestamp,
+        attachments: attachments.length ? attachments : null,
         thread: []
     };
     emp.sentMail = emp.sentMail || [];
@@ -1188,6 +1420,7 @@ document.getElementById('saveDraftBtn').addEventListener('click', () => {
     const recipientIds = Array.from(document.getElementById('mailRecipients').selectedOptions).map(opt => opt.value);
     const subject = document.getElementById('mailSubject').value.trim();
     const content = document.getElementById('mailContent').value.trim();
+    const files = document.getElementById('mailAttachments').files;
     const emp = getEmployee(currentUser.id);
     emp.drafts = emp.drafts || [];
     const draftData = {
@@ -1195,24 +1428,95 @@ document.getElementById('saveDraftBtn').addEventListener('click', () => {
         recipients: recipientIds.map(id => getEmployee(id).profile.name),
         subject,
         content,
-        timestamp: new Date().toLocaleString()
+        timestamp: new Date().toLocaleString(),
+        attachments: null
     };
-    if ('draftIndex' in document.getElementById('sendMailBtn').dataset) {
-        emp.drafts[parseInt(document.getElementById('sendMailBtn').dataset.draftIndex)] = draftData;
-        delete document.getElementById('sendMailBtn').dataset.draftIndex;
+    if (files.length) {
+        Promise.all(Array.from(files).map(file => {
+            const reader = new FileReader();
+            return new Promise(resolve => {
+                reader.onload = () => resolve({ name: file.name, url: reader.result });
+                reader.readAsDataURL(file);
+            });
+        })).then(attachments => {
+            draftData.attachments = attachments;
+            if ('draftIndex' in document.getElementById('sendMailBtn').dataset) {
+                emp.drafts[parseInt(document.getElementById('sendMailBtn').dataset.draftIndex)] = draftData;
+                delete document.getElementById('sendMailBtn').dataset.draftIndex;
+            } else {
+                emp.drafts.push(draftData);
+            }
+            updateEmployee(emp);
+            closeModal('composeMail');
+            showModal('alert', '<span class="success-tick"></span> Draft saved successfully!');
+            playSuccessSound();
+            addNotification('mail', 'Mail draft saved!', 'mail');
+            renderMail();
+        });
     } else {
-        emp.drafts.push(draftData);
+        if ('draftIndex' in document.getElementById('sendMailBtn').dataset) {
+            emp.drafts[parseInt(document.getElementById('sendMailBtn').dataset.draftIndex)] = draftData;
+            delete document.getElementById('sendMailBtn').dataset.draftIndex;
+        } else {
+            emp.drafts.push(draftData);
+        }
+        updateEmployee(emp);
+        closeModal('composeMail');
+        showModal('alert', '<span class="success-tick"></span> Draft saved successfully!');
+        playSuccessSound();
+        addNotification('mail', 'Mail draft saved!', 'mail');
+        renderMail();
     }
-    updateEmployee(emp);
-    closeModal('composeMail');
-    showModal('alert', '<span class="success-tick"></span> Draft saved successfully!');
-    playSuccessSound();
-    addNotification('mail', 'Mail draft saved!', 'mail');
-    renderMail();
 });
 
-document.getElementById('cancelMailBtn').addEventListener('click', () => {
-    closeModal('composeMail');
+document.getElementById('replyMailBtn').addEventListener('click', () => {
+    document.getElementById('replyContent').value = '';
+    showModal('replyMail');
+});
+
+document.getElementById('sendReplyBtn').addEventListener('click', async () => {
+    const content = document.getElementById('replyContent').value.trim();
+    if (!content) {
+        showModal('alert', 'Please enter a reply');
+        return;
+    }
+    showModal('alert', 'Sending...');
+    await new Promise(r => setTimeout(r, 1000));
+    const emp = getEmployee(currentUser.id);
+    const sender = getEmployee(currentMail.senderId);
+    const timestamp = new Date().toLocaleString();
+    const replyData = {
+        from: emp.profile.name,
+        senderId: currentUser.id,
+        content,
+        timestamp
+    };
+    currentMail.thread = currentMail.thread || [];
+    currentMail.thread.push(replyData);
+    emp.mail[currentMail.index] = currentMail;
+    sender.mail = sender.mail || [];
+    sender.mail.push({
+        id: Date.now().toString(),
+        from: emp.profile.name,
+        senderId: currentUser.id,
+        to: [sender.profile.name],
+        recipientIds: [currentMail.senderId],
+        subject: `Re: ${currentMail.subject || 'No Subject'}`,
+        content,
+        timestamp,
+        thread: []
+    });
+    updateEmployee(emp);
+    updateEmployee(sender);
+    sendDM(currentMail.senderId, `Reply from ${emp.profile.name}: ${content}`);
+    addNotification('mail', `Reply from ${emp.profile.name}: ${currentMail.subject}`, 'mail', currentMail.senderId);
+    showMailDeliveryAnimation();
+    closeModal('replyMail');
+    closeModal('viewMail');
+    showModal('alert', '<span class="success-tick"></span> Reply sent successfully!');
+    playSuccessSound();
+    addNotification('mail', 'Your reply has been sent!', 'mail');
+    renderMail();
 });
 
 document.getElementById('mailScreen').addEventListener('click', (e) => {
@@ -1278,7 +1582,7 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
 });
 
 // Initialize
-(function init() {
+(async function init() {
     console.log('Initializing Staff Portal');
     preloadAudio();
     const savedUser = localStorage.getItem('currentUser');
@@ -1305,6 +1609,7 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
                 showScreen('portalWelcome');
                 updateSidebarProfile();
                 renderNotifications();
+                await fetchEmployees();
                 return;
             }
         } catch (e) {
@@ -1312,5 +1617,5 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
             localStorage.removeItem('currentUser');
         }
     }
-    handleOAuthRedirect();
+    await handleOAuthRedirect();
 })();

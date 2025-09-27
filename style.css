@@ -214,7 +214,6 @@ body.dark #logoutBtn {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    font-size: 24px;
     display: none;
     align-items: center;
     justify-content: center;
@@ -224,6 +223,15 @@ body.dark #logoutBtn {
     box-shadow: var(--shadow);
     z-index: 1000;
     transition: transform 0.2s var(--transition-ease);
+}
+
+#composeMailBtn::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background: url('https://cdn-icons-png.flaticon.com/512/561/561226.png') no-repeat center;
+    background-size: cover;
 }
 
 #mailScreen.active #composeMailBtn {
@@ -332,7 +340,7 @@ body.dark #composeMailBtn:hover {
 }
 
 .switch {
-    position: inline;
+    position: relative;
     display: inline-block;
     width: 50px;
     height: 28px;
@@ -385,17 +393,6 @@ footer {
     color: var(--secondary);
     opacity: 0.7;
     z-index: 10;
-}
-
-.back-btn {
-    width: auto;
-    padding: 10px 20px;
-    margin-bottom: 20px;
-}
-
-.back-btn:hover {
-    background: var(--secondary);
-    color: white;
 }
 
 .hidden {
@@ -675,7 +672,7 @@ body.dark .notification-item {
     background: white;
     border-radius: 12px;
     padding: 24px;
-    max-width: 400px;
+    max-width: 500px;
     width: 90%;
     text-align: center;
     box-shadow: var(--shadow);
@@ -812,12 +809,104 @@ body.dark .tab-btn {
     transition: transform 0.3s var(--transition-ease), width 0.3s var(--transition-ease);
 }
 
+.absence-tabs {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+    position: relative;
+}
+
+.absence-tab-btn {
+    padding: 8px 16px;
+    background: var(--mail-bg);
+    color: var(--text-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
+}
+
+.absence-tab-btn:hover {
+    transform: translateY(-1px);
+}
+
+body.dark .absence-tab-btn {
+    background: #34495e;
+}
+
+.absence-tab-btn.active {
+    background: var(--tab-active-bg);
+    color: white;
+}
+
+.absence-tab-slider {
+    position: absolute;
+    bottom: 0;
+    height: 2px;
+    background: var(--tab-active-bg);
+    transition: transform 0.3s var(--transition-ease), width 0.3s var(--transition-ease);
+}
+
+.absence-content {
+    position: relative;
+    overflow: hidden;
+}
+
+.absence-folder {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    overflow-y: auto;
+    transition: transform 0.5s var(--transition-ease);
+}
+
+#approvedFolder {
+    transform: translateX(0);
+}
+
+#rejectedFolder {
+    transform: translateX(100%);
+}
+
+#pendingFolder {
+    transform: translateX(200%);
+}
+
+#approvedFolder.active {
+    transform: translateX(0);
+}
+
+#rejectedFolder.active {
+    transform: translateX(0);
+}
+
+#pendingFolder.active {
+    transform: translateX(0);
+}
+
+#approvedFolder:not(.active) {
+    transform: translateX(-100%);
+}
+
+#rejectedFolder:not(.active) {
+    transform: translateX(100%);
+}
+
+#pendingFolder:not(.active) {
+    transform: translateX(200%);
+}
+
 .absence-item {
     padding: 12px;
     margin: 8px 0;
     background: var(--mail-bg);
     border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     transition: transform 0.2s var(--transition-ease);
+    cursor: pointer;
 }
 
 .absence-item:hover {
@@ -863,6 +952,29 @@ body.dark .absence-item.rejected {
     color: var(--yellow-hazard);
     margin-left: 8px;
     font-size: 16px;
+}
+
+.cancel-absence-btn {
+    width: auto;
+    padding: 8px 16px;
+    background: var(--danger);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
+}
+
+.cancel-absence-btn:hover {
+    background: #c82333;
+    transform: scale(1.05);
+}
+
+body.dark .cancel-absence-btn {
+    background: #c82333;
+}
+
+body.dark .cancel-absence-btn:hover {
+    background: #a71d2a;
 }
 
 .employee-grid {
@@ -920,6 +1032,153 @@ body.dark .mail-compose {
     border: #495057;
 }
 
+#mailScreen {
+    align-items: center;
+    padding: 0;
+}
+
+#mailScreen .container {
+    width: 100%;
+    max-width: 800px;
+    height: 100%;
+    border-radius: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.mail-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--mail-bg);
+    border-bottom: 1px solid var(--mail-border);
+    position: relative;
+}
+
+body.dark .mail-tabs {
+    background: #34495e;
+}
+
+.mail-tabs .tab-btn {
+    flex: 1;
+    max-width: 150px;
+    text-align: center;
+    z-index: 1;
+}
+
+.tab-slider {
+    position: absolute;
+    bottom: 0;
+    height: 2px;
+    background: var(--tab-active-bg);
+    transition: transform 0.3s var(--transition-ease), width 0.3s var(--transition-ease);
+}
+
+.mail-content {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.mail-folder {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    overflow-y: auto;
+    transition: transform 0.5s var(--transition-ease);
+}
+
+#inboxFolder {
+    transform: translateX(0);
+}
+
+#sentFolder {
+    transform: translateX(100%);
+}
+
+#draftsFolder {
+    transform: translateX(200%);
+}
+
+#inboxFolder.active {
+    transform: translateX(0);
+}
+
+#sentFolder.active {
+    transform: translateX(0);
+}
+
+#draftsFolder.active {
+    transform: translateX(0);
+}
+
+#inboxFolder:not(.active) {
+    transform: translateX(-100%);
+}
+
+#sentFolder:not(.active) {
+    transform: translateX(100%);
+}
+
+#draftsFolder:not(.active) {
+    transform: translateX(200%);
+}
+
+.mail-item {
+    padding: 12px;
+    margin: 6px 0;
+    background: var(--mail-bg);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: transform 0.2s var(--transition-ease), background 0.2s var(--transition-ease);
+    cursor: pointer;
+}
+
+.mail-item:hover {
+    background: #e7f1ff;
+    transform: translateX(5px);
+}
+
+body.dark .mail-item {
+    background: #34495e;
+}
+
+body.dark .mail-item:hover {
+    background: #2c5282;
+}
+
+.mail-item img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.mail-item .subject {
+    flex: 1;
+    font-weight: bold;
+    color: #000;
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.dark .mail-item .subject {
+    color: #e0e0e0;
+}
+
+.mail-item .timestamp {
+    font-size: 12px;
+    color: var(--secondary);
+    flex-shrink: 0;
+}
+
 .reply-btn {
     position: absolute;
     top: 12px;
@@ -937,13 +1196,30 @@ body.dark .mail-compose {
 .draft-actions {
     display: flex;
     gap: 10px;
-    margin-left: auto;
+    justify-content: flex-end;
+    margin-top: 10px;
 }
 
 .draft-actions button {
     width: auto;
     padding: 8px 16px;
     font-size: 14px;
+}
+
+.draft-actions .delete-btn {
+    background: var(--danger);
+}
+
+.draft-actions .delete-btn:hover {
+    background: #c82333;
+}
+
+body.dark .draft-actions .delete-btn {
+    background: #c82333;
+}
+
+body.dark .draft-actions .delete-btn:hover {
+    background: #a71d2a;
 }
 
 .mail-thread {
@@ -960,27 +1236,6 @@ body.dark .mail-compose {
 }
 
 body.dark .thread-item {
-    background: #34495e;
-}
-
-.session-list {
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.session-item {
-    padding: 10px;
-    mail-item: 5px 0;
-    background: var(--mail-bg);
-    border-radius: 6px;
-    transition: transform 0.2s var(--transition-ease);
-}
-
-.session-item:hover {
-    transform: translateX(5px);
-}
-
-body.dark .session-item {
     background: #34495e;
 }
 
@@ -1012,5 +1267,6 @@ body.dark .session-item {
     .modal-content { max-width: 95%; }
     .tutorial-text { font-size: 14px; padding: 8px 16px; }
     .mail-tabs .tab-btn { max-width: 100px; font-size: 14px; }
+    #mailScreen .container { padding: 10px; }
     #companyLogo img { width: 80px; }
 }

@@ -47,16 +47,16 @@
             <span class="close">&times;</span>
             <div class="mail-compose">
                 <h2>Compose Mail</h2>
-                <select id="mailRecipients" multiple>
-                    <option value="">Select Recipients</option>
+                <select id="mailRecipients" multiple required>
+                    <option value="" disabled>Select Recipients</option>
                 </select>
                 <input type="text" id="mailSubject" placeholder="Subject">
                 <textarea id="mailContent" placeholder="Message"></textarea>
+                <input type="file" id="mailAttachments" multiple>
                 <div id="mailError" class="mail-error hidden">Select at least one participant</div>
                 <div class="mail-actions">
                     <button id="sendMailBtn">Send</button>
                     <button id="saveDraftBtn">Save to Drafts</button>
-                    <button id="cancelMailBtn">Cancel</button>
                 </div>
             </div>
         </div>
@@ -99,7 +99,7 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <div id="viewMailContent"></div>
-            <button id="replyMailBtn">Reply</button>
+            <button id="replyMailBtn" class="hidden">Reply</button>
         </div>
     </div>
     <div id="replyMailModal" class="modal">
@@ -107,14 +107,23 @@
             <span class="close">&times;</span>
             <h2>Reply to Mail</h2>
             <textarea id="replyContent" placeholder="Your reply..."></textarea>
-            <button id="sendReplyBtn">Send Reply</button>
+            <button id="sendReplyBtn">Send</button>
         </div>
     </div>
     <div id="absenceDetailModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
             <div id="absenceDetailContent"></div>
-            <button id="cancelAbsenceBtn">Cancel Absence</button>
+            <button id="cancelAbsenceBtn" class="cancel-absence-btn hidden">Cancel Absence</button>
+        </div>
+    </div>
+    <div id="confirmCancelAbsenceModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Confirm Absence Cancellation</h2>
+            <p>Are you sure you want to cancel your absence?</p>
+            <button id="confirmCancelAbsenceBtn" class="cancel-absence-btn">Cancel Absence</button>
+            <button id="noCancelAbsenceBtn">No</button>
         </div>
     </div>
 
@@ -257,13 +266,23 @@
         <div class="container">
             <h2>Absences</h2>
             <button id="requestAbsenceBtn">Request Absence</button>
-            <div class="tabs">
-                <div class="tab-slider"></div>
-                <button class="tab-btn active" data-tab="pending">Pending</button>
-                <button class="tab-btn" data-tab="approved">Approved</button>
-                <button class="tab-btn" data-tab="rejected">Rejected</button>
+            <div class="absence-tabs">
+                <div class="absence-tab-slider"></div>
+                <button class="absence-tab-btn active" data-tab="pending">Pending</button>
+                <button class="absence-tab-btn" data-tab="approved">Approved</button>
+                <button class="absence-tab-btn" data-tab="rejected">Rejected</button>
             </div>
-            <div id="absencesContent"></div>
+            <div class="absence-content">
+                <div id="pendingFolder" class="absence-folder active">
+                    <ul id="pendingAbsences"></ul>
+                </div>
+                <div id="approvedFolder" class="absence-folder">
+                    <ul id="approvedAbsences"></ul>
+                </div>
+                <div id="rejectedFolder" class="absence-folder">
+                    <ul id="rejectedAbsences"></ul>
+                </div>
+            </div>
         </div>
     </div>
     <div id="payslipsScreen" class="screen">
@@ -292,21 +311,23 @@
     <div id="mailScreen" class="screen">
         <div class="container">
             <h2>Mail</h2>
-            <button id="composeMailBtn" title="Compose Mail">✉</button>
+            <button id="composeMailBtn" title="Compose Mail"></button>
             <div class="mail-tabs">
                 <div class="tab-slider"></div>
                 <button class="tab-btn active" data-tab="inbox">Inbox</button>
                 <button class="tab-btn" data-tab="sent">Sent</button>
                 <button class="tab-btn" data-tab="drafts">Drafts</button>
             </div>
-            <div id="inboxFolder" class="mail-folder active">
-                <div id="mailContent"></div>
-            </div>
-            <div id="sentFolder" class="mail-folder">
-                <div id="sentContent"></div>
-            </div>
-            <div id="draftsFolder" class="mail-folder">
-                <div id="draftsContent"></div>
+            <div class="mail-content">
+                <div id="inboxFolder" class="mail-folder active">
+                    <ul id="inboxContent"></ul>
+                </div>
+                <div id="sentFolder" class="mail-folder">
+                    <ul id="sentContent"></ul>
+                </div>
+                <div id="draftsFolder" class="mail-folder">
+                    <ul id="draftsContent"></ul>
+                </div>
             </div>
         </div>
     </div>
@@ -315,6 +336,7 @@
             <h2>Goodbye, <span id="goodbyeName"></span></h2>
         </div>
     </div>
+    <div id="mailDeliveryAnimation" class="mail-delivery-animation hidden"></div>
 
     <footer>© Cirkle Development 2025</footer>
 
