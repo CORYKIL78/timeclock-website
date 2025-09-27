@@ -56,11 +56,6 @@ body {
 #companyLogo img {
     width: 100px;
     height: auto;
-    transition: transform 0.2s var(--transition-ease);
-}
-
-#companyLogo img:hover {
-    transform: scale(1.05);
 }
 
 .screen {
@@ -141,11 +136,7 @@ textarea {
     resize: vertical;
 }
 
-.task-input textarea {
-    height: 60px;
-}
-
-button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn) {
+button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn) {
     width: 100%;
     padding: 12px;
     margin: 8px 0;
@@ -158,17 +149,17 @@ button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTask
     transition: background 0.2s var(--transition-ease), transform 0.1s var(--transition-ease), box-shadow 0.2s var(--transition-ease);
 }
 
-button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):hover {
+button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):hover {
     background: #0056b3;
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn) {
+body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn) {
     background: #1e90ff;
 }
 
-body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):hover {
+body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):hover {
     background: #1873cc;
 }
 
@@ -250,17 +241,6 @@ body.dark #composeMailBtn {
 
 body.dark #composeMailBtn:hover {
     background: #1873cc;
-}
-
-#replyMailBtn {
-    width: auto;
-    padding: 10px 20px;
-    margin-top: 10px;
-    display: none;
-}
-
-#viewMailModal .modal-content #replyMailBtn {
-    display: inline-block;
 }
 
 .profile-img {
@@ -352,7 +332,7 @@ body.dark #composeMailBtn:hover {
 }
 
 .switch {
-    position: relative;
+    position: inline;
     display: inline-block;
     width: 50px;
     height: 28px;
@@ -404,7 +384,18 @@ footer {
     font-size: 12px;
     color: var(--secondary);
     opacity: 0.7;
-    z-index: 100; /* Increased for visibility */
+    z-index: 10;
+}
+
+.back-btn {
+    width: auto;
+    padding: 10px 20px;
+    margin-bottom: 20px;
+}
+
+.back-btn:hover {
+    background: var(--secondary);
+    color: white;
 }
 
 .hidden {
@@ -451,35 +442,14 @@ body.dark li.latest {
     margin-bottom: 20px;
 }
 
-.task-input textarea {
+.task-input input {
     flex: 1;
     text-align: left;
-    height: 60px;
 }
 
 .task-input button {
-    width: 50px;
-    height: 50px;
-    padding: 0;
-    background: var(--primary);
-    color: white;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-}
-
-.task-input button:hover {
-    background: #0056b3;
-}
-
-body.dark .task-input button {
-    background: #1e90ff;
-}
-
-body.dark .task-input button:hover {
-    background: #1873cc;
+    width: auto;
+    padding: 12px 20px;
 }
 
 .task-item {
@@ -612,9 +582,9 @@ body.dark #sidebarNav button:hover {
 
 .notifications {
     position: fixed;
-    bottom: 80px; /* Adjusted to avoid overlap with footer */
+    bottom: 20px;
     right: 20px;
-    width: 320px;
+    width: 300px;
     max-height: 400px;
     background: white;
     border: 1px solid var(--mail-border);
@@ -639,16 +609,52 @@ body.dark .notifications {
 .notifications li {
     cursor: pointer;
     font-size: 14px;
-    padding: 10px;
-    transition: background 0.2s var(--transition-ease);
+    position: relative;
+    padding-right: 30px;
 }
 
 .notifications li:hover {
-    background: #e7f1ff;
+    background: var(--mail-bg);
+    transform: translateX(0);
 }
 
 body.dark .notifications li:hover {
-    background: #2c5282;
+    background: #34495e;
+}
+
+.notification-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.notification-controls button {
+    width: auto;
+    padding: 8px 16px;
+}
+
+.notification-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    margin: 6px 0;
+    background: var(--mail-bg);
+    border-radius: 6px;
+    transition: transform 0.2s var(--transition-ease);
+}
+
+.notification-item:hover {
+    transform: translateX(5px);
+}
+
+.notification-item input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+body.dark .notification-item {
+    background: #34495e;
 }
 
 .modal {
@@ -812,7 +818,6 @@ body.dark .tab-btn {
     background: var(--mail-bg);
     border-radius: 6px;
     transition: transform 0.2s var(--transition-ease);
-    cursor: pointer;
 }
 
 .absence-item:hover {
@@ -860,67 +865,142 @@ body.dark .absence-item.rejected {
     font-size: 16px;
 }
 
-.mail-error {
-    color: var(--danger);
-    font-size: 14px;
-    margin-top: 8px;
-    transition: opacity 0.3s var(--transition-ease);
-    z-index: 2100; /* High z-index to display over compose modal */
+.employee-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    margin: 20px 0;
 }
 
-.mail-error:not(.hidden) {
-    opacity: 1;
+.employee-card {
+    background: white;
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform 0.2s var(--transition-ease);
 }
 
-.mail-error.hidden {
-    opacity: 0;
+.employee-card:hover {
+    transform: translateY(-2px);
 }
 
-#pieChartContainer {
-    margin: 20px auto;
-    max-width: 300px;
+body.dark .employee-card {
+    background: #34495e;
 }
 
-#pieChart {
-    max-width: 100%;
-}
-
-.session-list {
-    max-height: 300px;
-    overflow-y: auto;
-    transform: translateX(100%);
-    transition: transform 0.5s var(--transition-ease);
-}
-
-.session-list.active {
-    transform: translateX(0);
-}
-
-.timeclock-main {
-    transform: translateX(0);
-    transition: transform 0.5s var(--transition-ease);
-}
-
-.timeclock-main.hidden {
-    transform: translateX(-100%);
-}
-
-#viewPreviousSessionsBtn {
-    width: auto;
-    padding: 10px 20px;
-    margin-top: 10px;
-}
-
-#backToTimeclockBtn {
-    width: auto;
-    padding: 10px 20px;
+.employee-card img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
     margin-bottom: 10px;
 }
 
-.times-clocked-in {
+.employee-card h3 {
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.employee-card p {
     font-size: 14px;
     color: var(--secondary);
+}
+
+.mail-compose {
+    background: var(--mail-bg);
+    border: 1px solid var(--mail-border);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+body.dark .mail-compose {
+    background: #34495e;
+    border: #495057;
+}
+
+.reply-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 16px;
+    cursor: pointer;
+    color: var(--primary);
+    transition: transform 0.2s var(--transition-ease);
+}
+
+.reply-btn:hover {
+    transform: scale(1.2);
+}
+
+.draft-actions {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.draft-actions button {
+    width: auto;
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.mail-thread {
     margin-top: 10px;
+    padding-left: 20px;
+    border-left: 2px solid var(--mail-border);
+}
+
+.thread-item {
+    padding: 8px;
+    margin: 6px 0;
+    background: var(--mail-bg);
+    border-radius: 6px;
+}
+
+body.dark .thread-item {
+    background: #34495e;
+}
+
+.session-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.session-item {
+    padding: 10px;
+    mail-item: 5px 0;
+    background: var(--mail-bg);
+    border-radius: 6px;
+    transition: transform 0.2s var(--transition-ease);
+}
+
+.session-item:hover {
+    transform: translateX(5px);
+}
+
+body.dark .session-item {
+    background: #34495e;
+}
+
+.mail-delivery-animation {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 60px;
+    height: 60px;
+    background: url('https://cdn-icons-png.flaticon.com/512/561/561226.png') no-repeat center;
+    background-size: contain;
+    transform: translate(-50%, -50%);
+    animation: mailFly 1s var(--transition-ease);
+    z-index: 3000;
+}
+
+@keyframes mailFly {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -50%) translateX(200px) scale(0); opacity: 0; }
 }
 
 @media (max-width: 600px) {
@@ -928,10 +1008,9 @@ body.dark .absence-item.rejected {
     .sidebar { width: 50px; }
     .sidebar.extended { width: 200px; }
     .notifications { width: 280px; right: 10px; }
+    .employee-grid { grid-template-columns: 1fr; }
     .modal-content { max-width: 95%; }
     .tutorial-text { font-size: 14px; padding: 8px 16px; }
     .mail-tabs .tab-btn { max-width: 100px; font-size: 14px; }
-    #mailScreen .container { padding: 10px; }
     #companyLogo img { width: 80px; }
-    #pieChartContainer { max-width: 200px; }
 }
