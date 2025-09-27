@@ -508,15 +508,22 @@ body.dark .sidebar {
     opacity: 1;
 }
 
+#sidebarNav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
 #sidebarNav button {
     background: none;
     border: none;
-    color: var(--primary);
+    color: #000;
     font-size: 16px;
-    padding: 12px 20px;
+    padding: 10px;
     cursor: pointer;
     text-align: left;
-    transition: color 0.2s var(--transition-ease);
+    transition: color 0.3s;
 }
 
 #sidebarNav button:hover {
@@ -524,7 +531,7 @@ body.dark .sidebar {
 }
 
 body.dark #sidebarNav button {
-    color: #1e90ff;
+    color: #fff;
 }
 
 body.dark #sidebarNav button:hover {
@@ -576,7 +583,7 @@ body.dark #logoutBtn:hover {
 
 .notifications {
     position: fixed;
-    bottom: 80px;
+    bottom: 20px;
     right: 20px;
     width: 300px;
     max-height: 400px;
@@ -588,10 +595,6 @@ body.dark #logoutBtn:hover {
     overflow-y: auto;
     z-index: 999;
     transition: opacity 0.3s var(--transition-ease), transform 0.3s var(--transition-ease);
-}
-
-#notificationsScreen ~ .notifications {
-    display: none;
 }
 
 body.dark .notifications {
@@ -756,7 +759,7 @@ body.dark .modal-content {
     display: flex;
     gap: 8px;
     justify-content: center;
-    margin: 20px 0 40px 0; /* Increased margin-bottom for spacing below tabs */
+    margin: 15px 0;
 }
 
 .tab-btn {
@@ -945,6 +948,7 @@ body.dark .mail-tabs {
     flex: 1;
     position: relative;
     overflow: hidden;
+    margin-top: 20px; /* Added spacing to place content under buttons */
 }
 
 .mail-folder {
@@ -994,54 +998,22 @@ body.dark .mail-tabs {
 
 .mail-item {
     padding: 12px;
-    margin: 8px 20px;
+    margin: 6px 0;
     background: var(--mail-bg);
     border-radius: 6px;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    transition: transform 0.2s var(--transition-ease), background 0.2s var(--transition-ease);
-    cursor: pointer;
+    flex-direction: column;
+    gap: 5px;
+    transition: transform 0.2s var(--transition-ease);
+    position: relative;
 }
 
 .mail-item:hover {
-    background: #e7f1ff;
     transform: translateX(5px);
 }
 
 body.dark .mail-item {
     background: #34495e;
-}
-
-body.dark .mail-item:hover {
-    background: #2c5282;
-}
-
-.mail-item img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.mail-item .subject {
-    flex: 1;
-    font-weight: bold;
-    color: #000;
-    font-size: 16px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-body.dark .mail-item .subject {
-    color: #e0e0e0;
-}
-
-.mail-item .timestamp {
-    font-size: 12px;
-    color: var(--secondary);
-    flex-shrink: 0;
 }
 
 .reply-btn {
@@ -1061,7 +1033,7 @@ body.dark .mail-item .subject {
 .draft-actions {
     display: flex;
     gap: 10px;
-    margin-left: auto;
+    margin-top: 10px;
 }
 
 .draft-actions button {
@@ -1182,7 +1154,6 @@ body.dark .notification-item {
     .modal-content { max-width: 95%; }
     .tutorial-text { font-size: 14px; padding: 8px 16px; }
     .mail-tabs .tab-btn { max-width: 100px; font-size: 14px; }
-    .mail-item { margin: 8px 10px; }
     #mailScreen .container { padding: 10px; }
     #notificationsScreen .container { padding: 10px; }
 }
