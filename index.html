@@ -23,6 +23,7 @@
             <button id="disciplinariesBtn">Disciplinaries</button>
             <button id="timeclockBtn">Timeclock</button>
             <button id="mailBtn">Mail</button>
+            <button id="notificationsBtn">Notifications</button>
         </div>
         <div class="sidebar-footer">
             <button id="notificationBtn" title="Notifications">🔔</button>
@@ -30,7 +31,7 @@
         </div>
     </div>
 
-    <!-- Notifications -->
+    <!-- Notifications Panel -->
     <div id="notificationPanel" class="notifications hidden">
         <h3>Notifications</h3>
         <ul id="notificationList"></ul>
@@ -262,7 +263,27 @@
         <div class="container">
             <h2>Mail</h2>
             <button id="composeMailBtn">Compose</button>
-            <div id="mailContent"></div>
+            <div class="mail-tabs">
+                <button class="tab-btn active" data-tab="inbox">Inbox</button>
+                <button class="tab-btn" data-tab="sent">Sent</button>
+            </div>
+            <div id="inboxFolder" class="mail-folder active">
+                <div id="mailContent"></div>
+            </div>
+            <div id="sentFolder" class="mail-folder">
+                <div id="sentContent"></div>
+            </div>
+        </div>
+    </div>
+    <div id="notificationsScreen" class="screen">
+        <div class="container">
+            <h2>Notifications</h2>
+            <div class="notification-controls">
+                <button id="selectAllBtn">Select All</button>
+                <button id="deselectAllBtn">Deselect All</button>
+                <button id="deleteSelectedBtn">Delete Selected</button>
+            </div>
+            <ul id="notificationList"></ul>
         </div>
     </div>
     <div id="goodbyeScreen" class="screen">

@@ -10,9 +10,10 @@ const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev';
 const CLIENT_ID = '1417915896634277888';
 const REDIRECT_URI = 'https://corykil78.github.io/timeclock-website';
 const SUCCESS_SOUND_URL = 'https://cdn.pixabay.com/audio/2023/01/07/audio_cae2a6c2fc.mp3';
-const ABSENCE_CHANNEL = '1417583684525232291';
-const TIMECLOCK_CHANNEL = '1322975014110236716';
-const NOTIFICATION_CHANNEL = '1322975014110236716';
+const NOTIFICATION_SOUND_URL = 'https://cdn.pixabay.com/audio/2025/09/02/audio_4e70a465f7.mp3';
+const ABSENCE_CHANNEL = '1322975014110236716';
+const TIMECLOCK_CHANNEL = '1417583684525232291';
+const NOTIFICATION_CHANNEL = '1417583684525232291';
 
 const screens = {
     discord: document.getElementById('discordScreen'),
@@ -36,6 +37,7 @@ const screens = {
     disciplinaries: document.getElementById('disciplinariesScreen'),
     timeclock: document.getElementById('timeclockScreen'),
     mail: document.getElementById('mailScreen'),
+    notifications: document.getElementById('notificationsScreen'),
     goodbye: document.getElementById('goodbyeScreen')
 };
 
@@ -74,9 +76,9 @@ function showScreen(screenId) {
         window.location.hash = screenId;
         const sidebar = document.getElementById('sidebar');
         const notificationPanel = document.getElementById('notificationPanel');
-        if (['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail'].includes(screenId)) {
+        if (['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail', 'notifications'].includes(screenId)) {
             sidebar.classList.remove('hidden');
-            notificationPanel.classList.remove('hidden');
+            notificationPanel.classList.toggle('hidden', screenId === 'notifications');
         } else {
             sidebar.classList.add('hidden');
             notificationPanel.classList.add('hidden');
@@ -89,9 +91,16 @@ function showScreen(screenId) {
 
 function showModal(modalId, message = '') {
     console.log('Showing modal:', modalId, message);
-    document.getElementById('alertMessage').innerHTML = message;
-    if (modals[modalId]) {
-        modals[modalId].style.display = 'flex';
+    const modal = modals[modalId];
+    if (modal) {
+        if (modalId === 'alert' && message.includes('success-tick')) {
+            modal.classList.add('success');
+            setTimeout(() => closeModal(modalId), 2000);
+        } else {
+            modal.classList.remove('success');
+        }
+        document.getElementById('alertMessage').innerHTML = message;
+        modal.style.display = 'flex';
     } else {
         console.error('Modal not found:', modalId);
     }
@@ -101,12 +110,18 @@ function closeModal(modalId) {
     console.log('Closing modal:', modalId);
     if (modals[modalId]) {
         modals[modalId].style.display = 'none';
+        modals[modalId].classList.remove('success');
     }
 }
 
 function playSuccessSound() {
     const audio = new Audio(SUCCESS_SOUND_URL);
     audio.play().catch(e => console.error('Sound error:', e));
+}
+
+function playNotificationSound() {
+    const audio = new Audio(NOTIFICATION_SOUND_URL);
+    audio.play().catch(e => console.error('Notification sound error:', e));
 }
 
 function formatTime(ms) {
@@ -177,6 +192,7 @@ function getEmployee(id) {
         strikes: [], 
         payslips: [], 
         mail: [], 
+        sentMail: [], 
         onLOA: false,
         pendingDeptChange: null,
         lastLogin: null
@@ -207,6 +223,7 @@ function resetEmployeeData(userId) {
 function addNotification(type, message, link) {
     notifications.push({ id: Date.now().toString(), type, message, link, read: false, timestamp: new Date().toLocaleString() });
     localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
+    playNotificationSound();
     renderNotifications();
 }
 
@@ -220,23 +237,27 @@ function renderNotifications() {
     list.innerHTML = '';
     notifications.forEach((notif, index) => {
         const li = document.createElement('li');
-        li.textContent = notif.message;
-        if (index === 0) li.classList.add('latest');
-        const deleteBtn = document.createElement('span');
-        deleteBtn.className = 'delete-notification';
-        deleteBtn.innerHTML = '🗑';
+        li.className = 'notification-item';
+        li.innerHTML = `
+            <input type="checkbox" class="notification-checkbox" data-id="${notif.id}">
+            <span>${notif.message} <em>(${notif.timestamp})</em></span>
+            <span class="delete-notification">🗑</span>
+        `;
+        const checkbox = li.querySelector('.notification-checkbox');
+        const deleteBtn = li.querySelector('.delete-notification');
         deleteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             notifications.splice(index, 1);
             localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
             renderNotifications();
         });
-        li.appendChild(deleteBtn);
-        li.addEventListener('click', () => {
-            notifications[index].read = true;
-            localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
-            if (notif.link) showScreen(notif.link);
-            renderNotifications();
+        li.addEventListener('click', (e) => {
+            if (e.target !== checkbox && e.target !== deleteBtn) {
+                notifications[index].read = true;
+                localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
+                if (notif.link) showScreen(notif.link);
+                renderNotifications();
+            }
         });
         list.appendChild(li);
     });
@@ -495,6 +516,7 @@ async function handleOAuthRedirect() {
         strikes: getEmployee(user.id).strikes || [],
         payslips: getEmployee(user.id).payslips || [],
         mail: getEmployee(user.id).mail || [],
+        sentMail: getEmployee(user.id).sentMail || [],
         pendingDeptChange: getEmployee(user.id).pendingDeptChange || null,
         lastLogin: getEmployee(user.id).lastLogin || null
     };
@@ -614,11 +636,13 @@ function startTutorial() {
 }
 
 function renderMail() {
-    const content = document.getElementById('mailContent');
-    if (!content) return;
-    content.innerHTML = '';
+    const inboxContent = document.getElementById('mailContent');
+    const sentContent = document.getElementById('sentContent');
+    if (!inboxContent || !sentContent) return;
+    inboxContent.innerHTML = '';
+    sentContent.innerHTML = '';
     const emp = getEmployee(currentUser.id);
-    emp.mail.forEach((m, index) => {
+    emp.mail.forEach(m => {
         const div = document.createElement('div');
         div.className = 'mail-item';
         div.innerHTML = `
@@ -626,7 +650,17 @@ function renderMail() {
             <p>${m.content}</p>
             <p><em>${m.timestamp}</em></p>
         `;
-        content.appendChild(div);
+        inboxContent.appendChild(div);
+    });
+    emp.sentMail.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'mail-item';
+        div.innerHTML = `
+            <p><strong>To:</strong> ${m.to}</p>
+            <p>${m.content}</p>
+            <p><em>${m.timestamp}</em></p>
+        `;
+        sentContent.appendChild(div);
     });
 
     const recipientSelect = document.getElementById('mailRecipient');
@@ -726,17 +760,6 @@ document.getElementById('homeBtn').addEventListener('click', () => {
     updateMainScreen();
 });
 
-document.getElementById('myProfileBtn').addEventListener('click', () => {
-    showScreen('myProfile');
-    const emp = getEmployee(currentUser.id);
-    document.getElementById('profileName').textContent = emp.profile.name || 'N/A';
-    document.getElementById('profileEmail').textContent = emp.profile.email || 'N/A';
-    document.getElementById('profileDepartment').textContent = emp.profile.department || 'N/A';
-    document.getElementById('profileDepartment').classList.toggle('pending-department', !!emp.pendingDeptChange);
-    document.getElementById('updateNameInput').value = emp.profile.name || '';
-    document.getElementById('updateEmailInput').value = emp.profile.email || '';
-});
-
 document.getElementById('updateProfileBtn').addEventListener('click', () => {
     const name = document.getElementById('updateNameInput').value.trim();
     const email = document.getElementById('updateEmailInput').value.trim();
@@ -816,6 +839,10 @@ document.getElementById('addTaskBtn').addEventListener('click', () => {
         saveTasks();
         renderTasks();
         document.getElementById('taskInput').value = '';
+        showModal('alert', '<span class="success-tick"></span> Task added successfully!');
+        playSuccessSound();
+    } else {
+        showModal('alert', 'Please enter a task');
     }
 });
 
@@ -966,6 +993,10 @@ document.getElementById('clockOutBtn').addEventListener('click', async () => {
 document.getElementById('mailBtn').addEventListener('click', () => {
     showScreen('mail');
     renderMail();
+    document.querySelectorAll('.mail-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('inboxFolder').classList.add('active');
+    document.getElementById('sentFolder').classList.remove('active');
+    document.querySelector('.mail-tabs .tab-btn[data-tab="inbox"]').classList.add('active');
 });
 
 document.getElementById('composeMailBtn').addEventListener('click', () => {
@@ -987,17 +1018,63 @@ document.getElementById('sendMailBtn').addEventListener('click', () => {
         content,
         timestamp: new Date().toLocaleString()
     });
+    emp.sentMail = emp.sentMail || [];
+    emp.sentMail.push({
+        to: recipient.profile.name,
+        content,
+        timestamp: new Date().toLocaleString()
+    });
     updateEmployee(recipient);
+    updateEmployee(emp);
     sendDM(recipientId, `New message from ${emp.profile.name}: ${content}`);
+    addNotification('mail', `Message sent to ${recipient.profile.name}`, 'mail');
     closeModal('composeMail');
     showModal('alert', '<span class="success-tick"></span> Message sent successfully!');
     playSuccessSound();
     document.getElementById('mailContent').value = '';
+    renderMail();
+});
+
+document.getElementById('mailScreen').addEventListener('click', (e) => {
+    if (e.target.classList.contains('tab-btn')) {
+        document.querySelectorAll('.mail-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+        e.target.classList.add('active');
+        const folder = e.target.dataset.tab;
+        document.getElementById('inboxFolder').classList.toggle('active', folder === 'inbox');
+        document.getElementById('sentFolder').classList.toggle('active', folder === 'sent');
+    }
+});
+
+document.getElementById('notificationsBtn').addEventListener('click', () => {
+    showScreen('notifications');
+    renderNotifications();
 });
 
 document.getElementById('notificationBtn').addEventListener('click', () => {
     const panel = document.getElementById('notificationPanel');
     panel.classList.toggle('hidden');
+});
+
+document.getElementById('selectAllBtn').addEventListener('click', () => {
+    document.querySelectorAll('.notification-checkbox').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+});
+
+document.getElementById('deselectAllBtn').addEventListener('click', () => {
+    document.querySelectorAll('.notification-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+});
+
+document.getElementById('deleteSelectedBtn').addEventListener('click', () => {
+    const checked = document.querySelectorAll('.notification-checkbox:checked');
+    const ids = Array.from(checked).map(cb => cb.dataset.id);
+    notifications = notifications.filter(n => !ids.includes(n.id));
+    localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
+    renderNotifications();
+    showModal('alert', '<span class="success-tick"></span> Selected notifications deleted!');
+    playSuccessSound();
 });
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
