@@ -15,7 +15,6 @@
         <button class="sidebar-toggle">☰</button>
         <div id="sidebarNav">
             <button id="homeBtn">Home</button>
-            <button id="myProfileBtn">My Profile</button>
             <button id="myRolesBtn">My Roles</button>
             <button id="tasksBtn">Tasks</button>
             <button id="absencesBtn">Absences</button>
@@ -23,11 +22,10 @@
             <button id="disciplinariesBtn">Disciplinaries</button>
             <button id="timeclockBtn">Timeclock</button>
             <button id="mailBtn">Mail</button>
-            <button id="notificationsBtn">Notifications</button>
         </div>
         <div class="sidebar-footer">
-            <button id="notificationBtn" title="Notifications">🔔</button>
-            <button id="logoutBtn" title="Log Out">🚪</button>
+            <button id="notificationBtn" class="action-btn" title="Notifications">🔔</button>
+            <button id="logoutBtn" class="action-btn" title="Log Out">🚪</button>
         </div>
     </div>
 
@@ -49,11 +47,16 @@
             <span class="close">&times;</span>
             <div class="mail-compose">
                 <h2>Compose Mail</h2>
-                <select id="mailRecipient">
-                    <option value="">Select Recipient</option>
+                <select id="mailRecipients" multiple>
+                    <option value="">Select Recipients</option>
                 </select>
+                <input type="text" id="mailSubject" placeholder="Subject">
                 <textarea id="mailContent" placeholder="Message"></textarea>
-                <button id="sendMailBtn">Send</button>
+                <div class="mail-actions">
+                    <button id="sendMailBtn">Send</button>
+                    <button id="saveDraftBtn">Save to Drafts</button>
+                    <button id="cancelMailBtn">Cancel</button>
+                </div>
             </div>
         </div>
     </div>
@@ -264,14 +267,19 @@
             <h2>Mail</h2>
             <button id="composeMailBtn">Compose</button>
             <div class="mail-tabs">
+                <div class="tab-slider"></div>
                 <button class="tab-btn active" data-tab="inbox">Inbox</button>
                 <button class="tab-btn" data-tab="sent">Sent</button>
+                <button class="tab-btn" data-tab="drafts">Drafts</button>
             </div>
             <div id="inboxFolder" class="mail-folder active">
                 <div id="mailContent"></div>
             </div>
             <div id="sentFolder" class="mail-folder">
                 <div id="sentContent"></div>
+            </div>
+            <div id="draftsFolder" class="mail-folder">
+                <div id="draftsContent"></div>
             </div>
         </div>
     </div>

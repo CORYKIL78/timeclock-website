@@ -9,9 +9,9 @@ const WEBHOOK_URL = 'https://discord.com/api/webhooks/1417260030851551273/KGKnWF
 const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev';
 const CLIENT_ID = '1417915896634277888';
 const REDIRECT_URI = 'https://corykil78.github.io/timeclock-website';
-const SUCCESS_SOUND_URL = 'https://cdn.pixabay.com/audio/2023/01/07/audio_cae2a6c2fc.mp3';
-const NOTIFICATION_SOUND_URL = 'https://cdn.pixabay.com/audio/2025/09/02/audio_4e70a465f7.mp3';
-const ABSENCE_CHANNEL = '1322975014110236716';
+const SUCCESS_SOUND_URL = 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_9d4a8d3f8d.mp3';
+const NOTIFICATION_SOUND_URL = 'https://cdn.pixabay.com/audio/2023/02/16/audio_d76a769fa6.mp3';
+const ABSENCE_CHANNEL = '1417583684525232291';
 const TIMECLOCK_CHANNEL = '1417583684525232291';
 const NOTIFICATION_CHANNEL = '1417583684525232291';
 
@@ -78,7 +78,7 @@ function showScreen(screenId) {
         const notificationPanel = document.getElementById('notificationPanel');
         if (['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail', 'notifications'].includes(screenId)) {
             sidebar.classList.remove('hidden');
-            notificationPanel.classList.toggle('hidden', screenId === 'notifications');
+            notificationPanel.classList.toggle('hidden', screenId !== 'notifications');
         } else {
             sidebar.classList.add('hidden');
             notificationPanel.classList.add('hidden');
@@ -122,6 +122,13 @@ function playSuccessSound() {
 function playNotificationSound() {
     const audio = new Audio(NOTIFICATION_SOUND_URL);
     audio.play().catch(e => console.error('Notification sound error:', e));
+}
+
+function showMailDeliveryAnimation() {
+    const animation = document.createElement('div');
+    animation.className = 'mail-delivery-animation';
+    document.body.appendChild(animation);
+    setTimeout(() => animation.remove(), 1000);
 }
 
 function formatTime(ms) {
@@ -193,6 +200,7 @@ function getEmployee(id) {
         payslips: [], 
         mail: [], 
         sentMail: [], 
+        drafts: [], 
         onLOA: false,
         pendingDeptChange: null,
         lastLogin: null
@@ -517,6 +525,7 @@ async function handleOAuthRedirect() {
         payslips: getEmployee(user.id).payslips || [],
         mail: getEmployee(user.id).mail || [],
         sentMail: getEmployee(user.id).sentMail || [],
+        drafts: getEmployee(user.id).drafts || [],
         pendingDeptChange: getEmployee(user.id).pendingDeptChange || null,
         lastLogin: getEmployee(user.id).lastLogin || null
     };
@@ -584,9 +593,13 @@ function startTutorial() {
                 const emp = getEmployee(currentUser.id);
                 emp.mail = emp.mail || [];
                 emp.mail.push({
+                    id: Date.now().toString(),
                     from: 'Cirkle Development',
+                    senderId: 'system',
+                    subject: 'Welcome to Staff Portal',
                     content: `Dear ${emp.profile.name}, Welcome to your new Staff Portal. You are now finished this tutorial. Please have a look around and get familiar with everything. We hope you like it! Kind Regards, Cirkle Development.`,
-                    timestamp: new Date().toLocaleString()
+                    timestamp: new Date().toLocaleString(),
+                    thread: []
                 });
                 updateEmployee(emp);
                 addNotification('welcome', 'Welcome to your Staff Portal!', 'mail');
@@ -635,36 +648,115 @@ function startTutorial() {
     showStep();
 }
 
+function updateTabSlider() {
+    const activeTab = document.querySelector('.mail-tabs .tab-btn.active');
+    const slider = document.querySelector('.tab-slider');
+    if (activeTab && slider) {
+        const index = Array.from(document.querySelectorAll('.mail-tabs .tab-btn')).indexOf(activeTab);
+        const width = activeTab.offsetWidth;
+        const left = activeTab.offsetLeft;
+        slider.style.width = `${width}px`;
+        slider.style.transform = `translateX(${left}px)`;
+    }
+}
+
 function renderMail() {
     const inboxContent = document.getElementById('mailContent');
     const sentContent = document.getElementById('sentContent');
-    if (!inboxContent || !sentContent) return;
+    const draftsContent = document.getElementById('draftsContent');
+    if (!inboxContent || !sentContent || !draftsContent) return;
     inboxContent.innerHTML = '';
     sentContent.innerHTML = '';
+    draftsContent.innerHTML = '';
     const emp = getEmployee(currentUser.id);
+
     emp.mail.forEach(m => {
         const div = document.createElement('div');
         div.className = 'mail-item';
         div.innerHTML = `
             <p><strong>From:</strong> ${m.from}</p>
+            <p><strong>Subject:</strong> ${m.subject || 'No Subject'}</p>
             <p>${m.content}</p>
             <p><em>${m.timestamp}</em></p>
+            <span class="reply-btn" data-mail-id="${m.id}">↩</span>
+            ${m.thread && m.thread.length ? `
+                <div class="mail-thread">
+                    <h4>Replies:</h4>
+                    ${m.thread.map(t => `
+                        <div class="thread-item">
+                            <p><strong>From:</strong> ${t.from}</p>
+                            <p>${t.content}</p>
+                            <p><em>${t.timestamp}</em></p>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
         `;
+        div.querySelector('.reply-btn').addEventListener('click', () => {
+            document.getElementById('mailRecipients').value = [m.senderId];
+            document.getElementById('mailSubject').value = `Re: ${m.subject || 'No Subject'}`;
+            document.getElementById('mailContent').value = `\n\n--- Original Message ---\nFrom: ${m.from}\n${m.content}`;
+            showModal('composeMail');
+        });
         inboxContent.appendChild(div);
     });
+
     emp.sentMail.forEach(m => {
         const div = document.createElement('div');
         div.className = 'mail-item';
         div.innerHTML = `
-            <p><strong>To:</strong> ${m.to}</p>
+            <p><strong>To:</strong> ${m.to.join(', ')}</p>
+            <p><strong>Subject:</strong> ${m.subject || 'No Subject'}</p>
             <p>${m.content}</p>
             <p><em>${m.timestamp}</em></p>
+            ${m.thread && m.thread.length ? `
+                <div class="mail-thread">
+                    <h4>Replies:</h4>
+                    ${m.thread.map(t => `
+                        <div class="thread-item">
+                            <p><strong>From:</strong> ${t.from}</p>
+                            <p>${t.content}</p>
+                            <p><em>${t.timestamp}</em></p>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
         `;
         sentContent.appendChild(div);
     });
 
-    const recipientSelect = document.getElementById('mailRecipient');
-    recipientSelect.innerHTML = '<option value="">Select Recipient</option>';
+    emp.drafts.forEach((d, index) => {
+        const div = document.createElement('div');
+        div.className = 'mail-item';
+        div.innerHTML = `
+            <p><strong>To:</strong> ${d.recipients.join(', ') || 'None'}</p>
+            <p><strong>Subject:</strong> ${d.subject || 'No Subject'}</p>
+            <p>${d.content}</p>
+            <p><em>${d.timestamp}</em></p>
+            <div class="draft-actions">
+                <button class="edit-draft-btn" data-index="${index}">Edit</button>
+                <button class="delete-draft-btn" data-index="${index}">Delete</button>
+            </div>
+        `;
+        div.querySelector('.edit-draft-btn').addEventListener('click', () => {
+            document.getElementById('mailRecipients').value = d.recipientIds;
+            document.getElementById('mailSubject').value = d.subject || '';
+            document.getElementById('mailContent').value = d.content;
+            document.getElementById('sendMailBtn').dataset.draftIndex = index;
+            showModal('composeMail');
+        });
+        div.querySelector('.delete-draft-btn').addEventListener('click', () => {
+            emp.drafts.splice(index, 1);
+            updateEmployee(emp);
+            showModal('alert', '<span class="success-tick"></span> Successfully deleted draft!');
+            playSuccessSound();
+            renderMail();
+        });
+        draftsContent.appendChild(div);
+    });
+
+    const recipientSelect = document.getElementById('mailRecipients');
+    recipientSelect.innerHTML = '<option value="">Select Recipients</option>';
     employees.filter(e => e.profile.name && e.id !== currentUser.id).forEach(e => {
         const option = document.createElement('option');
         option.value = e.id;
@@ -741,6 +833,17 @@ document.getElementById('portalLoginBtn').addEventListener('click', () => {
     updateSidebarProfile();
     renderNotifications();
     updateMainScreen();
+});
+
+document.getElementById('sidebarProfilePic').addEventListener('click', () => {
+    showScreen('myProfile');
+    const emp = getEmployee(currentUser.id);
+    document.getElementById('profileName').textContent = emp.profile.name || 'N/A';
+    document.getElementById('profileEmail').textContent = emp.profile.email || 'N/A';
+    document.getElementById('profileDepartment').textContent = emp.profile.department || 'N/A';
+    document.getElementById('profileDepartment').classList.toggle('pending-department', !!emp.pendingDeptChange);
+    document.getElementById('updateNameInput').value = emp.profile.name || '';
+    document.getElementById('updateEmailInput').value = emp.profile.email || '';
 });
 
 document.getElementById('mainProfilePic').addEventListener('click', () => {
@@ -996,43 +1099,95 @@ document.getElementById('mailBtn').addEventListener('click', () => {
     document.querySelectorAll('.mail-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById('inboxFolder').classList.add('active');
     document.getElementById('sentFolder').classList.remove('active');
+    document.getElementById('draftsFolder').classList.remove('active');
     document.querySelector('.mail-tabs .tab-btn[data-tab="inbox"]').classList.add('active');
+    updateTabSlider();
 });
 
 document.getElementById('composeMailBtn').addEventListener('click', () => {
+    document.getElementById('mailRecipients').value = [];
+    document.getElementById('mailSubject').value = '';
+    document.getElementById('mailContent').value = '';
+    delete document.getElementById('sendMailBtn').dataset.draftIndex;
     showModal('composeMail');
 });
 
-document.getElementById('sendMailBtn').addEventListener('click', () => {
-    const recipientId = document.getElementById('mailRecipient').value;
+document.getElementById('sendMailBtn').addEventListener('click', async () => {
+    const recipientIds = Array.from(document.getElementById('mailRecipients').selectedOptions).map(opt => opt.value);
+    const subject = document.getElementById('mailSubject').value.trim();
     const content = document.getElementById('mailContent').value.trim();
-    if (!recipientId || !content) {
-        showModal('alert', 'Please select a recipient and enter a message');
+    if (!recipientIds.length || !content) {
+        showModal('alert', 'Please select at least one recipient and enter a message');
         return;
     }
+    showModal('alert', 'Sending...');
+    await new Promise(r => setTimeout(r, 1000));
     const emp = getEmployee(currentUser.id);
-    const recipient = getEmployee(recipientId);
-    recipient.mail = recipient.mail || [];
-    recipient.mail.push({
+    const timestamp = new Date().toLocaleString();
+    const mailData = {
+        id: Date.now().toString(),
         from: emp.profile.name,
+        senderId: currentUser.id,
+        to: recipientIds.map(id => getEmployee(id).profile.name),
+        recipientIds,
+        subject,
         content,
-        timestamp: new Date().toLocaleString()
-    });
+        timestamp,
+        thread: []
+    };
     emp.sentMail = emp.sentMail || [];
-    emp.sentMail.push({
-        to: recipient.profile.name,
+    emp.sentMail.push(mailData);
+    recipientIds.forEach(id => {
+        const recipient = getEmployee(id);
+        recipient.mail = recipient.mail || [];
+        recipient.mail.push(mailData);
+        updateEmployee(recipient);
+        sendDM(id, `New message from ${emp.profile.name}: ${subject}\n${content}`);
+        addNotification('mail', `New message from ${emp.profile.name}: ${subject}`, 'mail', id);
+    });
+    if ('draftIndex' in document.getElementById('sendMailBtn').dataset) {
+        emp.drafts.splice(parseInt(document.getElementById('sendMailBtn').dataset.draftIndex), 1);
+        delete document.getElementById('sendMailBtn').dataset.draftIndex;
+    }
+    updateEmployee(emp);
+    showMailDeliveryAnimation();
+    closeModal('composeMail');
+    showModal('alert', '<span class="success-tick"></span> Successfully sent!');
+    playSuccessSound();
+    addNotification('mail', 'Your mail has been sent!', 'mail');
+    renderMail();
+});
+
+document.getElementById('saveDraftBtn').addEventListener('click', () => {
+    const recipientIds = Array.from(document.getElementById('mailRecipients').selectedOptions).map(opt => opt.value);
+    const subject = document.getElementById('mailSubject').value.trim();
+    const content = document.getElementById('mailContent').value.trim();
+    const emp = getEmployee(currentUser.id);
+    emp.drafts = emp.drafts || [];
+    const draftData = {
+        recipientIds,
+        recipients: recipientIds.map(id => getEmployee(id).profile.name),
+        subject,
         content,
         timestamp: new Date().toLocaleString()
-    });
-    updateEmployee(recipient);
+    };
+    if ('draftIndex' in document.getElementById('sendMailBtn').dataset) {
+        emp.drafts[parseInt(document.getElementById('sendMailBtn').dataset.draftIndex)] = draftData;
+        delete document.getElementById('sendMailBtn').dataset.draftIndex;
+    } else {
+        emp.drafts.push(draftData);
+    }
     updateEmployee(emp);
-    sendDM(recipientId, `New message from ${emp.profile.name}: ${content}`);
-    addNotification('mail', `Message sent to ${recipient.profile.name}`, 'mail');
     closeModal('composeMail');
-    showModal('alert', '<span class="success-tick"></span> Message sent successfully!');
+    showModal('alert', '<span class="success-tick"></span> Drafted!');
     playSuccessSound();
-    document.getElementById('mailContent').value = '';
     renderMail();
+});
+
+document.getElementById('cancelMailBtn').addEventListener('click', () => {
+    closeModal('composeMail');
+    showModal('alert', '<span class="success-tick"></span> Successfully cancelled!');
+    playSuccessSound();
 });
 
 document.getElementById('mailScreen').addEventListener('click', (e) => {
@@ -1042,17 +1197,14 @@ document.getElementById('mailScreen').addEventListener('click', (e) => {
         const folder = e.target.dataset.tab;
         document.getElementById('inboxFolder').classList.toggle('active', folder === 'inbox');
         document.getElementById('sentFolder').classList.toggle('active', folder === 'sent');
+        document.getElementById('draftsFolder').classList.toggle('active', folder === 'drafts');
+        updateTabSlider();
     }
 });
 
-document.getElementById('notificationsBtn').addEventListener('click', () => {
+document.getElementById('notificationBtn').addEventListener('click', () => {
     showScreen('notifications');
     renderNotifications();
-});
-
-document.getElementById('notificationBtn').addEventListener('click', () => {
-    const panel = document.getElementById('notificationPanel');
-    panel.classList.toggle('hidden');
 });
 
 document.getElementById('selectAllBtn').addEventListener('click', () => {
