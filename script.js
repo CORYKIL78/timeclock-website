@@ -37,7 +37,6 @@ const screens = {
     disciplinaries: document.getElementById('disciplinariesScreen'),
     timeclock: document.getElementById('timeclockScreen'),
     mail: document.getElementById('mailScreen'),
-    notifications: document.getElementById('notificationsScreen'),
     goodbye: document.getElementById('goodbyeScreen')
 };
 
@@ -262,6 +261,13 @@ function addNotification(type, message, link, userId = currentUser.id) {
     localStorage.setItem(`notifications_${userId}`, JSON.stringify(notifications));
     playNotificationSound();
     renderNotifications();
+    // Send notification embed to Discord
+    sendEmbed(NOTIFICATION_CHANNEL, {
+        title: 'New Notification',
+        description: `<@${userId}> new notification: ${message}`,
+        color: 0x00ff00,
+        timestamp: new Date().toISOString()
+    });
 }
 
 function renderNotifications() {
@@ -278,18 +284,10 @@ function renderNotifications() {
         li.innerHTML = `
             <input type="checkbox" class="notification-checkbox" data-id="${notif.id}">
             <span>${notif.message} <em>(${notif.timestamp})</em></span>
-            <span class="delete-notification">🗑</span>
         `;
         const checkbox = li.querySelector('.notification-checkbox');
-        const deleteBtn = li.querySelector('.delete-notification');
-        deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            notifications.splice(index, 1);
-            localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
-            renderNotifications();
-        });
         li.addEventListener('click', (e) => {
-            if (e.target !== checkbox && e.target !== deleteBtn) {
+            if (e.target !== checkbox) {
                 notifications[index].read = true;
                 localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
                 if (notif.link) showScreen(notif.link);
@@ -996,8 +994,15 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     emp.absences.push({ id: Date.now().toString(), type, startDate, endDate, comment, status: 'pending' });
     updateEmployee(emp);
     await sendEmbed(ABSENCE_CHANNEL, {
-        title: 'New Absence Request',
-        description: `User: <@${currentUser.id}> (${emp.profile.name})\nType: ${type}\nStart: ${startDate}\nEnd: ${endDate}\nComment: ${comment}`,
+        title: 'New Absence',
+        fields: [
+            { name: 'User', value: `<@${currentUser.id}> (${emp.profile.name})`, inline: true },
+            { name: 'Reason', value: type, inline: true },
+            { name: 'Start Date', value: startDate, inline: true },
+            { name: 'End Date', value: endDate, inline: true },
+            { name: 'Comment', value: comment, inline: false }
+        ],
+        footer: { text: 'Please accept/reject on the HR portal' },
         color: 0xffff00
     });
     closeModal('absenceRequest');
@@ -1242,11 +1247,6 @@ function updateTabSlider() {
     slider.style.width = `${rect.width}px`;
     slider.style.transform = `translateX(${rect.left - containerRect.left}px)`;
 }
-
-document.getElementById('notificationBtn').addEventListener('click', () => {
-    showScreen('notifications');
-    renderNotifications();
-});
 
 document.getElementById('selectAllBtn').addEventListener('click', () => {
     document.querySelectorAll('.notification-checkbox').forEach(checkbox => {

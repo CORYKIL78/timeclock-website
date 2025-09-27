@@ -46,6 +46,18 @@ body {
     overflow-x: hidden;
 }
 
+#companyLogo {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 2000;
+}
+
+#companyLogo img {
+    width: 100px;
+    height: auto;
+}
+
 .screen {
     display: none;
     position: fixed;
@@ -124,7 +136,7 @@ textarea {
     resize: vertical;
 }
 
-button:not(#sidebarNav button):not(.sidebar-toggle):not(#composeMailBtn) {
+button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn) {
     width: 100%;
     padding: 12px;
     margin: 8px 0;
@@ -137,38 +149,39 @@ button:not(#sidebarNav button):not(.sidebar-toggle):not(#composeMailBtn) {
     transition: background 0.2s var(--transition-ease), transform 0.1s var(--transition-ease), box-shadow 0.2s var(--transition-ease);
 }
 
-button:not(#sidebarNav button):not(.sidebar-toggle):not(#composeMailBtn):hover {
+button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):hover {
     background: #0056b3;
-    color: white;
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#composeMailBtn) {
+body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn) {
     background: #1e90ff;
 }
 
-body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#composeMailBtn):hover {
+body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):hover {
     background: #1873cc;
 }
 
-#notificationBtn, #logoutBtn {
-    background: var(--secondary);
-    color: white;
-    border: none;
+#logoutBtn {
+    width: auto;
+    padding: 10px 20px;
+    border: 2px solid var(--danger);
+    color: var(--danger);
+    background: transparent;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.2s var(--transition-ease);
 }
 
-#notificationBtn:hover, #logoutBtn:hover {
-    background: #5a6268;
+#logoutBtn:hover {
     transform: scale(1.1);
 }
 
-body.dark #notificationBtn, body.dark #logoutBtn {
-    background: #6c757d;
-}
-
-body.dark #notificationBtn:hover, body.dark #logoutBtn:hover {
-    background: #5a6268;
+body.dark #logoutBtn {
+    border-color: #c82333;
+    color: #c82333;
 }
 
 #discordLoginBtn {
@@ -202,7 +215,7 @@ body.dark #notificationBtn:hover, body.dark #logoutBtn:hover {
     height: 50px;
     border-radius: 50%;
     font-size: 24px;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     background: var(--primary);
@@ -210,6 +223,10 @@ body.dark #notificationBtn:hover, body.dark #logoutBtn:hover {
     border: none;
     box-shadow: var(--shadow);
     z-index: 1000;
+}
+
+#mailScreen.active #composeMailBtn {
+    display: flex;
 }
 
 #composeMailBtn:hover {
@@ -266,7 +283,6 @@ body.dark #composeMailBtn:hover {
     height: auto;
     margin: 0 auto 20px;
     display: block;
-    content: url('https://media.discordapp.net/attachments/1315278404009988107/1322985671773655200/Cirkledevblack.png?ex=68d8cd2c&is=68d77bac&hm=eb6d4623118549872254c7b294e5639a0c5a88aac8287a37bfde5c90be5907d4&=&format=webp&quality=lossless&width=1056&height=594');
 }
 
 .user-header {
@@ -315,7 +331,7 @@ body.dark #composeMailBtn:hover {
 }
 
 .switch {
-    position: relative;
+    position: inline;
     display: inline-block;
     width: 50px;
     height: 28px;
@@ -367,7 +383,7 @@ footer {
     font-size: 12px;
     color: var(--secondary);
     opacity: 0.7;
-    z-index: 0;
+    z-index: 10; /* Increased to ensure visibility over screens */
 }
 
 .back-btn {
@@ -523,7 +539,14 @@ body.dark .sidebar {
     padding: 10px;
     cursor: pointer;
     text-align: left;
-    transition: color 0.3s;
+    transition: color 0.3s var(--transition-ease), opacity 0.3s var(--transition-ease);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sidebar.extended #sidebarNav button {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 #sidebarNav button:hover {
@@ -554,31 +577,6 @@ body.dark #sidebarNav button:hover {
 .sidebar.extended .sidebar-footer {
     opacity: 1;
     pointer-events: auto;
-}
-
-#logoutBtn {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    background: var(--secondary);
-    border: none;
-}
-
-#logoutBtn:hover {
-    background: #5a6268;
-    transform: scale(1.1);
-}
-
-body.dark #logoutBtn {
-    background: #6c757d;
-}
-
-body.dark #logoutBtn:hover {
-    background: #5a6268;
 }
 
 .notifications {
@@ -623,19 +621,39 @@ body.dark .notifications li:hover {
     background: #34495e;
 }
 
-.delete-notification {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 14px;
-    cursor: pointer;
-    color: var(--danger);
+.notification-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.notification-controls button {
+    width: auto;
+    padding: 8px 16px;
+}
+
+.notification-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    margin: 6px 0;
+    background: var(--mail-bg);
+    border-radius: 6px;
     transition: transform 0.2s var(--transition-ease);
 }
 
-.delete-notification:hover {
-    transform: translateY(-50%) scale(1.2);
+.notification-item:hover {
+    transform: translateX(5px);
+}
+
+.notification-item input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+body.dark .notification-item {
+    background: #34495e;
 }
 
 .modal {
@@ -760,6 +778,7 @@ body.dark .modal-content {
     gap: 8px;
     justify-content: center;
     margin: 15px 0;
+    position: relative;
 }
 
 .tab-btn {
@@ -948,7 +967,7 @@ body.dark .mail-tabs {
     flex: 1;
     position: relative;
     overflow: hidden;
-    margin-top: 20px; /* Added spacing to place content under buttons */
+    margin-top: 20px;
 }
 
 .mail-folder {
@@ -1002,18 +1021,50 @@ body.dark .mail-tabs {
     background: var(--mail-bg);
     border-radius: 6px;
     display: flex;
-    flex-direction: column;
-    gap: 5px;
-    transition: transform 0.2s var(--transition-ease);
-    position: relative;
+    align-items: center;
+    gap: 12px;
+    transition: transform 0.2s var(--transition-ease), background 0.2s var(--transition-ease);
+    cursor: pointer;
 }
 
 .mail-item:hover {
+    background: #e7f1ff;
     transform: translateX(5px);
 }
 
 body.dark .mail-item {
     background: #34495e;
+}
+
+body.dark .mail-item:hover {
+    background: #2c5282;
+}
+
+.mail-item img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.mail-item .subject {
+    flex: 1;
+    font-weight: bold;
+    color: #000;
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.dark .mail-item .subject {
+    color: #e0e0e0;
+}
+
+.mail-item .timestamp {
+    font-size: 12px;
+    color: var(--secondary);
+    flex-shrink: 0;
 }
 
 .reply-btn {
@@ -1033,7 +1084,7 @@ body.dark .mail-item {
 .draft-actions {
     display: flex;
     gap: 10px;
-    margin-top: 10px;
+    margin-left: auto;
 }
 
 .draft-actions button {
@@ -1080,52 +1131,6 @@ body.dark .session-item {
     background: #34495e;
 }
 
-#notificationsScreen {
-    align-items: center;
-    padding: 20px;
-}
-
-#notificationsScreen .container {
-    width: 100%;
-    max-width: 800px;
-    padding: 20px;
-}
-
-.notification-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.notification-controls button {
-    width: auto;
-    padding: 8px 16px;
-}
-
-.notification-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px;
-    margin: 6px 0;
-    background: var(--mail-bg);
-    border-radius: 6px;
-    transition: transform 0.2s var(--transition-ease);
-}
-
-.notification-item:hover {
-    transform: translateX(5px);
-}
-
-.notification-item input[type="checkbox"] {
-    margin-right: 10px;
-}
-
-body.dark .notification-item {
-    background: #34495e;
-}
-
 .mail-delivery-animation {
     position: fixed;
     top: 50%;
@@ -1155,5 +1160,5 @@ body.dark .notification-item {
     .tutorial-text { font-size: 14px; padding: 8px 16px; }
     .mail-tabs .tab-btn { max-width: 100px; font-size: 14px; }
     #mailScreen .container { padding: 10px; }
-    #notificationsScreen .container { padding: 10px; }
+    #companyLogo img { width: 80px; }
 }
