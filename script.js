@@ -184,28 +184,18 @@ async function sendWebhook(content) {
 
 async function sendEmbed(channelId, embed) {
     try {
-        const response = await fetch(`${WORKER_URL}/postEmbed?channel_id=${channelId}&embed_json=${encodeURIComponent(JSON.stringify(embed))}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors'
-        });
+        const response = await fetch(`${WORKER_URL}/postEmbed?channel_id=${channelId}&embed_json=${encodeURIComponent(JSON.stringify(embed))}`);
         if (!response.ok) throw new Error(`Embed failed: ${response.status} ${await response.text()}`);
-        const data = await response.json();
-        console.log('Embed sent successfully to channel:', channelId, data);
-        return data;
-    } catch (error) {
-        console.error('Embed error:', error);
-        throw error;
+        console.log('Embed sent successfully to channel:', channelId);
+        return await response.json();
+    } catch (e) {
+        console.error('Embed error:', e);
     }
 }
 
 async function updateEmbed(channelId, messageId, embed) {
     try {
-        const response = await fetch(`${WORKER_URL}/updateEmbed?channel_id=${channelId}&message_id=${messageId}&embed_json=${encodeURIComponent(JSON.stringify(embed))}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors'
-        });
+        const response = await fetch(`${WORKER_URL}/updateEmbed?channel_id=${channelId}&message_id=${messageId}&embed_json=${encodeURIComponent(JSON.stringify(embed))}`);
         if (!response.ok) throw new Error(`Embed update failed: ${response.status} ${await response.text()}`);
         console.log('Embed updated successfully:', messageId);
     } catch (e) {
@@ -215,11 +205,7 @@ async function updateEmbed(channelId, messageId, embed) {
 
 async function sendDM(userId, message) {
     try {
-        const response = await fetch(`${WORKER_URL}/sendDM?user_id=${userId}&message=${encodeURIComponent(message)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors'
-        });
+        const response = await fetch(`${WORKER_URL}/sendDM?user_id=${userId}&message=${encodeURIComponent(message)}`);
         if (!response.ok) throw new Error(`DM failed: ${response.status} ${await response.text()}`);
         console.log('DM sent successfully to user:', userId);
     } catch (e) {
@@ -285,21 +271,16 @@ function resetEmployeeData(userId) {
 
 async function addNotification(type, message, link, userId = currentUser.id) {
     const emp = getEmployee(userId);
-    try {
-        await sendEmbed(NOTIFICATION_CHANNEL, {
-            title: `New Notification for ${emp.profile.name || 'User'}`,
-            fields: [
-                { name: 'Type', value: type.charAt(0).toUpperCase() + type.slice(1), inline: true },
-                { name: 'User', value: `<@${userId}> (${emp.profile.name || 'User'})`, inline: true },
-                { name: 'Message', value: message, inline: false },
-                { name: 'Timestamp', value: new Date().toLocaleString(), inline: true }
-            ],
-            color: 0x00ff00
-        });
-        console.log('Notification sent successfully for user:', userId);
-    } catch (error) {
-        console.error('Failed to send notification:', error);
-    }
+    await sendEmbed(NOTIFICATION_CHANNEL, {
+        title: `New Notification for ${emp.profile.name || 'User'}`,
+        fields: [
+            { name: 'Type', value: type.charAt(0).toUpperCase() + type.slice(1), inline: true },
+            { name: 'User', value: `<@${userId}> (${emp.profile.name || 'User'})`, inline: true },
+            { name: 'Message', value: message, inline: false },
+            { name: 'Timestamp', value: new Date().toLocaleString(), inline: true }
+        ],
+        color: 0x00ff00
+    });
 }
 
 function loadTasks() {
@@ -1052,6 +1033,7 @@ document.getElementById('confirmResetBtn').addEventListener('click', () => {
     showScreen('setupWelcome');
     showModal('alert', '<span class="success-tick"></span> Profile reset successfully!');
     playSuccessSound();
+    // No notification sent for profile reset
 });
 
 document.getElementById('myRolesBtn').addEventListener('click', () => {
@@ -1116,42 +1098,30 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     };
     emp.absences.push(absence);
     updateEmployee(emp);
-    try {
-        const embedResponse = await sendEmbed(ABSENCE_CHANNEL, {
-            title: 'New Absence Request',
-            fields: [
-                { name: 'User', value: `<@${currentUser.id}> (${emp.profile.name})`, inline: true },
-                { name: 'Reason', value: type, inline: true },
-                { name: 'Start Date', value: startDate, inline: true },
-                { name: 'End Date', value: endDate, inline: true },
-                { name: 'Comment', value: comment, inline: false }
-            ],
-            footer: { text: 'Please accept/reject on the HR portal' },
-            color: 0xffff00
-        });
-        absence.messageId = embedResponse?.message_id;
-        updateEmployee(emp);
-    } catch (error) {
-        console.error('Failed to send absence embed:', error);
-        showModal('alert', 'Submission succeeded but notification failed. Check console for details.');
-    }
+    const embedResponse = await sendEmbed(ABSENCE_CHANNEL, {
+        title: 'New Absence Request',
+        fields: [
+            { name: 'User', value: `<@${currentUser.id}> (${emp.profile.name})`, inline: true },
+            { name: 'Reason', value: type, inline: true },
+            { name: 'Start Date', value: startDate, inline: true },
+            { name: 'End Date', value: endDate, inline: true },
+            { name: 'Comment', value: comment, inline: false }
+        ],
+        footer: { text: 'Please accept/reject on the HR portal' },
+        color: 0xffff00
+    });
+    absence.messageId = embedResponse?.message_id;
+    updateEmployee(emp);
     closeModal('absenceRequest');
     showModal('alert', '<span class="success-tick"></span> Successfully Submitted!');
     playSuccessSound();
-    // Activate pending tab and render
-    const pendingTab = document.querySelector('.absence-tab-btn[data-tab="pending"]');
-    const pendingFolder = document.getElementById('pendingFolder');
-    if (pendingTab && pendingFolder) {
-        document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
-        pendingTab.classList.add('active');
-        pendingFolder.classList.add('active');
-        document.getElementById('approvedFolder')?.classList.remove('active');
-        document.getElementById('rejectedFolder')?.classList.remove('active');
-        updateAbsenceTabSlider();
-        renderAbsences('pending');
-    } else {
-        console.error('Pending tab or folder not found');
-    }
+    // Ensure pending tab is active and render
+    document.querySelector('.absence-tab-btn[data-tab="pending"]')?.classList.add('active');
+    document.getElementById('pendingFolder').classList.add('active');
+    document.getElementById('approvedFolder').classList.remove('active');
+    document.getElementById('rejectedFolder').classList.remove('active');
+    updateAbsenceTabSlider();
+    renderAbsences('pending');
 });
 
 document.getElementById('absencesScreen').addEventListener('click', (e) => {
@@ -1171,47 +1141,39 @@ function renderAbsences(tab) {
     const pendingList = document.getElementById('pendingAbsences');
     const approvedList = document.getElementById('approvedAbsences');
     const rejectedList = document.getElementById('rejectedAbsences');
-    if (!pendingList || !approvedList || !rejectedList) {
-        console.error('Absence lists not found in DOM');
-        return;
-    }
+    if (!pendingList || !approvedList || !rejectedList) return;
     pendingList.innerHTML = '';
     approvedList.innerHTML = '';
     rejectedList.innerHTML = '';
     const emp = getEmployee(currentUser.id);
-    const filteredAbsences = emp.absences.filter(a => a.status === tab);
-    if (filteredAbsences.length === 0 && tab === 'pending') {
-        pendingList.innerHTML = '<li>No pending absences</li>';
-    } else {
-        filteredAbsences.forEach(a => {
-            const li = document.createElement('li');
-            li.className = `absence-item ${a.status}`;
-            li.innerHTML = `
-                <span>Type: ${a.type}</span>
-                <span>Start: ${a.startDate}</span>
-                <span>End: ${a.endDate}</span>
-                ${a.status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
-                ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
+    emp.absences.filter(a => a.status === tab).forEach(a => {
+        const li = document.createElement('li');
+        li.className = `absence-item ${a.status}`;
+        li.innerHTML = `
+            <span>Type: ${a.type}</span>
+            <span>Start: ${a.startDate}</span>
+            <span>End: ${a.endDate}</span>
+            ${a.status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
+            ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
+        `;
+        li.addEventListener('click', (e) => {
+            if (e.target.classList.contains('cancel-absence-btn')) return;
+            document.getElementById('absenceDetailContent').innerHTML = `
+                <p><strong>Type:</strong> ${a.type}</p>
+                <p><strong>Start:</strong> ${a.startDate}</p>
+                <p><strong>End:</strong> ${a.endDate}</p>
+                <p><strong>Comment:</strong> ${a.comment}</p>
+                <p><strong>Status:</strong> ${a.status.charAt(0).toUpperCase() + a.status.slice(1)}</p>
+                ${a.status === 'rejected' ? `<p><strong>Reason:</strong> ${a.reason || 'N/A'}</p>` : ''}
             `;
-            li.addEventListener('click', (e) => {
-                if (e.target.classList.contains('cancel-absence-btn')) return;
-                document.getElementById('absenceDetailContent').innerHTML = `
-                    <p><strong>Type:</strong> ${a.type}</p>
-                    <p><strong>Start:</strong> ${a.startDate}</p>
-                    <p><strong>End:</strong> ${a.endDate}</p>
-                    <p><strong>Comment:</strong> ${a.comment}</p>
-                    <p><strong>Status:</strong> ${a.status.charAt(0).toUpperCase() + a.status.slice(1)}</p>
-                    ${a.status === 'rejected' ? `<p><strong>Reason:</strong> ${a.reason || 'N/A'}</p>` : ''}
-                `;
-                document.getElementById('cancelAbsenceBtn').classList.toggle('hidden', a.status !== 'pending');
-                document.getElementById('cancelAbsenceBtn').dataset.id = a.id;
-                showModal('absenceDetail');
-            });
-            if (tab === 'pending') pendingList.appendChild(li);
-            else if (tab === 'approved') approvedList.appendChild(li);
-            else if (tab === 'rejected') rejectedList.appendChild(li);
+            document.getElementById('cancelAbsenceBtn').classList.toggle('hidden', a.status !== 'pending');
+            document.getElementById('cancelAbsenceBtn').dataset.id = a.id;
+            showModal('absenceDetail');
         });
-    }
+        if (tab === 'pending') pendingList.appendChild(li);
+        else if (tab === 'approved') approvedList.appendChild(li);
+        else if (tab === 'rejected') rejectedList.appendChild(li);
+    });
 
     pendingList.querySelectorAll('.cancel-absence-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1498,28 +1460,42 @@ document.getElementById('replyMailBtn').addEventListener('click', () => {
 document.getElementById('sendReplyBtn').addEventListener('click', async () => {
     const content = document.getElementById('replyContent').value.trim();
     if (!content) {
-        showModal('alert', 'Please enter a reply message');
+        showModal('alert', 'Please enter a reply');
         return;
     }
     showModal('alert', 'Sending...');
     await new Promise(r => setTimeout(r, 1000));
     const emp = getEmployee(currentUser.id);
-    const reply = {
+    const sender = getEmployee(currentMail.senderId);
+    const timestamp = new Date().toLocaleString();
+    const replyData = {
         from: emp.profile.name,
+        senderId: currentUser.id,
         content,
-        timestamp: new Date().toLocaleString()
+        timestamp
     };
     currentMail.thread = currentMail.thread || [];
-    currentMail.thread.push(reply);
-    const recipient = employees.find(e => e.id === currentMail.senderId);
-    if (recipient) {
-        recipient.mail[currentMail.index].thread = currentMail.thread;
-        updateEmployee(recipient);
-        sendDM(currentMail.senderId, `New reply from ${emp.profile.name} to ${currentMail.subject}: ${content}`);
-        addNotification('mail', `New reply from ${emp.profile.name} to ${currentMail.subject}`, 'mail', currentMail.senderId);
-    }
+    currentMail.thread.push(replyData);
+    emp.mail[currentMail.index] = currentMail;
+    sender.mail = sender.mail || [];
+    sender.mail.push({
+        id: Date.now().toString(),
+        from: emp.profile.name,
+        senderId: currentUser.id,
+        to: [sender.profile.name],
+        recipientIds: [currentMail.senderId],
+        subject: `Re: ${currentMail.subject || 'No Subject'}`,
+        content,
+        timestamp,
+        thread: []
+    });
     updateEmployee(emp);
+    updateEmployee(sender);
+    sendDM(currentMail.senderId, `Reply from ${emp.profile.name}: ${content}`);
+    addNotification('mail', `Reply from ${emp.profile.name}: ${currentMail.subject}`, 'mail', currentMail.senderId);
+    showMailDeliveryAnimation();
     closeModal('replyMail');
+    closeModal('viewMail');
     showModal('alert', '<span class="success-tick"></span> Reply sent successfully!');
     playSuccessSound();
     addNotification('mail', 'Your reply has been sent!', 'mail');
@@ -1528,7 +1504,7 @@ document.getElementById('sendReplyBtn').addEventListener('click', async () => {
 
 document.getElementById('mailScreen').addEventListener('click', (e) => {
     if (e.target.classList.contains('tab-btn')) {
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.mail-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
         e.target.classList.add('active');
         const folder = e.target.dataset.tab;
         document.getElementById('inboxFolder').classList.toggle('active', folder === 'inbox');
@@ -1549,10 +1525,79 @@ function updateTabSlider() {
     slider.style.transform = `translateX(${rect.left - containerRect.left}px)`;
 }
 
-// Initialize the script
-preloadAudio();
-if (window.location.search.includes('code=')) {
-    handleOAuthRedirect();
-} else {
-    showScreen('discord');
-}
+document.getElementById('logoutBtn').addEventListener('click', () => {
+    console.log('Logging out user:', currentUser.id);
+    const emp = getEmployee(currentUser.id);
+    document.getElementById('goodbyeName').textContent = emp.profile.name || 'User';
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('lastProcessedCode');
+    localStorage.removeItem('clockInTime');
+    if (isClockedIn) {
+        clearInterval(clockInInterval);
+        isClockedIn = false;
+        const session = downloadTXT(currentUser, clockInTime, Date.now(), clockInActions);
+        previousSessions = JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`)) || [];
+        previousSessions.unshift(session);
+        localStorage.setItem(`previousSessions_${currentUser.id}`, JSON.stringify(previousSessions));
+        sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()} due to logout`);
+    }
+    showScreen('goodbye');
+    setTimeout(() => showScreen('discord'), 2000);
+});
+
+document.getElementById('sidebar').addEventListener('click', (e) => {
+    if (e.target.classList.contains('sidebar-toggle')) {
+        document.getElementById('sidebar').classList.toggle('extended');
+    }
+});
+
+document.getElementById('modeToggle').addEventListener('change', (e) => {
+    document.body.classList.toggle('dark', e.target.checked);
+    localStorage.setItem('darkMode', e.target.checked);
+});
+
+document.querySelectorAll('.modal .close').forEach(closeBtn => {
+    closeBtn.addEventListener('click', () => {
+        const modal = closeBtn.closest('.modal');
+        const modalId = Object.keys(modals).find(id => modals[id] === modal);
+        closeModal(modalId);
+    });
+});
+
+// Initialize
+(async function init() {
+    console.log('Initializing Staff Portal');
+    preloadAudio();
+    const savedUser = localStorage.getItem('currentUser');
+    const savedClockIn = localStorage.getItem('clockInTime');
+    if (savedClockIn) {
+        clockInTime = parseInt(savedClockIn);
+        isClockedIn = true;
+        clockInInterval = setInterval(() => {
+            const elapsed = Date.now() - clockInTime;
+            document.getElementById('sessionInfo').innerHTML = `
+                <p>Session started: ${new Date(clockInTime).toLocaleString()}</p>
+                <p>Elapsed: ${formatTime(elapsed)}</p>
+                <p>Actions: ${clockInActions.join(', ') || 'None'}</p>
+            `;
+        }, 1000);
+    }
+    if (savedUser) {
+        try {
+            currentUser = JSON.parse(savedUser);
+            if (currentUser.id) {
+                const emp = getEmployee(currentUser.id);
+                document.getElementById('portalWelcomeName').textContent = emp.profile.name;
+                document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
+                showScreen('portalWelcome');
+                updateSidebarProfile();
+                await fetchEmployees();
+                return;
+            }
+        } catch (e) {
+            console.error('Error parsing saved user:', e);
+            localStorage.removeItem('currentUser');
+        }
+    }
+    await handleOAuthRedirect();
+})();
