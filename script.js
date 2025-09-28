@@ -1629,6 +1629,14 @@ document.getElementById('mailScreen').addEventListener('click', (e) => {
     }
 });
 
+document.querySelector('.sidebar-toggle').addEventListener('click', () => {
+    console.log('Sidebar toggle clicked');
+    const sidebar = document.getElementById('sidebar');
+    const notificationPanel = document.getElementById('notificationPanel');
+    sidebar.classList.toggle('hidden');
+    notificationPanel.classList.toggle('hidden');
+});
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     preloadAudio();
