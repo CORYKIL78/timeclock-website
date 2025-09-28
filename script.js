@@ -82,9 +82,11 @@ function showScreen(screenId) {
         const sidebar = document.getElementById('sidebar');
         const notificationPanel = document.getElementById('notificationPanel');
         if (['portalWelcome', 'mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail'].includes(screenId)) {
+            console.log('Removing hidden class from sidebar and notification panel');
             sidebar.classList.remove('hidden');
             notificationPanel.classList.remove('hidden');
         } else {
+            console.log('Adding hidden class to sidebar and notification panel');
             sidebar.classList.add('hidden');
             notificationPanel.classList.add('hidden');
         }
@@ -281,6 +283,7 @@ async function addNotification(type, message, link, userId = currentUser.id) {
         ],
         color: 0x00ff00
     });
+    playNotificationSound();
 }
 
 function loadTasks() {
@@ -366,17 +369,37 @@ function updateSidebarProfile() {
     document.getElementById('sidebarProfilePic').src = currentUser.avatar || 'https://via.placeholder.com/100';
 }
 
+function getGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Morning';
+    if (hour < 18) return 'Afternoon';
+    return 'Evening';
+}
+
 function updateMainScreen() {
     console.log('Updating main screen for user:', currentUser.id);
     const emp = getEmployee(currentUser.id);
-    document.getElementById('mainWelcomeName').textContent = emp.profile.name || 'User';
+    document.getElementById('greeting').textContent = `Good ${getGreeting()}, ${emp.profile.name}!`;
+    document.getElementById('lastLogin').textContent = `Last Log In: ${emp.lastLogin || 'Never'}`;
     document.getElementById('mainProfilePic').src = currentUser.avatar || 'https://via.placeholder.com/100';
+    document.getElementById('totalAbsences').textContent = emp.absences.length;
+    let totalDays = 0;
+    emp.absences.forEach(a => {
+        const start = new Date(a.startDate);
+        const end = new Date(a.endDate);
+        if (end >= start) {
+            totalDays += Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        }
+    });
+    document.getElementById('totalAbsenceDays').textContent = totalDays;
+    document.getElementById('currentDepartment').textContent = emp.profile.department || 'N/A';
     if (emp.onLOA) {
         showModal('alert', 'You are currently on a Leave of Absence');
         document.getElementById('clockInBtn').disabled = true;
         document.getElementById('clockOutBtn').disabled = true;
     } else {
         document.getElementById('clockInBtn').disabled = isClockedIn;
+        document.getElementById('clockInBtn').classList.toggle('hidden', isClockedIn);
         document.getElementById('clockOutBtn').disabled = !isClockedIn;
         document.getElementById('clockOutBtn').classList.toggle('hidden', !isClockedIn);
         document.getElementById('sessionInfo').classList.toggle('hidden', !isClockedIn);
@@ -1007,6 +1030,10 @@ document.getElementById('changeDeptBtn').addEventListener('click', () => {
     showModal('deptChange');
 });
 
+document.getElementById('changeDepartmentBtn').addEventListener('click', () => {
+    showModal('deptChange');
+});
+
 document.getElementById('submitDeptChangeBtn').addEventListener('click', () => {
     const selectedDept = document.querySelector('input[name="newDepartment"]:checked');
     if (selectedDept) {
@@ -1084,6 +1111,20 @@ document.getElementById('requestAbsenceBtn').addEventListener('click', () => {
     showModal('absenceRequest');
 });
 
+document.getElementById('absenceStartDate').addEventListener('change', calculateAbsenceDays);
+document.getElementById('absenceEndDate').addEventListener('change', calculateAbsenceDays);
+
+function calculateAbsenceDays() {
+    const start = new Date(document.getElementById('absenceStartDate').value);
+    const end = new Date(document.getElementById('absenceEndDate').value);
+    if (start && end && end >= start) {
+        const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        document.getElementById('absenceDays').textContent = `Total Days: ${days}`;
+    } else {
+        document.getElementById('absenceDays').textContent = `Total Days: 0`;
+    }
+}
+
 document.getElementById('submitAbsenceBtn').addEventListener('click', async () => {
     const type = document.getElementById('absenceType').value;
     const startDate = document.getElementById('absenceStartDate').value;
@@ -1123,6 +1164,7 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     closeModal('absenceRequest');
     showModal('alert', '<span class="success-tick"></span> Successfully Submitted!');
     playSuccessSound();
+    addNotification('absence', 'Absence request submitted!', 'absences');
     // Ensure pending tab is active and render
     document.querySelector('.absence-tab-btn[data-tab="pending"]')?.classList.add('active');
     document.getElementById('pendingFolder').classList.add('active');
@@ -1161,6 +1203,7 @@ function renderAbsences(tab) {
             <span>Type: ${a.type}</span>
             <span>Start: ${a.startDate}</span>
             <span>End: ${a.endDate}</span>
+            <span>Comment: ${a.comment}</span>
             ${a.status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
             ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
         `;
@@ -1281,14 +1324,18 @@ document.getElementById('timeclockBtn').addEventListener('click', () => {
 });
 
 document.getElementById('clockInBtn').addEventListener('click', async () => {
+    const button = document.getElementById('clockInBtn');
+    button.style.background = '#0056b3';
+    button.disabled = true;
+    button.textContent = 'Loading...';
+    await new Promise(r => setTimeout(r, 1000));
     clockInTime = Date.now();
     localStorage.setItem('clockInTime', clockInTime);
     isClockedIn = true;
     clockInActions = [];
-    document.getElementById('clockInBtn').disabled = true;
-    document.getElementById('clockOutBtn').disabled = false;
-    document.getElementById('clockOutBtn').classList.remove('hidden');
-    document.getElementById('sessionInfo').classList.remove('hidden');
+    button.textContent = 'Clock In';
+    button.style.background = '';
+    updateMainScreen();
     const emp = getEmployee(currentUser.id);
     await sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked in at ${new Date().toLocaleString()}`);
     showModal('alert', '<span class="success-tick"></span> You have clocked in!');
@@ -1305,14 +1352,17 @@ document.getElementById('clockInBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('clockOutBtn').addEventListener('click', async () => {
+    const button = document.getElementById('clockOutBtn');
+    button.style.background = '#0056b3';
+    button.disabled = true;
+    button.textContent = 'Loading...';
+    await new Promise(r => setTimeout(r, 1000));
     const clockOutTime = Date.now();
     clearInterval(clockInInterval);
     isClockedIn = false;
-    document.getElementById('clockInBtn').disabled = false;
-    document.getElementById('clockOutBtn').disabled = true;
-    document.getElementById('clockOutBtn').classList.add('hidden');
-    document.getElementById('sessionInfo').classList.add('hidden');
-    document.getElementById('sessionInfo').innerHTML = '';
+    button.textContent = 'Clock Out';
+    button.style.background = '';
+    updateMainScreen();
     const emp = getEmployee(currentUser.id);
     await sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()}`);
     const session = downloadTXT(currentUser, clockInTime, clockOutTime, clockInActions);
@@ -1553,10 +1603,9 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     setTimeout(() => showScreen('discord'), 2000);
 });
 
-document.getElementById('sidebar').addEventListener('click', (e) => {
-    if (e.target.classList.contains('sidebar-toggle')) {
-        document.getElementById('sidebar').classList.toggle('extended');
-    }
+document.querySelector('.sidebar-toggle').addEventListener('click', () => {
+    console.log('Sidebar toggle clicked');
+    document.getElementById('sidebar').classList.toggle('extended');
 });
 
 document.getElementById('modeToggle').addEventListener('change', (e) => {
@@ -1593,10 +1642,12 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
     if (savedUser) {
         try {
             currentUser = JSON.parse(savedUser);
+            console.log('Loaded saved user:', currentUser);
             if (currentUser.id) {
                 const emp = getEmployee(currentUser.id);
                 document.getElementById('portalWelcomeName').textContent = emp.profile.name;
                 document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
+                console.log('Showing portalWelcome screen with sidebar');
                 showScreen('portalWelcome');
                 updateSidebarProfile();
                 await fetchEmployees();

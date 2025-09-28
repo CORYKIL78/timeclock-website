@@ -81,6 +81,7 @@
             <input type="date" id="absenceStartDate">
             <input type="date" id="absenceEndDate">
             <textarea id="absenceComment" placeholder="Comment"></textarea>
+            <p id="absenceDays">Total Days: 0</p>
             <button id="submitAbsenceBtn">Submit</button>
         </div>
     </div>
@@ -218,11 +219,22 @@
         <div class="container">
             <div class="user-header">
                 <img id="mainProfilePic" class="profile-img" src="" alt="Profile">
-                <h2>Welcome, <span id="mainWelcomeName"></span>!</h2>
+                <h2 id="greeting">Good Evening, Marcus!</h2>
+                <p id="lastLogin">Last Log In: 3 days ago</p>
             </div>
-            <p>Staff Portal Dashboard</p>
-            <div id="pieChartContainer">
-                <canvas id="pieChart" width="200" height="200"></canvas>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Absences</h3>
+                    <p id="totalAbsences">0</p>
+                    <h3>Total Absence Days</h3>
+                    <p id="totalAbsenceDays">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Department</h3>
+                    <p id="currentDepartment">Development</p>
+                    <p>Wish to change? Click the button below to go to your profile settings and request a change.</p>
+                    <button id="changeDepartmentBtn">Change My Department</button>
+                </div>
             </div>
         </div>
     </div>
