@@ -1134,6 +1134,13 @@ document.getElementById('addTaskBtn').addEventListener('click', () => {
 
 document.getElementById('absencesBtn').addEventListener('click', () => {
     showScreen('absences');
+    document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
+    document.getElementById('pendingFolder').classList.add('active');
+    document.getElementById('approvedFolder').classList.remove('active');
+    document.getElementById('rejectedFolder').classList.remove('active');
+    document.getElementById('archivedFolder').classList.remove('active');
+    updateAbsenceTabSlider();
     renderAbsences('pending');
 });
 
@@ -1196,7 +1203,8 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     playSuccessSound();
     addNotification('absence', 'Absence request submitted!', 'absences');
     // Ensure pending tab is active and render
-    document.querySelector('.absence-tab-btn[data-tab="pending"]')?.classList.add('active');
+    document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
     document.getElementById('pendingFolder').classList.add('active');
     document.getElementById('approvedFolder').classList.remove('active');
     document.getElementById('rejectedFolder').classList.remove('active');
@@ -1253,6 +1261,11 @@ function renderAbsences(tab) {
             `;
             document.getElementById('cancelAbsenceBtn').classList.toggle('hidden', a.status !== 'pending');
             document.getElementById('cancelAbsenceBtn').dataset.id = a.id;
+            const deleteBtn = document.getElementById('deleteAbsenceBtn');
+            if (deleteBtn) {
+                deleteBtn.classList.toggle('hidden', a.status !== 'archived');
+                deleteBtn.dataset.id = a.id;
+            }
             showModal('absenceDetail');
         });
         if (tab === 'pending') pendingList.appendChild(li);
@@ -1317,6 +1330,19 @@ document.getElementById('confirmCancelAbsenceBtn').addEventListener('click', asy
 
 document.getElementById('noCancelAbsenceBtn').addEventListener('click', () => {
     closeModal('confirmCancelAbsence');
+});
+
+document.getElementById('deleteAbsenceBtn').addEventListener('click', () => {
+    const absenceId = document.getElementById('deleteAbsenceBtn').dataset.id;
+    const emp = getEmployee(currentUser.id);
+    emp.absences = emp.absences.filter(a => a.id !== absenceId);
+    updateEmployee(emp);
+    closeModal('absenceDetail');
+    showModal('alert', '<span class="success-tick"></span> Absence deleted!');
+    playSuccessSound();
+    addNotification('absence', 'Absence deleted!', 'absences');
+    const activeTab = document.querySelector('.absence-tab-btn.active')?.dataset.tab || 'pending';
+    renderAbsences(activeTab);
 });
 
 document.getElementById('payslipsBtn').addEventListener('click', () => {

@@ -85,20 +85,22 @@ body {
     padding: 24px;
     text-align: center;
     box-shadow: var(--shadow);
-    max-width: 90%;
+    max-width: 70%;
     width: 600px;
     max-height: 90vh;
     overflow-y: auto;
     z-index: 2;
     animation: slideIn 0.3s var(--transition-ease);
-    margin: auto;
+    margin: 0 auto;
 }
 
 #mainMenuScreen .container {
-    max-width: 80%;
-    width: 80%;
-    margin-left: 20%;
-    margin-right: 0;
+    max-width: 70%;
+    width: 70%;
+    margin-left: auto;
+    margin-right: auto;
+    transform: translateX(0);
+    padding-left: 240px; /* Accounts for sidebar.extended width (220px) + buffer */
 }
 
 body.dark .container {
@@ -520,11 +522,11 @@ body.dark .sidebar {
 
 .sidebar.extended {
     width: 220px;
-    background: #007bff; /* Temporary for debugging */
+    background: #007bff;
 }
 
 body.dark .sidebar.extended {
-    background: #1e90ff; /* Temporary for debugging */
+    background: #1e90ff;
 }
 
 .sidebar-toggle {
@@ -538,7 +540,7 @@ body.dark .sidebar.extended {
     color: white;
     font-size: 20px;
     cursor: pointer;
-    z-index: 1001; /* Ensure toggle is above other sidebar elements */
+    z-index: 1001;
     transition: transform 0.2s var(--transition-ease);
 }
 
@@ -771,6 +773,42 @@ body.dark .modal-content {
     transform: scale(1.2);
 }
 
+.absence-details {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+    text-align: left;
+}
+
+.absence-details p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+.cancel-absence-details-btn {
+    width: auto;
+    padding: 8px 16px;
+    background: var(--danger);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
+}
+
+.cancel-absence-details-btn:hover {
+    background: #c82333;
+    transform: scale(1.05);
+}
+
+body.dark .cancel-absence-details-btn {
+    background: #c82333;
+}
+
+body.dark .cancel-absence-details-btn:hover {
+    background: #a71d2a;
+}
+
 @keyframes popIn {
     from { transform: scale(0.8); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
@@ -920,6 +958,26 @@ body.dark .absence-tab-btn {
     transition: transform 0.3s var(--transition-ease), width 0.3s var(--transition-ease);
 }
 
+.absence-tab-btn[data-tab="pending"] + .absence-tab-slider {
+    transform: translateX(0);
+    width: calc(100% / 4); /* Assuming 4 tabs */
+}
+
+.absence-tab-btn[data-tab="approved"].active + .absence-tab-slider {
+    transform: translateX(100%);
+    width: calc(100% / 4);
+}
+
+.absence-tab-btn[data-tab="rejected"].active + .absence-tab-slider {
+    transform: translateX(200%);
+    width: calc(100% / 4);
+}
+
+.absence-tab-btn[data-tab="archived"].active + .absence-tab-slider {
+    transform: translateX(300%);
+    width: calc(100% / 4);
+}
+
 .absence-content {
     position: relative;
     overflow: hidden;
@@ -992,6 +1050,7 @@ body.dark .absence-tab-btn {
     justify-content: space-between;
     transition: transform 0.2s var(--transition-ease);
     cursor: pointer;
+    position: relative;
 }
 
 .absence-item:hover {
@@ -1005,6 +1064,28 @@ body.dark .absence-item {
 .absence-item.pending {
     background: var(--yellow-hazard);
     color: #212529;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.absence-item.pending .absence-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+}
+
+.absence-item.pending .absence-summary p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.absence-item.pending .absence-details {
+    display: none;
+}
+
+.absence-item.pending:hover .absence-details {
+    display: flex;
 }
 
 .absence-item.approved {
@@ -1020,6 +1101,18 @@ body.dark .absence-item {
 .absence-item.archived {
     background: #e2e3e5;
     color: #41464b;
+    opacity: 0.7;
+}
+
+.absence-item.canceled {
+    background: #d3d3d3; /* Grey for canceled absences */
+    color: #41464b;
+    opacity: 0.7;
+}
+
+.absence-item.archived .delete-absence-btn,
+.absence-item.canceled .delete-absence-btn {
+    display: inline-block;
 }
 
 body.dark .absence-item.pending {
@@ -1040,6 +1133,13 @@ body.dark .absence-item.rejected {
 body.dark .absence-item.archived {
     background: #41464b;
     color: #e2e3e5;
+    opacity: 0.7;
+}
+
+body.dark .absence-item.canceled {
+    background: #5a6268;
+    color: #e0e0e0;
+    opacity: 0.7;
 }
 
 .pending-department::after {
@@ -1047,6 +1147,31 @@ body.dark .absence-item.archived {
     color: var(--yellow-hazard);
     margin-left: 8px;
     font-size: 16px;
+}
+
+.absence-details {
+    position: static;
+    background: white;
+    border: 1px solid var(--mail-border);
+    border-radius: 6px;
+    padding: 10px;
+    z-index: 10;
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    box-shadow: var(--shadow);
+    width: 100%;
+    margin-top: 10px;
+}
+
+body.dark .absence-details {
+    background: #2c3e50;
+    border-color: #495057;
+}
+
+.absence-details p {
+    margin: 0;
+    font-size: 14px;
 }
 
 .cancel-absence-btn {
@@ -1069,6 +1194,30 @@ body.dark .cancel-absence-btn {
 }
 
 body.dark .cancel-absence-btn:hover {
+    background: #a71d2a;
+}
+
+.delete-absence-btn {
+    width: auto;
+    padding: 8px 16px;
+    background: var(--danger);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
+    display: none;
+}
+
+.delete-absence-btn:hover {
+    background: #c82333;
+    transform: scale(1.05);
+}
+
+body.dark .delete-absence-btn {
+    background: #c82333;
+}
+
+body.dark .delete-absence-btn:hover {
     background: #a71d2a;
 }
 
@@ -1400,7 +1549,14 @@ body.dark .stat-card {
 }
 
 @media (max-width: 600px) {
-    .container { max-width: 100%; padding: 16px; }
+    .container { 
+        max-width: 100%; 
+        padding: 16px; 
+        transform: translateX(0); 
+    }
+    #mainMenuScreen .container {
+        padding-left: 70px; /* Accounts for collapsed sidebar (50px) + buffer */
+    }
     .sidebar { width: 50px; }
     .sidebar.extended { width: 200px; }
     .notifications { width: 280px; right: 10px; }
@@ -1411,4 +1567,7 @@ body.dark .stat-card {
     #mailScreen .container { padding: 10px; }
     #companyLogo img { width: 80px; }
     .stats-grid { grid-template-columns: 1fr; }
+    .absence-tabs { flex-wrap: wrap; }
+    .absence-tab-btn { flex: 1 1 45%; }
+    .absence-tab-slider { width: calc(100% / 2); }
 }

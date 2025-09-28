@@ -115,8 +115,17 @@
     <div id="absenceDetailModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <div id="absenceDetailContent"></div>
+            <h2>Absence Details</h2>
+            <div id="absenceDetailContent" class="absence-details">
+                <p><strong>Type:</strong> <span id="absenceDetailType"></span></p>
+                <p><strong>Start Date:</strong> <span id="absenceDetailStartDate"></span></p>
+                <p><strong>End Date:</strong> <span id="absenceDetailEndDate"></span></p>
+                <p><strong>Total Days:</strong> <span id="absenceDetailDays"></span></p>
+                <p><strong>Reason:</strong> <span id="absenceDetailReason"></span></p>
+                <p><strong>Comment:</strong> <span id="absenceDetailComment"></span></p>
+            </div>
             <button id="cancelAbsenceBtn" class="cancel-absence-btn hidden">Cancel Absence</button>
+            <button id="deleteAbsenceBtn" class="delete-absence-btn hidden">Delete Absence</button>
         </div>
     </div>
     <div id="confirmCancelAbsenceModal" class="modal">
@@ -283,11 +292,11 @@
             <h2>Absences</h2>
             <button id="requestAbsenceBtn">Request Absence</button>
             <div class="absence-tabs">
-                <div class="absence-tab-slider"></div>
                 <button class="absence-tab-btn active" data-tab="pending">Pending</button>
                 <button class="absence-tab-btn" data-tab="approved">Accepted</button>
                 <button class="absence-tab-btn" data-tab="rejected">Rejected</button>
                 <button class="absence-tab-btn" data-tab="archived">Archived</button>
+                <div class="absence-tab-slider"></div>
             </div>
             <div class="absence-content">
                 <div id="pendingFolder" class="absence-folder active">
@@ -333,10 +342,10 @@
             <h2>Mail</h2>
             <button id="composeMailBtn" title="Compose Mail"></button>
             <div class="mail-tabs">
-                <div class="tab-slider"></div>
                 <button class="tab-btn active" data-tab="inbox">Inbox</button>
                 <button class="tab-btn" data-tab="sent">Sent</button>
                 <button class="tab-btn" data-tab="drafts">Drafts</button>
+                <div class="tab-slider"></div>
             </div>
             <div class="mail-content">
                 <div id="inboxFolder" class="mail-folder active">
@@ -358,7 +367,7 @@
     </div>
     <div id="mailDeliveryAnimation" class="mail-delivery-animation hidden"></div>
 
-    <footer>© Cirkle Development 2025</footer>
+    <footer>© Cirkle Development 2024</footer>
 
     <script src="script.js"></script>
 </body>
