@@ -416,7 +416,11 @@ footer {
 }
 
 .hidden {
-    display: none !important;
+    display: none;
+}
+
+.sidebar:not(.hidden) {
+    display: block;
 }
 
 ul {
@@ -490,7 +494,7 @@ body.dark li.latest {
     height: 100vh;
     background: white;
     border-right: 1px solid var(--mail-border);
-    transition: width 0.3s var(--transition-ease);
+    transition: width 0.3s var(--transition-ease), background 0.3s var(--transition-ease);
     z-index: 1000;
 }
 
@@ -501,6 +505,11 @@ body.dark .sidebar {
 
 .sidebar.extended {
     width: 220px;
+    background: #f0f0f0; /* Temporary for debugging */
+}
+
+body.dark .sidebar.extended {
+    background: #3a506b; /* Temporary for debugging */
 }
 
 .sidebar-toggle {
@@ -508,11 +517,18 @@ body.dark .sidebar {
     top: 10px;
     right: 10px;
     width: 40px;
+    height: 40px;
     padding: 10px;
     background: transparent;
     color: var(--text-color);
     font-size: 20px;
     cursor: pointer;
+    z-index: 1001; /* Ensure toggle is above other sidebar elements */
+    transition: transform 0.2s var(--transition-ease);
+}
+
+.sidebar-toggle:hover {
+    transform: scale(1.1);
 }
 
 .sidebar-header {

@@ -10,7 +10,7 @@ const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev';
 const CLIENT_ID = '1417915896634277888';
 const REDIRECT_URI = 'https://portal.cirkledevelopment.co.uk';
 const SUCCESS_SOUND_URL = 'https://cdn.pixabay.com/audio/2023/01/07/audio_cae2a6c2fc.mp3';
-const NOTIFICATION_SOUND_URL = 'https://cdn.pixabay.com/audio/2025/09/02/audio_4e70a465f7.mp3';
+const NOTIFICATION_SOUND_URL = 'https://cdn.pixabay.com/audio/2022/01/18/audio_ea4d0166bd.mp3';
 const ABSENCE_CHANNEL = '1417583684525232291';
 const TIMECLOCK_CHANNEL = '1417583684525232291';
 const NOTIFICATION_CHANNEL = '1417583684525232291';
@@ -59,7 +59,7 @@ let employees = JSON.parse(localStorage.getItem('employees')) || [];
 let isClockedIn = false;
 let clockInActions = [];
 let clockInInterval = null;
-let previousSessions = JSON.parse(localStorage.getItem('previousSessions')) || [];
+let previousSessions = [];
 let roleNames = {};
 let successAudio = null;
 let notificationAudio = null;
@@ -81,7 +81,7 @@ function showScreen(screenId) {
         window.location.hash = screenId;
         const sidebar = document.getElementById('sidebar');
         const notificationPanel = document.getElementById('notificationPanel');
-        if (['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail'].includes(screenId)) {
+        if (['portalWelcome', 'mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail'].includes(screenId)) {
             sidebar.classList.remove('hidden');
             notificationPanel.classList.remove('hidden');
         } else {
@@ -297,7 +297,7 @@ function renderTasks() {
     const list = document.getElementById('tasksList');
     if (!list) return;
     list.innerHTML = '';
-    currentTasks.forEach((task, index) => {
+    currentTasks.forEach((task) => {
         const li = document.createElement('li');
         li.className = 'task-item';
         li.innerHTML = `
@@ -306,23 +306,23 @@ function renderTasks() {
         `;
         const checkbox = li.querySelector('.task-checkbox');
         checkbox.addEventListener('change', () => {
+            task.completed = checkbox.checked;
             if (checkbox.checked) {
                 li.classList.add('completed');
                 setTimeout(() => {
-                    currentTasks.splice(index, 1);
+                    currentTasks = currentTasks.filter(t => t !== task);
                     saveTasks();
                     renderTasks();
                 }, 5000);
             } else {
                 li.classList.remove('completed');
-                task.completed = false;
                 saveTasks();
             }
         });
         if (task.completed) {
             li.classList.add('completed');
             setTimeout(() => {
-                currentTasks.splice(index, 1);
+                currentTasks = currentTasks.filter(t => t !== task);
                 saveTasks();
                 renderTasks();
             }, 5000);
@@ -685,6 +685,14 @@ function startTutorial() {
     showStep();
 }
 
+function setSelectValues(selectId, values) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    Array.from(select.options).forEach(option => {
+        option.selected = values.includes(option.value);
+    });
+}
+
 function renderMail() {
     const inboxContent = document.getElementById('inboxContent');
     const sentContent = document.getElementById('sentContent');
@@ -789,7 +797,7 @@ function renderMail() {
         btn.addEventListener('click', () => {
             const index = btn.dataset.index;
             const draft = emp.drafts[index];
-            document.getElementById('mailRecipients').value = draft.recipientIds;
+            setSelectValues('mailRecipients', draft.recipientIds);
             document.getElementById('mailSubject').value = draft.subject || '';
             document.getElementById('mailContent').value = draft.content || '';
             document.getElementById('mailAttachments').value = '';
@@ -812,7 +820,7 @@ function renderMail() {
         btn.addEventListener('click', () => {
             const index = btn.dataset.index;
             const draft = emp.drafts[index];
-            document.getElementById('mailRecipients').value = draft.recipientIds;
+            setSelectValues('mailRecipients', draft.recipientIds);
             document.getElementById('mailSubject').value = draft.subject || '';
             document.getElementById('mailContent').value = draft.content || '';
             document.getElementById('mailAttachments').value = '';
@@ -1332,7 +1340,7 @@ document.getElementById('mailBtn').addEventListener('click', () => {
 });
 
 document.getElementById('composeMailBtn').addEventListener('click', () => {
-    document.getElementById('mailRecipients').value = [];
+    setSelectValues('mailRecipients', []);
     document.getElementById('mailSubject').value = '';
     document.getElementById('mailContent').value = '';
     document.getElementById('mailAttachments').value = '';
