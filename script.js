@@ -56,7 +56,6 @@ let currentUser = null;
 let clockInTime = null;
 let currentTasks = [];
 let employees = JSON.parse(localStorage.getItem('employees')) || [];
-let notifications = [];
 let isClockedIn = false;
 let clockInActions = [];
 let clockInInterval = null;
@@ -272,10 +271,6 @@ function resetEmployeeData(userId) {
 
 async function addNotification(type, message, link, userId = currentUser.id) {
     const emp = getEmployee(userId);
-    notifications.push({ id: Date.now().toString(), type, message, link, read: false, timestamp: new Date().toLocaleString() });
-    localStorage.setItem(`notifications_${userId}`, JSON.stringify(notifications));
-    playNotificationSound();
-    renderNotifications();
     await sendEmbed(NOTIFICATION_CHANNEL, {
         title: `New Notification for ${emp.profile.name || 'User'}`,
         fields: [
@@ -285,30 +280,6 @@ async function addNotification(type, message, link, userId = currentUser.id) {
             { name: 'Timestamp', value: new Date().toLocaleString(), inline: true }
         ],
         color: 0x00ff00
-    });
-}
-
-function renderNotifications() {
-    notifications = JSON.parse(localStorage.getItem(`notifications_${currentUser.id}`)) || [];
-    const list = document.getElementById('notificationList');
-    if (!list) {
-        console.error('Notification list element not found');
-        return;
-    }
-    list.innerHTML = '';
-    notifications.forEach((notif, index) => {
-        const li = document.createElement('li');
-        li.className = 'notification-item';
-        li.innerHTML = `
-            <span>${notif.message} <em>(${notif.timestamp})</em></span>
-        `;
-        li.addEventListener('click', () => {
-            notifications.splice(index, 1);
-            localStorage.setItem(`notifications_${currentUser.id}`, JSON.stringify(notifications));
-            renderNotifications();
-            if (notif.link) showScreen(notif.link);
-        });
-        list.appendChild(li);
     });
 }
 
@@ -484,7 +455,6 @@ async function handleOAuthRedirect() {
                     document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
                     showScreen('portalWelcome');
                     updateSidebarProfile();
-                    renderNotifications();
                     await fetchEmployees();
                     return;
                 } else {
@@ -513,7 +483,6 @@ async function handleOAuthRedirect() {
                     document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
                     showScreen('portalWelcome');
                     updateSidebarProfile();
-                    renderNotifications();
                     await fetchEmployees();
                     return;
                 }
@@ -635,7 +604,6 @@ function startTutorial() {
     console.log('Starting tutorial');
     showScreen('mainMenu');
     updateSidebarProfile();
-    renderNotifications();
     updateMainScreen();
 
     const steps = [
@@ -976,7 +944,6 @@ document.getElementById('portalLoginBtn').addEventListener('click', () => {
     console.log('Portal login button clicked, redirecting to mainMenu');
     showScreen('mainMenu');
     updateSidebarProfile();
-    renderNotifications();
     updateMainScreen();
 });
 
@@ -1066,7 +1033,7 @@ document.getElementById('confirmResetBtn').addEventListener('click', () => {
     showScreen('setupWelcome');
     showModal('alert', '<span class="success-tick"></span> Profile reset successfully!');
     playSuccessSound();
-    addNotification('profile', 'Your profile has been reset!', 'discord');
+    // No notification sent for profile reset
 });
 
 document.getElementById('myRolesBtn').addEventListener('click', () => {
@@ -1148,7 +1115,12 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     closeModal('absenceRequest');
     showModal('alert', '<span class="success-tick"></span> Successfully Submitted!');
     playSuccessSound();
-    addNotification('absence', 'Absence request submitted!', 'absences');
+    // Ensure pending tab is active and render
+    document.querySelector('.absence-tab-btn[data-tab="pending"]')?.classList.add('active');
+    document.getElementById('pendingFolder').classList.add('active');
+    document.getElementById('approvedFolder').classList.remove('active');
+    document.getElementById('rejectedFolder').classList.remove('active');
+    updateAbsenceTabSlider();
     renderAbsences('pending');
 });
 
@@ -1421,7 +1393,6 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
     }
     updateEmployee(emp);
     showMailDeliveryAnimation();
-    closeModal('composeMail');
     showModal('alert', '<span class="success-tick"></span> Successfully sent!');
     playSuccessSound();
     addNotification('mail', 'Your mail has been sent!', 'mail');
@@ -1620,7 +1591,6 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
                 document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
                 showScreen('portalWelcome');
                 updateSidebarProfile();
-                renderNotifications();
                 await fetchEmployees();
                 return;
             }
