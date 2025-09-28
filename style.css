@@ -94,6 +94,11 @@ body {
     margin: auto;
 }
 
+#mainMenuScreen .container {
+    max-width: 100%;
+    width: 90%;
+}
+
 body.dark .container {
     background: #2c3e50;
 }
@@ -419,6 +424,10 @@ footer {
     display: none !important;
 }
 
+.sidebar:not(.hidden) {
+    display: block;
+}
+
 ul {
     list-style: none;
     text-align: left;
@@ -488,19 +497,24 @@ body.dark li.latest {
     left: 0;
     width: 60px;
     height: 100vh;
-    background: var(--primary);
+    background: white;
     border-right: 1px solid var(--mail-border);
-    transition: width 0.3s var(--transition-ease);
+    transition: width 0.3s var(--transition-ease), background 0.3s var(--transition-ease);
     z-index: 1000;
 }
 
 body.dark .sidebar {
-    background: var(--primary);
+    background: #2c3e50;
     border-right: 1px solid #495057;
 }
 
 .sidebar.extended {
     width: 220px;
+    background: #f0f0f0; /* Temporary for debugging */
+}
+
+body.dark .sidebar.extended {
+    background: #3a506b; /* Temporary for debugging */
 }
 
 .sidebar-toggle {
@@ -508,11 +522,18 @@ body.dark .sidebar {
     top: 10px;
     right: 10px;
     width: 40px;
+    height: 40px;
     padding: 10px;
     background: transparent;
-    color: white;
+    color: var(--text-color);
     font-size: 20px;
     cursor: pointer;
+    z-index: 1001; /* Ensure toggle is above other sidebar elements */
+    transition: transform 0.2s var(--transition-ease);
+}
+
+.sidebar-toggle:hover {
+    transform: scale(1.1);
 }
 
 .sidebar-header {
@@ -552,7 +573,7 @@ body.dark .sidebar {
 #sidebarNav button {
     background: none;
     border: none;
-    color: white;
+    color: #000;
     font-size: 16px;
     padding: 10px;
     cursor: pointer;
@@ -568,7 +589,7 @@ body.dark .sidebar {
 }
 
 #sidebarNav button:hover {
-    color: #fff;
+    color: #0056b3;
 }
 
 body.dark #sidebarNav button {
@@ -576,7 +597,7 @@ body.dark #sidebarNav button {
 }
 
 body.dark #sidebarNav button:hover {
-    color: #fff;
+    color: #1873cc;
 }
 
 .sidebar-footer {
@@ -881,16 +902,24 @@ body.dark .absence-tab-btn {
     transition: transform 0.5s var(--transition-ease);
 }
 
-#approvedFolder {
+#pendingFolder {
     transform: translateX(0);
 }
 
-#rejectedFolder {
+#approvedFolder {
     transform: translateX(100%);
 }
 
-#pendingFolder {
+#rejectedFolder {
     transform: translateX(200%);
+}
+
+#archivedFolder {
+    transform: translateX(300%);
+}
+
+#pendingFolder.active {
+    transform: translateX(0);
 }
 
 #approvedFolder.active {
@@ -901,20 +930,24 @@ body.dark .absence-tab-btn {
     transform: translateX(0);
 }
 
-#pendingFolder.active {
+#archivedFolder.active {
     transform: translateX(0);
 }
 
-#approvedFolder:not(.active) {
+#pendingFolder:not(.active) {
     transform: translateX(-100%);
 }
 
-#rejectedFolder:not(.active) {
+#approvedFolder:not(.active) {
     transform: translateX(100%);
 }
 
-#pendingFolder:not(.active) {
+#rejectedFolder:not(.active) {
     transform: translateX(200%);
+}
+
+#archivedFolder:not(.active) {
+    transform: translateX(300%);
 }
 
 .absence-item {
@@ -952,6 +985,11 @@ body.dark .absence-item {
     color: #721c24;
 }
 
+.absence-item.archived {
+    background: #e2e3e5;
+    color: #41464b;
+}
+
 body.dark .absence-item.pending {
     background: #d4a017;
     color: #e0e0e0;
@@ -965,6 +1003,11 @@ body.dark .absence-item.approved {
 body.dark .absence-item.rejected {
     background: #721c24;
     color: #f8d7da;
+}
+
+body.dark .absence-item.archived {
+    background: #41464b;
+    color: #e2e3e5;
 }
 
 .pending-department::after {

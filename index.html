@@ -25,6 +25,7 @@
             <button id="mailBtn">Mail</button>
         </div>
         <div class="sidebar-footer">
+            <img src="https://media.discordapp.net/attachments/1315278404009988107/1315278404412768266/Utilities.png?ex=68da6cf8&is=68d91b78&hm=63c073799cd36883512843d1fca7bf672ffb963c3c7e907aa8c1401cafa29608&=&format=webp&quality=lossless" alt="Utilities" style="width: 30px; height: auto;">
             <button id="logoutBtn" class="action-btn" title="Log Out">Log Out</button>
         </div>
     </div>
@@ -131,7 +132,7 @@
     <!-- Screens -->
     <div id="discordScreen" class="screen">
         <div class="container">
-            <img class="logo" src="https://media.discordapp.net/attachments/1315278404009988107/1322985671773655200/Cirkledevblack.png?ex=68d8cd2c&is=68d77bac&hm=eb6d4623118549872254c7b294e5639a0c5a88aac8287a37bfde5c90be5907d4&=&format=webp&quality=lossless&width=1056&height=594" alt="Logo">
+            <img class="logo" src="https://media.discordapp.net/attachments/1315278404009988107/1322985671773655200/Cirkledevblack.png?ex=68dac76c&is=68d975ec&hm=bb0641408f99b891d1ed09b03df3cf992643785df18a72938cb5f60d0c00c65f&=&format=webp&quality=lossless" alt="Logo">
             <h1>Welcome, please log in using Discord</h1>
             <button id="discordLoginBtn">Login with Discord</button>
         </div>
@@ -281,8 +282,9 @@
             <div class="absence-tabs">
                 <div class="absence-tab-slider"></div>
                 <button class="absence-tab-btn active" data-tab="pending">Pending</button>
-                <button class="absence-tab-btn" data-tab="approved">Approved</button>
+                <button class="absence-tab-btn" data-tab="approved">Accepted</button>
                 <button class="absence-tab-btn" data-tab="rejected">Rejected</button>
+                <button class="absence-tab-btn" data-tab="archived">Archived</button>
             </div>
             <div class="absence-content">
                 <div id="pendingFolder" class="absence-folder active">
@@ -293,6 +295,9 @@
                 </div>
                 <div id="rejectedFolder" class="absence-folder">
                     <ul id="rejectedAbsences"></ul>
+                </div>
+                <div id="archivedFolder" class="absence-folder">
+                    <ul id="archivedAbsences"></ul>
                 </div>
             </div>
         </div>

@@ -64,6 +64,7 @@ let roleNames = {};
 let successAudio = null;
 let notificationAudio = null;
 let currentMail = null;
+let currentNotifications = [];
 
 function showScreen(screenId) {
     console.log('Showing screen:', screenId);
@@ -85,6 +86,7 @@ function showScreen(screenId) {
             console.log('Removing hidden class from sidebar and notification panel');
             sidebar.classList.remove('hidden');
             notificationPanel.classList.remove('hidden');
+            loadNotifications();
         } else {
             console.log('Adding hidden class to sidebar and notification panel');
             sidebar.classList.add('hidden');
@@ -246,7 +248,8 @@ function getEmployee(id) {
         drafts: [], 
         onLOA: false,
         pendingDeptChange: null,
-        lastLogin: null
+        lastLogin: null,
+        notifications: []
     };
 }
 
@@ -273,17 +276,39 @@ function resetEmployeeData(userId) {
 
 async function addNotification(type, message, link, userId = currentUser.id) {
     const emp = getEmployee(userId);
+    emp.notifications = emp.notifications || [];
+    const timestamp = new Date().toLocaleString();
+    emp.notifications.push({ type, message, timestamp });
+    updateEmployee(emp);
     await sendEmbed(NOTIFICATION_CHANNEL, {
         title: `New Notification for ${emp.profile.name || 'User'}`,
         fields: [
             { name: 'Type', value: type.charAt(0).toUpperCase() + type.slice(1), inline: true },
             { name: 'User', value: `<@${userId}> (${emp.profile.name || 'User'})`, inline: true },
             { name: 'Message', value: message, inline: false },
-            { name: 'Timestamp', value: new Date().toLocaleString(), inline: true }
+            { name: 'Timestamp', value: timestamp, inline: true }
         ],
         color: 0x00ff00
     });
     playNotificationSound();
+    renderNotifications();
+}
+
+function loadNotifications() {
+    const emp = getEmployee(currentUser.id);
+    currentNotifications = emp.notifications || [];
+    renderNotifications();
+}
+
+function renderNotifications() {
+    const list = document.getElementById('notificationList');
+    if (!list) return;
+    list.innerHTML = '';
+    currentNotifications.forEach(n => {
+        const li = document.createElement('li');
+        li.textContent = `${n.type}: ${n.message} (${n.timestamp})`;
+        list.appendChild(li);
+    });
 }
 
 function loadTasks() {
@@ -404,6 +429,7 @@ function updateMainScreen() {
         document.getElementById('clockOutBtn').classList.toggle('hidden', !isClockedIn);
         document.getElementById('sessionInfo').classList.toggle('hidden', !isClockedIn);
     }
+    loadNotifications();
     renderPreviousSessions();
 }
 
@@ -1170,6 +1196,7 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     document.getElementById('pendingFolder').classList.add('active');
     document.getElementById('approvedFolder').classList.remove('active');
     document.getElementById('rejectedFolder').classList.remove('active');
+    document.getElementById('archivedFolder').classList.remove('active');
     updateAbsenceTabSlider();
     renderAbsences('pending');
 });
@@ -1182,6 +1209,7 @@ document.getElementById('absencesScreen').addEventListener('click', (e) => {
         document.getElementById('pendingFolder').classList.toggle('active', folder === 'pending');
         document.getElementById('approvedFolder').classList.toggle('active', folder === 'approved');
         document.getElementById('rejectedFolder').classList.toggle('active', folder === 'rejected');
+        document.getElementById('archivedFolder').classList.toggle('active', folder === 'archived');
         updateAbsenceTabSlider();
         renderAbsences(folder);
     }
@@ -1191,19 +1219,21 @@ function renderAbsences(tab) {
     const pendingList = document.getElementById('pendingAbsences');
     const approvedList = document.getElementById('approvedAbsences');
     const rejectedList = document.getElementById('rejectedAbsences');
-    if (!pendingList || !approvedList || !rejectedList) return;
+    const archivedList = document.getElementById('archivedAbsences');
+    if (!pendingList || !approvedList || !rejectedList || !archivedList) return;
     pendingList.innerHTML = '';
     approvedList.innerHTML = '';
     rejectedList.innerHTML = '';
+    archivedList.innerHTML = '';
     const emp = getEmployee(currentUser.id);
     emp.absences.filter(a => a.status === tab).forEach(a => {
         const li = document.createElement('li');
         li.className = `absence-item ${a.status}`;
         li.innerHTML = `
-            <span>Type: ${a.type}</span>
+            <span>Reason: ${a.type}</span>
             <span>Start: ${a.startDate}</span>
             <span>End: ${a.endDate}</span>
-            <span>Comment: ${a.comment}</span>
+            <span>Total Days: ${Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
             ${a.status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
             ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
         `;
@@ -1224,6 +1254,7 @@ function renderAbsences(tab) {
         if (tab === 'pending') pendingList.appendChild(li);
         else if (tab === 'approved') approvedList.appendChild(li);
         else if (tab === 'rejected') rejectedList.appendChild(li);
+        else if (tab === 'archived') archivedList.appendChild(li);
     });
 
     pendingList.querySelectorAll('.cancel-absence-btn').forEach(btn => {
@@ -1253,10 +1284,9 @@ document.getElementById('cancelAbsenceBtn').addEventListener('click', () => {
 document.getElementById('confirmCancelAbsenceBtn').addEventListener('click', async () => {
     const absenceId = document.getElementById('confirmCancelAbsenceBtn').dataset.id;
     const emp = getEmployee(currentUser.id);
-    const absenceIndex = emp.absences.findIndex(a => a.id === absenceId);
-    if (absenceIndex > -1) {
-        const absence = emp.absences[absenceIndex];
-        emp.absences.splice(absenceIndex, 1);
+    const absence = emp.absences.find(a => a.id === absenceId);
+    if (absence) {
+        absence.status = 'archived';
         updateEmployee(emp);
         if (absence.messageId) {
             await updateEmbed(ABSENCE_CHANNEL, absence.messageId, {
