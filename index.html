@@ -220,8 +220,11 @@
         <div class="container">
             <div class="user-header">
                 <img id="mainProfilePic" class="profile-img" src="" alt="Profile">
-                <h2 id="greeting">Good Evening, Marcus!</h2>
-                <p id="lastLogin">Last Log In: 3 days ago</p>
+                <div>
+                    <h2 id="greeting"></h2>
+                    <p id="lastLogin"></p>
+                </div>
+                <p id="dateTime" style="margin-left: auto;"></p>
             </div>
             <div class="stats-grid">
                 <div class="stat-card">
@@ -233,7 +236,7 @@
                 <div class="stat-card">
                     <h3>Department</h3>
                     <p id="currentDepartment">Development</p>
-                    <p>Wish to change? Click the button below to go to your profile settings and request a change.</p>
+                    <p class="hint">Wish to change? Click the button below to go to your profile settings and request a change.</p>
                     <button id="changeDepartmentBtn">Change My Department</button>
                 </div>
             </div>

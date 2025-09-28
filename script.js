@@ -82,13 +82,10 @@ function showScreen(screenId) {
         window.location.hash = screenId;
         const sidebar = document.getElementById('sidebar');
         const notificationPanel = document.getElementById('notificationPanel');
-        if (['portalWelcome', 'mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail'].includes(screenId)) {
-            console.log('Removing hidden class from sidebar and notification panel');
+        if (screenId !== 'portalWelcome' && ['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail'].includes(screenId)) {
             sidebar.classList.remove('hidden');
             notificationPanel.classList.remove('hidden');
-            loadNotifications();
         } else {
-            console.log('Adding hidden class to sidebar and notification panel');
             sidebar.classList.add('hidden');
             notificationPanel.classList.add('hidden');
         }
@@ -304,9 +301,16 @@ function renderNotifications() {
     const list = document.getElementById('notificationList');
     if (!list) return;
     list.innerHTML = '';
-    currentNotifications.forEach(n => {
+    currentNotifications.forEach((n, index) => {
         const li = document.createElement('li');
         li.textContent = `${n.type}: ${n.message} (${n.timestamp})`;
+        li.addEventListener('click', () => {
+            currentNotifications.splice(index, 1);
+            const emp = getEmployee(currentUser.id);
+            emp.notifications = currentNotifications;
+            updateEmployee(emp);
+            renderNotifications();
+        });
         list.appendChild(li);
     });
 }
