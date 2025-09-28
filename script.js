@@ -1098,7 +1098,6 @@ document.getElementById('confirmResetBtn').addEventListener('click', () => {
     showScreen('setupWelcome');
     showModal('alert', '<span class="success-tick"></span> Profile reset successfully!');
     playSuccessSound();
-    // No notification sent for profile reset
 });
 
 document.getElementById('myRolesBtn').addEventListener('click', () => {
@@ -1132,6 +1131,11 @@ document.getElementById('addTaskBtn').addEventListener('click', () => {
     }
 });
 
+document.getElementById('handbookBtn').addEventListener('click', () => {
+    console.log('Handbook button clicked, redirecting to handbook');
+    window.location.href = 'https://docs.google.com/document/d/1SB48S4SiuT9_npDhgU1FT_CxAjdKGn40IpqUQKm2Nek/edit?usp=sharing';
+});
+
 document.getElementById('absencesBtn').addEventListener('click', () => {
     showScreen('absences');
     document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -1140,7 +1144,6 @@ document.getElementById('absencesBtn').addEventListener('click', () => {
     document.getElementById('approvedFolder').classList.remove('active');
     document.getElementById('rejectedFolder').classList.remove('active');
     document.getElementById('archivedFolder').classList.remove('active');
-    updateAbsenceTabSlider();
     renderAbsences('pending');
 });
 
@@ -1202,14 +1205,12 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     showModal('alert', '<span class="success-tick"></span> Successfully Submitted!');
     playSuccessSound();
     addNotification('absence', 'Absence request submitted!', 'absences');
-    // Ensure pending tab is active and render
     document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
     document.getElementById('pendingFolder').classList.add('active');
     document.getElementById('approvedFolder').classList.remove('active');
     document.getElementById('rejectedFolder').classList.remove('active');
     document.getElementById('archivedFolder').classList.remove('active');
-    updateAbsenceTabSlider();
     renderAbsences('pending');
 });
 
@@ -1222,7 +1223,6 @@ document.getElementById('absencesScreen').addEventListener('click', (e) => {
         document.getElementById('approvedFolder').classList.toggle('active', folder === 'approved');
         document.getElementById('rejectedFolder').classList.toggle('active', folder === 'rejected');
         document.getElementById('archivedFolder').classList.toggle('active', folder === 'archived');
-        updateAbsenceTabSlider();
         renderAbsences(folder);
     }
 });
@@ -1241,24 +1241,27 @@ function renderAbsences(tab) {
     emp.absences.filter(a => a.status === tab).forEach(a => {
         const li = document.createElement('li');
         li.className = `absence-item ${a.status}`;
+        li.dataset.id = a.id;
+        const days = Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1;
         li.innerHTML = `
-            <span>Reason: ${a.type}</span>
-            <span>Start: ${a.startDate}</span>
-            <span>End: ${a.endDate}</span>
-            <span>Total Days: ${Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
-            ${a.status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
-            ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
+            <div class="absence-summary">
+                <p>Type: ${a.type}</p>
+                <p>Dates: ${a.startDate} to ${a.endDate}</p>
+                <p>Reason: ${a.type}</p>
+                <p>Days: ${days}</p>
+                ${a.status === 'rejected' ? `<p>Rejection Reason: ${a.reason || 'N/A'}</p>` : ''}
+                ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
+                ${a.status === 'archived' ? `<button class="delete-absence-btn" data-id="${a.id}">Delete Absence</button>` : ''}
+            </div>
         `;
         li.addEventListener('click', (e) => {
-            if (e.target.classList.contains('cancel-absence-btn')) return;
-            document.getElementById('absenceDetailContent').innerHTML = `
-                <p><strong>Type:</strong> ${a.type}</p>
-                <p><strong>Start:</strong> ${a.startDate}</p>
-                <p><strong>End:</strong> ${a.endDate}</p>
-                <p><strong>Comment:</strong> ${a.comment}</p>
-                <p><strong>Status:</strong> ${a.status.charAt(0).toUpperCase() + a.status.slice(1)}</p>
-                ${a.status === 'rejected' ? `<p><strong>Reason:</strong> ${a.reason || 'N/A'}</p>` : ''}
-            `;
+            if (e.target.classList.contains('cancel-absence-btn') || e.target.classList.contains('delete-absence-btn')) return;
+            document.getElementById('absenceDetailType').textContent = a.type;
+            document.getElementById('absenceDetailStartDate').textContent = a.startDate;
+            document.getElementById('absenceDetailEndDate').textContent = a.endDate;
+            document.getElementById('absenceDetailDays').textContent = days;
+            document.getElementById('absenceDetailReason').textContent = a.reason || 'N/A';
+            document.getElementById('absenceDetailComment').textContent = a.comment;
             document.getElementById('cancelAbsenceBtn').classList.toggle('hidden', a.status !== 'pending');
             document.getElementById('cancelAbsenceBtn').dataset.id = a.id;
             const deleteBtn = document.getElementById('deleteAbsenceBtn');
@@ -1280,17 +1283,13 @@ function renderAbsences(tab) {
             showModal('confirmCancelAbsence');
         });
     });
-}
 
-function updateAbsenceTabSlider() {
-    const activeTab = document.querySelector('.absence-tabs .absence-tab-btn.active');
-    if (!activeTab) return;
-    const slider = document.querySelector('.absence-tab-slider');
-    if (!slider) return;
-    const rect = activeTab.getBoundingClientRect();
-    const containerRect = document.querySelector('.absence-tabs').getBoundingClientRect();
-    slider.style.width = `${rect.width}px`;
-    slider.style.transform = `translateX(${rect.left - containerRect.left}px)`;
+    archivedList.querySelectorAll('.delete-absence-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('deleteAbsenceBtn').dataset.id = btn.dataset.id;
+            showModal('absenceDetail');
+        });
+    });
 }
 
 document.getElementById('cancelAbsenceBtn').addEventListener('click', () => {
@@ -1446,7 +1445,6 @@ document.getElementById('mailBtn').addEventListener('click', () => {
     document.getElementById('inboxFolder').classList.add('active');
     document.getElementById('sentFolder').classList.remove('active');
     document.getElementById('draftsFolder').classList.remove('active');
-    updateTabSlider();
 });
 
 document.getElementById('composeMailBtn').addEventListener('click', () => {
@@ -1628,67 +1626,15 @@ document.getElementById('mailScreen').addEventListener('click', (e) => {
         document.getElementById('inboxFolder').classList.toggle('active', folder === 'inbox');
         document.getElementById('sentFolder').classList.toggle('active', folder === 'sent');
         document.getElementById('draftsFolder').classList.toggle('active', folder === 'drafts');
-        updateTabSlider();
     }
-});
-
-function updateTabSlider() {
-    const activeTab = document.querySelector('.mail-tabs .tab-btn.active');
-    if (!activeTab) return;
-    const slider = document.querySelector('.tab-slider');
-    if (!slider) return;
-    const rect = activeTab.getBoundingClientRect();
-    const containerRect = document.querySelector('.mail-tabs').getBoundingClientRect();
-    slider.style.width = `${rect.width}px`;
-    slider.style.transform = `translateX(${rect.left - containerRect.left}px)`;
-}
-
-document.getElementById('logoutBtn').addEventListener('click', () => {
-    console.log('Logging out user:', currentUser.id);
-    const emp = getEmployee(currentUser.id);
-    document.getElementById('goodbyeName').textContent = emp.profile.name || 'User';
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('lastProcessedCode');
-    localStorage.removeItem('clockInTime');
-    if (isClockedIn) {
-        clearInterval(clockInInterval);
-        isClockedIn = false;
-        const session = downloadTXT(currentUser, clockInTime, Date.now(), clockInActions);
-        previousSessions = JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`)) || [];
-        previousSessions.unshift(session);
-        localStorage.setItem(`previousSessions_${currentUser.id}`, JSON.stringify(previousSessions));
-        sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()} due to logout`);
-    }
-    showScreen('goodbye');
-    setTimeout(() => showScreen('discord'), 2000);
-});
-
-document.querySelector('.sidebar-toggle').addEventListener('click', () => {
-    console.log('Sidebar toggle clicked');
-    document.getElementById('sidebar').classList.toggle('extended');
-});
-
-document.getElementById('modeToggle').addEventListener('change', (e) => {
-    document.body.classList.toggle('dark', e.target.checked);
-    localStorage.setItem('darkMode', e.target.checked);
-});
-
-document.querySelectorAll('.modal .close').forEach(closeBtn => {
-    closeBtn.addEventListener('click', () => {
-        const modal = closeBtn.closest('.modal');
-        const modalId = Object.keys(modals).find(id => modals[id] === modal);
-        closeModal(modalId);
-    });
 });
 
 // Initialize
-(async function init() {
-    console.log('Initializing Staff Portal');
+document.addEventListener('DOMContentLoaded', () => {
     preloadAudio();
-    const savedUser = localStorage.getItem('currentUser');
-    const savedClockIn = localStorage.getItem('clockInTime');
-    if (savedClockIn) {
-        clockInTime = parseInt(savedClockIn);
+    const savedClockInTime = localStorage.getItem('clockInTime');
+    if (savedClockInTime) {
+        clockInTime = parseInt(savedClockInTime);
         isClockedIn = true;
         clockInInterval = setInterval(() => {
             const elapsed = Date.now() - clockInTime;
@@ -1699,24 +1645,5 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
             `;
         }, 1000);
     }
-    if (savedUser) {
-        try {
-            currentUser = JSON.parse(savedUser);
-            console.log('Loaded saved user:', currentUser);
-            if (currentUser.id) {
-                const emp = getEmployee(currentUser.id);
-                document.getElementById('portalWelcomeName').textContent = emp.profile.name;
-                document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
-                console.log('Showing portalWelcome screen with sidebar');
-                showScreen('portalWelcome');
-                updateSidebarProfile();
-                await fetchEmployees();
-                return;
-            }
-        } catch (e) {
-            console.error('Error parsing saved user:', e);
-            localStorage.removeItem('currentUser');
-        }
-    }
-    await handleOAuthRedirect();
-})();
+    handleOAuthRedirect();
+});

@@ -226,8 +226,8 @@ body.dark #logoutBtn {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    width: 48px;
-    height: 48px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     display: none;
     align-items: center;
@@ -243,8 +243,8 @@ body.dark #logoutBtn {
 #composeMailBtn::before {
     content: '';
     display: inline-block;
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     background: url('https://cdn-icons-png.flaticon.com/512/561/561226.png') no-repeat center;
     background-size: cover;
 }
@@ -950,34 +950,6 @@ body.dark .absence-tab-btn {
     color: white;
 }
 
-.absence-tab-slider {
-    position: absolute;
-    bottom: 0;
-    height: 2px;
-    background: var(--tab-active-bg);
-    transition: transform 0.3s var(--transition-ease), width 0.3s var(--transition-ease);
-}
-
-.absence-tab-btn[data-tab="pending"] + .absence-tab-slider {
-    transform: translateX(0);
-    width: calc(100% / 4); /* Assuming 4 tabs */
-}
-
-.absence-tab-btn[data-tab="approved"].active + .absence-tab-slider {
-    transform: translateX(100%);
-    width: calc(100% / 4);
-}
-
-.absence-tab-btn[data-tab="rejected"].active + .absence-tab-slider {
-    transform: translateX(200%);
-    width: calc(100% / 4);
-}
-
-.absence-tab-btn[data-tab="archived"].active + .absence-tab-slider {
-    transform: translateX(300%);
-    width: calc(100% / 4);
-}
-
 .absence-content {
     position: relative;
     overflow: hidden;
@@ -1078,10 +1050,6 @@ body.dark .absence-item {
 .absence-item.pending .absence-summary p {
     margin: 0;
     font-size: 14px;
-}
-
-.absence-item.pending .absence-details {
-    display: none;
 }
 
 .absence-item.pending:hover .absence-details {
@@ -1569,5 +1537,4 @@ body.dark .stat-card {
     .stats-grid { grid-template-columns: 1fr; }
     .absence-tabs { flex-wrap: wrap; }
     .absence-tab-btn { flex: 1 1 45%; }
-    .absence-tab-slider { width: calc(100% / 2); }
 }
