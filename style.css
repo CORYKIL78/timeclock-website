@@ -95,12 +95,12 @@ body {
 }
 
 #mainMenuScreen .container {
-    max-width: 70%;
-    width: 70%;
+    max-width: 80%;
+    width: 80%;
     margin-left: auto;
     margin-right: auto;
-    transform: translateX(0);
     padding-left: 240px; /* Accounts for sidebar.extended width (220px) + buffer */
+    transition: padding-left 0.3s var(--transition-ease);
 }
 
 body.dark .container {
@@ -164,7 +164,8 @@ button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTask
     transition: background 0.2s var(--transition-ease), transform 0.1s var(--transition-ease), box-shadow 0.2s var(--transition-ease);
 }
 
-button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):hover {
+button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):hover,
+button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):active {
     background: #0056b3;
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -174,7 +175,8 @@ body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):no
     background: #1e90ff;
 }
 
-body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):hover {
+body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):hover,
+body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):active {
     background: #1873cc;
 }
 
@@ -190,7 +192,8 @@ body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):no
     transition: transform 0.2s var(--transition-ease);
 }
 
-#logoutBtn:hover {
+#logoutBtn:hover,
+#logoutBtn:active {
     transform: scale(1.1);
 }
 
@@ -218,7 +221,8 @@ body.dark #logoutBtn {
     background-size: cover;
 }
 
-#discordLoginBtn:hover {
+#discordLoginBtn:hover,
+#discordLoginBtn:active {
     background: #4752c4;
 }
 
@@ -226,8 +230,8 @@ body.dark #logoutBtn {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    width: 36px;
-    height: 36px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     display: none;
     align-items: center;
@@ -243,8 +247,8 @@ body.dark #logoutBtn {
 #composeMailBtn::before {
     content: '';
     display: inline-block;
-    width: 16px;
-    height: 16px;
+    width: 24px;
+    height: 24px;
     background: url('https://cdn-icons-png.flaticon.com/512/561/561226.png') no-repeat center;
     background-size: cover;
 }
@@ -253,7 +257,8 @@ body.dark #logoutBtn {
     display: flex;
 }
 
-#composeMailBtn:hover {
+#composeMailBtn:hover,
+#composeMailBtn:active {
     background: #0056b3;
     transform: scale(1.1);
 }
@@ -262,7 +267,8 @@ body.dark #composeMailBtn {
     background: #1e90ff;
 }
 
-body.dark #composeMailBtn:hover {
+body.dark #composeMailBtn:hover,
+body.dark #composeMailBtn:active {
     background: #1873cc;
 }
 
@@ -276,7 +282,8 @@ body.dark #addTaskBtn {
     background: #1e90ff;
 }
 
-body.dark #addTaskBtn:hover {
+body.dark #addTaskBtn:hover,
+body.dark #addTaskBtn:active {
     background: #1873cc;
 }
 
@@ -291,7 +298,8 @@ body.dark #addTaskBtn:hover {
     position: relative;
 }
 
-.profile-img:hover {
+.profile-img:hover,
+.profile-img:active {
     transform: scale(1.05);
 }
 
@@ -312,7 +320,8 @@ body.dark #addTaskBtn:hover {
     transition: transform 0.2s var(--transition-ease);
 }
 
-.profile-img:hover::after {
+.profile-img:hover::after,
+.profile-img:active::after {
     transform: scale(1.1);
 }
 
@@ -436,7 +445,7 @@ footer {
 }
 
 #portalWelcomeScreen .sidebar,
-#portalWelcomeScreen .notifications {
+#portalWelcomeScreen #notificationPanel {
     display: none !important;
 }
 
@@ -458,7 +467,8 @@ li {
     transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
 }
 
-li:hover {
+li:hover,
+li:active {
     transform: translateX(5px);
 }
 
@@ -535,7 +545,6 @@ body.dark .sidebar.extended {
     right: 10px;
     width: 40px;
     height: 40px;
-    padding: 10px;
     background: transparent;
     color: white;
     font-size: 20px;
@@ -544,7 +553,16 @@ body.dark .sidebar.extended {
     transition: transform 0.2s var(--transition-ease);
 }
 
-.sidebar-toggle:hover {
+.sidebar-toggle::before {
+    content: '☰';
+}
+
+.sidebar.extended .sidebar-toggle::before {
+    content: '✕';
+}
+
+.sidebar-toggle:hover,
+.sidebar-toggle:active {
     transform: scale(1.1);
 }
 
@@ -593,7 +611,8 @@ body.dark .sidebar.extended {
     opacity: 1;
 }
 
-#sidebarProfilePic:hover::after {
+#sidebarProfilePic:hover::after,
+#sidebarProfilePic:active::after {
     transform: translateY(-50%) scale(1.1);
 }
 
@@ -622,16 +641,18 @@ body.dark .sidebar.extended {
     pointer-events: auto;
 }
 
-#sidebarNav button:hover {
-    color: #e0e0e0;
+#sidebarNav button:hover,
+#sidebarNav button:active {
+    color: #b0c4de;
 }
 
 body.dark #sidebarNav button {
     color: white;
 }
 
-body.dark #sidebarNav button:hover {
-    color: #e0e0e0;
+body.dark #sidebarNav button:hover,
+body.dark #sidebarNav button:active {
+    color: #b0c4de;
 }
 
 .sidebar-footer {
@@ -652,7 +673,7 @@ body.dark #sidebarNav button:hover {
     pointer-events: auto;
 }
 
-.notifications {
+#notificationPanel {
     position: fixed;
     bottom: 20px;
     right: 20px;
@@ -668,29 +689,31 @@ body.dark #sidebarNav button:hover {
     transition: opacity 0.3s var(--transition-ease), transform 0.3s var(--transition-ease);
 }
 
-body.dark .notifications {
+body.dark #notificationPanel {
     background: #2c3e50;
     border: 1px solid #495057;
 }
 
-.notifications h3 {
+#notificationPanel h3 {
     font-size: 16px;
     margin-bottom: 12px;
 }
 
-.notifications li {
+#notificationPanel li {
     cursor: pointer;
     font-size: 14px;
     position: relative;
     padding-right: 30px;
 }
 
-.notifications li:hover {
-    background: var(--mail-bg);
+#notificationPanel li:hover,
+#notificationPanel li:active {
+    background: #e7f1ff;
     transform: translateX(0);
 }
 
-body.dark .notifications li:hover {
+body.dark #notificationPanel li:hover,
+body.dark #notificationPanel li:active {
     background: #34495e;
 }
 
@@ -717,7 +740,8 @@ body.dark .notifications li:hover {
     transition: transform 0.2s var(--transition-ease);
 }
 
-.notification-item:hover {
+.notification-item:hover,
+.notification-item:active {
     transform: translateX(5px);
 }
 
@@ -749,14 +773,39 @@ body.dark .notification-item {
     padding: 24px;
     max-width: 500px;
     width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
     text-align: center;
     box-shadow: var(--shadow);
     animation: popIn 0.3s var(--transition-ease);
     position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--mail-bg);
+}
+
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: var(--mail-bg);
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
 }
 
 body.dark .modal-content {
     background: #2c3e50;
+}
+
+body.dark .modal-content::-webkit-scrollbar-track {
+    background: #34495e;
+}
+
+body.dark .modal-content::-webkit-scrollbar-thumb {
+    background: #1e90ff;
 }
 
 .modal-content .close {
@@ -769,7 +818,8 @@ body.dark .modal-content {
     transition: transform 0.2s var(--transition-ease);
 }
 
-.modal-content .close:hover {
+.modal-content .close:hover,
+.modal-content .close:active {
     transform: scale(1.2);
 }
 
@@ -786,6 +836,7 @@ body.dark .modal-content {
     font-size: 14px;
 }
 
+.cancel-absence-btn,
 .cancel-absence-details-btn {
     width: auto;
     padding: 8px 16px;
@@ -796,372 +847,23 @@ body.dark .modal-content {
     transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
 }
 
-.cancel-absence-details-btn:hover {
+.cancel-absence-btn:hover,
+.cancel-absence-btn:active,
+.cancel-absence-details-btn:hover,
+.cancel-absence-details-btn:active {
     background: #c82333;
     transform: scale(1.05);
 }
 
+body.dark .cancel-absence-btn,
 body.dark .cancel-absence-details-btn {
     background: #c82333;
 }
 
-body.dark .cancel-absence-details-btn:hover {
-    background: #a71d2a;
-}
-
-@keyframes popIn {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-
-#alertModal.success .modal-content {
-    animation: popIn 0.3s var(--transition-ease), fadeOut 0.3s var(--transition-ease) 2s forwards;
-}
-
-@keyframes fadeOut {
-    to { opacity: 0; transform: scale(0.8); }
-}
-
-.success-tick {
-    display: inline-block;
-    width: 40px;
-    height: 40px;
-    background: url('https://cdn-icons-png.flaticon.com/512/4436/4436481.png') no-repeat center;
-    background-size: contain;
-    animation: tickAnimation 0.5s var(--transition-ease);
-}
-
-@keyframes tickAnimation {
-    0% { transform: scale(0); opacity: 0; }
-    50% { transform: scale(1.2); opacity: 1; }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-.tutorial-ring {
-    position: absolute;
-    border: 3px solid var(--primary);
-    border-radius: 6px;
-    pointer-events: none;
-    animation: pulse 1.5s infinite var(--transition-ease);
-    z-index: 3000;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.2); opacity: 0.7; }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-.tutorial-text {
-    position: fixed;
-    bottom: 60px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 6px;
-    font-size: 16px;
-    z-index: 3000;
-}
-
-.loading-text {
-    font-size: 16px;
-    opacity: 0;
-    animation: fadeInOut 4s infinite;
-}
-
-@keyframes fadeInOut {
-    0% { opacity: 0; }
-    20% { opacity: 1; }
-    80% { opacity: 1; }
-    100% { opacity: 0; }
-}
-
-.loading-text:nth-child(1) { animation-delay: 0s; }
-.loading-text:nth-child(2) { animation-delay: 4s; }
-.loading-text:nth-child(3) { animation-delay: 8s; }
-
-.tabs {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin: 15px 0;
-    position: relative;
-}
-
-.tab-btn {
-    padding: 8px 16px;
-    background: var(--mail-bg);
-    color: var(--text-color);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
-}
-
-.tab-btn:hover {
-    transform: translateY(-1px);
-}
-
-body.dark .tab-btn {
-    background: #34495e;
-}
-
-.tab-btn.active {
-    background: var(--tab-active-bg);
-    color: white;
-}
-
-.tab-slider {
-    position: absolute;
-    bottom: 0;
-    height: 2px;
-    background: var(--tab-active-bg);
-    transition: transform 0.3s var(--transition-ease), width 0.3s var(--transition-ease);
-}
-
-.absence-tabs {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin: 15px 0;
-    position: relative;
-}
-
-.absence-tab-btn {
-    padding: 8px 16px;
-    background: var(--mail-bg);
-    color: var(--text-color);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
-}
-
-.absence-tab-btn:hover {
-    transform: translateY(-1px);
-}
-
-body.dark .absence-tab-btn {
-    background: #34495e;
-}
-
-.absence-tab-btn.active {
-    background: var(--tab-active-bg);
-    color: white;
-}
-
-.absence-content {
-    position: relative;
-    overflow: hidden;
-}
-
-.absence-folder {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    padding: 20px;
-    overflow-y: auto;
-    transition: transform 0.5s var(--transition-ease);
-}
-
-#pendingFolder {
-    transform: translateX(0);
-}
-
-#approvedFolder {
-    transform: translateX(100%);
-}
-
-#rejectedFolder {
-    transform: translateX(200%);
-}
-
-#archivedFolder {
-    transform: translateX(300%);
-}
-
-#pendingFolder.active {
-    transform: translateX(0);
-}
-
-#approvedFolder.active {
-    transform: translateX(0);
-}
-
-#rejectedFolder.active {
-    transform: translateX(0);
-}
-
-#archivedFolder.active {
-    transform: translateX(0);
-}
-
-#pendingFolder:not(.active) {
-    transform: translateX(-100%);
-}
-
-#approvedFolder:not(.active) {
-    transform: translateX(100%);
-}
-
-#rejectedFolder:not(.active) {
-    transform: translateX(200%);
-}
-
-#archivedFolder:not(.active) {
-    transform: translateX(300%);
-}
-
-.absence-item {
-    padding: 12px;
-    margin: 8px 0;
-    background: var(--mail-bg);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    transition: transform 0.2s var(--transition-ease);
-    cursor: pointer;
-    position: relative;
-}
-
-.absence-item:hover {
-    transform: translateX(5px);
-}
-
-body.dark .absence-item {
-    background: #34495e;
-}
-
-.absence-item.pending {
-    background: var(--yellow-hazard);
-    color: #212529;
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-.absence-item.pending .absence-summary {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    width: 100%;
-}
-
-.absence-item.pending .absence-summary p {
-    margin: 0;
-    font-size: 14px;
-}
-
-.absence-item.pending:hover .absence-details {
-    display: flex;
-}
-
-.absence-item.approved {
-    background: #d4edda;
-    color: #155724;
-}
-
-.absence-item.rejected {
-    background: #f8d7da;
-    color: #721c24;
-}
-
-.absence-item.archived {
-    background: #e2e3e5;
-    color: #41464b;
-    opacity: 0.7;
-}
-
-.absence-item.canceled {
-    background: #d3d3d3; /* Grey for canceled absences */
-    color: #41464b;
-    opacity: 0.7;
-}
-
-.absence-item.archived .delete-absence-btn,
-.absence-item.canceled .delete-absence-btn {
-    display: inline-block;
-}
-
-body.dark .absence-item.pending {
-    background: #d4a017;
-    color: #e0e0e0;
-}
-
-body.dark .absence-item.approved {
-    background: #155724;
-    color: #d4edda;
-}
-
-body.dark .absence-item.rejected {
-    background: #721c24;
-    color: #f8d7da;
-}
-
-body.dark .absence-item.archived {
-    background: #41464b;
-    color: #e2e3e5;
-    opacity: 0.7;
-}
-
-body.dark .absence-item.canceled {
-    background: #5a6268;
-    color: #e0e0e0;
-    opacity: 0.7;
-}
-
-.pending-department::after {
-    content: '⚠';
-    color: var(--yellow-hazard);
-    margin-left: 8px;
-    font-size: 16px;
-}
-
-.absence-details {
-    position: static;
-    background: white;
-    border: 1px solid var(--mail-border);
-    border-radius: 6px;
-    padding: 10px;
-    z-index: 10;
-    display: none;
-    flex-direction: column;
-    gap: 5px;
-    box-shadow: var(--shadow);
-    width: 100%;
-    margin-top: 10px;
-}
-
-body.dark .absence-details {
-    background: #2c3e50;
-    border-color: #495057;
-}
-
-.absence-details p {
-    margin: 0;
-    font-size: 14px;
-}
-
-.cancel-absence-btn {
-    width: auto;
-    padding: 8px 16px;
-    background: var(--danger);
-    color: white;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
-}
-
-.cancel-absence-btn:hover {
-    background: #c82333;
-    transform: scale(1.05);
-}
-
-body.dark .cancel-absence-btn {
-    background: #c82333;
-}
-
-body.dark .cancel-absence-btn:hover {
+body.dark .cancel-absence-btn:hover,
+body.dark .cancel-absence-btn:active,
+body.dark .cancel-absence-details-btn:hover,
+body.dark .cancel-absence-details-btn:active {
     background: #a71d2a;
 }
 
@@ -1173,10 +875,10 @@ body.dark .cancel-absence-btn:hover {
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
-    display: none;
 }
 
-.delete-absence-btn:hover {
+.delete-absence-btn:hover,
+.delete-absence-btn:active {
     background: #c82333;
     transform: scale(1.05);
 }
@@ -1185,8 +887,35 @@ body.dark .delete-absence-btn {
     background: #c82333;
 }
 
-body.dark .delete-absence-btn:hover {
+body.dark .delete-absence-btn:hover,
+body.dark .delete-absence-btn:active {
     background: #a71d2a;
+}
+
+.disciplinary-item {
+    padding: 12px;
+    margin: 8px 0;
+    background: var(--mail-bg);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    transition: transform 0.2s var(--transition-ease);
+    cursor: pointer;
+}
+
+.disciplinary-item:hover,
+.disciplinary-item:active {
+    transform: translateX(5px);
+}
+
+body.dark .disciplinary-item {
+    background: #34495e;
+}
+
+.disciplinary-item p {
+    margin: 5px 0;
+    font-size: 14px;
 }
 
 .employee-grid {
@@ -1206,7 +935,8 @@ body.dark .delete-absence-btn:hover {
     transition: transform 0.2s var(--transition-ease);
 }
 
-.employee-card:hover {
+.employee-card:hover,
+.employee-card:active {
     transform: translateY(-2px);
 }
 
@@ -1349,9 +1079,11 @@ body.dark .mail-tabs {
     gap: 12px;
     transition: transform 0.2s var(--transition-ease), background 0.2s var(--transition-ease);
     cursor: pointer;
+    position: relative;
 }
 
-.mail-item:hover {
+.mail-item:hover,
+.mail-item:active {
     background: #e7f1ff;
     transform: translateX(5px);
 }
@@ -1360,7 +1092,8 @@ body.dark .mail-item {
     background: #34495e;
 }
 
-body.dark .mail-item:hover {
+body.dark .mail-item:hover,
+body.dark .mail-item:active {
     background: #2c5282;
 }
 
@@ -1401,8 +1134,13 @@ body.dark .mail-item .subject {
     transition: transform 0.2s var(--transition-ease);
 }
 
-.reply-btn:hover {
+.reply-btn:hover,
+.reply-btn:active {
     transform: scale(1.2);
+}
+
+body.dark .reply-btn {
+    color: #1e90ff;
 }
 
 .draft-actions {
@@ -1412,46 +1150,76 @@ body.dark .mail-item .subject {
     margin-top: 10px;
 }
 
-.draft-actions button {
+.draft-actions .edit-draft,
+.draft-actions .send-draft,
+.draft-actions .delete-draft {
     width: auto;
     padding: 8px 16px;
-    font-size: 14px;
+    background: var(--primary);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
 }
 
-.draft-actions .delete-btn {
+.draft-actions .delete-draft {
     background: var(--danger);
 }
 
-.draft-actions .delete-btn:hover {
+.draft-actions .edit-draft:hover,
+.draft-actions .edit-draft:active,
+.draft-actions .send-draft:hover,
+.draft-actions .send-draft:active {
+    background: #0056b3;
+    transform: scale(1.05);
+}
+
+.draft-actions .delete-draft:hover,
+.draft-actions .delete-draft:active {
+    background: #c82333;
+    transform: scale(1.05);
+}
+
+body.dark .draft-actions .edit-draft,
+body.dark .draft-actions .send-draft {
+    background: #1e90ff;
+}
+
+body.dark .draft-actions .delete-draft {
     background: #c82333;
 }
 
-body.dark .draft-actions .delete-btn {
-    background: #c82333;
+body.dark .draft-actions .edit-draft:hover,
+body.dark .draft-actions .edit-draft:active,
+body.dark .draft-actions .send-draft:hover,
+body.dark .draft-actions .send-draft:active {
+    background: #1873cc;
 }
 
-body.dark .draft-actions .delete-btn:hover {
+body.dark .draft-actions .delete-draft:hover,
+body.dark .draft-actions .delete-draft:active {
     background: #a71d2a;
 }
 
 .mail-thread {
-    margin-top: 10px;
-    padding-left: 20px;
-    border-left: 2px solid var(--mail-border);
+    margin-top: 15px;
+    padding-left: 25px;
+    border-left: 3px solid var(--mail-border);
 }
 
 .thread-item {
-    padding: 8px;
-    margin: 6px 0;
+    padding: 10px;
+    margin: 8px 0;
     background: var(--mail-bg);
     border-radius: 6px;
+    font-size: 14px;
 }
 
 body.dark .thread-item {
     background: #34495e;
 }
 
-.mail-delivery-animation {
+#mailDeliveryAnimation {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -1478,10 +1246,10 @@ body.dark .thread-item {
 }
 
 .stat-card {
-    background: #fff;
+    background: white;
     border-radius: 8px;
     padding: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow);
     text-align: left;
 }
 
@@ -1516,25 +1284,319 @@ body.dark .stat-card {
     color: var(--secondary);
 }
 
+.tabs {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+    position: relative;
+}
+
+.tab-btn {
+    padding: 8px 16px;
+    background: var(--mail-bg);
+    color: var(--text-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
+}
+
+.tab-btn:hover,
+.tab-btn:active {
+    transform: translateY(-1px);
+}
+
+body.dark .tab-btn {
+    background: #34495e;
+}
+
+.tab-btn.active {
+    background: var(--tab-active-bg);
+    color: white;
+}
+
+.absence-tabs {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 15px 0;
+    position: relative;
+}
+
+.absence-tab-btn {
+    padding: 8px 16px;
+    background: var(--mail-bg);
+    color: var(--text-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
+}
+
+.absence-tab-btn:hover,
+.absence-tab-btn:active {
+    transform: translateY(-1px);
+}
+
+body.dark .absence-tab-btn {
+    background: #34495e;
+}
+
+.absence-tab-btn.active {
+    background: var(--tab-active-bg);
+    color: white;
+}
+
+.absence-content {
+    position: relative;
+    overflow: hidden;
+}
+
+.absence-folder {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    overflow-y: auto;
+    transition: transform 0.5s var(--transition-ease);
+}
+
+#pendingFolder {
+    transform: translateX(0);
+}
+
+#approvedFolder {
+    transform: translateX(100%);
+}
+
+#rejectedFolder {
+    transform: translateX(200%);
+}
+
+#archivedFolder {
+    transform: translateX(300%);
+}
+
+#pendingFolder.active {
+    transform: translateX(0);
+}
+
+#approvedFolder.active {
+    transform: translateX(0);
+}
+
+#rejectedFolder.active {
+    transform: translateX(0);
+}
+
+#archivedFolder.active {
+    transform: translateX(0);
+}
+
+#pendingFolder:not(.active) {
+    transform: translateX(-100%);
+}
+
+#approvedFolder:not(.active) {
+    transform: translateX(100%);
+}
+
+#rejectedFolder:not(.active) {
+    transform: translateX(200%);
+}
+
+#archivedFolder:not(.active) {
+    transform: translateX(300%);
+}
+
+.absence-item {
+    padding: 12px;
+    margin: 8px 0;
+    background: var(--mail-bg);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    transition: transform 0.2s var(--transition-ease);
+    cursor: pointer;
+}
+
+.absence-item:hover,
+.absence-item:active {
+    transform: translateX(5px);
+}
+
+body.dark .absence-item {
+    background: #34495e;
+}
+
+.absence-item.pending {
+    background: var(--yellow-hazard);
+    color: #212529;
+}
+
+.absence-item.pending .absence-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+}
+
+.absence-item.pending .absence-summary p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.absence-item.approved {
+    background: #d4edda;
+    color: #155724;
+}
+
+.absence-item.rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.absence-item.archived {
+    background: #e2e3e5;
+    color: #41464b;
+    opacity: 0.7;
+}
+
+.absence-item.canceled {
+    background: #d3d3d3;
+    color: #41464b;
+    opacity: 0.7;
+}
+
+body.dark .absence-item.pending {
+    background: #d4a017;
+    color: #e0e0e0;
+}
+
+body.dark .absence-item.approved {
+    background: #155724;
+    color: #d4edda;
+}
+
+body.dark .absence-item.rejected {
+    background: #721c24;
+    color: #f8d7da;
+}
+
+body.dark .absence-item.archived {
+    background: #41464b;
+    color: #e2e3e5;
+    opacity: 0.7;
+}
+
+body.dark .absence-item.canceled {
+    background: #5a6268;
+    color: #e0e0e0;
+    opacity: 0.7;
+}
+
+.pending-department::after {
+    content: '⚠';
+    color: var(--yellow-hazard);
+    margin-left: 8px;
+    font-size: 16px;
+}
+
+.session-item {
+    padding: 12px;
+    margin: 8px 0;
+    background: var(--mail-bg);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    transition: transform 0.2s var(--transition-ease);
+}
+
+.session-item:hover,
+.session-item:active {
+    transform: translateX(5px);
+}
+
+body.dark .session-item {
+    background: #34495e;
+}
+
+.session-item p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+.session-item a {
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.session-item a:hover,
+.session-item a:active {
+    text-decoration: underline;
+}
+
+body.dark .session-item a {
+    color: #1e90ff;
+}
+
 @media (max-width: 600px) {
-    .container { 
-        max-width: 100%; 
-        padding: 16px; 
-        transform: translateX(0); 
+    .container {
+        max-width: 100%;
+        padding: 16px;
+        transform: translateX(0);
     }
     #mainMenuScreen .container {
-        padding-left: 70px; /* Accounts for collapsed sidebar (50px) + buffer */
+        padding-left: 70px; /* Accounts for collapsed sidebar (60px) + buffer */
     }
-    .sidebar { width: 50px; }
-    .sidebar.extended { width: 200px; }
-    .notifications { width: 280px; right: 10px; }
-    .employee-grid { grid-template-columns: 1fr; }
-    .modal-content { max-width: 95%; }
-    .tutorial-text { font-size: 14px; padding: 8px 16px; }
-    .mail-tabs .tab-btn { max-width: 100px; font-size: 14px; }
-    #mailScreen .container { padding: 10px; }
-    #companyLogo img { width: 80px; }
-    .stats-grid { grid-template-columns: 1fr; }
-    .absence-tabs { flex-wrap: wrap; }
-    .absence-tab-btn { flex: 1 1 45%; }
+    .sidebar {
+        width: 60px;
+    }
+    .sidebar.extended {
+        width: 200px;
+    }
+    #notificationPanel {
+        width: 280px;
+        right: 10px;
+    }
+    .employee-grid {
+        grid-template-columns: 1fr;
+    }
+    .modal-content {
+        max-width: 95%;
+    }
+    .tutorial-text {
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+    .mail-tabs .tab-btn {
+        max-width: 100px;
+        font-size: 14px;
+    }
+    #mailScreen .container {
+        padding: 10px;
+    }
+    #companyLogo img {
+        width: 80px;
+    }
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    .absence-tabs {
+        flex-wrap: wrap;
+    }
+    .absence-tab-btn {
+        flex: 1 1 45%;
+    }
+    #mailDeliveryAnimation {
+        animation: mailFlyMobile 1s var(--transition-ease);
+    }
+    @keyframes mailFlyMobile {
+        0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+        100% { transform: translate(-50%, -50%) translateX(100px) scale(0); opacity: 0; }
+    }
 }

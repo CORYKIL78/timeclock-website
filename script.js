@@ -14,6 +14,7 @@ const NOTIFICATION_SOUND_URL = 'https://cdn.pixabay.com/audio/2025/09/02/audio_4
 const ABSENCE_CHANNEL = '1417583684525232291';
 const TIMECLOCK_CHANNEL = '1417583684525232291';
 const NOTIFICATION_CHANNEL = '1417583684525232291';
+const ABSENCE_WEBHOOK_URL = 'https://discord.com/api/webhooks/1421968323738079305/kU7rh9EmHZr00oFcr_zuqFNQWUinmA2fRQpPhcpWL5KhTBeIaohyxsMOIM_Z8XtzvCoN';
 
 const screens = {
     discord: document.getElementById('discordScreen'),
@@ -49,7 +50,8 @@ const modals = {
     viewMail: document.getElementById('viewMailModal'),
     replyMail: document.getElementById('replyMailModal'),
     absenceDetail: document.getElementById('absenceDetailModal'),
-    confirmCancelAbsence: document.getElementById('confirmCancelAbsenceModal')
+    confirmCancelAbsence: document.getElementById('confirmCancelAbsenceModal'),
+    confirmDeleteAbsence: document.getElementById('confirmDeleteAbsenceModal')
 };
 
 let currentUser = null;
@@ -183,20 +185,28 @@ async function sendWebhook(content) {
     }
 }
 
-async function sendEmbed(channelId, embed) {
+async function sendEmbed(embed) {
     try {
-        const response = await fetch(`${WORKER_URL}/postEmbed?channel_id=${channelId}&embed_json=${encodeURIComponent(JSON.stringify(embed))}`);
+        const response = await fetch(ABSENCE_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ embeds: [embed] })
+        });
         if (!response.ok) throw new Error(`Embed failed: ${response.status} ${await response.text()}`);
-        console.log('Embed sent successfully to channel:', channelId);
+        console.log('Embed sent successfully');
         return await response.json();
     } catch (e) {
         console.error('Embed error:', e);
     }
 }
 
-async function updateEmbed(channelId, messageId, embed) {
+async function updateEmbed(messageId, embed) {
     try {
-        const response = await fetch(`${WORKER_URL}/updateEmbed?channel_id=${channelId}&message_id=${messageId}&embed_json=${encodeURIComponent(JSON.stringify(embed))}`);
+        const response = await fetch(`${ABSENCE_WEBHOOK_URL}/messages/${messageId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ embeds: [embed] })
+        });
         if (!response.ok) throw new Error(`Embed update failed: ${response.status} ${await response.text()}`);
         console.log('Embed updated successfully:', messageId);
     } catch (e) {
@@ -277,7 +287,7 @@ async function addNotification(type, message, link, userId = currentUser.id) {
     const timestamp = new Date().toLocaleString();
     emp.notifications.push({ type, message, timestamp });
     updateEmployee(emp);
-    await sendEmbed(NOTIFICATION_CHANNEL, {
+    await sendEmbed({
         title: `New Notification for ${emp.profile.name || 'User'}`,
         fields: [
             { name: 'Type', value: type.charAt(0).toUpperCase() + type.slice(1), inline: true },
@@ -1072,7 +1082,7 @@ document.getElementById('submitDeptChangeBtn').addEventListener('click', () => {
         updateEmployee(emp);
         currentUser.pendingDeptChange = emp.pendingDeptChange;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        sendEmbed(ABSENCE_CHANNEL, {
+        sendEmbed({
             title: 'Department Change Request',
             description: `User: <@${currentUser.id}> (${emp.profile.name})\nRequested Department: ${selectedDept.value}`,
             color: 0xffff00
@@ -1098,6 +1108,7 @@ document.getElementById('confirmResetBtn').addEventListener('click', () => {
     showScreen('setupWelcome');
     showModal('alert', '<span class="success-tick"></span> Profile reset successfully!');
     playSuccessSound();
+    // No notification sent for profile reset
 });
 
 document.getElementById('myRolesBtn').addEventListener('click', () => {
@@ -1129,11 +1140,6 @@ document.getElementById('addTaskBtn').addEventListener('click', () => {
     } else {
         showModal('alert', 'Please enter a task');
     }
-});
-
-document.getElementById('handbookBtn').addEventListener('click', () => {
-    console.log('Handbook button clicked, redirecting to handbook');
-    window.location.href = 'https://docs.google.com/document/d/1SB48S4SiuT9_npDhgU1FT_CxAjdKGn40IpqUQKm2Nek/edit?usp=sharing';
 });
 
 document.getElementById('absencesBtn').addEventListener('click', () => {
@@ -1187,24 +1193,27 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     };
     emp.absences.push(absence);
     updateEmployee(emp);
-    const embedResponse = await sendEmbed(ABSENCE_CHANNEL, {
+    const embed = {
         title: 'New Absence Request',
         fields: [
             { name: 'User', value: `<@${currentUser.id}> (${emp.profile.name})`, inline: true },
             { name: 'Reason', value: type, inline: true },
             { name: 'Start Date', value: startDate, inline: true },
             { name: 'End Date', value: endDate, inline: true },
+            { name: 'Total Days', value: `${Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1}`, inline: true },
             { name: 'Comment', value: comment, inline: false }
         ],
         footer: { text: 'Please accept/reject on the HR portal' },
         color: 0xffff00
-    });
-    absence.messageId = embedResponse?.message_id;
+    };
+    const embedResponse = await sendEmbed(embed);
+    absence.messageId = embedResponse?.id;
     updateEmployee(emp);
     closeModal('absenceRequest');
     showModal('alert', '<span class="success-tick"></span> Successfully Submitted!');
     playSuccessSound();
     addNotification('absence', 'Absence request submitted!', 'absences');
+    // Ensure pending tab is active and render
     document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
     document.getElementById('pendingFolder').classList.add('active');
@@ -1241,27 +1250,24 @@ function renderAbsences(tab) {
     emp.absences.filter(a => a.status === tab).forEach(a => {
         const li = document.createElement('li');
         li.className = `absence-item ${a.status}`;
-        li.dataset.id = a.id;
-        const days = Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1;
         li.innerHTML = `
-            <div class="absence-summary">
-                <p>Type: ${a.type}</p>
-                <p>Dates: ${a.startDate} to ${a.endDate}</p>
-                <p>Reason: ${a.type}</p>
-                <p>Days: ${days}</p>
-                ${a.status === 'rejected' ? `<p>Rejection Reason: ${a.reason || 'N/A'}</p>` : ''}
-                ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
-                ${a.status === 'archived' ? `<button class="delete-absence-btn" data-id="${a.id}">Delete Absence</button>` : ''}
-            </div>
+            <span>Reason: ${a.type}</span>
+            <span>Start: ${a.startDate}</span>
+            <span>End: ${a.endDate}</span>
+            <span>Total Days: ${Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
+            ${a.status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
+            ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
         `;
         li.addEventListener('click', (e) => {
-            if (e.target.classList.contains('cancel-absence-btn') || e.target.classList.contains('delete-absence-btn')) return;
-            document.getElementById('absenceDetailType').textContent = a.type;
-            document.getElementById('absenceDetailStartDate').textContent = a.startDate;
-            document.getElementById('absenceDetailEndDate').textContent = a.endDate;
-            document.getElementById('absenceDetailDays').textContent = days;
-            document.getElementById('absenceDetailReason').textContent = a.reason || 'N/A';
-            document.getElementById('absenceDetailComment').textContent = a.comment;
+            if (e.target.classList.contains('cancel-absence-btn')) return;
+            document.getElementById('absenceDetailContent').innerHTML = `
+                <p><strong>Type:</strong> ${a.type}</p>
+                <p><strong>Start:</strong> ${a.startDate}</p>
+                <p><strong>End:</strong> ${a.endDate}</p>
+                <p><strong>Comment:</strong> ${a.comment}</p>
+                <p><strong>Status:</strong> ${a.status.charAt(0).toUpperCase() + a.status.slice(1)}</p>
+                ${a.status === 'rejected' ? `<p><strong>Reason:</strong> ${a.reason || 'N/A'}</p>` : ''}
+            `;
             document.getElementById('cancelAbsenceBtn').classList.toggle('hidden', a.status !== 'pending');
             document.getElementById('cancelAbsenceBtn').dataset.id = a.id;
             const deleteBtn = document.getElementById('deleteAbsenceBtn');
@@ -1283,13 +1289,6 @@ function renderAbsences(tab) {
             showModal('confirmCancelAbsence');
         });
     });
-
-    archivedList.querySelectorAll('.delete-absence-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.getElementById('deleteAbsenceBtn').dataset.id = btn.dataset.id;
-            showModal('absenceDetail');
-        });
-    });
 }
 
 document.getElementById('cancelAbsenceBtn').addEventListener('click', () => {
@@ -1305,18 +1304,20 @@ document.getElementById('confirmCancelAbsenceBtn').addEventListener('click', asy
         absence.status = 'archived';
         updateEmployee(emp);
         if (absence.messageId) {
-            await updateEmbed(ABSENCE_CHANNEL, absence.messageId, {
+            const embed = {
                 title: 'Absence Request Cancelled',
                 fields: [
                     { name: 'User', value: `<@${currentUser.id}> (${emp.profile.name})`, inline: true },
                     { name: 'Reason', value: absence.type, inline: true },
                     { name: 'Start Date', value: absence.startDate, inline: true },
                     { name: 'End Date', value: absence.endDate, inline: true },
+                    { name: 'Total Days', value: `${Math.ceil((new Date(absence.endDate) - new Date(absence.startDate)) / (1000 * 60 * 60 * 24)) + 1}`, inline: true },
                     { name: 'Comment', value: absence.comment, inline: false },
                     { name: 'Status', value: 'ABSENCE CANCELLED', inline: false }
                 ],
                 color: 0xff0000
-            });
+            };
+            await updateEmbed(absence.messageId, embed);
         }
         closeModal('confirmCancelAbsence');
         closeModal('absenceDetail');
@@ -1333,15 +1334,26 @@ document.getElementById('noCancelAbsenceBtn').addEventListener('click', () => {
 
 document.getElementById('deleteAbsenceBtn').addEventListener('click', () => {
     const absenceId = document.getElementById('deleteAbsenceBtn').dataset.id;
+    document.getElementById('confirmDeleteBtn').dataset.id = absenceId;
+    showModal('confirmDeleteAbsence');
+});
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+    const absenceId = document.getElementById('confirmDeleteBtn').dataset.id;
     const emp = getEmployee(currentUser.id);
     emp.absences = emp.absences.filter(a => a.id !== absenceId);
     updateEmployee(emp);
+    closeModal('confirmDeleteAbsence');
     closeModal('absenceDetail');
     showModal('alert', '<span class="success-tick"></span> Absence deleted!');
     playSuccessSound();
     addNotification('absence', 'Absence deleted!', 'absences');
-    const activeTab = document.querySelector('.absence-tab-btn.active')?.dataset.tab || 'pending';
+    const activeTab = document.querySelector('.absence-tab-btn.active')?.dataset.tab || 'archived';
     renderAbsences(activeTab);
+});
+
+document.getElementById('noDeleteBtn').addEventListener('click', () => {
+    closeModal('confirmDeleteAbsence');
 });
 
 document.getElementById('payslipsBtn').addEventListener('click', () => {
@@ -1445,6 +1457,7 @@ document.getElementById('mailBtn').addEventListener('click', () => {
     document.getElementById('inboxFolder').classList.add('active');
     document.getElementById('sentFolder').classList.remove('active');
     document.getElementById('draftsFolder').classList.remove('active');
+    updateTabSlider();
 });
 
 document.getElementById('composeMailBtn').addEventListener('click', () => {
@@ -1626,23 +1639,67 @@ document.getElementById('mailScreen').addEventListener('click', (e) => {
         document.getElementById('inboxFolder').classList.toggle('active', folder === 'inbox');
         document.getElementById('sentFolder').classList.toggle('active', folder === 'sent');
         document.getElementById('draftsFolder').classList.toggle('active', folder === 'drafts');
+        updateTabSlider();
     }
+});
+
+function updateTabSlider() {
+    const activeTab = document.querySelector('.mail-tabs .tab-btn.active');
+    if (!activeTab) return;
+    const slider = document.querySelector('.tab-slider');
+    if (!slider) return;
+    const rect = activeTab.getBoundingClientRect();
+    const containerRect = document.querySelector('.mail-tabs').getBoundingClientRect();
+    slider.style.width = `${rect.width}px`;
+    slider.style.transform = `translateX(${rect.left - containerRect.left}px)`;
+}
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+    console.log('Logging out user:', currentUser.id);
+    const emp = getEmployee(currentUser.id);
+    document.getElementById('goodbyeName').textContent = emp.profile.name || 'User';
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('lastProcessedCode');
+    localStorage.removeItem('clockInTime');
+    if (isClockedIn) {
+        clearInterval(clockInInterval);
+        isClockedIn = false;
+        const session = downloadTXT(currentUser, clockInTime, Date.now(), clockInActions);
+        previousSessions = JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`)) || [];
+        previousSessions.unshift(session);
+        localStorage.setItem(`previousSessions_${currentUser.id}`, JSON.stringify(previousSessions));
+        sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()} due to logout`);
+    }
+    showScreen('goodbye');
+    setTimeout(() => showScreen('discord'), 2000);
 });
 
 document.querySelector('.sidebar-toggle').addEventListener('click', () => {
     console.log('Sidebar toggle clicked');
-    const sidebar = document.getElementById('sidebar');
-    const notificationPanel = document.getElementById('notificationPanel');
-    sidebar.classList.toggle('hidden');
-    notificationPanel.classList.toggle('hidden');
+    document.getElementById('sidebar').classList.toggle('extended');
+});
+
+document.getElementById('modeToggle').addEventListener('change', (e) => {
+    document.body.classList.toggle('dark', e.target.checked);
+    localStorage.setItem('darkMode', e.target.checked);
+});
+
+document.querySelectorAll('.modal .close').forEach(closeBtn => {
+    closeBtn.addEventListener('click', () => {
+        const modal = closeBtn.closest('.modal');
+        const modalId = Object.keys(modals).find(id => modals[id] === modal);
+        closeModal(modalId);
+    });
 });
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+(async function init() {
+    console.log('Initializing Staff Portal');
     preloadAudio();
-    const savedClockInTime = localStorage.getItem('clockInTime');
-    if (savedClockInTime) {
-        clockInTime = parseInt(savedClockInTime);
+    const savedUser = localStorage.getItem('currentUser');
+    const savedClockIn = localStorage.getItem('clockInTime');
+    if (savedClockIn) {
+        clockInTime = parseInt(savedClockIn);
         isClockedIn = true;
         clockInInterval = setInterval(() => {
             const elapsed = Date.now() - clockInTime;
@@ -1653,5 +1710,24 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }, 1000);
     }
-    handleOAuthRedirect();
-});
+    if (savedUser) {
+        try {
+            currentUser = JSON.parse(savedUser);
+            console.log('Loaded saved user:', currentUser);
+            if (currentUser.id) {
+                const emp = getEmployee(currentUser.id);
+                document.getElementById('portalWelcomeName').textContent = emp.profile.name;
+                document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
+                console.log('Showing portalWelcome screen with sidebar');
+                showScreen('portalWelcome');
+                updateSidebarProfile();
+                await fetchEmployees();
+                return;
+            }
+        } catch (e) {
+            console.error('Error parsing saved user:', e);
+            localStorage.removeItem('currentUser');
+        }
+    }
+    await handleOAuthRedirect();
+})();

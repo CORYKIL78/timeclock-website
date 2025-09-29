@@ -13,42 +13,43 @@
         <div class="sidebar-header">
             <img id="sidebarProfilePic" class="profile-img" src="" alt="Profile">
         </div>
-        <button class="sidebar-toggle">☰</button>
+        <button class="sidebar-toggle" aria-label="Toggle Sidebar">☰</button>
         <div id="sidebarNav">
-            <button id="homeBtn">Home</button>
-            <button id="myRolesBtn">My Roles</button>
-            <button id="tasksBtn">Tasks</button>
-            <button id="absencesBtn">Absences</button>
-            <button id="payslipsBtn">Payslips</button>
-            <button id="disciplinariesBtn">Disciplinaries</button>
-            <button id="timeclockBtn">Timeclock</button>
-            <button id="mailBtn">Mail</button>
-            <button id="handbookBtn">Handbook</button>
+            <button id="homeBtn" aria-label="Go to Home">Home</button>
+            <button id="myRolesBtn" aria-label="View My Roles">My Roles</button>
+            <button id="tasksBtn" aria-label="View Tasks">Tasks</button>
+            <button id="absencesBtn" aria-label="View Absences">Absences</button>
+            <button id="payslipsBtn" aria-label="View Payslips">Payslips</button>
+            <button id="disciplinariesBtn" aria-label="View Disciplinaries">Disciplinaries</button>
+            <button id="timeclockBtn" aria-label="View Timeclock">Timeclock</button>
+            <button id="mailBtn" aria-label="View Mail">Mail</button>
+            <button id="handbookBtn" aria-label="View Handbook">Handbook</button>
         </div>
         <div class="sidebar-footer">
-            <img src="https://media.discordapp.net/attachments/1315278404009988107/1315278404412768266/Utilities.png?ex=68da6cf8&is=68d91b78&hm=63c073799cd36883512843d1fca7bf672ffb963c3c7e907aa8c1401cafa29608&=&format=webp&quality=lossless" alt="Utilities" style="width: 30px; height: auto;">
-            <button id="logoutBtn" class="action-btn" title="Log Out">Log Out</button>
+            <img src="https://media.discordapp.net/attachments/1315278404009988107/1315278404412768266/Utilities.png?ex=68da6cf8&is=68d91b78&hm=63c073799cd36883512843d1fca7bf672ffb963c3c7e907aa8c1401cafa29608&=&format=webp&quality=lossless" alt="Utilities" class="utilities-icon">
+            <button id="logoutBtn" title="Log Out" aria-label="Log Out">Log Out</button>
         </div>
     </div>
 
     <!-- Notifications Panel -->
-    <div id="notificationPanel" class="notifications hidden">
+    <div id="notificationPanel" class="hidden">
         <h3>Notifications</h3>
         <ul id="notificationList"></ul>
     </div>
 
     <!-- Modals -->
-    <div id="alertModal" class="modal">
+    <div id="alertModal" class="modal" role="dialog" aria-labelledby="alertModalTitle">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close" aria-label="Close">&times;</span>
+            <h2 id="alertModalTitle" class="hidden">Alert</h2>
             <div id="alertMessage"></div>
         </div>
     </div>
-    <div id="composeMailModal" class="modal">
+    <div id="composeMailModal" class="modal" role="dialog" aria-labelledby="composeMailModalTitle">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close" aria-label="Close">&times;</span>
             <div class="mail-compose">
-                <h2>Compose Mail</h2>
+                <h2 id="composeMailModalTitle">Compose Mail</h2>
                 <select id="mailRecipients" multiple required>
                     <option value="" disabled>Select Recipients</option>
                 </select>
@@ -57,24 +58,24 @@
                 <input type="file" id="mailAttachments" multiple>
                 <div id="mailError" class="mail-error hidden">Select at least one participant</div>
                 <div class="mail-actions">
-                    <button id="sendMailBtn">Send</button>
-                    <button id="saveDraftBtn">Save to Drafts</button>
+                    <button id="sendMailBtn" aria-label="Send Mail">Send</button>
+                    <button id="saveDraftBtn" aria-label="Save to Drafts">Save to Drafts</button>
                 </div>
             </div>
         </div>
     </div>
-    <div id="resetProfileModal" class="modal">
+    <div id="resetProfileModal" class="modal" role="dialog" aria-labelledby="resetProfileModalTitle">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Reset Profile</h2>
+            <span class="close" aria-label="Close">&times;</span>
+            <h2 id="resetProfileModalTitle">Reset Profile</h2>
             <p>Are you sure you want to reset your profile? This cannot be undone.</p>
-            <button id="confirmResetBtn">Confirm</button>
+            <button id="confirmResetBtn" aria-label="Confirm Reset">Confirm</button>
         </div>
     </div>
-    <div id="absenceRequestModal" class="modal">
+    <div id="absenceRequestModal" class="modal" role="dialog" aria-labelledby="absenceRequestModalTitle">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Request Absence</h2>
+            <span class="close" aria-label="Close">&times;</span>
+            <h2 id="absenceRequestModalTitle">Request Absence</h2>
             <select id="absenceType">
                 <option value="Sick Leave">Sick Leave</option>
                 <option value="Vacation">Vacation</option>
@@ -84,39 +85,40 @@
             <input type="date" id="absenceEndDate">
             <textarea id="absenceComment" placeholder="Comment"></textarea>
             <p id="absenceDays">Total Days: 0</p>
-            <button id="submitAbsenceBtn">Submit</button>
+            <button id="submitAbsenceBtn" aria-label="Submit Absence Request">Submit</button>
         </div>
     </div>
-    <div id="deptChangeModal" class="modal">
+    <div id="deptChangeModal" class="modal" role="dialog" aria-labelledby="deptChangeModalTitle">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Change Department</h2>
+            <span class="close" aria-label="Close">&times;</span>
+            <h2 id="deptChangeModalTitle">Change Department</h2>
             <p>Which department do you wish to change to?</p>
             <label><input type="radio" name="newDepartment" value="Development Department"> Development</label>
             <label><input type="radio" name="newDepartment" value="Customer Relations Department"> Customer Relations</label>
             <label><input type="radio" name="newDepartment" value="Careers Department"> Careers</label>
-            <button id="submitDeptChangeBtn">Submit</button>
+            <button id="submitDeptChangeBtn" aria-label="Submit Department Change">Submit</button>
         </div>
     </div>
-    <div id="viewMailModal" class="modal">
+    <div id="viewMailModal" class="modal" role="dialog" aria-labelledby="viewMailModalTitle">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close" aria-label="Close">&times;</span>
+            <h2 id="viewMailModalTitle" class="hidden">View Mail</h2>
             <div id="viewMailContent"></div>
-            <button id="replyMailBtn" class="hidden">Reply</button>
+            <button class="reply-btn hidden" aria-label="Reply to Mail">Reply</button>
         </div>
     </div>
-    <div id="replyMailModal" class="modal">
+    <div id="replyMailModal" class="modal" role="dialog" aria-labelledby="replyMailModalTitle">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Reply to Mail</h2>
+            <span class="close" aria-label="Close">&times;</span>
+            <h2 id="replyMailModalTitle">Reply to Mail</h2>
             <textarea id="replyContent" placeholder="Your reply..."></textarea>
-            <button id="sendReplyBtn">Send</button>
+            <button id="sendReplyBtn" aria-label="Send Reply">Send</button>
         </div>
     </div>
-    <div id="absenceDetailModal" class="modal">
+    <div id="absenceDetailModal" class="modal" role="dialog" aria-labelledby="absenceDetailModalTitle">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Absence Details</h2>
+            <span class="close" aria-label="Close">&times;</span>
+            <h2 id="absenceDetailModalTitle">Absence Details</h2>
             <div id="absenceDetailContent" class="absence-details">
                 <p><strong>Type:</strong> <span id="absenceDetailType"></span></p>
                 <p><strong>Start Date:</strong> <span id="absenceDetailStartDate"></span></p>
@@ -125,17 +127,17 @@
                 <p><strong>Reason:</strong> <span id="absenceDetailReason"></span></p>
                 <p><strong>Comment:</strong> <span id="absenceDetailComment"></span></p>
             </div>
-            <button id="cancelAbsenceBtn" class="cancel-absence-btn hidden">Cancel Absence</button>
-            <button id="deleteAbsenceBtn" class="delete-absence-btn hidden">Delete Absence</button>
+            <button id="cancelAbsenceBtn" class="cancel-absence-btn hidden" aria-label="Cancel Absence">Cancel Absence</button>
+            <button id="deleteAbsenceBtn" class="delete-absence-btn hidden" aria-label="Delete Absence">Delete Absence</button>
         </div>
     </div>
-    <div id="confirmCancelAbsenceModal" class="modal">
+    <div id="confirmCancelAbsenceModal" class="modal" role="dialog" aria-labelledby="confirmCancelAbsenceModalTitle">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Confirm Absence Cancellation</h2>
+            <span class="close" aria-label="Close">&times;</span>
+            <h2 id="confirmCancelAbsenceModalTitle">Confirm Absence Cancellation</h2>
             <p>Are you sure you want to cancel your absence?</p>
-            <button id="confirmCancelAbsenceBtn" class="cancel-absence-btn">Cancel Absence</button>
-            <button id="noCancelAbsenceBtn">No</button>
+            <button id="confirmCancelAbsenceBtn" class="cancel-absence-btn" aria-label="Confirm Absence Cancellation">Cancel Absence</button>
+            <button id="noCancelAbsenceBtn" aria-label="Keep Absence">No</button>
         </div>
     </div>
 
@@ -144,7 +146,7 @@
         <div class="container">
             <img class="logo" src="https://media.discordapp.net/attachments/1315278404009988107/1322985671773655200/Cirkledevblack.png?ex=68dac76c&is=68d975ec&hm=bb0641408f99b891d1ed09b03df3cf992643785df18a72938cb5f60d0c00c65f&=&format=webp&quality=lossless" alt="Logo">
             <h1>Welcome, please log in using Discord</h1>
-            <button id="discordLoginBtn">Login with Discord</button>
+            <button id="discordLoginBtn" aria-label="Login with Discord">Login with Discord</button>
         </div>
     </div>
     <div id="searchingScreen" class="screen loading-screen">
@@ -169,21 +171,21 @@
         <div class="container">
             <h2>Profile Found</h2>
             <p>Please select "Finalise" to continue.</p>
-            <button id="continueBtn">Finalise</button>
+            <button id="continueBtn" aria-label="Finalise Profile">Finalise</button>
         </div>
     </div>
     <div id="setupWelcomeScreen" class="screen">
         <div class="container">
             <h2>Welcome!</h2>
             <p>Please set up your profile to continue.</p>
-            <button id="setupStartBtn">Start</button>
+            <button id="setupStartBtn" aria-label="Start Profile Setup">Start</button>
         </div>
     </div>
     <div id="setupEmailScreen" class="screen">
         <div class="container">
             <h2>Please add your email</h2>
             <input type="email" id="setupEmailInput" placeholder="Email">
-            <button id="setupEmailContinueBtn">Continue</button>
+            <button id="setupEmailContinueBtn" aria-label="Continue to Next Step">Continue</button>
         </div>
     </div>
     <div id="setupNameScreen" class="screen">
@@ -191,7 +193,7 @@
             <h2>Let's give you a proper identity</h2>
             <p>Please insert your first and last name (not your real one, the one you use in the server)</p>
             <input type="text" id="setupNameInput" placeholder="First Last">
-            <button id="setupNameContinueBtn">Continue</button>
+            <button id="setupNameContinueBtn" aria-label="Continue to Next Step">Continue</button>
         </div>
     </div>
     <div id="setupDepartmentScreen" class="screen">
@@ -200,7 +202,7 @@
             <label><input type="radio" name="department" value="Development Department"> Development</label>
             <label><input type="radio" name="department" value="Customer Relations Department"> Customer Relations</label>
             <label><input type="radio" name="department" value="Careers Department"> Careers</label>
-            <button id="setupDepartmentContinueBtn">Continue</button>
+            <button id="setupDepartmentContinueBtn" aria-label="Continue to Next Step">Continue</button>
         </div>
     </div>
     <div id="setupVerifyScreen" class="screen loading-screen">
@@ -216,14 +218,14 @@
         <div class="container">
             <h2>Welcome, <span id="setupWelcomeName"></span>, to your new Staff Portal!</h2>
             <p>Let's take a look around!</p>
-            <button id="setupCompleteBtn">Continue</button>
+            <button id="setupCompleteBtn" aria-label="Complete Setup">Continue</button>
         </div>
     </div>
     <div id="portalWelcomeScreen" class="screen">
         <div class="container">
             <h2>Welcome back, <span id="portalWelcomeName"></span>!</h2>
             <p>Previous login: <span id="portalLastLogin"></span></p>
-            <button id="portalLoginBtn">Log In</button>
+            <button id="portalLoginBtn" aria-label="Log In to Portal">Log In</button>
         </div>
     </div>
     <div id="mainMenuScreen" class="screen">
@@ -234,7 +236,7 @@
                     <h2 id="greeting"></h2>
                     <p id="lastLogin"></p>
                 </div>
-                <p id="dateTime" style="margin-left: auto;"></p>
+                <p id="dateTime" class="date-time"></p>
             </div>
             <div class="stats-grid">
                 <div class="stat-card">
@@ -242,12 +244,13 @@
                     <p id="totalAbsences">0</p>
                     <h3>Total Absence Days</h3>
                     <p id="totalAbsenceDays">0</p>
+                    <canvas id="absenceChart" width="200" height="200"></canvas>
                 </div>
                 <div class="stat-card">
                     <h3>Department</h3>
                     <p id="currentDepartment">Development</p>
                     <p class="hint">Wish to change? Click the button below to go to your profile settings and request a change.</p>
-                    <button id="changeDepartmentBtn">Change My Department</button>
+                    <button id="changeDepartmentBtn" aria-label="Change Department">Change My Department</button>
                 </div>
             </div>
         </div>
@@ -260,16 +263,16 @@
             <p>Department: <span id="profileDepartment"></span></p>
             <input type="text" id="updateNameInput" placeholder="Update Name">
             <input type="email" id="updateEmailInput" placeholder="Update Email">
-            <button id="updateProfileBtn">Update Profile</button>
-            <button id="changeDeptBtn">Change Department</button>
+            <button id="updateProfileBtn" aria-label="Update Profile">Update Profile</button>
+            <button id="changeDeptBtn" aria-label="Change Department">Change Department</button>
             <div class="toggle-container">
                 <label class="switch">
-                    <input type="checkbox" id="modeToggle">
+                    <input type="checkbox" id="modeToggle" aria-label="Toggle Dark Mode">
                     <span class="slider"></span>
                 </label>
                 <span>Dark Mode</span>
             </div>
-            <button id="resetProfileBtn">Reset Profile</button>
+            <button id="resetProfileBtn" aria-label="Reset Profile">Reset Profile</button>
         </div>
     </div>
     <div id="myRolesScreen" class="screen">
@@ -283,7 +286,7 @@
             <h2>Tasks</h2>
             <div class="task-input">
                 <input type="text" id="taskInput" placeholder="Add a task">
-                <button id="addTaskBtn">&#8594;</button>
+                <button id="addTaskBtn" aria-label="Add Task">&#8594;</button>
             </div>
             <ul id="tasksList"></ul>
         </div>
@@ -291,12 +294,12 @@
     <div id="absencesScreen" class="screen">
         <div class="container">
             <h2>Absences</h2>
-            <button id="requestAbsenceBtn">Request Absence</button>
+            <button id="requestAbsenceBtn" aria-label="Request Absence">Request Absence</button>
             <div class="absence-tabs">
-                <button class="absence-tab-btn active" data-tab="pending">Pending</button>
-                <button class="absence-tab-btn" data-tab="approved">Accepted</button>
-                <button class="absence-tab-btn" data-tab="rejected">Rejected</button>
-                <button class="absence-tab-btn" data-tab="archived">Archived</button>
+                <button class="absence-tab-btn active" data-tab="pending" aria-label="View Pending Absences">Pending</button>
+                <button class="absence-tab-btn" data-tab="approved" aria-label="View Accepted Absences">Accepted</button>
+                <button class="absence-tab-btn" data-tab="rejected" aria-label="View Rejected Absences">Rejected</button>
+                <button class="absence-tab-btn" data-tab="archived" aria-label="View Archived Absences">Archived</button>
             </div>
             <div class="absence-content">
                 <div id="pendingFolder" class="absence-folder active">
@@ -330,8 +333,8 @@
         <div class="container">
             <h2>Timeclock</h2>
             <div id="clockDisplay"></div>
-            <button id="clockInBtn">Clock In</button>
-            <button id="clockOutBtn" class="hidden">Clock Out</button>
+            <button id="clockInBtn" aria-label="Clock In">Clock In</button>
+            <button id="clockOutBtn" class="hidden" aria-label="Clock Out">Clock Out</button>
             <div id="sessionInfo" class="session-item hidden"></div>
             <h3>Previous Sessions</h3>
             <div id="previousSessions" class="session-list"></div>
@@ -340,11 +343,11 @@
     <div id="mailScreen" class="screen">
         <div class="container">
             <h2>Mail</h2>
-            <button id="composeMailBtn" title="Compose Mail"></button>
+            <button id="composeMailBtn" title="Compose Mail" aria-label="Compose Mail"></button>
             <div class="mail-tabs">
-                <button class="tab-btn active" data-tab="inbox">Inbox</button>
-                <button class="tab-btn" data-tab="sent">Sent</button>
-                <button class="tab-btn" data-tab="drafts">Drafts</button>
+                <button class="tab-btn active" data-tab="inbox" aria-label="View Inbox">Inbox</button>
+                <button class="tab-btn" data-tab="sent" aria-label="View Sent Mail">Sent</button>
+                <button class="tab-btn" data-tab="drafts" aria-label="View Drafts">Drafts</button>
                 <div class="tab-slider"></div>
             </div>
             <div class="mail-content">
@@ -360,12 +363,18 @@
             </div>
         </div>
     </div>
+    <div id="handbookScreen" class="screen">
+        <div class="container">
+            <h2>Handbook</h2>
+            <div id="handbookContent"></div>
+        </div>
+    </div>
     <div id="goodbyeScreen" class="screen">
         <div class="container">
             <h2>Goodbye, <span id="goodbyeName"></span></h2>
         </div>
     </div>
-    <div id="mailDeliveryAnimation" class="mail-delivery-animation hidden"></div>
+    <div id="mailDeliveryAnimation" class="hidden"></div>
 
     <footer>© Cirkle Development 2024</footer>
 
