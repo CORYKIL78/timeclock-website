@@ -46,6 +46,18 @@ body {
     overflow-x: hidden;
 }
 
+#companyLogo {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 2000;
+}
+
+#companyLogo img {
+    width: 100px;
+    height: auto;
+}
+
 .screen {
     display: none;
     position: fixed;
@@ -60,11 +72,6 @@ body {
     transition: opacity 0.5s var(--transition-ease);
     z-index: 1;
     padding: 20px;
-}
-
-#discordScreen {
-    display: flex; /* Ensure discordScreen is visible by default */
-    opacity: 1;
 }
 
 .screen.active {
@@ -103,11 +110,6 @@ body.dark .container {
 @keyframes slideIn {
     from { transform: translateY(20px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
-}
-
-.error-message {
-    margin-top: 10px;
-    font-size: 14px;
 }
 
 input, select, textarea {
@@ -224,8 +226,8 @@ body.dark #logoutBtn {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    width: 36px;
-    height: 36px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     display: none;
     align-items: center;
@@ -241,8 +243,8 @@ body.dark #logoutBtn {
 #composeMailBtn::before {
     content: '';
     display: inline-block;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     background: url('https://cdn-icons-png.flaticon.com/512/561/561226.png') no-repeat center;
     background-size: cover;
 }
@@ -784,7 +786,7 @@ body.dark .modal-content {
     font-size: 14px;
 }
 
-.cancel-absence-btn {
+.cancel-absence-details-btn {
     width: auto;
     padding: 8px 16px;
     background: var(--danger);
@@ -794,16 +796,16 @@ body.dark .modal-content {
     transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
 }
 
-.cancel-absence-btn:hover {
+.cancel-absence-details-btn:hover {
     background: #c82333;
     transform: scale(1.05);
 }
 
-body.dark .cancel-absence-btn {
+body.dark .cancel-absence-details-btn {
     background: #c82333;
 }
 
-body.dark .cancel-absence-btn:hover {
+body.dark .cancel-absence-details-btn:hover {
     background: #a71d2a;
 }
 
@@ -948,6 +950,34 @@ body.dark .absence-tab-btn {
     color: white;
 }
 
+.absence-tab-slider {
+    position: absolute;
+    bottom: 0;
+    height: 2px;
+    background: var(--tab-active-bg);
+    transition: transform 0.3s var(--transition-ease), width 0.3s var(--transition-ease);
+}
+
+.absence-tab-btn[data-tab="pending"] + .absence-tab-slider {
+    transform: translateX(0);
+    width: calc(100% / 4); /* Assuming 4 tabs */
+}
+
+.absence-tab-btn[data-tab="approved"].active + .absence-tab-slider {
+    transform: translateX(100%);
+    width: calc(100% / 4);
+}
+
+.absence-tab-btn[data-tab="rejected"].active + .absence-tab-slider {
+    transform: translateX(200%);
+    width: calc(100% / 4);
+}
+
+.absence-tab-btn[data-tab="archived"].active + .absence-tab-slider {
+    transform: translateX(300%);
+    width: calc(100% / 4);
+}
+
 .absence-content {
     position: relative;
     overflow: hidden;
@@ -1018,7 +1048,6 @@ body.dark .absence-tab-btn {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
     transition: transform 0.2s var(--transition-ease);
     cursor: pointer;
     position: relative;
@@ -1035,6 +1064,28 @@ body.dark .absence-item {
 .absence-item.pending {
     background: var(--yellow-hazard);
     color: #212529;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.absence-item.pending .absence-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+}
+
+.absence-item.pending .absence-summary p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.absence-item.pending .absence-details {
+    display: none;
+}
+
+.absence-item.pending:hover .absence-details {
+    display: flex;
 }
 
 .absence-item.approved {
@@ -1053,12 +1104,23 @@ body.dark .absence-item {
     opacity: 0.7;
 }
 
+.absence-item.canceled {
+    background: #d3d3d3; /* Grey for canceled absences */
+    color: #41464b;
+    opacity: 0.7;
+}
+
+.absence-item.archived .delete-absence-btn,
+.absence-item.canceled .delete-absence-btn {
+    display: inline-block;
+}
+
 body.dark .absence-item.pending {
     background: #d4a017;
     color: #e0e0e0;
 }
 
-.body.dark .absence-item.approved {
+body.dark .absence-item.approved {
     background: #155724;
     color: #d4edda;
 }
@@ -1074,6 +1136,12 @@ body.dark .absence-item.archived {
     opacity: 0.7;
 }
 
+body.dark .absence-item.canceled {
+    background: #5a6268;
+    color: #e0e0e0;
+    opacity: 0.7;
+}
+
 .pending-department::after {
     content: '⚠';
     color: var(--yellow-hazard);
@@ -1082,11 +1150,18 @@ body.dark .absence-item.archived {
 }
 
 .absence-details {
-    display: flex;
+    position: static;
+    background: white;
+    border: 1px solid var(--mail-border);
+    border-radius: 6px;
+    padding: 10px;
+    z-index: 10;
+    display: none;
     flex-direction: column;
-    gap: 10px;
-    margin-top: 15px;
-    text-align: left;
+    gap: 5px;
+    box-shadow: var(--shadow);
+    width: 100%;
+    margin-top: 10px;
 }
 
 body.dark .absence-details {
@@ -1099,6 +1174,29 @@ body.dark .absence-details {
     font-size: 14px;
 }
 
+.cancel-absence-btn {
+    width: auto;
+    padding: 8px 16px;
+    background: var(--danger);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
+}
+
+.cancel-absence-btn:hover {
+    background: #c82333;
+    transform: scale(1.05);
+}
+
+body.dark .cancel-absence-btn {
+    background: #c82333;
+}
+
+body.dark .cancel-absence-btn:hover {
+    background: #a71d2a;
+}
+
 .delete-absence-btn {
     width: auto;
     padding: 8px 16px;
@@ -1107,6 +1205,7 @@ body.dark .absence-details {
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
+    display: none;
 }
 
 .delete-absence-btn:hover {
@@ -1465,7 +1564,10 @@ body.dark .stat-card {
     .modal-content { max-width: 95%; }
     .tutorial-text { font-size: 14px; padding: 8px 16px; }
     .mail-tabs .tab-btn { max-width: 100px; font-size: 14px; }
+    #mailScreen .container { padding: 10px; }
+    #companyLogo img { width: 80px; }
     .stats-grid { grid-template-columns: 1fr; }
     .absence-tabs { flex-wrap: wrap; }
     .absence-tab-btn { flex: 1 1 45%; }
+    .absence-tab-slider { width: calc(100% / 2); }
 }

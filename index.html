@@ -137,38 +137,28 @@
             <button id="noCancelAbsenceBtn">No</button>
         </div>
     </div>
-    <div id="confirmDeleteAbsenceModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Confirm Absence Deletion</h2>
-            <p>Are you sure you want to delete this absence?</p>
-            <button id="confirmDeleteBtn" class="delete-absence-btn">Delete</button>
-            <button id="noDeleteBtn">No</button>
-        </div>
-    </div>
 
     <!-- Screens -->
-    <div id="discordScreen" class="screen active">
+    <div id="discordScreen" class="screen">
         <div class="container">
             <img class="logo" src="https://media.discordapp.net/attachments/1315278404009988107/1322985671773655200/Cirkledevblack.png?ex=68dac76c&is=68d975ec&hm=bb0641408f99b891d1ed09b03df3cf992643785df18a72938cb5f60d0c00c65f&=&format=webp&quality=lossless" alt="Logo">
             <h1>Welcome, please log in using Discord</h1>
             <button id="discordLoginBtn">Login with Discord</button>
-            <p class="error-message" style="color: var(--danger); display: none;">Failed to load portal. Please enable JavaScript and try again.</p>
         </div>
     </div>
-    <div id="searchingScreen" class="screen">
+    <div id="searchingScreen" class="screen loading-screen">
         <div class="container black-bg">
             <h2>Searching...</h2>
             <div class="spinner"></div>
         </div>
     </div>
-    <div id="rolesScreen" class="screen">
+    <div id="rolesScreen" class="screen loading-screen">
         <div class="container black-bg">
             <h2>Checking Roles...</h2>
             <div class="spinner"></div>
         </div>
     </div>
-    <div id="cherryScreen" class="screen">
+    <div id="cherryScreen" class="screen loading-screen">
         <div class="container black-bg">
             <h2>Verifying...</h2>
             <div class="spinner"></div>
@@ -212,7 +202,7 @@
             <button id="setupDepartmentContinueBtn">Continue</button>
         </div>
     </div>
-    <div id="setupVerifyScreen" class="screen">
+    <div id="setupVerifyScreen" class="screen loading-screen">
         <div class="container black-bg">
             <h2>Verifying...</h2>
             <div class="spinner"></div>
@@ -259,13 +249,6 @@
                     <button id="changeDepartmentBtn">Change My Department</button>
                 </div>
             </div>
-            <div id="clockInBtnContainer">
-                <button id="clockInBtn">Clock In</button>
-                <button id="clockOutBtn" class="hidden">Clock Out</button>
-                <div id="sessionInfo" class="session-item hidden"></div>
-            </div>
-            <h3>Previous Sessions</h3>
-            <div id="previousSessions" class="session-list"></div>
         </div>
     </div>
     <div id="myProfileScreen" class="screen">
@@ -313,6 +296,7 @@
                 <button class="absence-tab-btn" data-tab="approved">Accepted</button>
                 <button class="absence-tab-btn" data-tab="rejected">Rejected</button>
                 <button class="absence-tab-btn" data-tab="archived">Archived</button>
+                <div class="absence-tab-slider"></div>
             </div>
             <div class="absence-content">
                 <div id="pendingFolder" class="absence-folder active">
@@ -383,7 +367,7 @@
     </div>
     <div id="mailDeliveryAnimation" class="mail-delivery-animation hidden"></div>
 
-    <footer>© Cirkle Development 2025</footer>
+    <footer>© Cirkle Development 2024</footer>
 
     <script src="script.js"></script>
 </body>
