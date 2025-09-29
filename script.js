@@ -1,3 +1,51 @@
+// Fix absence tab slider logic
+function updateAbsenceTabSlider() {
+    const activeTab = document.querySelector('.absence-tab-btn.active');
+    if (!activeTab) return;
+    const slider = document.querySelector('.absence-tabs .tab-slider');
+    if (!slider) return;
+    const rect = activeTab.getBoundingClientRect();
+    const containerRect = document.querySelector('.absence-tabs').getBoundingClientRect();
+    slider.style.width = `${rect.width}px`;
+    slider.style.transform = `translateX(${rect.left - containerRect.left}px)`;
+}
+// Absence webhook URL for Discord
+const ABSENCE_WEBHOOK_URL = 'https://discord.com/api/webhooks/1421968323738079305/kU7rh9EmHZr00oFcr_zuqFNQWUinmA2fRQpPhcpWL5KhTBeIaohyxsMOIM_Z8XtzvCoN';
+
+// Utility to send absence to Discord webhook
+async function sendAbsenceWebhook(absence) {
+    const emp = getEmployee(currentUser.id);
+    const payload = {
+        content: `Absence Request\nUser: <@${currentUser.id}> (${emp.profile.name})\nType: ${absence.type}\nStart: ${absence.startDate}\nEnd: ${absence.endDate}\nReason: ${absence.reason || 'N/A'}`
+    };
+    try {
+        await fetch(ABSENCE_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        console.log('Absence webhook sent');
+    } catch (e) {
+        console.error('Absence webhook failed:', e);
+    }
+}
+// Attach to absence submission (modal or form)
+const absenceSubmitBtn = document.getElementById('submitAbsenceBtn');
+if (absenceSubmitBtn && !absenceSubmitBtn.dataset.listener) {
+    absenceSubmitBtn.dataset.listener = 'true';
+    absenceSubmitBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        // Collect absence data from form fields
+        const type = document.getElementById('absenceType')?.value || 'Unknown';
+        const startDate = document.getElementById('absenceStartDate')?.value || '';
+        const endDate = document.getElementById('absenceEndDate')?.value || '';
+        const reason = document.getElementById('absenceReason')?.value || '';
+        const absence = { type, startDate, endDate, reason };
+        await sendAbsenceWebhook(absence);
+        showModal('alert', '<span class="success-tick"></span> Absence request sent to Discord!');
+        closeModal('absenceRequest');
+    });
+}
 const REQUIRED_ROLE = '1315346851616002158';
 const DEPT_ROLES = {
     'Development Department': '1315323804528017498',
@@ -1227,7 +1275,7 @@ document.getElementById('absencesScreen').addEventListener('click', (e) => {
     }
 });
 
-function renderAbsences(tab) {
+function renderAbsences(tab) {}
     const pendingList = document.getElementById('pendingAbsences');
     const approvedList = document.getElementById('approvedAbsences');
     const rejectedList = document.getElementById('rejectedAbsences');
@@ -1245,7 +1293,7 @@ function renderAbsences(tab) {
             <span>Reason: ${a.type}</span>
             <span>Start: ${a.startDate}</span>
             <span>End: ${a.endDate}</span>
-            <span>Total Days: ${Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
+            <span style="background:yellow;padding:2px 6px;border-radius:4px;">Total Days: ${Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
             ${a.status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
             ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
         `;
@@ -1274,29 +1322,7 @@ function renderAbsences(tab) {
         else if (tab === 'archived') archivedList.appendChild(li);
     });
 
-    pendingList.querySelectorAll('.cancel-absence-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.getElementById('confirmCancelAbsenceBtn').dataset.id = btn.dataset.id;
-            showModal('confirmCancelAbsence');
-        });
-    });
-}
-
-function updateAbsenceTabSlider() {
-    const activeTab = document.querySelector('.absence-tabs .absence-tab-btn.active');
-    if (!activeTab) return;
-    const slider = document.querySelector('.absence-tab-slider');
-    if (!slider) return;
-    const rect = activeTab.getBoundingClientRect();
-    const containerRect = document.querySelector('.absence-tabs').getBoundingClientRect();
-    slider.style.width = `${rect.width}px`;
-    slider.style.transform = `translateX(${rect.left - containerRect.left}px)`;
-}
-
-document.getElementById('cancelAbsenceBtn').addEventListener('click', () => {
-    document.getElementById('confirmCancelAbsenceBtn').dataset.id = document.getElementById('cancelAbsenceBtn').dataset.id;
-    showModal('confirmCancelAbsence');
-});
+    // Removed duplicate event listener code for cancelAbsenceBtn
 
 document.getElementById('confirmCancelAbsenceBtn').addEventListener('click', async () => {
     const absenceId = document.getElementById('confirmCancelAbsenceBtn').dataset.id;
@@ -1306,21 +1332,13 @@ document.getElementById('confirmCancelAbsenceBtn').addEventListener('click', asy
         absence.status = 'archived';
         updateEmployee(emp);
         if (absence.messageId) {
-            await updateEmbed(ABSENCE_CHANNEL, absence.messageId, {
-                title: 'Absence Request Cancelled',
-                fields: [
-                    { name: 'User', value: `<@${currentUser.id}> (${emp.profile.name})`, inline: true },
-                    { name: 'Reason', value: absence.type, inline: true },
-                    { name: 'Start Date', value: absence.startDate, inline: true },
-                    { name: 'End Date', value: absence.endDate, inline: true },
-                    { name: 'Comment', value: absence.comment, inline: false },
-                    { name: 'Status', value: 'ABSENCE CANCELLED', inline: false }
-                ],
-                color: 0xff0000
+            await sendAbsenceWebhook({
+                ...absence,
+                cancelled: true
             });
         }
         closeModal('confirmCancelAbsence');
-        closeModal('absenceDetail');
+        document.getElementById('absenceDetailModal').style.display = 'none';
         showModal('alert', '<span class="success-tick"></span> Cancelled Absence');
         playSuccessSound();
         addNotification('absence', 'Absence request cancelled!', 'absences');
@@ -1337,7 +1355,7 @@ document.getElementById('deleteAbsenceBtn').addEventListener('click', () => {
     const emp = getEmployee(currentUser.id);
     emp.absences = emp.absences.filter(a => a.id !== absenceId);
     updateEmployee(emp);
-    closeModal('absenceDetail');
+    document.getElementById('absenceDetailModal').style.display = 'none';
     showModal('alert', '<span class="success-tick"></span> Absence deleted!');
     playSuccessSound();
     addNotification('absence', 'Absence deleted!', 'absences');
