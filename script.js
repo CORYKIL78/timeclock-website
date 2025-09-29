@@ -485,7 +485,7 @@ async function fetchEmployees() {
         console.log('Employees fetched:', employees);
     } catch (e) {
         console.error('Employees fetch error:', e);
-        showModal('alert', 'Failed to fetch employees. Please try again.');
+        // No backend: suppress modal alert
     }
 }
 
