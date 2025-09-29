@@ -23,7 +23,6 @@
             <button id="disciplinariesBtn">Disciplinaries</button>
             <button id="timeclockBtn">Timeclock</button>
             <button id="mailBtn">Mail</button>
-            <button id="handbookBtn">Handbook</button>
         </div>
         <div class="sidebar-footer">
             <img src="https://media.discordapp.net/attachments/1315278404009988107/1315278404412768266/Utilities.png?ex=68da6cf8&is=68d91b78&hm=63c073799cd36883512843d1fca7bf672ffb963c3c7e907aa8c1401cafa29608&=&format=webp&quality=lossless" alt="Utilities" style="width: 30px; height: auto;">
@@ -138,28 +137,38 @@
             <button id="noCancelAbsenceBtn">No</button>
         </div>
     </div>
+    <div id="confirmDeleteAbsenceModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Confirm Absence Deletion</h2>
+            <p>Are you sure you want to delete this absence?</p>
+            <button id="confirmDeleteBtn" class="delete-absence-btn">Delete</button>
+            <button id="noDeleteBtn">No</button>
+        </div>
+    </div>
 
     <!-- Screens -->
-    <div id="discordScreen" class="screen">
+    <div id="discordScreen" class="screen active">
         <div class="container">
             <img class="logo" src="https://media.discordapp.net/attachments/1315278404009988107/1322985671773655200/Cirkledevblack.png?ex=68dac76c&is=68d975ec&hm=bb0641408f99b891d1ed09b03df3cf992643785df18a72938cb5f60d0c00c65f&=&format=webp&quality=lossless" alt="Logo">
             <h1>Welcome, please log in using Discord</h1>
             <button id="discordLoginBtn">Login with Discord</button>
+            <p class="error-message" style="color: var(--danger); display: none;">Failed to load portal. Please enable JavaScript and try again.</p>
         </div>
     </div>
-    <div id="searchingScreen" class="screen loading-screen">
+    <div id="searchingScreen" class="screen">
         <div class="container black-bg">
             <h2>Searching...</h2>
             <div class="spinner"></div>
         </div>
     </div>
-    <div id="rolesScreen" class="screen loading-screen">
+    <div id="rolesScreen" class="screen">
         <div class="container black-bg">
             <h2>Checking Roles...</h2>
             <div class="spinner"></div>
         </div>
     </div>
-    <div id="cherryScreen" class="screen loading-screen">
+    <div id="cherryScreen" class="screen">
         <div class="container black-bg">
             <h2>Verifying...</h2>
             <div class="spinner"></div>
@@ -203,7 +212,7 @@
             <button id="setupDepartmentContinueBtn">Continue</button>
         </div>
     </div>
-    <div id="setupVerifyScreen" class="screen loading-screen">
+    <div id="setupVerifyScreen" class="screen">
         <div class="container black-bg">
             <h2>Verifying...</h2>
             <div class="spinner"></div>
@@ -250,6 +259,13 @@
                     <button id="changeDepartmentBtn">Change My Department</button>
                 </div>
             </div>
+            <div id="clockInBtnContainer">
+                <button id="clockInBtn">Clock In</button>
+                <button id="clockOutBtn" class="hidden">Clock Out</button>
+                <div id="sessionInfo" class="session-item hidden"></div>
+            </div>
+            <h3>Previous Sessions</h3>
+            <div id="previousSessions" class="session-list"></div>
         </div>
     </div>
     <div id="myProfileScreen" class="screen">
