@@ -1,14 +1,6 @@
 // Fix absence tab slider logic
-function updateAbsenceTabSlider() {
-    const activeTab = document.querySelector('.absence-tab-btn.active');
-    if (!activeTab) return;
-    const slider = document.querySelector('.absence-tabs .tab-slider');
-    if (!slider) return;
-    const rect = activeTab.getBoundingClientRect();
-    const containerRect = document.querySelector('.absence-tabs').getBoundingClientRect();
-    slider.style.width = `${rect.width}px`;
-    slider.style.transform = `translateX(${rect.left - containerRect.left}px)`;
-}
+
+// Removed absence tab slider logic
 // Absence webhook URL for Discord
 const ABSENCE_WEBHOOK_URL = 'https://discord.com/api/webhooks/1421968323738079305/kU7rh9EmHZr00oFcr_zuqFNQWUinmA2fRQpPhcpWL5KhTBeIaohyxsMOIM_Z8XtzvCoN';
 
@@ -1211,6 +1203,7 @@ function calculateAbsenceDays() {
 }
 
 document.getElementById('submitAbsenceBtn').addEventListener('click', async () => {
+
     const type = document.getElementById('absenceType').value;
     const startDate = document.getElementById('absenceStartDate').value;
     const endDate = document.getElementById('absenceEndDate').value;
@@ -1221,6 +1214,7 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     }
     const emp = getEmployee(currentUser.id);
     emp.absences = emp.absences || [];
+    const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
     const absence = {
         id: Date.now().toString(),
         type,
@@ -1232,18 +1226,14 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     };
     emp.absences.push(absence);
     updateEmployee(emp);
-    const embedResponse = await sendEmbed(ABSENCE_CHANNEL, {
+    const embed = {
         title: 'New Absence Request',
-        fields: [
-            { name: 'User', value: `<@${currentUser.id}> (${emp.profile.name})`, inline: true },
-            { name: 'Reason', value: type, inline: true },
-            { name: 'Start Date', value: startDate, inline: true },
-            { name: 'End Date', value: endDate, inline: true },
-            { name: 'Comment', value: comment, inline: false }
-        ],
-        footer: { text: 'Please accept/reject on the HR portal' },
-        color: 0xffff00
-    });
+        description: `**User:** <@${currentUser.id}> (${emp.profile.name})\n**Type:** ${type}\n**Start Date:** ${startDate}\n**End Date:** ${endDate}\n**Days:** ${days}\n**Reason:** ${comment}`,
+        thumbnail: { url: currentUser.avatar || 'https://via.placeholder.com/100' },
+        color: 0xffff00,
+        footer: { text: 'Please accept/reject on the HR portal' }
+    };
+    const embedResponse = await sendEmbed(ABSENCE_CHANNEL, embed);
     absence.messageId = embedResponse?.message_id;
     updateEmployee(emp);
     closeModal('absenceRequest');
@@ -1257,7 +1247,6 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     document.getElementById('approvedFolder').classList.remove('active');
     document.getElementById('rejectedFolder').classList.remove('active');
     document.getElementById('archivedFolder').classList.remove('active');
-    updateAbsenceTabSlider();
     renderAbsences('pending');
 });
 
