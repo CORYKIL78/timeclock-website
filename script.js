@@ -7,18 +7,19 @@ const ABSENCE_WEBHOOK_URL = 'https://discord.com/api/webhooks/142196832373807930
 // Utility to send absence to Discord webhook
 async function sendAbsenceWebhook(absence) {
     const emp = getEmployee(currentUser.id);
-    const payload = {
-        content: `Absence Request\nUser: <@${currentUser.id}> (${emp.profile.name})\nType: ${absence.type}\nStart: ${absence.startDate}\nEnd: ${absence.endDate}\nReason: ${absence.reason || 'N/A'}`
+    const days = Math.ceil((new Date(absence.endDate) - new Date(absence.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+    const embed = {
+        title: absence.cancelled ? 'Absence Cancelled' : 'New Absence Request',
+        description: `**User:** <@${currentUser.id}> (${emp.profile.name})\n**Type:** ${absence.type}\n**Start Date:** ${absence.startDate}\n**End Date:** ${absence.endDate}\n**Days:** ${days}\n**Reason:** ${absence.comment || absence.reason || 'N/A'}`,
+        thumbnail: { url: currentUser.avatar || 'https://via.placeholder.com/100' },
+        color: absence.cancelled ? 0xff0000 : 0xffff00,
+        footer: { text: absence.cancelled ? 'Absence has been cancelled' : 'Please accept/reject on the HR portal' }
     };
     try {
-        await fetch(ABSENCE_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        console.log('Absence webhook sent');
+        await sendEmbed(ABSENCE_CHANNEL, embed);
+        console.log('Absence embed sent');
     } catch (e) {
-        console.error('Absence webhook failed:', e);
+        console.error('Absence embed failed:', e);
     }
 }
 // Attach to absence submission (modal or form)
@@ -1226,15 +1227,7 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     };
     emp.absences.push(absence);
     updateEmployee(emp);
-    const embed = {
-        title: 'New Absence Request',
-        description: `**User:** <@${currentUser.id}> (${emp.profile.name})\n**Type:** ${type}\n**Start Date:** ${startDate}\n**End Date:** ${endDate}\n**Days:** ${days}\n**Reason:** ${comment}`,
-        thumbnail: { url: currentUser.avatar || 'https://via.placeholder.com/100' },
-        color: 0xffff00,
-        footer: { text: 'Please accept/reject on the HR portal' }
-    };
-    const embedResponse = await sendEmbed(ABSENCE_CHANNEL, embed);
-    absence.messageId = embedResponse?.message_id;
+    await sendAbsenceWebhook(absence);
     updateEmployee(emp);
     closeModal('absenceRequest');
     showModal('alert', '<span class="success-tick"></span> Successfully Submitted!');
