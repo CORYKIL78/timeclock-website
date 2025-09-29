@@ -1275,7 +1275,8 @@ document.getElementById('absencesScreen').addEventListener('click', (e) => {
     }
 });
 
-function renderAbsences(tab) {}
+
+function renderAbsences(tab) {
     const pendingList = document.getElementById('pendingAbsences');
     const approvedList = document.getElementById('approvedAbsences');
     const rejectedList = document.getElementById('rejectedAbsences');
@@ -1321,8 +1322,7 @@ function renderAbsences(tab) {}
         else if (tab === 'rejected') rejectedList.appendChild(li);
         else if (tab === 'archived') archivedList.appendChild(li);
     });
-
-    // Removed duplicate event listener code for cancelAbsenceBtn
+}
 
 document.getElementById('confirmCancelAbsenceBtn').addEventListener('click', async () => {
     const absenceId = document.getElementById('confirmCancelAbsenceBtn').dataset.id;
