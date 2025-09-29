@@ -463,31 +463,6 @@ async function fetchRoleNames() {
     }
 }
 
-async function fetchEmployees() {
-    try {
-        const response = await fetch(`${WORKER_URL}/members/${GUILD_ID}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors'
-        });
-        if (!response.ok) throw new Error(`Members fetch failed: ${response.status} ${await response.text()}`);
-        const members = await response.json();
-        employees = members.map(member => {
-            const existing = getEmployee(member.user.id);
-            return {
-                ...existing,
-                id: member.user.id,
-                avatar: member.user.avatar ? `https://cdn.discordapp.com/avatars/${member.user.id}/${member.user.avatar}.png?size=128` : 'https://via.placeholder.com/40',
-                roles: member.roles
-            };
-        });
-        saveEmployees();
-        console.log('Employees fetched:', employees);
-    } catch (e) {
-        console.error('Employees fetch error:', e);
-        // No backend: suppress modal alert
-    }
-}
 
 async function handleOAuthRedirect() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -517,7 +492,7 @@ async function handleOAuthRedirect() {
                     if (portalLastLogin) portalLastLogin.textContent = emp.lastLogin || 'Never';
                     showScreen('portalWelcome');
                     updateSidebarProfile();
-                    await fetchEmployees();
+                    // fetchEmployees removed
                     // Restore clock-in state
                     const savedClockInTime = localStorage.getItem('clockInTime');
                     if (savedClockInTime) {
@@ -552,7 +527,7 @@ async function handleOAuthRedirect() {
                     if (portalLastLogin) portalLastLogin.textContent = emp.lastLogin || 'Never';
                     showScreen('portalWelcome');
                     updateSidebarProfile();
-                    await fetchEmployees();
+                    // fetchEmployees removed
                     // Restore clock-in state
                     const savedClockInTime = localStorage.getItem('clockInTime');
                     if (savedClockInTime) {
@@ -621,7 +596,7 @@ async function handleOAuthRedirect() {
     }
 
     await fetchRoleNames();
-    await fetchEmployees();
+    // fetchEmployees removed
 
     currentUser = {
         id: user.id,
