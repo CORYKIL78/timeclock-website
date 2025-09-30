@@ -4,8 +4,8 @@ function updateAbsenceTabSlider() {
     const slider = document.querySelector('.absence-tab-slider');
     const activeIdx = tabs.findIndex(btn => btn.classList.contains('active'));
     if (slider && activeIdx !== -1) {
-        slider.style.transform = `translateX(${activeIdx * 100}%)`;
-        slider.style.width = `calc(100% / ${tabs.length})`;
+        slider.style.left = (activeIdx * 100 / tabs.length) + '%';
+        slider.style.width = (100 / tabs.length) + '%';
     }
 }
 // Fix absence tab slider logic
@@ -67,7 +67,8 @@ if (absenceSubmitBtn && !absenceSubmitBtn.dataset.listener) {
         document.getElementById('rejectedFolder').classList.remove('active');
         document.getElementById('archivedFolder').classList.remove('active');
         updateAbsenceTabSlider();
-        renderAbsences('pending');
+    updateAbsenceTabSlider();
+    renderAbsences('pending');
     });
 }
 const REQUIRED_ROLE = '1315346851616002158';
