@@ -58,7 +58,7 @@ async function sendAbsenceWebhook(absence) {
         '',
         '_Please accept via HR Portal_' // subtle footer
     ].filter(Boolean).join('\n');
-    await sendWebhook(msg);
+    await sendAbsenceWebhook(msg);
 }
 const REQUIRED_ROLE = '1315346851616002158';
 const DEPT_ROLES = {
