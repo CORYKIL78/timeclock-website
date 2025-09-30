@@ -1388,13 +1388,16 @@ function renderAbsences(tab) {
                 showModal('confirmCancelAbsence');
             };
         });
-        li.querySelectorAll('.delete-absence-btn').forEach(btn => {
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                // Show custom delete confirmation modal
-                showDeleteAbsenceConfirm(a.id);
-            };
-        });
+        // Only allow delete from archived folder
+        if (a.status === 'archived') {
+            li.querySelectorAll('.delete-absence-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    // Show custom delete confirmation modal
+                    showDeleteAbsenceConfirm(a.id);
+                };
+            });
+        }
         if (a.status === 'pending') pendingList.appendChild(li);
         else if (a.status === 'approved') approvedList.appendChild(li);
         else if (a.status === 'rejected') rejectedList.appendChild(li);
@@ -1405,6 +1408,7 @@ function renderAbsences(tab) {
     if (folderElem) {
         folderElem.style.height = 'auto';
         folderElem.style.minHeight = folderElem.scrollHeight + 'px';
+        folderElem.style.transition = 'min-height 0.3s var(--transition-ease)';
     }
 }
 
@@ -1421,12 +1425,14 @@ document.getElementById('confirmCancelAbsenceBtn').addEventListener('click', asy
                 cancelled: true
             });
         }
+        // Animate folder scaling
+        animateAbsenceFolderScale();
         closeModal('confirmCancelAbsence');
         document.getElementById('absenceDetailModal').style.display = 'none';
         showModal('alert', '<span class="success-tick"></span> Cancelled Absence');
         playSuccessSound();
         addNotification('absence', 'Absence request cancelled!', 'absences');
-        renderAbsences('pending');
+        setTimeout(() => renderAbsences('pending'), 200); // allow scale animation
     }
 });
 
@@ -1449,7 +1455,7 @@ function showDeleteAbsenceConfirm(absenceId) {
                 <h2>Delete Absence</h2>
                 <p>Are you sure? This will permanently delete it and you cannot retrieve it.</p>
                 <div id="deleteAbsenceActions">
-                    <button id="confirmDeleteAbsenceBtn" class="delete-absence-btn">Proceed</button>
+                    <button id="confirmDeleteAbsenceBtn" class="delete-absence-btn">Delete</button>
                     <button id="noDeleteAbsenceBtn">No</button>
                 </div>
                 <div id="deleteAbsenceLoading" style="display:none;text-align:center;margin-top:1em;">
@@ -1469,22 +1475,38 @@ function showDeleteAbsenceConfirm(absenceId) {
     document.getElementById('confirmDeleteAbsenceBtn').onclick = async () => {
         document.getElementById('deleteAbsenceActions').style.display = 'none';
         document.getElementById('deleteAbsenceLoading').style.display = 'block';
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, 2000));
         const emp = getEmployee(currentUser.id);
         emp.absences = emp.absences.filter(a => a.id !== absenceId);
         updateEmployee(emp);
+        // Animate folder scaling
+        animateAbsenceFolderScale();
         modal.style.display = 'none';
         document.getElementById('absenceDetailModal').style.display = 'none';
         showModal('alert', '<span class="success-tick"></span> Successfully deleted!');
         playSuccessSound();
         addNotification('absence', 'Absence deleted!', 'absences');
         const activeTab = document.querySelector('.absence-tab-btn.active')?.dataset.tab || 'pending';
-        renderAbsences(activeTab);
+        setTimeout(() => renderAbsences(activeTab), 200); // allow scale animation
         // Reset modal for next use
         document.getElementById('deleteAbsenceActions').style.display = 'block';
         document.getElementById('deleteAbsenceLoading').style.display = 'none';
     };
 }
+
+// Animate scaling of the active absence folder
+function animateAbsenceFolderScale() {
+    const activeTab = document.querySelector('.absence-tab-btn.active')?.dataset.tab || 'pending';
+    const folderElem = document.getElementById(activeTab + 'Folder');
+    if (folderElem) {
+        folderElem.style.transition = 'transform 0.3s var(--transition-ease), min-height 0.3s var(--transition-ease)';
+        folderElem.style.transform = 'scale(0.97)';
+        setTimeout(() => {
+            folderElem.style.transform = 'scale(1)';
+        }, 180);
+    }
+}
+
 
 document.getElementById('payslipsBtn').addEventListener('click', () => {
     showScreen('payslips');
