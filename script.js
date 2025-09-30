@@ -2,11 +2,18 @@
 function updateAbsenceTabSlider() {
     const tabs = Array.from(document.querySelectorAll('.absence-tab-btn'));
     const slider = document.querySelector('.absence-tab-slider');
-    const activeIdx = tabs.findIndex(btn => btn.classList.contains('active'));
-    if (slider && activeIdx !== -1) {
-        slider.style.transform = `translateX(${activeIdx * 100}%)`;
-        slider.style.width = `calc(100% / ${tabs.length})`;
-    }
+        if (!slider || tabs.length === 0) return;
+        const activeIdx = tabs.findIndex(btn => btn.classList.contains('active'));
+        if (activeIdx !== -1) {
+            // Get the bounding box of the active tab relative to the parent (.absence-tabs)
+            const tabsContainer = slider.parentElement;
+            const activeTab = tabs[activeIdx];
+            const tabRect = activeTab.getBoundingClientRect();
+            const containerRect = tabsContainer.getBoundingClientRect();
+            slider.style.left = (tabRect.left - containerRect.left) + 'px';
+            slider.style.width = tabRect.width + 'px';
+            slider.style.transform = 'none';
+        }
 }
 // Fix absence tab slider logic
 
@@ -1301,6 +1308,11 @@ function renderAbsences(tab) {
     rejectedList.innerHTML = '';
     archivedList.innerHTML = '';
     const emp = getEmployee(currentUser.id);
+    const folderElem = document.getElementById(tab + 'Folder');
+    if (folderElem) {
+        folderElem.style.minHeight = '0';
+        folderElem.style.height = 'auto';
+    }
     emp.absences.filter(a => a.status === tab).forEach(a => {
         const li = document.createElement('li');
         li.className = `absence-item ${a.status}`;
@@ -1318,6 +1330,11 @@ function renderAbsences(tab) {
             ${a.status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
             ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
         `;
+    // After rendering, expand the folder/container to fit all absences
+    if (folderElem) {
+        folderElem.style.height = 'auto';
+        folderElem.style.minHeight = folderElem.scrollHeight + 'px';
+    }
         li.addEventListener('click', (e) => {
             if (e.target.classList.contains('cancel-absence-btn')) return;
             document.getElementById('absenceDetailContent').innerHTML = `
