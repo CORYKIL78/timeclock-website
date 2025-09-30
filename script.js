@@ -1243,6 +1243,7 @@ function calculateAbsenceDays() {
 }
 
 document.getElementById('submitAbsenceBtn').addEventListener('click', async () => {
+    console.log('[DEBUG] Submitting absence...');
 
     const type = document.getElementById('absenceType').value;
     const startDate = document.getElementById('absenceStartDate').value;
@@ -1253,6 +1254,7 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
         return;
     }
     const emp = getEmployee(currentUser.id);
+    console.log('[DEBUG] Employee before push:', JSON.stringify(emp.absences));
     emp.absences = emp.absences || [];
     const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
     const absence = {
@@ -1265,7 +1267,9 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
         messageId: null
     };
     emp.absences.push(absence);
+    console.log('[DEBUG] Absence pushed:', JSON.stringify(absence));
     updateEmployee(emp);
+    console.log('[DEBUG] Employee after push:', JSON.stringify(getEmployee(currentUser.id).absences));
     await sendAbsenceWebhook(absence);
     updateEmployee(emp);
     closeModal('absenceRequest');
@@ -1280,6 +1284,7 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     document.getElementById('rejectedFolder').classList.remove('active');
     document.getElementById('archivedFolder').classList.remove('active');
     renderAbsences('pending');
+    console.log('[DEBUG] Called renderAbsences("pending") after submission');
 });
 
 document.getElementById('absencesScreen').addEventListener('click', (e) => {
@@ -1298,6 +1303,9 @@ document.getElementById('absencesScreen').addEventListener('click', (e) => {
 
 
 function renderAbsences(tab) {
+    console.log('[DEBUG] Rendering absences for tab:', tab);
+    const empDebug = getEmployee(currentUser.id);
+    console.log('[DEBUG] All absences for user:', JSON.stringify(empDebug.absences));
     const pendingList = document.getElementById('pendingAbsences');
     const approvedList = document.getElementById('approvedAbsences');
     const rejectedList = document.getElementById('rejectedAbsences');
@@ -1310,6 +1318,9 @@ function renderAbsences(tab) {
     const emp = getEmployee(currentUser.id);
     // Always render all absences in their respective lists, regardless of active tab
     emp.absences.forEach(a => {
+        if (a.status === 'pending') {
+            console.log('[DEBUG] Rendering pending absence:', JSON.stringify(a));
+        }
         const li = document.createElement('li');
         li.className = `absence-item ${a.status}`;
         let bg = '';
