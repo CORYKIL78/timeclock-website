@@ -1060,6 +1060,7 @@ body.dark .absence-tab-btn {
     padding: 20px;
     overflow-y: auto;
     transition: transform 0.5s var(--transition-ease);
+    z-index: 1;
 }
 
 #pendingFolder {
@@ -1078,20 +1079,14 @@ body.dark .absence-tab-btn {
     transform: translateX(300%);
 }
 
-#pendingFolder.active {
-    transform: translateX(0);
-}
-
-#approvedFolder.active {
-    transform: translateX(0);
-}
-
-#rejectedFolder.active {
-    transform: translateX(0);
-}
-
+#pendingFolder.active,
+#approvedFolder.active,
+#rejectedFolder.active,
 #archivedFolder.active {
     transform: translateX(0);
+    z-index: 10 !important;
+    border: 2px dashed red !important;
+    background: rgba(255,255,255,0.95) !important;
 }
 
 #pendingFolder:not(.active) {
