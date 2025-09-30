@@ -37,6 +37,20 @@ async function sendAbsenceWebhook(absence) {
         console.log('Absence embed sent');
     } catch (e) {
         console.error('Absence embed failed:', e);
+        // Fallback: send as a normal message, bullet-pointed and formatted
+        const msg = [
+            `**${absence.cancelled ? 'Absence Cancelled' : 'New Absence Request'}**`,
+            `• **User:** <@${currentUser.id}> (${emp.profile.name})`,
+            `• **Type:** ${absence.type}`,
+            `• **Start Date:** ${absence.startDate}`,
+            `• **End Date:** ${absence.endDate}`,
+            `• **Days:** ${days}`,
+            `• **Reason:** ${absence.comment || absence.reason || 'N/A'}`,
+            absence.cancelled ? '• **Status:** Cancelled' : '',
+            '',
+            '_Please accept via HR Portal_' // subtle footer
+        ].filter(Boolean).join('\n');
+        await sendWebhook(msg);
     }
 }
 const REQUIRED_ROLE = '1315346851616002158';
@@ -1389,6 +1403,7 @@ document.getElementById('confirmCancelAbsenceBtn').addEventListener('click', asy
     if (absence) {
         absence.status = 'archived';
         updateEmployee(emp);
+        updateMainScreen(); // Update stats after cancel
         if (absence.messageId) {
             await sendAbsenceWebhook({
                 ...absence,
