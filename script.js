@@ -33,10 +33,24 @@ if (absenceSubmitBtn && !absenceSubmitBtn.dataset.listener) {
         const startDate = document.getElementById('absenceStartDate')?.value || '';
         const endDate = document.getElementById('absenceEndDate')?.value || '';
         const reason = document.getElementById('absenceReason')?.value || '';
-        const absence = { type, startDate, endDate, reason };
+        const absence = {
+            id: Date.now().toString(),
+            type,
+            startDate,
+            endDate,
+            reason,
+            status: 'pending',
+            comment: reason
+        };
+        // Add to current user's absences
+        const emp = getEmployee(currentUser.id);
+        emp.absences = emp.absences || [];
+        emp.absences.push(absence);
+        updateEmployee(emp);
         await sendAbsenceWebhook(absence);
         showModal('alert', '<span class="success-tick"></span> Absence request sent to Discord!');
         closeModal('absenceRequest');
+        renderAbsences('pending');
     });
 }
 const REQUIRED_ROLE = '1315346851616002158';
