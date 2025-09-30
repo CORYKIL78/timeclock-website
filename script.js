@@ -1308,12 +1308,8 @@ function renderAbsences(tab) {
     rejectedList.innerHTML = '';
     archivedList.innerHTML = '';
     const emp = getEmployee(currentUser.id);
-    const folderElem = document.getElementById(tab + 'Folder');
-    if (folderElem) {
-        folderElem.style.minHeight = '0';
-        folderElem.style.height = 'auto';
-    }
-    emp.absences.filter(a => a.status === tab).forEach(a => {
+    // Always render all absences in their respective lists, regardless of active tab
+    emp.absences.forEach(a => {
         const li = document.createElement('li');
         li.className = `absence-item ${a.status}`;
         let bg = '';
@@ -1330,11 +1326,6 @@ function renderAbsences(tab) {
             ${a.status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
             ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
         `;
-    // After rendering, expand the folder/container to fit all absences
-    if (folderElem) {
-        folderElem.style.height = 'auto';
-        folderElem.style.minHeight = folderElem.scrollHeight + 'px';
-    }
         li.addEventListener('click', (e) => {
             if (e.target.classList.contains('cancel-absence-btn')) return;
             document.getElementById('absenceDetailContent').innerHTML = `
@@ -1354,11 +1345,17 @@ function renderAbsences(tab) {
             }
             showModal('absenceDetail');
         });
-        if (tab === 'pending') pendingList.appendChild(li);
-        else if (tab === 'approved') approvedList.appendChild(li);
-        else if (tab === 'rejected') rejectedList.appendChild(li);
-        else if (tab === 'archived') archivedList.appendChild(li);
+        if (a.status === 'pending') pendingList.appendChild(li);
+        else if (a.status === 'approved') approvedList.appendChild(li);
+        else if (a.status === 'rejected') rejectedList.appendChild(li);
+        else if (a.status === 'archived') archivedList.appendChild(li);
     });
+    // Expand the folder/container to fit all absences in the active tab
+    const folderElem = document.getElementById(tab + 'Folder');
+    if (folderElem) {
+        folderElem.style.height = 'auto';
+        folderElem.style.minHeight = folderElem.scrollHeight + 'px';
+    }
 }
 
 document.getElementById('confirmCancelAbsenceBtn').addEventListener('click', async () => {
