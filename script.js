@@ -1280,7 +1280,6 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     setTimeout(() => {
         showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
     }, 100);
-    playSuccessSound();
     addNotification('absence', 'Absence request submitted!', 'absences');
     // Ensure pending tab is active and render
     document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
