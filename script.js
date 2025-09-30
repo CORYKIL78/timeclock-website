@@ -1,3 +1,13 @@
+// Animate the absence tab slider to the active tab
+function updateAbsenceTabSlider() {
+    const tabs = Array.from(document.querySelectorAll('.absence-tab-btn'));
+    const slider = document.querySelector('.absence-tab-slider');
+    const activeIdx = tabs.findIndex(btn => btn.classList.contains('active'));
+    if (slider && activeIdx !== -1) {
+        slider.style.transform = `translateX(${activeIdx * 100}%)`;
+        slider.style.width = `calc(100% / ${tabs.length})`;
+    }
+}
 // Fix absence tab slider logic
 
 // Removed absence tab slider logic
