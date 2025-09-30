@@ -1449,7 +1449,7 @@ function showDeleteAbsenceConfirm(absenceId) {
                 <h2>Delete Absence</h2>
                 <p>Are you sure? This will permanently delete it and you cannot retrieve it.</p>
                 <div id="deleteAbsenceActions">
-                    <button id="confirmDeleteAbsenceBtn" class="delete-absence-btn">Delete</button>
+                    <button id="confirmDeleteAbsenceBtn" class="delete-absence-btn">Proceed</button>
                     <button id="noDeleteAbsenceBtn">No</button>
                 </div>
                 <div id="deleteAbsenceLoading" style="display:none;text-align:center;margin-top:1em;">
@@ -1469,7 +1469,7 @@ function showDeleteAbsenceConfirm(absenceId) {
     document.getElementById('confirmDeleteAbsenceBtn').onclick = async () => {
         document.getElementById('deleteAbsenceActions').style.display = 'none';
         document.getElementById('deleteAbsenceLoading').style.display = 'block';
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 3000));
         const emp = getEmployee(currentUser.id);
         emp.absences = emp.absences.filter(a => a.id !== absenceId);
         updateEmployee(emp);
