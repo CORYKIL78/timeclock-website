@@ -1303,6 +1303,25 @@ document.getElementById('absencesScreen').addEventListener('click', (e) => {
 
 
 function renderAbsences(tab) {
+    // UI debug: check if pendingAbsences UL is visible and if Pending tab/folder are active
+    const pendingUl = document.getElementById('pendingAbsences');
+    const pendingTabBtn = document.querySelector('.absence-tab-btn[data-tab="pending"]');
+    const pendingFolderDiv = document.getElementById('pendingFolder');
+    if (pendingUl) {
+        console.log('[UI DEBUG] pendingAbsences UL exists. Child count:', pendingUl.childElementCount, 'Display:', getComputedStyle(pendingUl).display);
+    } else {
+        console.log('[UI DEBUG] pendingAbsences UL NOT FOUND');
+    }
+    if (pendingTabBtn) {
+        console.log('[UI DEBUG] Pending tab button classList:', pendingTabBtn.classList.toString());
+    } else {
+        console.log('[UI DEBUG] Pending tab button NOT FOUND');
+    }
+    if (pendingFolderDiv) {
+        console.log('[UI DEBUG] Pending folder classList:', pendingFolderDiv.classList.toString(), 'Display:', getComputedStyle(pendingFolderDiv).display);
+    } else {
+        console.log('[UI DEBUG] Pending folder NOT FOUND');
+    }
     console.log('[DEBUG] Rendering absences for tab:', tab);
     const empDebug = getEmployee(currentUser.id);
     console.log('[DEBUG] All absences for user:', JSON.stringify(empDebug.absences));
