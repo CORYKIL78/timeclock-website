@@ -1243,18 +1243,18 @@ function calculateAbsenceDays() {
 }
 
 document.getElementById('submitAbsenceBtn').addEventListener('click', async () => {
-    console.log('[DEBUG] Submitting absence...');
-
+    if (window.absenceSubmitting) return;
+    window.absenceSubmitting = true;
     const type = document.getElementById('absenceType').value;
     const startDate = document.getElementById('absenceStartDate').value;
     const endDate = document.getElementById('absenceEndDate').value;
     const comment = document.getElementById('absenceComment').value.trim();
     if (!startDate || !endDate || !comment) {
         showModal('alert', 'Please fill all fields');
+        window.absenceSubmitting = false;
         return;
     }
     const emp = getEmployee(currentUser.id);
-    console.log('[DEBUG] Employee before push:', JSON.stringify(emp.absences));
     emp.absences = emp.absences || [];
     const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
     const absence = {
@@ -1267,13 +1267,10 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
         messageId: null
     };
     emp.absences.push(absence);
-    console.log('[DEBUG] Absence pushed:', JSON.stringify(absence));
     updateEmployee(emp);
-    console.log('[DEBUG] Employee after push:', JSON.stringify(getEmployee(currentUser.id).absences));
     await sendAbsenceWebhook(absence);
-    updateEmployee(emp);
     closeModal('absenceRequest');
-    showModal('alert', '<span class="success-tick"></span> Successfully Submitted!');
+    showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
     playSuccessSound();
     addNotification('absence', 'Absence request submitted!', 'absences');
     // Ensure pending tab is active and render
@@ -1284,7 +1281,7 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     document.getElementById('rejectedFolder').classList.remove('active');
     document.getElementById('archivedFolder').classList.remove('active');
     renderAbsences('pending');
-    console.log('[DEBUG] Called renderAbsences("pending") after submission');
+    window.absenceSubmitting = false;
 });
 
 document.getElementById('absencesScreen').addEventListener('click', (e) => {
@@ -1359,7 +1356,7 @@ function renderAbsences(tab) {
         `;
         li.addEventListener('click', (e) => {
             if (e.target.classList.contains('cancel-absence-btn') || e.target.classList.contains('delete-absence-btn')) return;
-            // Show details as bullet list
+            // Show all details as in the form
             const totalDays = Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1;
             document.getElementById('absenceDetailContent').innerHTML = `
                 <ul style="margin-left:1em;">
@@ -1367,8 +1364,11 @@ function renderAbsences(tab) {
                   <li><strong>Start Date:</strong> ${a.startDate}</li>
                   <li><strong>End Date:</strong> ${a.endDate}</li>
                   <li><strong>Total Days:</strong> ${totalDays}</li>
-                  <li><strong>Reason:</strong> ${a.reason || 'N/A'}</li>
                   <li><strong>Comment:</strong> ${a.comment || 'N/A'}</li>
+                  <li><strong>Status:</strong> ${a.status}</li>
+                  <li><strong>ID:</strong> ${a.id}</li>
+                  ${a.reason ? `<li><strong>Reason:</strong> ${a.reason}</li>` : ''}
+                  ${a.messageId ? `<li><strong>Message ID:</strong> ${a.messageId}</li>` : ''}
                 </ul>
             `;
             document.getElementById('cancelAbsenceBtn').classList.toggle('hidden', a.status !== 'pending');
@@ -1443,29 +1443,28 @@ document.getElementById('noCancelAbsenceBtn').addEventListener('click', () => {
 
 // Custom delete confirmation modal logic
 function showDeleteAbsenceConfirm(absenceId) {
-    // Create modal if not exists
+    // Always remove and recreate modal to avoid duplicate IDs or event listeners
     let modal = document.getElementById('deleteAbsenceConfirmModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'deleteAbsenceConfirmModal';
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <span class="close" id="closeDeleteAbsenceConfirm">&times;</span>
-                <h2>Delete Absence</h2>
-                <p>Are you sure? This will permanently delete it and you cannot retrieve it.</p>
-                <div id="deleteAbsenceActions">
-                    <button id="confirmDeleteAbsenceBtn" class="delete-absence-btn">Delete</button>
-                    <button id="noDeleteAbsenceBtn">No</button>
-                </div>
-                <div id="deleteAbsenceLoading" style="display:none;text-align:center;margin-top:1em;">
-                    <div class="spinner"></div>
-                    <p>Deleting...</p>
-                </div>
+    if (modal) modal.remove();
+    modal = document.createElement('div');
+    modal.id = 'deleteAbsenceConfirmModal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" id="closeDeleteAbsenceConfirm">&times;</span>
+            <h2>Delete Absence</h2>
+            <p>Are you sure? This will permanently delete it and you cannot retrieve it.</p>
+            <div id="deleteAbsenceActions">
+                <button id="confirmDeleteAbsenceBtn" class="delete-absence-btn">Delete</button>
+                <button id="noDeleteAbsenceBtn">No</button>
             </div>
-        `;
-        document.body.appendChild(modal);
-    }
+            <div id="deleteAbsenceLoading" style="display:none;text-align:center;margin-top:1em;">
+                <div class="spinner"></div>
+                <p>Deleting...</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
     modal.style.display = 'flex';
     // X button
     document.getElementById('closeDeleteAbsenceConfirm').onclick = () => { modal.style.display = 'none'; };
