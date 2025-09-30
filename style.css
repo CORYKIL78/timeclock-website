@@ -1054,16 +1054,20 @@ body.dark .absence-tab-btn {
 }
 
 .absence-folder {
-    position: static !important;
+    display: none;
     width: 100%;
     min-height: 80px;
     padding: 20px;
     overflow-y: auto;
-    transition: none !important;
-    z-index: auto !important;
-    border: 2px solid #00c853 !important;
-    background: #fffbe7 !important;
-    display: block !important;
+    background: var(--mail-bg);
+    border-radius: 6px;
+}
+
+#pendingFolder.active,
+#approvedFolder.active,
+#rejectedFolder.active,
+#archivedFolder.active {
+    display: block;
 }
 
 
