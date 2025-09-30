@@ -4,8 +4,8 @@ function updateAbsenceTabSlider() {
     const slider = document.querySelector('.absence-tab-slider');
     const activeIdx = tabs.findIndex(btn => btn.classList.contains('active'));
     if (slider && activeIdx !== -1) {
-        slider.style.left = (activeIdx * 100 / tabs.length) + '%';
-        slider.style.width = (100 / tabs.length) + '%';
+        slider.style.transform = `translateX(${activeIdx * 100}%)`;
+        slider.style.width = `calc(100% / ${tabs.length})`;
     }
 }
 // Fix absence tab slider logic
@@ -1304,11 +1304,17 @@ function renderAbsences(tab) {
     emp.absences.filter(a => a.status === tab).forEach(a => {
         const li = document.createElement('li');
         li.className = `absence-item ${a.status}`;
+        let bg = '';
+        if (a.status === 'pending') bg = 'background: var(--yellow-hazard); color: #212529;';
+        if (a.status === 'approved') bg = 'background: #d4edda; color: #155724;';
+        if (a.status === 'rejected') bg = 'background: #f8d7da; color: #721c24;';
+        if (a.status === 'archived') bg = 'background: #e2e3e5; color: #41464b; opacity: 0.7;';
+        li.setAttribute('style', bg);
         li.innerHTML = `
             <span>Reason: ${a.type}</span>
             <span>Start: ${a.startDate}</span>
             <span>End: ${a.endDate}</span>
-            <span style="background:yellow;padding:2px 6px;border-radius:4px;">Total Days: ${Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
+            <span style="background:rgba(255,255,0,0.2);padding:2px 6px;border-radius:4px;">Total Days: ${Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
             ${a.status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
             ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
         `;
