@@ -19,7 +19,7 @@ function updateAbsenceTabSlider() {
 
 // Removed absence tab slider logic
 // Absence webhook URL for Discord
-const ABSENCE_WEBHOOK_URL = 'https://discord.com/api/webhooks/1421968323738079305/kU7rh9EmHZr00oFcr_zuqFNQWUinmA2fRQpPhcpWL5KhTBeIaohyxsMOIM_Z8XtzvCoN';
+const ABSENCE_WEBHOOK_URL = 'https://discord.com/api/webhooks/1422667332144201920/ijjZECto8hc2FxZdO0mPu0OnuhX4fJfRoR_nqq8bs7UEXO4ujugLd4Zc8b4F9BuV7fnw';
 
 // Utility to send absence to Discord webhook
 async function sendAbsenceWebhook(absence) {
