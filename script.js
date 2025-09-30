@@ -1272,11 +1272,14 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     updateEmployee(emp);
     await sendAbsenceWebhook(absence);
     closeModal('absenceRequest');
-    // Close any previous alert modal before showing a new one
-    if (modals.alert && modals.alert.style.display === 'flex') {
-        modals.alert.style.display = 'none';
+    // Only show one success message: forcibly close any open alert modal
+    const alertModal = document.getElementById('alertModal');
+    if (alertModal && alertModal.style.display === 'flex') {
+        alertModal.style.display = 'none';
     }
-    showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
+    setTimeout(() => {
+        showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
+    }, 100);
     playSuccessSound();
     addNotification('absence', 'Absence request submitted!', 'absences');
     // Ensure pending tab is active and render

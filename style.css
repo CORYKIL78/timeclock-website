@@ -1196,7 +1196,7 @@ body.dark .cancel-absence-btn:hover {
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.2s var(--transition-ease), transform 0.2s var(--transition-ease);
-    display: none;
+    display: inline-block;
 }
 
 .delete-absence-btn:hover {
