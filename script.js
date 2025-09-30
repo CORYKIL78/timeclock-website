@@ -39,45 +39,6 @@ async function sendAbsenceWebhook(absence) {
         console.error('Absence embed failed:', e);
     }
 }
-// Attach to absence submission (modal or form)
-const absenceSubmitBtn = document.getElementById('submitAbsenceBtn');
-if (absenceSubmitBtn && !absenceSubmitBtn.dataset.listener) {
-    absenceSubmitBtn.dataset.listener = 'true';
-    absenceSubmitBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        // Collect absence data from form fields
-        const type = document.getElementById('absenceType')?.value || 'Unknown';
-        const startDate = document.getElementById('absenceStartDate')?.value || '';
-        const endDate = document.getElementById('absenceEndDate')?.value || '';
-        const reason = document.getElementById('absenceComment')?.value || '';
-        const absence = {
-            id: Date.now().toString(),
-            type,
-            startDate,
-            endDate,
-            comment: reason,
-            status: 'pending'
-        };
-        // Add to current user's absences
-        const emp = getEmployee(currentUser.id);
-        emp.absences = emp.absences || [];
-        emp.absences.push(absence);
-        updateEmployee(emp);
-        await sendAbsenceWebhook(absence);
-        showModal('alert', '<span class="success-tick"></span> Absence request sent to Discord!');
-        closeModal('absenceRequest');
-        // Ensure pending tab is active and render
-        document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
-        document.getElementById('pendingFolder').classList.add('active');
-        document.getElementById('approvedFolder').classList.remove('active');
-        document.getElementById('rejectedFolder').classList.remove('active');
-        document.getElementById('archivedFolder').classList.remove('active');
-        updateAbsenceTabSlider();
-    updateAbsenceTabSlider();
-    renderAbsences('pending');
-    });
-}
 const REQUIRED_ROLE = '1315346851616002158';
 const DEPT_ROLES = {
     'Development Department': '1315323804528017498',
