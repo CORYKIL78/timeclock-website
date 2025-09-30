@@ -23,6 +23,7 @@
             <button id="disciplinariesBtn">Disciplinaries</button>
             <button id="timeclockBtn">Timeclock</button>
             <button id="mailBtn">Mail</button>
+            <button id="handbooksBtn">Handbooks</button>
         </div>
         <div class="sidebar-footer">
             <img src="https://cdn.discordapp.com/attachments/1315278404009988107/1315278404412768266/Utilities.png?ex=68dd0ff8&is=68dbbe78&hm=b51166de16ef5164446556734b9db8d7cbc060762bf5e6bdbf8f30486184bdf8" alt="Utilities" style="width: 30px; height: auto;">
@@ -75,9 +76,12 @@
             <span class="close">&times;</span>
             <h2>Request Absence</h2>
             <select id="absenceType">
-                <option value="Sick Leave">Sick Leave</option>
+                <option value="Illness">Illness</option>
                 <option value="Vacation">Vacation</option>
-                <option value="Personal Leave">Personal Leave</option>
+                <option value="Personal">Personal</option>
+                <option value="Education">Education</option>
+                <option value="No Device/Wifi">No Device/Wifi</option>
+                <option value="Other">Other (specify in comment)</option>
             </select>
             <input type="date" id="absenceStartDate">
             <input type="date" id="absenceEndDate">
@@ -220,6 +224,7 @@
     </div>
     <div id="portalWelcomeScreen" class="screen">
         <div class="container">
+            <img id="portalWelcomeProfilePic" class="profile-img" src="" alt="Profile" style="display:block;margin:0 auto 1em auto;width:100px;height:100px;border-radius:50%;object-fit:cover;">
             <h2>Welcome back, <span id="portalWelcomeName"></span>!</h2>
             <p>Previous login: <span id="portalLastLogin"></span></p>
             <button id="portalLoginBtn">Log In</button>

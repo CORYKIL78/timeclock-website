@@ -1,3 +1,24 @@
+// Logoff sound
+const LOGOFF_SOUND_URL = 'https://cdn.pixabay.com/audio/2022/10/16/audio_12b6b7e7e7.mp3';
+let logoffAudio = null;
+function playLogoffSound() {
+    if (!logoffAudio) {
+        logoffAudio = new Audio(LOGOFF_SOUND_URL);
+        logoffAudio.preload = 'auto';
+        logoffAudio.load();
+    }
+    logoffAudio.currentTime = 0;
+    logoffAudio.play();
+}
+// Handbooks button click handler
+document.addEventListener('DOMContentLoaded', () => {
+    const handbooksBtn = document.getElementById('handbooksBtn');
+    if (handbooksBtn) {
+        handbooksBtn.addEventListener('click', () => {
+            window.open('https://docs.google.com/document/d/1SB48S4SiuT9_npDhgU1FT_CxAjdKGn40IpqUQKm2Nek/edit?tab=t.ib4suhnsfkzx#heading=h.5dly1dxe2rw', '_blank');
+        });
+    }
+});
 // Animate the absence tab slider to the active tab
 function updateAbsenceTabSlider() {
     const tabs = Array.from(document.querySelectorAll('.absence-tab-btn'));
@@ -25,33 +46,19 @@ const ABSENCE_WEBHOOK_URL = 'https://discord.com/api/webhooks/142266733214420192
 async function sendAbsenceWebhook(absence) {
     const emp = getEmployee(currentUser.id);
     const days = Math.ceil((new Date(absence.endDate) - new Date(absence.startDate)) / (1000 * 60 * 60 * 24)) + 1;
-    const embed = {
-        title: absence.cancelled ? 'Absence Cancelled' : 'New Absence Request',
-        description: `**User:** <@${currentUser.id}> (${emp.profile.name})\n**Type:** ${absence.type}\n**Start Date:** ${absence.startDate}\n**End Date:** ${absence.endDate}\n**Days:** ${days}\n**Reason:** ${absence.comment || absence.reason || 'N/A'}`,
-        thumbnail: { url: currentUser.avatar || 'https://via.placeholder.com/100' },
-        color: absence.cancelled ? 0xff0000 : 0xffff00,
-        footer: { text: absence.cancelled ? 'Absence has been cancelled' : 'Please accept/reject on the HR portal' }
-    };
-    try {
-        await sendEmbed(ABSENCE_CHANNEL, embed);
-        console.log('Absence embed sent');
-    } catch (e) {
-        console.error('Absence embed failed:', e);
-        // Fallback: send as a normal message, bullet-pointed and formatted
-        const msg = [
-            `**${absence.cancelled ? 'Absence Cancelled' : 'New Absence Request'}**`,
-            `• **User:** <@${currentUser.id}> (${emp.profile.name})`,
-            `• **Type:** ${absence.type}`,
-            `• **Start Date:** ${absence.startDate}`,
-            `• **End Date:** ${absence.endDate}`,
-            `• **Days:** ${days}`,
-            `• **Reason:** ${absence.comment || absence.reason || 'N/A'}`,
-            absence.cancelled ? '• **Status:** Cancelled' : '',
-            '',
-            '_Please accept via HR Portal_' // subtle footer
-        ].filter(Boolean).join('\n');
-        await sendWebhook(msg);
-    }
+    const msg = [
+        `**${absence.cancelled ? 'Absence Cancelled' : 'New Absence Request'}**`,
+        `• **User:** <@${currentUser.id}> (${emp.profile.name})`,
+        `• **Type:** ${absence.type}`,
+        `• **Start Date:** ${absence.startDate}`,
+        `• **End Date:** ${absence.endDate}`,
+        `• **Days:** ${days}`,
+        `• **Reason:** ${absence.comment || absence.reason || 'N/A'}`,
+        absence.cancelled ? '• **Status:** Cancelled' : '',
+        '',
+        '_Please accept via HR Portal_' // subtle footer
+    ].filter(Boolean).join('\n');
+    await sendWebhook(msg);
 }
 const REQUIRED_ROLE = '1315346851616002158';
 const DEPT_ROLES = {
@@ -143,6 +150,11 @@ function showScreen(screenId) {
         } else {
             sidebar.classList.add('hidden');
             notificationPanel.classList.add('hidden');
+        }
+        // Set profile pic on portal welcome screen
+        if (screenId === 'portalWelcome' && currentUser && currentUser.avatar) {
+            const portalPic = document.getElementById('portalWelcomeProfilePic');
+            if (portalPic) portalPic.src = currentUser.avatar;
         }
     } else {
         console.error('Screen not found:', screenId);
@@ -332,18 +344,13 @@ async function addNotification(type, message, link, userId = currentUser.id) {
     const timestamp = new Date().toLocaleString();
     emp.notifications.push({ type, message, timestamp });
     updateEmployee(emp);
-    await sendEmbed(NOTIFICATION_CHANNEL, {
-        title: `New Notification for ${emp.profile.name || 'User'}`,
-        fields: [
-            { name: 'Type', value: type.charAt(0).toUpperCase() + type.slice(1), inline: true },
-            { name: 'User', value: `<@${userId}> (${emp.profile.name || 'User'})`, inline: true },
-            { name: 'Message', value: message, inline: false },
-            { name: 'Timestamp', value: timestamp, inline: true }
-        ],
-        color: 0x00ff00
-    });
     playNotificationSound();
     renderNotifications();
+// Listen for new mail and notify
+function notifyNewMail(subject) {
+    addNotification('mail', `New mail received: ${subject}`);
+    playNotificationSound();
+}
 }
 
 function loadNotifications() {
@@ -1806,7 +1813,8 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
         localStorage.setItem(`previousSessions_${currentUser.id}`, JSON.stringify(previousSessions));
         sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()} due to logout`);
     }
-    showScreen('goodbye');
+    playLogoffSound();
+    showScreen('setupVerify'); // show loading spinner screen
     setTimeout(() => showScreen('discord'), 2000);
 });
 
