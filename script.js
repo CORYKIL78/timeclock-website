@@ -1243,8 +1243,10 @@ function calculateAbsenceDays() {
 }
 
 document.getElementById('submitAbsenceBtn').addEventListener('click', async () => {
-    if (window.absenceSubmitting) return;
+    const submitBtn = document.getElementById('submitAbsenceBtn');
+    if (window.absenceSubmitting || submitBtn.disabled) return;
     window.absenceSubmitting = true;
+    submitBtn.disabled = true;
     const type = document.getElementById('absenceType').value;
     const startDate = document.getElementById('absenceStartDate').value;
     const endDate = document.getElementById('absenceEndDate').value;
@@ -1270,6 +1272,10 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     updateEmployee(emp);
     await sendAbsenceWebhook(absence);
     closeModal('absenceRequest');
+    // Close any previous alert modal before showing a new one
+    if (modals.alert && modals.alert.style.display === 'flex') {
+        modals.alert.style.display = 'none';
+    }
     showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
     playSuccessSound();
     addNotification('absence', 'Absence request submitted!', 'absences');
@@ -1282,6 +1288,7 @@ document.getElementById('submitAbsenceBtn').addEventListener('click', async () =
     document.getElementById('archivedFolder').classList.remove('active');
     renderAbsences('pending');
     window.absenceSubmitting = false;
+    submitBtn.disabled = false;
 });
 
 document.getElementById('absencesScreen').addEventListener('click', (e) => {
