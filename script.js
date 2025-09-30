@@ -1349,22 +1349,27 @@ function renderAbsences(tab) {
         if (a.status === 'archived') bg = 'background: #e2e3e5; color: #41464b; opacity: 0.7;';
         li.setAttribute('style', bg);
         li.innerHTML = `
-            <span>Reason: ${a.type}</span>
+            <span>Type: ${a.type}</span>
             <span>Start: ${a.startDate}</span>
             <span>End: ${a.endDate}</span>
             <span style="background:rgba(255,255,0,0.2);padding:2px 6px;border-radius:4px;">Total Days: ${Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
             ${a.status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
             ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
+            ${a.status === 'archived' ? `<button class="delete-absence-btn" data-id="${a.id}">Delete Absence</button>` : ''}
         `;
         li.addEventListener('click', (e) => {
-            if (e.target.classList.contains('cancel-absence-btn')) return;
+            if (e.target.classList.contains('cancel-absence-btn') || e.target.classList.contains('delete-absence-btn')) return;
+            // Show details as bullet list
+            const totalDays = Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1;
             document.getElementById('absenceDetailContent').innerHTML = `
-                <p><strong>Type:</strong> ${a.type}</p>
-                <p><strong>Start:</strong> ${a.startDate}</p>
-                <p><strong>End:</strong> ${a.endDate}</p>
-                <p><strong>Comment:</strong> ${a.comment}</p>
-                <p><strong>Status:</strong> ${a.status.charAt(0).toUpperCase() + a.status.slice(1)}</p>
-                ${a.status === 'rejected' ? `<p><strong>Reason:</strong> ${a.reason || 'N/A'}</p>` : ''}
+                <ul style="margin-left:1em;">
+                  <li><strong>Type:</strong> ${a.type}</li>
+                  <li><strong>Start Date:</strong> ${a.startDate}</li>
+                  <li><strong>End Date:</strong> ${a.endDate}</li>
+                  <li><strong>Total Days:</strong> ${totalDays}</li>
+                  <li><strong>Reason:</strong> ${a.reason || 'N/A'}</li>
+                  <li><strong>Comment:</strong> ${a.comment || 'N/A'}</li>
+                </ul>
             `;
             document.getElementById('cancelAbsenceBtn').classList.toggle('hidden', a.status !== 'pending');
             document.getElementById('cancelAbsenceBtn').dataset.id = a.id;
@@ -1374,6 +1379,21 @@ function renderAbsences(tab) {
                 deleteBtn.dataset.id = a.id;
             }
             showModal('absenceDetail');
+        });
+        // Button click handlers for cancel/delete
+        li.querySelectorAll('.cancel-absence-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                document.getElementById('confirmCancelAbsenceBtn').dataset.id = a.id;
+                showModal('confirmCancelAbsence');
+            };
+        });
+        li.querySelectorAll('.delete-absence-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                // Show custom delete confirmation modal
+                showDeleteAbsenceConfirm(a.id);
+            };
         });
         if (a.status === 'pending') pendingList.appendChild(li);
         else if (a.status === 'approved') approvedList.appendChild(li);
@@ -1414,18 +1434,57 @@ document.getElementById('noCancelAbsenceBtn').addEventListener('click', () => {
     closeModal('confirmCancelAbsence');
 });
 
-document.getElementById('deleteAbsenceBtn').addEventListener('click', () => {
-    const absenceId = document.getElementById('deleteAbsenceBtn').dataset.id;
-    const emp = getEmployee(currentUser.id);
-    emp.absences = emp.absences.filter(a => a.id !== absenceId);
-    updateEmployee(emp);
-    document.getElementById('absenceDetailModal').style.display = 'none';
-    showModal('alert', '<span class="success-tick"></span> Absence deleted!');
-    playSuccessSound();
-    addNotification('absence', 'Absence deleted!', 'absences');
-    const activeTab = document.querySelector('.absence-tab-btn.active')?.dataset.tab || 'pending';
-    renderAbsences(activeTab);
-});
+
+// Custom delete confirmation modal logic
+function showDeleteAbsenceConfirm(absenceId) {
+    // Create modal if not exists
+    let modal = document.getElementById('deleteAbsenceConfirmModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'deleteAbsenceConfirmModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <span class="close" id="closeDeleteAbsenceConfirm">&times;</span>
+                <h2>Delete Absence</h2>
+                <p>Are you sure? This will permanently delete it and you cannot retrieve it.</p>
+                <div id="deleteAbsenceActions">
+                    <button id="confirmDeleteAbsenceBtn" class="delete-absence-btn">Delete</button>
+                    <button id="noDeleteAbsenceBtn">No</button>
+                </div>
+                <div id="deleteAbsenceLoading" style="display:none;text-align:center;margin-top:1em;">
+                    <div class="spinner"></div>
+                    <p>Deleting...</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    modal.style.display = 'flex';
+    // X button
+    document.getElementById('closeDeleteAbsenceConfirm').onclick = () => { modal.style.display = 'none'; };
+    // No button
+    document.getElementById('noDeleteAbsenceBtn').onclick = () => { modal.style.display = 'none'; };
+    // Confirm delete
+    document.getElementById('confirmDeleteAbsenceBtn').onclick = async () => {
+        document.getElementById('deleteAbsenceActions').style.display = 'none';
+        document.getElementById('deleteAbsenceLoading').style.display = 'block';
+        await new Promise(r => setTimeout(r, 2000));
+        const emp = getEmployee(currentUser.id);
+        emp.absences = emp.absences.filter(a => a.id !== absenceId);
+        updateEmployee(emp);
+        modal.style.display = 'none';
+        document.getElementById('absenceDetailModal').style.display = 'none';
+        showModal('alert', '<span class="success-tick"></span> Successfully deleted!');
+        playSuccessSound();
+        addNotification('absence', 'Absence deleted!', 'absences');
+        const activeTab = document.querySelector('.absence-tab-btn.active')?.dataset.tab || 'pending';
+        renderAbsences(activeTab);
+        // Reset modal for next use
+        document.getElementById('deleteAbsenceActions').style.display = 'block';
+        document.getElementById('deleteAbsenceLoading').style.display = 'none';
+    };
+}
 
 document.getElementById('payslipsBtn').addEventListener('click', () => {
     showScreen('payslips');
