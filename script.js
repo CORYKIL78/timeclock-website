@@ -42,15 +42,14 @@ if (absenceSubmitBtn && !absenceSubmitBtn.dataset.listener) {
         const type = document.getElementById('absenceType')?.value || 'Unknown';
         const startDate = document.getElementById('absenceStartDate')?.value || '';
         const endDate = document.getElementById('absenceEndDate')?.value || '';
-        const reason = document.getElementById('absenceReason')?.value || '';
+        const reason = document.getElementById('absenceComment')?.value || '';
         const absence = {
             id: Date.now().toString(),
             type,
             startDate,
             endDate,
-            reason,
-            status: 'pending',
-            comment: reason
+            comment: reason,
+            status: 'pending'
         };
         // Add to current user's absences
         const emp = getEmployee(currentUser.id);
@@ -60,6 +59,14 @@ if (absenceSubmitBtn && !absenceSubmitBtn.dataset.listener) {
         await sendAbsenceWebhook(absence);
         showModal('alert', '<span class="success-tick"></span> Absence request sent to Discord!');
         closeModal('absenceRequest');
+        // Ensure pending tab is active and render
+        document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
+        document.getElementById('pendingFolder').classList.add('active');
+        document.getElementById('approvedFolder').classList.remove('active');
+        document.getElementById('rejectedFolder').classList.remove('active');
+        document.getElementById('archivedFolder').classList.remove('active');
+        updateAbsenceTabSlider();
         renderAbsences('pending');
     });
 }

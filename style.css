@@ -1,3 +1,32 @@
+@media (max-width: 700px) {
+    #mainMenuScreen .container {
+        max-width: 100vw;
+        width: 100vw;
+        margin: 0;
+        padding: 0 8px;
+        padding-top: 70px;
+        box-sizing: border-box;
+        transform: none;
+    }
+    #mainMenuScreen .user-header, #mainMenuScreen .stats-grid, #mainMenuScreen .quick-links {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 16px;
+    }
+    #mainMenuScreen .user-header img, #mainMenuScreen .user-header .profile-img {
+        width: 80px;
+        height: 80px;
+    }
+    #mainMenuScreen .stats-grid {
+        grid-template-columns: 1fr;
+        font-size: 1.2em;
+    }
+    #mainMenuScreen .quick-links button {
+        font-size: 1.1em;
+        padding: 18px 0;
+    }
+}
 /* Responsive sidebar: topbar for mobile */
 @media (max-width: 700px) {
     .sidebar {
@@ -1614,8 +1643,8 @@ body.dark .stat-card {
     #mainMenuScreen .container {
         padding-left: 70px; /* Accounts for collapsed sidebar (50px) + buffer */
     }
-    .sidebar { width: 50px; }
-    .sidebar.extended { width: 200px; }
+    .sidebar { width: 0; min-width: 0; }
+    .sidebar.extended { width: 100vw; min-width: 100vw; }
     .notifications { width: 280px; right: 10px; }
     .employee-grid { grid-template-columns: 1fr; }
     .modal-content { max-width: 95%; }
