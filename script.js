@@ -1,5 +1,5 @@
 // Logoff sound
-const LOGOFF_SOUND_URL = 'https://cdn.pixabay.com/audio/2022/10/16/audio_12b6b7e7e7.mp3';
+const LOGOFF_SOUND_URL = 'https://cdn.pixabay.com/audio/2024/11/29/audio_13c4a01b4b.mp3';
 let logoffAudio = null;
 function playLogoffSound() {
     if (!logoffAudio) {
