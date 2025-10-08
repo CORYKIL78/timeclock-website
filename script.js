@@ -1,9 +1,11 @@
 // Polling for absence status updates
 setInterval(async () => {
+    console.log('[DEBUG] Polling for absence status updates...');
     const emp = getEmployee(currentUser.id);
     if (!emp || !emp.absences) return;
     for (const absence of emp.absences) {
         if (absence.status === 'archived') continue;
+        console.log(`[DEBUG] Checking absence:`, absence);
         try {
             const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/getStatus', {
                 method: 'POST',
@@ -16,6 +18,7 @@ setInterval(async () => {
             });
             if (!res.ok) continue;
             const data = await res.json();
+            console.log(`[DEBUG] Received status from backend:`, data.status);
             if (data.status && absence.status !== data.status.toLowerCase()) {
                 absence.status = data.status.toLowerCase();
                 updateEmployee(emp);
@@ -1417,6 +1420,13 @@ document.getElementById('absencesScreen').addEventListener('click', (e) => {
 
 
 function renderAbsences(tab) {
+    console.log(`[DEBUG] Rendering absences for tab: ${tab}`);
+    let empDebug = getEmployee(currentUser.id);
+    if (empDebug && empDebug.absences) {
+        empDebug.absences.forEach(a => {
+            console.log(`[DEBUG] Absence:`, a, `Status: ${a.status}`);
+        });
+    }
     // UI debug: check if pendingAbsences UL is visible and if Pending tab/folder are active
     const pendingUl = document.getElementById('pendingAbsences');
     const pendingTabBtn = document.querySelector('.absence-tab-btn[data-tab="pending"]');
@@ -1437,7 +1447,7 @@ function renderAbsences(tab) {
         console.log('[UI DEBUG] Pending folder NOT FOUND');
     }
     console.log('[DEBUG] Rendering absences for tab:', tab);
-    const empDebug = getEmployee(currentUser.id);
+    // empDebug already declared above, reuse it
     console.log('[DEBUG] All absences for user:', JSON.stringify(empDebug.absences));
     const pendingList = document.getElementById('pendingAbsences');
     const approvedList = document.getElementById('approvedAbsences');
