@@ -1461,25 +1461,30 @@ function renderAbsences(tab) {
     const emp = getEmployee(currentUser.id);
     // Always render all absences in their respective lists, regardless of active tab
     emp.absences.forEach(a => {
-        if (a.status === 'pending') {
+        // Normalize status values for UI
+        let status = a.status;
+        if (status === 'approve') status = 'approved';
+        if (status === 'reject') status = 'rejected';
+        if (status !== a.status) a.status = status; // update in-memory for consistency
+        if (status === 'pending') {
             console.log('[DEBUG] Rendering pending absence:', JSON.stringify(a));
         }
         const li = document.createElement('li');
-        li.className = `absence-item ${a.status}`;
+        li.className = `absence-item ${status}`;
         let bg = '';
-        if (a.status === 'pending') bg = 'background: var(--yellow-hazard); color: #212529;';
-        if (a.status === 'approved') bg = 'background: #d4edda; color: #155724;';
-        if (a.status === 'rejected') bg = 'background: #f8d7da; color: #721c24;';
-        if (a.status === 'archived') bg = 'background: #e2e3e5; color: #41464b; opacity: 0.7;';
+        if (status === 'pending') bg = 'background: var(--yellow-hazard); color: #212529;';
+        if (status === 'approved') bg = 'background: #d4edda; color: #155724;';
+        if (status === 'rejected') bg = 'background: #f8d7da; color: #721c24;';
+        if (status === 'archived') bg = 'background: #e2e3e5; color: #41464b; opacity: 0.7;';
         li.setAttribute('style', bg);
         li.innerHTML = `
             <span>Type: ${a.type}</span>
             <span>Start: ${a.startDate}</span>
             <span>End: ${a.endDate}</span>
             <span style="background:rgba(255,255,0,0.2);padding:2px 6px;border-radius:4px;">Total Days: ${Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
-            ${a.status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
-            ${a.status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
-            ${a.status === 'archived' ? `<button class="delete-absence-btn" data-id="${a.id}">Delete Absence</button>` : ''}
+            ${status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
+            ${status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
+            ${status === 'archived' ? `<button class="delete-absence-btn" data-id="${a.id}">Delete Absence</button>` : ''}
         `;
         li.addEventListener('click', (e) => {
             if (e.target.classList.contains('cancel-absence-btn') || e.target.classList.contains('delete-absence-btn')) return;
@@ -1492,17 +1497,17 @@ function renderAbsences(tab) {
                   <li><strong>End Date:</strong> ${a.endDate}</li>
                   <li><strong>Total Days:</strong> ${totalDays}</li>
                   <li><strong>Comment:</strong> ${a.comment || 'N/A'}</li>
-                  <li><strong>Status:</strong> ${a.status}</li>
+                  <li><strong>Status:</strong> ${status}</li>
                   <li><strong>ID:</strong> ${a.id}</li>
                   ${a.reason ? `<li><strong>Reason:</strong> ${a.reason}</li>` : ''}
                   ${a.messageId ? `<li><strong>Message ID:</strong> ${a.messageId}</li>` : ''}
                 </ul>
             `;
-            document.getElementById('cancelAbsenceBtn').classList.toggle('hidden', a.status !== 'pending');
+            document.getElementById('cancelAbsenceBtn').classList.toggle('hidden', status !== 'pending');
             document.getElementById('cancelAbsenceBtn').dataset.id = a.id;
             const deleteBtn = document.getElementById('deleteAbsenceBtn');
             if (deleteBtn) {
-                deleteBtn.classList.toggle('hidden', a.status !== 'archived');
+                deleteBtn.classList.toggle('hidden', status !== 'archived');
                 deleteBtn.dataset.id = a.id;
             }
             showModal('absenceDetail');
@@ -1516,7 +1521,7 @@ function renderAbsences(tab) {
             };
         });
         // Only allow delete from archived folder
-        if (a.status === 'archived') {
+        if (status === 'archived') {
             li.querySelectorAll('.delete-absence-btn').forEach(btn => {
                 btn.onclick = (e) => {
                     e.stopPropagation();
@@ -1525,10 +1530,10 @@ function renderAbsences(tab) {
                 };
             });
         }
-        if (a.status === 'pending') pendingList.appendChild(li);
-        else if (a.status === 'approved') approvedList.appendChild(li);
-        else if (a.status === 'rejected') rejectedList.appendChild(li);
-        else if (a.status === 'archived') archivedList.appendChild(li);
+        if (status === 'pending') pendingList.appendChild(li);
+        else if (status === 'approved') approvedList.appendChild(li);
+        else if (status === 'rejected') rejectedList.appendChild(li);
+        else if (status === 'archived') archivedList.appendChild(li);
     });
     // Expand the folder/container to fit all absences in the active tab
     const folderElem = document.getElementById(tab + 'Folder');
