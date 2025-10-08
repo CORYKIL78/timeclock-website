@@ -1,3 +1,57 @@
+// Polling for absence status updates
+setInterval(async () => {
+    const emp = getEmployee(currentUser.id);
+    if (!emp || !emp.absences) return;
+    for (const absence of emp.absences) {
+        if (absence.status === 'archived') continue;
+        // Fetch status from backend (Google Sheets)
+        try {
+            const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: emp.profile.name,
+                    startDate: absence.startDate,
+                    endDate: absence.endDate
+                })
+            });
+            if (!res.ok) continue;
+            const data = await res.json();
+            if (data.status && absence.status !== data.status.toLowerCase()) {
+                absence.status = data.status.toLowerCase();
+                updateEmployee(emp);
+                // UI: move to correct tab, highlight, update cancel option
+                renderAbsences(absence.status);
+                // Update Discord message
+                if (absence.messageId) {
+                    let statusText = data.status === 'APPROVED' ? 'Approved' : 'Rejected';
+                    let color = data.status === 'APPROVED' ? 'GREEN' : 'RED';
+                    const newMsg = `STATUS: ${statusText}`;
+                    await updateEmbed(ABSENCE_CHANNEL, absence.messageId, { description: newMsg });
+                }
+            }
+        } catch (e) {
+            // Ignore errors
+        }
+    }
+}, 30000); // Poll every 30 seconds
+// Update absence status (approve/reject) from backend
+async function updateAbsenceStatus({ name, startDate, endDate, status, messageId }) {
+    // 1. Update the absence in Google Sheets (column G)
+    await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, startDate, endDate, status })
+    });
+    // 2. Update Discord message if messageId exists
+    if (messageId) {
+        let statusText = status === 'APPROVED' ? 'Approved' : 'Rejected';
+        let color = status === 'APPROVED' ? 'GREEN' : 'RED';
+        // Compose message update
+        const newMsg = `STATUS: ${statusText}`;
+        await updateEmbed(ABSENCE_CHANNEL, messageId, { description: newMsg });
+    }
+}
 // Logoff sound
 const LOGOFF_SOUND_URL = 'https://cdn.pixabay.com/audio/2024/11/29/audio_13c4a01b4b.mp3';
 let logoffAudio = null;
@@ -1485,11 +1539,38 @@ document.getElementById('confirmCancelAbsenceBtn').addEventListener('click', asy
         absence.status = 'archived';
         updateEmployee(emp);
         updateMainScreen(); // Update stats after cancel
-        if (absence.messageId) {
-            await sendAbsenceWebhook({
-                ...absence,
-                cancelled: true
+        // 1. Update Google Sheets column H to 'CANCELLED' for this absence
+        try {
+            await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: emp.profile.name,
+                    startDate: absence.startDate,
+                    endDate: absence.endDate
+                })
             });
+        } catch (e) {
+            console.error('Failed to update Sheets for cancellation:', e);
+        }
+        // 2. Update Discord message if messageId exists
+        if (absence.messageId) {
+            // Compose strikethrough message
+            const days = Math.ceil((new Date(absence.endDate) - new Date(absence.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+            const oldMsg = [
+                `**New Absence Request**`,
+                `• **User:** <@${currentUser.id}> (${emp.profile.name})`,
+                `• **Type:** ${absence.type}`,
+                `• **Start Date:** ${absence.startDate}`,
+                `• **End Date:** ${absence.endDate}`,
+                `• **Days:** ${days}`,
+                `• **Reason:** ${absence.comment || absence.reason || 'N/A'}`,
+                '',
+                '_Please accept via HR Portal_'
+            ].filter(Boolean).join('\n');
+            const newMsg = `~~${oldMsg}~~\n\n**Absence Cancelled**`;
+            // Call your proxy worker to update the message
+            await updateEmbed(ABSENCE_CHANNEL, absence.messageId, { description: newMsg });
         }
         // Animate folder scaling
         animateAbsenceFolderScale();
