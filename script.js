@@ -18,6 +18,59 @@ document.addEventListener('DOMContentLoaded', () => {
             window.open('https://docs.google.com/document/d/1SB48S4SiuT9_npDhgU1FT_CxAjdKGn40IpqUQKm2Nek/edit?tab=t.ib4suhnsfkzx#heading=h.5dly1dxe2rw', '_blank');
         });
     }
+    // Absence submit handler
+    const submitBtn = document.getElementById('submitAbsenceBtn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', async () => {
+            if (window.absenceSubmitting || submitBtn.disabled) return;
+            window.absenceSubmitting = true;
+            submitBtn.disabled = true;
+            const type = document.getElementById('absenceType').value;
+            const startDate = document.getElementById('absenceStartDate').value;
+            const endDate = document.getElementById('absenceEndDate').value;
+            const comment = document.getElementById('absenceComment').value.trim();
+            if (!startDate || !endDate || !comment) {
+                showModal('alert', 'Please fill all fields');
+                window.absenceSubmitting = false;
+                return;
+            }
+            const emp = getEmployee(currentUser.id);
+            emp.absences = emp.absences || [];
+            const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+            const absence = {
+                id: Date.now().toString(),
+                type,
+                startDate,
+                endDate,
+                comment,
+                status: 'pending',
+                messageId: null
+            };
+            emp.absences.push(absence);
+            updateEmployee(emp);
+            await sendAbsenceWebhook(absence);
+            closeModal('absenceRequest');
+            // Only show one success message: forcibly close any open alert modal
+            const alertModal = document.getElementById('alertModal');
+            if (alertModal && alertModal.style.display === 'flex') {
+                alertModal.style.display = 'none';
+            }
+            setTimeout(() => {
+                showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
+            }, 100);
+            addNotification('absence', 'Absence request submitted!', 'absences');
+            // Ensure pending tab is active and render
+            document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
+            document.getElementById('pendingFolder').classList.add('active');
+            document.getElementById('approvedFolder').classList.remove('active');
+            document.getElementById('rejectedFolder').classList.remove('active');
+            document.getElementById('archivedFolder').classList.remove('active');
+            renderAbsences('pending');
+            window.absenceSubmitting = false;
+            submitBtn.disabled = false;
+        });
+    }
 });
 // Animate the absence tab slider to the active tab
 function updateAbsenceTabSlider() {
@@ -1224,55 +1277,55 @@ function calculateAbsenceDays() {
     }
 }
 
-document.getElementById('submitAbsenceBtn').addEventListener('click', async () => {
+document.addEventListener('DOMContentLoaded', () => {
+    // ...existing code...
     const submitBtn = document.getElementById('submitAbsenceBtn');
-    if (window.absenceSubmitting || submitBtn.disabled) return;
-    window.absenceSubmitting = true;
-    submitBtn.disabled = true;
-    const type = document.getElementById('absenceType').value;
-    const startDate = document.getElementById('absenceStartDate').value;
-    const endDate = document.getElementById('absenceEndDate').value;
-    const comment = document.getElementById('absenceComment').value.trim();
-    if (!startDate || !endDate || !comment) {
-        showModal('alert', 'Please fill all fields');
-        window.absenceSubmitting = false;
-        return;
+    if (submitBtn) {
+        submitBtn.addEventListener('click', async () => {
+            if (window.absenceSubmitting || submitBtn.disabled) return;
+            window.absenceSubmitting = true;
+            submitBtn.disabled = true;
+            const type = document.getElementById('absenceType').value;
+            const startDate = document.getElementById('absenceStartDate').value;
+            const endDate = document.getElementById('absenceEndDate').value;
+            const comment = document.getElementById('absenceComment').value.trim();
+            if (!startDate || !endDate || !comment) {
+                showModal('alert', 'Please fill all fields');
+                window.absenceSubmitting = false;
+                return;
+            }
+            const emp = getEmployee(currentUser.id);
+            emp.absences = emp.absences || [];
+            const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+            const absence = {
+                id: Date.now().toString(),
+                type,
+                startDate,
+                endDate,
+                comment,
+                status: 'pending',
+                messageId: null
+            };
+            emp.absences.push(absence);
+            updateEmployee(emp);
+            await sendAbsenceWebhook(absence);
+            closeModal('absenceRequest');
+            // Only show one success message: forcibly close any open alert modal
+            const alertModal = document.getElementById('alertModal');
+            if (alertModal && alertModal.style.display === 'flex') {
+                alertModal.style.display = 'none';
+            }
+            setTimeout(() => {
+                showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
+            }, 100);
+            addNotification('absence', 'Absence request submitted!', 'absences');
+            // Ensure pending tab is active and render
+            document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
+            document.getElementById('pendingFolder').classList.add('active');
+            document.getElementById('approvedFolder').classList.remove('active');
+        });
     }
-    const emp = getEmployee(currentUser.id);
-    emp.absences = emp.absences || [];
-    const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
-    const absence = {
-        id: Date.now().toString(),
-        type,
-        startDate,
-        endDate,
-        comment,
-        status: 'pending',
-        messageId: null
-    };
-    emp.absences.push(absence);
-    updateEmployee(emp);
-    await sendAbsenceWebhook(absence);
-    closeModal('absenceRequest');
-    // Only show one success message: forcibly close any open alert modal
-    const alertModal = document.getElementById('alertModal');
-    if (alertModal && alertModal.style.display === 'flex') {
-        alertModal.style.display = 'none';
-    }
-    setTimeout(() => {
-        showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
-    }, 100);
-    addNotification('absence', 'Absence request submitted!', 'absences');
-    // Ensure pending tab is active and render
-    document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
-    document.getElementById('pendingFolder').classList.add('active');
-    document.getElementById('approvedFolder').classList.remove('active');
-    document.getElementById('rejectedFolder').classList.remove('active');
-    document.getElementById('archivedFolder').classList.remove('active');
-    renderAbsences('pending');
-    window.absenceSubmitting = false;
-    submitBtn.disabled = false;
 });
 
 document.getElementById('absencesScreen').addEventListener('click', (e) => {
