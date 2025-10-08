@@ -126,9 +126,13 @@ async function sendAbsenceWebhook(absence) {
         `• **Reason:** ${absence.comment || absence.reason || 'N/A'}`,
         absence.cancelled ? '• **Status:** Cancelled' : '',
         '',
-        '_Please accept via HR Portal_' // subtle footer
+        '_Please accept via HR Portal_'
     ].filter(Boolean).join('\n');
-    await sendAbsenceWebhook(msg);
+    await fetch(ABSENCE_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: msg })
+    });
 }
 const REQUIRED_ROLE = '1315346851616002158';
 const DEPT_ROLES = {
