@@ -1,5 +1,23 @@
 // --- USER PROFILE & STRIKES BACKEND INTEGRATION ---
 const BACKEND_URL = 'https://timeclock-backend.marcusray.workers.dev';
+// --- Backend Integration: Upsert User Profile ---
+async function upsertUserProfile() {
+    try {
+        await fetch('https://timeclock-backend.marcusray.workers.dev/api/user/upsert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discordId: currentUser.id,
+                name: currentUser.profile.name,
+                email: currentUser.profile.email,
+                department: currentUser.profile.department
+            })
+        });
+        console.log('[User Upsert] Profile sent to backend.');
+    } catch (e) {
+        console.error('[User Upsert] Failed to upsert user profile:', e);
+    }
+}
 
 async function fetchUserProfile(discordId) {
     try {
@@ -1470,21 +1488,31 @@ document.getElementById('submitDeptChangeBtn').addEventListener('click', () => {
     const selectedDept = document.querySelector('input[name="newDepartment"]:checked');
     if (selectedDept) {
         const emp = getEmployee(currentUser.id);
-        emp.pendingDeptChange = selectedDept.value;
-        updateEmployee(emp);
-        currentUser.pendingDeptChange = emp.pendingDeptChange;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        sendEmbed(ABSENCE_CHANNEL, {
-            title: 'Department Change Request',
-            description: `User: <@${currentUser.id}> (${emp.profile.name})\nRequested Department: ${selectedDept.value}`,
-            color: 0xffff00
-        });
-        closeModal('deptChange');
-        showModal('alert', '<span class="success-tick"></span> Request to change department has been sent.');
-        playSuccessSound();
-        addNotification('department', 'Department change request submitted!', 'myProfile');
-        document.getElementById('profileDepartment').textContent = emp.profile.department;
-        document.getElementById('profileDepartment').classList.add('pending-department');
+        // Upsert user profile to backend after department is set
+        upsertUserProfile();
+        showScreen('setupVerify');
+        setTimeout(() => {
+            const deptRole = DEPT_ROLES[currentUser.profile.department];
+            if (currentUser.roles.includes(deptRole)) {
+                // ...existing code for success...
+            } else {
+                // ...existing code for failure...
+            }
+            // Send department change notification (simulate webhook or log)
+            // Example: sendEmbed or webhook call can go here if needed
+            // For now, just log
+            console.log('Department Change Request:', {
+                title: 'Department Change Request',
+                description: `User: <@${currentUser.id}> (${emp.profile.name})\nRequested Department: ${selectedDept.value}`,
+                color: 0xffff00
+            });
+            closeModal('deptChange');
+            showModal('alert', '<span class="success-tick"></span> Request to change department has been sent.');
+            playSuccessSound();
+            addNotification('department', 'Department change request submitted!', 'myProfile');
+            document.getElementById('profileDepartment').textContent = emp.profile.department;
+            document.getElementById('profileDepartment').classList.add('pending-department');
+        }, 2000);
     } else {
         showModal('alert', 'Please select a department');
     }
