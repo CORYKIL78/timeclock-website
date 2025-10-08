@@ -1,3 +1,214 @@
+// --- USER PROFILE & STRIKES BACKEND INTEGRATION ---
+const BACKEND_URL = 'https://timeclock-backend.marcusray.workers.dev';
+
+async function fetchUserProfile(discordId) {
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/user/profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ discordId })
+        });
+        if (!res.ok) throw new Error('Failed to fetch user profile');
+        return await res.json();
+    } catch (e) {
+        console.error('fetchUserProfile error:', e);
+        return null;
+    }
+}
+
+async function saveUserProfile(profile) {
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/user/upsert`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(profile)
+        });
+        if (!res.ok) throw new Error('Failed to save user profile');
+        return await res.json();
+    } catch (e) {
+        console.error('saveUserProfile error:', e);
+        return null;
+    }
+}
+
+async function fetchUserStrikes(discordId) {
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/user/profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ discordId })
+        });
+        if (!res.ok) throw new Error('Failed to fetch strikes');
+        const data = await res.json();
+        return data.strikes || [];
+    } catch (e) {
+        console.error('fetchUserStrikes error:', e);
+        return [];
+    }
+}
+
+async function addUserStrike(discordId, strike) {
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/user/strike`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ discordId, strike })
+        });
+        if (!res.ok) throw new Error('Failed to add strike');
+        return await res.json();
+    } catch (e) {
+        console.error('addUserStrike error:', e);
+        return null;
+    }
+}
+
+async function removeUserStrike(discordId, strikeIndex) {
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/user/strike/remove`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ discordId, strikeIndex })
+        });
+        if (!res.ok) throw new Error('Failed to remove strike');
+        return await res.json();
+    } catch (e) {
+        console.error('removeUserStrike error:', e);
+        return null;
+    }
+}
+
+async function submitStrikeAppeal(discordId, strikeIndex, reason) {
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/user/appeal`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ discordId, strikeIndex, reason })
+        });
+        if (!res.ok) throw new Error('Failed to submit appeal');
+        return await res.json();
+    } catch (e) {
+        console.error('submitStrikeAppeal error:', e);
+        return null;
+    }
+}
+
+function renderStrikes(strikes) {
+    const content = document.getElementById('disciplinariesContent');
+    content.innerHTML = '';
+    if (!strikes.length) {
+        content.innerHTML = '<p>No strikes found.</p>';
+        return;
+    }
+    strikes.forEach((s, i) => {
+        const div = document.createElement('div');
+        div.className = 'strike-item';
+        div.innerHTML = `
+            <p>Level: ${s.level || ''}</p>
+            <p>Reason: ${s.reason || ''}</p>
+            <p>Details: ${s.details || ''}</p>
+            <p>Action: ${s.action || ''}</p>
+            <p>Timestamp: ${s.timestamp || ''}</p>
+            <button class="appeal-strike-btn" data-index="${i}">Appeal</button>
+        `;
+        content.appendChild(div);
+    });
+    content.querySelectorAll('.appeal-strike-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            const idx = btn.dataset.index;
+            showAppealModal(idx);
+        };
+    });
+}
+
+function showAppealModal(strikeIndex) {
+    let modal = document.getElementById('appealStrikeModal');
+    if (modal) modal.remove();
+    modal = document.createElement('div');
+    modal.id = 'appealStrikeModal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" id="closeAppealStrike">&times;</span>
+            <h2>Appeal Strike</h2>
+            <textarea id="appealReasonInput" placeholder="Enter your appeal reason..."></textarea>
+            <button id="submitAppealBtn">Submit Appeal</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
+    document.getElementById('closeAppealStrike').onclick = () => { modal.style.display = 'none'; };
+    document.getElementById('submitAppealBtn').onclick = async () => {
+        const reason = document.getElementById('appealReasonInput').value.trim();
+        if (!reason) {
+            alert('Please enter a reason for your appeal.');
+            return;
+        }
+        const res = await submitStrikeAppeal(currentUser.id, strikeIndex, reason);
+        if (res && res.success) {
+            alert('Appeal submitted!');
+            modal.style.display = 'none';
+        } else {
+            alert('Failed to submit appeal.');
+        }
+    };
+}
+
+// --- HOOK INTO DISCIPLINARIES BUTTON ---
+document.getElementById('disciplinariesBtn').addEventListener('click', async () => {
+    showScreen('disciplinaries');
+    const strikes = await fetchUserStrikes(currentUser.id);
+    renderStrikes(strikes);
+});
+
+// --- ON PROFILE UPDATE, SAVE TO BACKEND ---
+const oldUpdateProfileBtn = document.getElementById('updateProfileBtn').onclick;
+document.getElementById('updateProfileBtn').addEventListener('click', async () => {
+    const name = document.getElementById('updateNameInput').value.trim();
+    const email = document.getElementById('updateEmailInput').value.trim();
+    if (name && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        const emp = getEmployee(currentUser.id);
+        emp.profile.name = name;
+        emp.profile.email = email;
+        updateEmployee(emp);
+        currentUser.profile = emp.profile;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        await saveUserProfile({
+            discordId: currentUser.id,
+            name,
+            email,
+            department: emp.profile.department || '',
+            discordTag: currentUser.name
+        });
+        showModal('alert', '<span class="success-tick"></span> Profile updated successfully!');
+        playSuccessSound();
+        addNotification('profile', 'Your profile has been updated!', 'myProfile');
+        document.getElementById('profileName').textContent = name;
+        document.getElementById('profileEmail').textContent = email;
+    } else {
+        showModal('alert', 'Please enter a valid name and email');
+    }
+});
+
+// --- ON LOGIN, SYNC PROFILE FROM BACKEND ---
+async function syncUserProfileOnLogin() {
+    const profile = await fetchUserProfile(currentUser.id);
+    if (profile) {
+        const emp = getEmployee(currentUser.id);
+        emp.profile = {
+            name: profile.name || '',
+            email: profile.email || '',
+            department: profile.department || '',
+            discordTag: profile.discordTag || ''
+        };
+        emp.strikes = profile.strikes || [];
+        updateEmployee(emp);
+        currentUser.profile = emp.profile;
+        currentUser.strikes = emp.strikes;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    }
+}
+
+// Call syncUserProfileOnLogin() after successful login (e.g. after setting currentUser)
 // Polling for absence status updates
 setInterval(async () => {
     console.log('[DEBUG] Polling for absence status updates...');
