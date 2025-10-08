@@ -48,16 +48,33 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             emp.absences.push(absence);
             updateEmployee(emp);
+            // Send absence to backend for Google Sheets logging
+            try {
+                const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: emp.profile.name,
+                        startDate,
+                        endDate,
+                        reason: type,
+                        totalDays: days,
+                        comment
+                    })
+                });
+                if (response.ok) {
+                    playSuccessSound();
+                    setTimeout(() => {
+                        showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
+                    }, 100);
+                } else {
+                    showModal('alert', 'Failed to log absence in Google Sheets.');
+                }
+            } catch (e) {
+                showModal('alert', 'Error connecting to backend.');
+            }
             await sendAbsenceWebhook(absence);
             closeModal('absenceRequest');
-            // Only show one success message: forcibly close any open alert modal
-            const alertModal = document.getElementById('alertModal');
-            if (alertModal && alertModal.style.display === 'flex') {
-                alertModal.style.display = 'none';
-            }
-            setTimeout(() => {
-                showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
-            }, 100);
             addNotification('absence', 'Absence request submitted!', 'absences');
             // Ensure pending tab is active and render
             document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
