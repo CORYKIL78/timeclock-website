@@ -19,11 +19,8 @@ setInterval(async () => {
             if (data.status && absence.status !== data.status.toLowerCase()) {
                 absence.status = data.status.toLowerCase();
                 updateEmployee(emp);
-                // Always re-render all absences so they move to the correct tab
-                renderAbsences('pending');
-                renderAbsences('approved');
-                renderAbsences('rejected');
-                renderAbsences('archived');
+                // Always re-render all absence tabs so they move to the correct tab
+                ['pending', 'approved', 'rejected', 'archived'].forEach(tab => renderAbsences(tab));
                 // Update Discord message if info available
                 if (absence.messageId && absence.channelId) {
                     let statusText = data.status === 'APPROVE' || data.status === 'APPROVED' ? 'Approved' : (data.status === 'REJECT' || data.status === 'REJECTED' ? 'Rejected' : data.status);
