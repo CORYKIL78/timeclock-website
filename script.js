@@ -1026,21 +1026,50 @@ async function handleOAuthRedirect() {
     await fetchRoleNames();
     await fetchEmployees();
 
-    currentUser = {
-        id: user.id,
-        name: user.global_name || user.username,
-        avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : '',
-        roles: member.roles,
-        profile: getEmployee(user.id).profile,
-        absences: getEmployee(user.id).absences || [],
-        strikes: getEmployee(user.id).strikes || [],
-        payslips: getEmployee(user.id).payslips || [],
-        mail: getEmployee(user.id).mail || [],
-        sentMail: getEmployee(user.id).sentMail || [],
-        drafts: getEmployee(user.id).drafts || [],
-        pendingDeptChange: getEmployee(user.id).pendingDeptChange || null,
-        lastLogin: getEmployee(user.id).lastLogin || null
-    };
+    // Always fetch user profile from backend after Discord login
+    let backendProfile = await fetchUserProfile(user.id);
+    let isFirstTime = false;
+    if (backendProfile && backendProfile.name) {
+        // Existing user: use backend profile
+        currentUser = {
+            id: user.id,
+            name: user.global_name || user.username,
+            avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : '',
+            roles: member.roles,
+            profile: {
+                name: backendProfile.name,
+                email: backendProfile.email,
+                department: backendProfile.department,
+                discordTag: backendProfile.discordTag || user.username
+            },
+            absences: backendProfile.absences || [],
+            strikes: backendProfile.strikes || [],
+            payslips: backendProfile.payslips || [],
+            mail: backendProfile.mail || [],
+            sentMail: backendProfile.sentMail || [],
+            drafts: backendProfile.drafts || [],
+            pendingDeptChange: backendProfile.pendingDeptChange || null,
+            lastLogin: backendProfile.lastLogin || null
+        };
+    } else {
+        // First time user: use local or empty profile
+        isFirstTime = true;
+        currentUser = {
+            id: user.id,
+            name: user.global_name || user.username,
+            avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : '',
+            roles: member.roles,
+            profile: getEmployee(user.id).profile || {},
+            absences: getEmployee(user.id).absences || [],
+            strikes: getEmployee(user.id).strikes || [],
+            payslips: getEmployee(user.id).payslips || [],
+            mail: getEmployee(user.id).mail || [],
+            sentMail: getEmployee(user.id).sentMail || [],
+            drafts: getEmployee(user.id).drafts || [],
+            pendingDeptChange: getEmployee(user.id).pendingDeptChange || null,
+            lastLogin: getEmployee(user.id).lastLogin || null
+        };
+    }
 
     showScreen('cherry');
     await new Promise(r => setTimeout(r, 1000));
@@ -1060,7 +1089,7 @@ async function handleOAuthRedirect() {
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
     console.log('User session saved:', currentUser.id);
 
-    if (!currentUser.profile.name) {
+    if (isFirstTime || !currentUser.profile.name) {
         console.log('No profile name, redirecting to setupWelcome');
         showScreen('setupWelcome');
     } else {
