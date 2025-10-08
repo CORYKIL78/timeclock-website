@@ -4,7 +4,6 @@ setInterval(async () => {
     if (!emp || !emp.absences) return;
     for (const absence of emp.absences) {
         if (absence.status === 'archived') continue;
-        // Fetch status from backend (Google Sheets)
         try {
             const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/getStatus', {
                 method: 'POST',
@@ -20,14 +19,16 @@ setInterval(async () => {
             if (data.status && absence.status !== data.status.toLowerCase()) {
                 absence.status = data.status.toLowerCase();
                 updateEmployee(emp);
-                // UI: move to correct tab, highlight, update cancel option
-                renderAbsences(absence.status);
-                // Update Discord message
-                if (absence.messageId) {
+                // Always re-render all absences so they move to the correct tab
+                renderAbsences('pending');
+                renderAbsences('approved');
+                renderAbsences('rejected');
+                renderAbsences('archived');
+                // Update Discord message if info available
+                if (absence.messageId && absence.channelId) {
                     let statusText = data.status === 'APPROVE' || data.status === 'APPROVED' ? 'Approved' : (data.status === 'REJECT' || data.status === 'REJECTED' ? 'Rejected' : data.status);
-                    let color = data.status === 'APPROVE' || data.status === 'APPROVED' ? 'GREEN' : (data.status === 'REJECT' || data.status === 'REJECTED' ? 'RED' : 'GREY');
                     const newMsg = `STATUS: ${statusText}`;
-                    await updateEmbed(ABSENCE_CHANNEL, absence.messageId, { description: newMsg });
+                    await updateEmbed(absence.channelId, absence.messageId, { description: newMsg });
                 }
             }
         } catch (e) {
