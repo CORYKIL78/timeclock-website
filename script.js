@@ -107,6 +107,24 @@ document.addEventListener('DOMContentLoaded', () => {
             resetProfileBtn.classList.add('counting-down');
             let count = 10;
             resetCountdown = true;
+            // Add cancel button to the right of reset button
+            let cancel = document.getElementById('resetCancelBtn');
+            if (!cancel) {
+                cancel = document.createElement('button');
+                cancel.textContent = 'Cancel';
+                cancel.className = 'edit-field-cancel';
+                cancel.id = 'resetCancelBtn';
+                cancel.style.marginLeft = '18px';
+                cancel.style.fontSize = '1.1em';
+                resetProfileBtn.parentNode.appendChild(cancel);
+            }
+            cancel.onclick = () => {
+                clearInterval(resetTimer);
+                resetProfileBtn.textContent = 'Reset Profile';
+                resetProfileBtn.classList.remove('counting-down');
+                resetCountdown = false;
+                cancel.remove();
+            };
             resetTimer = setInterval(() => {
                 count--;
                 resetProfileBtn.textContent = `Confirm Reset (${count})`;
@@ -118,22 +136,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         resetProfileBtn.textContent = 'Reset Profile';
                         resetProfileBtn.classList.remove('counting-down');
                         resetCountdown = false;
+                        cancel.remove();
                     }, 2000);
                 }
             }, 1000);
-            // Add cancel button
-            const cancel = document.createElement('button');
-            cancel.textContent = 'Cancel';
-            cancel.className = 'edit-field-cancel';
-            cancel.style.marginLeft = '12px';
-            resetProfileBtn.parentNode.appendChild(cancel);
-            cancel.onclick = () => {
-                clearInterval(resetTimer);
-                resetProfileBtn.textContent = 'Reset Profile';
-                resetProfileBtn.classList.remove('counting-down');
-                resetCountdown = false;
-                cancel.remove();
-            };
         };
     }
 });

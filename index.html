@@ -257,12 +257,14 @@
         </div>
     </div>
     <div id="myProfileScreen" class="screen">
-        <div class="container" style="max-width:70%;width:70%;margin-left:auto;margin-right:auto;">
+        <div class="container profile-config-container">
             <div class="profile-card" id="profileCard">
                 <div class="profile-card-front">
-                    <div class="profile-section" style="display:flex;align-items:center;gap:32px;">
-                        <img id="profilePic" class="profile-img-large" src="" alt="Profile Picture">
-                        <div class="profile-info-col">
+                    <div class="profile-config-row">
+                        <div class="profile-config-pic-col">
+                            <img id="profilePic" class="profile-img-large" src="" alt="Profile Picture">
+                        </div>
+                        <div class="profile-config-info-col">
                             <div class="profile-row">
                                 <span class="profile-label">Name:</span>
                                 <span id="profileName"></span>
@@ -281,8 +283,8 @@
                         </div>
                     </div>
                     <hr style="margin:32px 0 24px 0;width:100%;border:0;border-top:1px solid #eee;">
-                    <div class="profile-section" style="display:flex;justify-content:space-between;align-items:center;gap:24px;">
-                        <div style="display:flex;align-items:center;gap:16px;">
+                    <div class="profile-config-actions-row">
+                        <div class="profile-config-actions-right">
                             <label class="switch darkmode-switch">
                                 <input type="checkbox" id="modeToggle">
                                 <span class="slider"></span>
