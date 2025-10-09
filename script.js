@@ -1,3 +1,133 @@
+// --- Profile Edit Buttons, Barcode, and Reset Countdown ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Card flip and barcode logic (existing)
+    const profileCard = document.getElementById('profileCard');
+    const showIdBtn = document.getElementById('showIdBtn');
+    const backToProfileBtn = document.getElementById('backToProfileBtn');
+    const barcodeEl = document.getElementById('barcode');
+    const staffIdDisplay = document.getElementById('staffIdDisplay');
+    // Edit buttons
+    const editNameBtn = document.getElementById('editNameBtn');
+    const editEmailBtn = document.getElementById('editEmailBtn');
+    const editDeptBtn = document.getElementById('editDeptBtn');
+    const editFieldsContainer = document.getElementById('editFieldsContainer');
+    // Profile fields
+    const profileName = document.getElementById('profileName');
+    const profileEmail = document.getElementById('profileEmail');
+    const profileDepartment = document.getElementById('profileDepartment');
+    // Profile pic
+    const profilePic = document.getElementById('profilePic');
+    // Reset profile
+    const resetProfileBtn = document.getElementById('resetProfileBtn');
+    let resetCountdown = null;
+    let resetTimer = null;
+    // Card flip logic
+    if (showIdBtn && profileCard && backToProfileBtn && barcodeEl && staffIdDisplay) {
+        showIdBtn.addEventListener('click', async () => {
+            // Get user info (replace with your actual user data source)
+            const name = profileName.textContent || '';
+            const email = profileEmail.textContent || '';
+            const department = profileDepartment.textContent || '';
+            const discordUsername = window.currentUser?.name || '';
+            const discordId = window.currentUser?.id || '';
+            let staffId = window.currentUser?.staffId || '';
+            if (!staffId && window.currentUser?.profile?.staffId) staffId = window.currentUser.profile.staffId;
+            // Compose barcode data string
+            const barcodeData = `${staffId}|${name}|${department}|${email}|${discordUsername}|${discordId}`;
+            staffIdDisplay.textContent = `Staff ID: ${staffId}`;
+            function renderBarcode() {
+                JsBarcode(barcodeEl, barcodeData, {
+                    format: 'CODE128',
+                    lineColor: '#222',
+                    width: 4,
+                    height: 100,
+                    displayValue: false,
+                    margin: 0
+                });
+            }
+            if (window.JsBarcode) {
+                renderBarcode();
+            } else {
+                const interval = setInterval(() => {
+                    if (window.JsBarcode) {
+                        clearInterval(interval);
+                        renderBarcode();
+                    }
+                }, 100);
+            }
+            profileCard.classList.add('flipped');
+        });
+        backToProfileBtn.addEventListener('click', () => {
+            profileCard.classList.remove('flipped');
+        });
+    }
+    // Edit logic
+    function showEditField(type, currentValue) {
+        editFieldsContainer.innerHTML = '';
+        const input = document.createElement('input');
+        input.type = type === 'email' ? 'email' : 'text';
+        input.value = currentValue;
+        input.className = 'edit-field-input';
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = 'Save';
+        saveBtn.className = 'edit-field-save';
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.className = 'edit-field-cancel';
+        editFieldsContainer.appendChild(input);
+        editFieldsContainer.appendChild(saveBtn);
+        editFieldsContainer.appendChild(cancelBtn);
+        input.focus();
+        saveBtn.onclick = async () => {
+            if (type === 'name') profileName.textContent = input.value;
+            if (type === 'email') profileEmail.textContent = input.value;
+            if (type === 'department') profileDepartment.textContent = input.value;
+            // TODO: Save to backend here if needed
+            editFieldsContainer.innerHTML = '';
+        };
+        cancelBtn.onclick = () => { editFieldsContainer.innerHTML = ''; };
+    }
+    if (editNameBtn) editNameBtn.onclick = () => showEditField('name', profileName.textContent);
+    if (editEmailBtn) editEmailBtn.onclick = () => showEditField('email', profileEmail.textContent);
+    if (editDeptBtn) editDeptBtn.onclick = () => showEditField('department', profileDepartment.textContent);
+    // Reset profile with countdown
+    if (resetProfileBtn) {
+        resetProfileBtn.onclick = () => {
+            if (resetCountdown) return;
+            resetProfileBtn.textContent = 'Confirm Reset (10)';
+            resetProfileBtn.classList.add('counting-down');
+            let count = 10;
+            resetCountdown = true;
+            resetTimer = setInterval(() => {
+                count--;
+                resetProfileBtn.textContent = `Confirm Reset (${count})`;
+                if (count <= 0) {
+                    clearInterval(resetTimer);
+                    resetProfileBtn.textContent = 'Resetting...';
+                    // TODO: Actually reset profile here
+                    setTimeout(() => {
+                        resetProfileBtn.textContent = 'Reset Profile';
+                        resetProfileBtn.classList.remove('counting-down');
+                        resetCountdown = false;
+                    }, 2000);
+                }
+            }, 1000);
+            // Add cancel button
+            const cancel = document.createElement('button');
+            cancel.textContent = 'Cancel';
+            cancel.className = 'edit-field-cancel';
+            cancel.style.marginLeft = '12px';
+            resetProfileBtn.parentNode.appendChild(cancel);
+            cancel.onclick = () => {
+                clearInterval(resetTimer);
+                resetProfileBtn.textContent = 'Reset Profile';
+                resetProfileBtn.classList.remove('counting-down');
+                resetCountdown = false;
+                cancel.remove();
+            };
+        };
+    }
+});
 // --- JsBarcode CDN injection (if not present) ---
 if (!window.JsBarcode) {
     const script = document.createElement('script');

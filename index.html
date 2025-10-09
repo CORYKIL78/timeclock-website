@@ -257,26 +257,43 @@
         </div>
     </div>
     <div id="myProfileScreen" class="screen">
-        <div class="profile-card-container">
+        <div class="profile-card-container wide">
             <div class="profile-card" id="profileCard">
                 <div class="profile-card-front">
-                    <h2>My Profile</h2>
-                    <p>Name: <span id="profileName"></span></p>
-                    <p>Email: <span id="profileEmail"></span></p>
-                    <p>Department: <span id="profileDepartment"></span></p>
-                    <input type="text" id="updateNameInput" placeholder="Update Name">
-                    <input type="email" id="updateEmailInput" placeholder="Update Email">
-                    <button id="updateProfileBtn">Update Profile</button>
-                    <button id="changeDeptBtn">Change Department</button>
-                    <div class="toggle-container">
-                        <label class="switch">
-                            <input type="checkbox" id="modeToggle">
-                            <span class="slider"></span>
-                        </label>
-                        <span>Dark Mode</span>
+                    <div class="profile-main-row">
+                        <div class="profile-pic-col">
+                            <img id="profilePic" class="profile-img-large" src="" alt="Profile Picture">
+                        </div>
+                        <div class="profile-info-col">
+                            <div class="profile-row">
+                                <span class="profile-label">Name:</span>
+                                <span id="profileName"></span>
+                                <button class="edit-btn" id="editNameBtn" title="Edit Name">✎</button>
+                            </div>
+                            <div class="profile-row">
+                                <span class="profile-label">Email:</span>
+                                <span id="profileEmail"></span>
+                                <button class="edit-btn" id="editEmailBtn" title="Edit Email">✎</button>
+                            </div>
+                            <div class="profile-row">
+                                <span class="profile-label">Department:</span>
+                                <span id="profileDepartment"></span>
+                                <button class="edit-btn" id="editDeptBtn" title="Edit Department">✎</button>
+                            </div>
+                        </div>
                     </div>
-                    <button id="resetProfileBtn">Reset Profile</button>
-                    <button id="showIdBtn">ID</button>
+                    <div class="profile-actions-row">
+                        <div class="profile-actions-left">
+                            <label class="switch darkmode-switch">
+                                <input type="checkbox" id="modeToggle">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="darkmode-label">Dark Mode</span>
+                            <button id="showIdBtn">ID</button>
+                        </div>
+                        <button id="resetProfileBtn" class="big-red-btn">Reset Profile</button>
+                    </div>
+                    <div id="editFieldsContainer" class="edit-fields-container"></div>
                 </div>
                 <div class="profile-card-back">
                     <h2>Staff ID Card</h2>
