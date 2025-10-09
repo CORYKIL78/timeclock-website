@@ -1,3 +1,16 @@
+#showIdBtn {
+    position: relative;
+    z-index: 1001;
+    background: var(--info);
+    color: #fff;
+    font-weight: bold;
+    border: 2px solid var(--primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+#showIdBtn:hover {
+    background: var(--primary);
+    color: #fff;
+}
 /* Profile Card Flip Styles */
 .profile-card-container {
     perspective: 1200px;
