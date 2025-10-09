@@ -2,8 +2,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Fetch and sync user profile from backend (Google Sheets) on load
     async function syncProfileFromSheets() {
-        if (!window.currentUser) return;
+        if (!window.currentUser) {
+            console.debug('[syncProfileFromSheets] No currentUser');
+            return;
+        }
         const profile = await fetchUserProfile(window.currentUser.id);
+        console.debug('[syncProfileFromSheets] fetched profile:', profile);
         if (profile) {
             // Update UI fields with latest data from Sheets
             if (profile.name && profileName) profileName.textContent = profile.name;
@@ -19,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.currentUser.profile.email = profile.email;
                 window.currentUser.profile.department = profile.department;
             }
+            console.debug('[syncProfileFromSheets] UI updated with profile:', profile);
+        } else {
+            console.warn('[syncProfileFromSheets] No profile returned for user', window.currentUser.id);
         }
     }
     // Initial sync on load
@@ -68,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (type === 'email') profileEmail.textContent = input.value;
             // Department is not editable in portal
             // Save to backend after edit
+            console.debug('[showEditField] Saving profile to backend...');
             await upsertUserProfile();
             // Re-sync from Sheets after update
             await syncProfileFromSheets();
@@ -128,17 +136,20 @@ const BACKEND_URL = 'https://timeclock-backend.marcusray.workers.dev';
 // --- Backend Integration: Upsert User Profile ---
 async function upsertUserProfile() {
     try {
-        await fetch('https://timeclock-backend.marcusray.workers.dev/api/user/upsert', {
+        const payload = {
+            discordId: currentUser.id,
+            name: currentUser.profile.name,
+            email: currentUser.profile.email,
+            department: currentUser.profile.department
+        };
+        console.debug('[upsertUserProfile] Sending payload:', payload);
+        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/user/upsert', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                discordId: currentUser.id,
-                name: currentUser.profile.name,
-                email: currentUser.profile.email,
-                department: currentUser.profile.department
-            })
+            body: JSON.stringify(payload)
         });
-        console.log('[User Upsert] Profile sent to backend.');
+        const data = await res.json();
+        console.debug('[upsertUserProfile] Backend response:', data);
     } catch (e) {
         console.error('[User Upsert] Failed to upsert user profile:', e);
     }
@@ -146,13 +157,16 @@ async function upsertUserProfile() {
 
 async function fetchUserProfile(discordId) {
     try {
+        console.debug('[fetchUserProfile] Fetching profile for discordId:', discordId);
         const res = await fetch(`${BACKEND_URL}/api/user/profile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ discordId })
         });
         if (!res.ok) throw new Error('Failed to fetch user profile');
-        return await res.json();
+        const data = await res.json();
+        console.debug('[fetchUserProfile] Response:', data);
+        return data;
     } catch (e) {
         console.error('fetchUserProfile error:', e);
         return null;
