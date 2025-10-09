@@ -26,12 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Poll for live updates from Sheets every 15 seconds
     setInterval(syncProfileFromSheets, 15000);
-    // Card flip and QR code logic
-    const profileCard = document.getElementById('profileCard');
-    const showIdBtn = document.getElementById('showIdBtn');
-    const backToProfileBtn = document.getElementById('backToProfileBtn');
-    const qrcodeEl = document.getElementById('qrcode');
-    const staffIdDisplay = document.getElementById('staffIdDisplay');
+    // ...existing code...
     // Edit buttons
     const editNameBtn = document.getElementById('editNameBtn');
     const editEmailBtn = document.getElementById('editEmailBtn');
@@ -50,56 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetProfileBtn = document.getElementById('resetProfileBtn');
     let resetCountdown = null;
     let resetTimer = null;
-    // Card flip logic with live QR code and staff ID
-    let lastProfileData = null;
-    async function updateQrAndStaffId(forceFlip) {
-        let profile = await fetchUserProfile(window.currentUser.id);
-        if (!profile) profile = {};
-        const name = profile.name || '';
-        const email = profile.email || '';
-        const department = profile.department || '';
-        const discordUsername = window.currentUser?.name || '';
-        const discordId = window.currentUser?.id || '';
-        const staffId = profile.staffId || '';
-        // Compose QR code data string as multi-line labeled text (all fields)
-        const qrData =
-            `Staff ID: ${staffId}\n` +
-            `Discord Username: ${discordUsername}\n` +
-            `Discord ID: ${discordId}\n` +
-            `Name: ${name}\n` +
-            `Email: ${email}\n` +
-            `Department: ${department}`;
-        staffIdDisplay.textContent = `Staff ID: ${staffId}`;
-        // Only update QR if data changed or forced
-        const newProfileData = JSON.stringify({staffId, discordUsername, discordId, name, email, department});
-        if (forceFlip || newProfileData !== lastProfileData) {
-            qrcodeEl.innerHTML = '';
-            new QRCode(qrcodeEl, {
-                text: qrData,
-                width: 180,
-                height: 180,
-                colorDark: '#222',
-                colorLight: '#fff',
-                correctLevel: QRCode.CorrectLevel.H
-            });
-            lastProfileData = newProfileData;
-        }
-    }
-    if (showIdBtn && profileCard && backToProfileBtn && qrcodeEl && staffIdDisplay) {
-        showIdBtn.addEventListener('click', async () => {
-            await updateQrAndStaffId(true);
-            profileCard.classList.add('flipped');
-        });
-        backToProfileBtn.addEventListener('click', () => {
-            profileCard.classList.remove('flipped');
-        });
-        // Live update QR and staff ID while card is flipped
-        setInterval(() => {
-            if (profileCard.classList.contains('flipped')) {
-                updateQrAndStaffId(false);
-            }
-        }, 15000);
-    }
+    // ...existing code...
     // Edit logic
     function showEditField(type, currentValue) {
         editFieldsContainer.innerHTML = '';

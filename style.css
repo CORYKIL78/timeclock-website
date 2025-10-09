@@ -10,7 +10,6 @@
     background: white;
     border-radius: 16px;
     box-shadow: var(--shadow);
-}
 .profile-main-row {
     display: flex;
     flex-direction: row;
@@ -371,92 +370,7 @@
 .edit-fields-container {
     margin-top: 18px;
 }
-/* QR code display for profile card */
-#qrcode {
-    margin: 24px 0 12px 0;
-    width: 180px;
-    height: 180px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-#staffIdDisplay {
-    font-size: 1.5em;
-    font-weight: bold;
-    margin-bottom: 16px;
-}
-#showIdBtn {
-    position: relative;
-    z-index: 1001;
-    background: var(--info);
-    color: #fff;
-    font-weight: bold;
-    border: 2px solid var(--primary);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-#showIdBtn:hover {
-    background: var(--primary);
-    color: #fff;
-}
-/* Profile Card Flip Styles */
-.profile-card-container {
-    perspective: 1200px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 400px;
-}
-.profile-card {
-    width: 350px;
-    min-height: 400px;
-    position: relative;
-    transform-style: preserve-3d;
-    transition: transform 0.6s var(--transition-ease);
-}
-.profile-card.flipped {
-    transform: rotateY(180deg);
-}
-.profile-card-front, .profile-card-back {
-    position: absolute;
-    width: 100%;
-    min-height: 400px;
-    backface-visibility: hidden;
-    background: white;
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-.profile-card-back {
-    transform: rotateY(180deg);
-}
-#barcode {
-    margin: 24px 0 12px 0;
-    width: 250px;
-    height: 80px;
-}
-#staffIdDisplay {
-    font-size: 1.5em;
-    font-weight: bold;
-    margin-bottom: 16px;
-}
-#showIdBtn, #backToProfileBtn {
-    margin-top: 16px;
-    width: 120px;
-}
-@media (max-width: 700px) {
-    #mainMenuScreen .container {
-        max-width: 100vw;
-        width: 100vw;
-        margin: 0;
-        padding: 0 8px;
-        padding-top: 70px;
-        box-sizing: border-box;
-        transform: none;
-    }
+/* ...existing code... */
     #mainMenuScreen .user-header, #mainMenuScreen .stats-grid, #mainMenuScreen .quick-links {
         flex-direction: column;
         align-items: stretch;
