@@ -40,14 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (window.currentUser?.staffId) {
                 staffId = window.currentUser.staffId;
             }
-            // Compose QR code data string as multi-line labeled text
+            // Compose QR code data string as multi-line labeled text (all fields)
             const qrData =
+                `Staff ID: ${staffId}\n` +
+                `Discord Username: ${discordUsername}\n` +
+                `Discord ID: ${discordId}\n` +
                 `Name: ${name}\n` +
                 `Email: ${email}\n` +
-                `Department: ${department}\n` +
-                `Staff ID: ${staffId}\n` +
-                `Discord: ${discordUsername}\n` +
-                `Discord ID: ${discordId}`;
+                `Department: ${department}`;
             staffIdDisplay.textContent = `Staff ID: ${staffId}`;
             // Clear previous QR code
             qrcodeEl.innerHTML = '';

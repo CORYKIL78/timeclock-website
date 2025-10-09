@@ -29,32 +29,26 @@
 /* More breathing room, match home */
 .clean-profile-main {
     display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 64px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     margin-bottom: 40px;
     width: 100%;
 }
-.clean-profile-pic {
-    flex: 0 0 160px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-}
 .clean-profile-info {
-    flex: 1;
+    width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 36px;
-    align-items: flex-end;
-    text-align: right;
-    width: 100%;
+    gap: 28px;
+    align-items: center;
+    text-align: center;
 }
 .clean-row {
     display: flex;
     align-items: center;
     gap: 18px;
-    font-size: 1.25em;
+    font-size: 1.15em;
+    justify-content: center;
 }
 .clean-actions-bar {
     display: flex;
