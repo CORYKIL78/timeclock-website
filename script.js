@@ -393,7 +393,8 @@ async function syncUserProfileOnLogin() {
 // Polling for absence status updates
 setInterval(async () => {
     console.log('[DEBUG] Polling for absence status updates...');
-    const emp = getEmployee(currentUser.id);
+    if (!window.currentUser) return;
+    const emp = getEmployee(window.currentUser.id);
     if (!emp || !emp.absences) return;
     for (const absence of emp.absences) {
         if (absence.status === 'archived') continue;
@@ -403,7 +404,7 @@ setInterval(async () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: emp.profile.name,
+                    name: emp.profile?.name || '',
                     startDate: absence.startDate,
                     endDate: absence.endDate
                 })
@@ -1648,7 +1649,9 @@ document.getElementById('homeBtn').addEventListener('click', () => {
     updateMainScreen();
 });
 
-document.getElementById('updateProfileBtn').addEventListener('click', () => {
+const updateProfileBtn = document.getElementById('updateProfileBtn');
+if (updateProfileBtn) {
+    updateProfileBtn.addEventListener('click', () => {
     const name = document.getElementById('updateNameInput').value.trim();
     const email = document.getElementById('updateEmailInput').value.trim();
     if (name && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -1666,11 +1669,15 @@ document.getElementById('updateProfileBtn').addEventListener('click', () => {
     } else {
         showModal('alert', 'Please enter a valid name and email');
     }
-});
+    });
+}
 
-document.getElementById('changeDeptBtn').addEventListener('click', () => {
-    showModal('deptChange');
-});
+const changeDeptBtn = document.getElementById('changeDeptBtn');
+if (changeDeptBtn) {
+    changeDeptBtn.addEventListener('click', () => {
+        showModal('deptChange');
+    });
+}
 
 document.getElementById('changeDepartmentBtn').addEventListener('click', () => {
     showModal('deptChange');
