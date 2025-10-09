@@ -1,5 +1,28 @@
 // --- Profile Edit Buttons, Barcode, and Reset Countdown ---
 document.addEventListener('DOMContentLoaded', () => {
+    // Fetch and sync user profile from backend (Google Sheets) on load
+    async function syncProfileFromSheets() {
+        if (!window.currentUser) return;
+        const profile = await fetchUserProfile(window.currentUser.id);
+        if (profile) {
+            // Update UI fields with latest data from Sheets
+            if (profile.name && profileName) profileName.textContent = profile.name;
+            if (profile.email && profileEmail) profileEmail.textContent = profile.email;
+            if (profile.department && profileDepartment) profileDepartment.textContent = profile.department;
+            if (profile.staffId && window.currentUser) {
+                if (!window.currentUser.profile) window.currentUser.profile = {};
+                window.currentUser.profile.staffId = profile.staffId;
+            }
+            // Also update local currentUser fields for consistency
+            if (window.currentUser.profile) {
+                window.currentUser.profile.name = profile.name;
+                window.currentUser.profile.email = profile.email;
+                window.currentUser.profile.department = profile.department;
+            }
+        }
+    }
+    // Initial sync on load
+    syncProfileFromSheets();
     // Card flip and QR code logic
     const profileCard = document.getElementById('profileCard');
     const showIdBtn = document.getElementById('showIdBtn');
@@ -27,19 +50,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Card flip logic
     if (showIdBtn && profileCard && backToProfileBtn && qrcodeEl && staffIdDisplay) {
         showIdBtn.addEventListener('click', async () => {
-            // Get user info
-            const name = profileName.textContent || '';
-            const email = profileEmail.textContent || '';
-            const department = profileDepartment.textContent || '';
+            // Always fetch latest profile from Sheets before showing QR
+            let profile = await fetchUserProfile(window.currentUser.id);
+            if (!profile) profile = {};
+            const name = profile.name || '';
+            const email = profile.email || '';
+            const department = profile.department || '';
             const discordUsername = window.currentUser?.name || '';
             const discordId = window.currentUser?.id || '';
-            // Always use the 6-digit staff ID from backend profile if available
-            let staffId = '';
-            if (window.currentUser?.profile?.staffId) {
-                staffId = window.currentUser.profile.staffId;
-            } else if (window.currentUser?.staffId) {
-                staffId = window.currentUser.staffId;
-            }
+            const staffId = profile.staffId || '';
             // Compose QR code data string as multi-line labeled text (all fields)
             const qrData =
                 `Staff ID: ${staffId}\n` +
@@ -86,16 +105,19 @@ document.addEventListener('DOMContentLoaded', () => {
         saveBtn.onclick = async () => {
             if (type === 'name') profileName.textContent = input.value;
             if (type === 'email') profileEmail.textContent = input.value;
-            if (type === 'department') profileDepartment.textContent = input.value;
+            // Department is not editable in portal
             // Save to backend after edit
             await upsertUserProfile();
+            // Re-sync from Sheets after update
+            await syncProfileFromSheets();
             editFieldsContainer.innerHTML = '';
         };
         cancelBtn.onclick = () => { editFieldsContainer.innerHTML = ''; };
     }
     if (editNameBtn) editNameBtn.onclick = () => showEditField('name', profileName.textContent);
     if (editEmailBtn) editEmailBtn.onclick = () => showEditField('email', profileEmail.textContent);
-    if (editDeptBtn) editDeptBtn.onclick = () => showEditField('department', profileDepartment.textContent);
+    // Department is not editable in portal
+    if (editDeptBtn) editDeptBtn.style.display = 'none';
     // Reset profile with countdown
     if (resetProfileBtn) {
         resetProfileBtn.onclick = () => {
