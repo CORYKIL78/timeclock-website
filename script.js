@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileDepartment = document.getElementById('profileDepartment');
     // Profile pic
     const profilePic = document.getElementById('profilePic');
+    if (profilePic && window.currentUser && window.currentUser.avatar) {
+        profilePic.src = window.currentUser.avatar;
+    }
     // Reset profile
     const resetProfileBtn = document.getElementById('resetProfileBtn');
     let resetCountdown = null;
@@ -24,15 +27,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Card flip logic
     if (showIdBtn && profileCard && backToProfileBtn && barcodeEl && staffIdDisplay) {
         showIdBtn.addEventListener('click', async () => {
-            // Get user info (replace with your actual user data source)
+            // Get user info
             const name = profileName.textContent || '';
             const email = profileEmail.textContent || '';
             const department = profileDepartment.textContent || '';
             const discordUsername = window.currentUser?.name || '';
             const discordId = window.currentUser?.id || '';
-            let staffId = window.currentUser?.staffId || '';
-            if (!staffId && window.currentUser?.profile?.staffId) staffId = window.currentUser.profile.staffId;
-            // Compose barcode data string
+            // Always use the 6-digit staff ID from backend profile if available
+            let staffId = '';
+            if (window.currentUser?.profile?.staffId) {
+                staffId = window.currentUser.profile.staffId;
+            } else if (window.currentUser?.staffId) {
+                staffId = window.currentUser.staffId;
+            }
+            // Compose barcode data string as TXT
             const barcodeData = `${staffId}|${name}|${department}|${email}|${discordUsername}|${discordId}`;
             staffIdDisplay.textContent = `Staff ID: ${staffId}`;
             function renderBarcode() {
@@ -82,7 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (type === 'name') profileName.textContent = input.value;
             if (type === 'email') profileEmail.textContent = input.value;
             if (type === 'department') profileDepartment.textContent = input.value;
-            // TODO: Save to backend here if needed
+            // Save to backend after edit
+            await upsertUserProfile();
             editFieldsContainer.innerHTML = '';
         };
         cancelBtn.onclick = () => { editFieldsContainer.innerHTML = ''; };
@@ -386,6 +395,7 @@ async function syncUserProfileOnLogin() {
         currentUser.profile = emp.profile;
         currentUser.strikes = emp.strikes;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        await upsertUserProfile(); // Log to Google Sheets after login/profile sync
     }
 }
 
