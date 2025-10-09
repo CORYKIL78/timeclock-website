@@ -368,34 +368,7 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
     renderStrikes(strikes);
 });
 
-// --- ON PROFILE UPDATE, SAVE TO BACKEND ---
-const oldUpdateProfileBtn = document.getElementById('updateProfileBtn').onclick;
-document.getElementById('updateProfileBtn').addEventListener('click', async () => {
-    const name = document.getElementById('updateNameInput').value.trim();
-    const email = document.getElementById('updateEmailInput').value.trim();
-    if (name && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        const emp = getEmployee(currentUser.id);
-        emp.profile.name = name;
-        emp.profile.email = email;
-        updateEmployee(emp);
-        currentUser.profile = emp.profile;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        await saveUserProfile({
-            discordId: currentUser.id,
-            name,
-            email,
-            department: emp.profile.department || '',
-            discordTag: currentUser.name
-        });
-        showModal('alert', '<span class="success-tick"></span> Profile updated successfully!');
-        playSuccessSound();
-        addNotification('profile', 'Your profile has been updated!', 'myProfile');
-        document.getElementById('profileName').textContent = name;
-        document.getElementById('profileEmail').textContent = email;
-    } else {
-        showModal('alert', 'Please enter a valid name and email');
-    }
-});
+// Removed broken updateProfileBtn logic (no such element in HTML)
 
 // --- ON LOGIN, SYNC PROFILE FROM BACKEND ---
 async function syncUserProfileOnLogin() {
