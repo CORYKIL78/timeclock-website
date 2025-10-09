@@ -1879,7 +1879,7 @@ function showDeleteAbsenceConfirm(absenceId) {
     modal.className = 'modal';
     modal.innerHTML = `
         <div class="modal-content">
-            <span class="close" id="closeDeleteAbsenceConfirm">&times;</span>
+            <span claswclose" id="closeDeleteAbsenceConfirm">&times;</span>
             <h2>Delete Absence</h2>
             <p>Are you sure? This will permanently delete it and you cannot retrieve it.</p>
             <div id="deleteAbsenceActions">
