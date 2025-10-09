@@ -23,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // Initial sync on load
     syncProfileFromSheets();
+
+    // Poll for live updates from Sheets every 15 seconds
+    setInterval(syncProfileFromSheets, 15000);
     // Card flip and QR code logic
     const profileCard = document.getElementById('profileCard');
     const showIdBtn = document.getElementById('showIdBtn');
