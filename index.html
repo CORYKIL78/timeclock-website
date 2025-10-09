@@ -257,44 +257,47 @@
         </div>
     </div>
     <div id="myProfileScreen" class="screen">
-        <div class="container profile-config-container clean-profile">
-            <div class="profile-card clean-card" id="profileCard">
-                <div class="profile-card-front clean-front">
-                    <div class="clean-profile-main">
-                        <div class="clean-profile-info">
-                            <div class="clean-row">
+        <div class="container profile-config-container">
+            <div class="profile-card" id="profileCard">
+                <div class="profile-card-front">
+                    <div class="profile-main-row">
+                        <div class="profile-pic-col">
+                            <img id="profilePic" class="profile-img-large" src="" alt="Profile Picture">
+                        </div>
+                        <div class="profile-info-col">
+                            <div class="profile-row">
                                 <span class="profile-label">Name:</span>
                                 <span id="profileName"></span>
                                 <button class="edit-btn" id="editNameBtn" title="Edit Name">✎</button>
                             </div>
-                            <div class="clean-row">
+                            <div class="profile-row">
                                 <span class="profile-label">Email:</span>
                                 <span id="profileEmail"></span>
                                 <button class="edit-btn" id="editEmailBtn" title="Edit Email">✎</button>
                             </div>
-                            <div class="clean-row">
+                            <div class="profile-row">
                                 <span class="profile-label">Department:</span>
                                 <span id="profileDepartment"></span>
                                 <button class="edit-btn" id="editDeptBtn" title="Edit Department">✎</button>
                             </div>
-                        </div>
-                    </div>
-                    <div id="editFieldsContainer" class="edit-fields-container"></div>
-                    <div class="clean-actions-bar">
-                        <div class="clean-actions-left">
-                            <label class="switch darkmode-switch">
-                                <input type="checkbox" id="modeToggle">
-                                <span class="slider"></span>
-                            </label>
-                            <span class="darkmode-label">Dark Mode</span>
-                        </div>
-                        <div class="clean-actions-right">
-                            <button id="showIdBtn">Show ID Card</button>
-                            <button id="resetProfileBtn" class="big-red-btn">Reset Profile</button>
+                            <div id="editFieldsContainer" class="edit-fields-container"></div>
+                            <div class="profile-actions-row">
+                                <div class="profile-actions-left">
+                                    <label class="switch darkmode-switch">
+                                        <input type="checkbox" id="modeToggle">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span class="darkmode-label">Dark Mode</span>
+                                </div>
+                                <div class="profile-actions-right">
+                                    <button id="showIdBtn">Show ID Card</button>
+                                    <button id="resetProfileBtn" class="big-red-btn">Reset Profile</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="profile-card-back clean-back">
+                <div class="profile-card-back">
                     <h2>Staff ID Card</h2>
                     <div id="qrcode"></div>
                     <p id="staffIdDisplay"></p>

@@ -1,104 +1,138 @@
-/* Clean Profile Config Redesign */
-/* Profile config matches home/main menu layout */
-.clean-profile {
-    background: white;
-    border-radius: 12px;
-    padding: 32px 48px 40px 48px;
-    text-align: center;
-    box-shadow: var(--shadow);
-    max-width: 70%;
-    width: 70%;
-    margin: 40px auto 0 auto;
+/* Classic Profile Config Layout */
+.profile-config-container {
+    max-width: 900px;
+    width: 90%;
+    margin: 0 auto;
+    padding: 40px 32px 32px 32px;
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
 }
-.clean-card {
-    width: 100%;
-    min-height: 420px;
-    background: none;
-    box-shadow: none;
-    border-radius: 0;
-}
-.clean-front, .clean-back {
-    background: none;
-    box-shadow: none;
-    border-radius: 0;
-    padding: 0;
-}
-/* More breathing room, match home */
-.clean-profile-main {
+.profile-main-row {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 32px;
+    margin-bottom: 24px;
+}
+.profile-pic-col {
+    flex: 0 0 140px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 40px;
-    width: 100%;
 }
-.clean-profile-info {
-    width: 100%;
+.profile-img-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary);
+}
+.profile-info-col {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 28px;
-    align-items: center;
-    text-align: center;
-}
-.clean-row {
-    display: flex;
-    align-items: center;
     gap: 18px;
-    font-size: 1.15em;
-    justify-content: center;
 }
-.clean-actions-bar {
+.profile-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.2em;
+}
+.profile-label {
+    font-weight: bold;
+    margin-right: 4px;
+}
+.edit-btn {
+    background: var(--info);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 1em;
+    cursor: pointer;
+    margin-left: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1002;
+    transition: background 0.2s;
+}
+.edit-btn:hover {
+    background: var(--primary);
+}
+.profile-actions-row {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    margin-top: 40px;
-    gap: 32px;
-    width: 100%;
+    margin-top: 32px;
 }
-.clean-actions-left {
+.profile-actions-left {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 }
-.clean-actions-right {
-    display: flex;
-    align-items: center;
-    gap: 32px;
+.darkmode-switch {
+    margin-right: 4px;
 }
-#resetProfileBtn.big-red-btn {
-    font-size: 1.2em;
-    padding: 18px 36px;
-    border-radius: 10px;
-    background: var(--danger);
+.darkmode-label {
+    margin-right: 12px;
+}
+#showIdBtn {
+    position: relative;
+    z-index: 1001;
+    background: var(--info);
     color: #fff;
     font-weight: bold;
-    margin-left: 0;
-    margin-right: 0;
-    box-shadow: 0 2px 12px rgba(220,53,69,0.18);
+    border: 2px solid var(--primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    width: 60px;
+    height: 36px;
+    font-size: 1em;
+}
+#showIdBtn:hover {
+    background: var(--primary);
+    color: #fff;
+}
+.big-red-btn {
+    background: var(--danger);
+    color: #fff;
+    font-size: 1.1em;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    padding: 16px 0;
+    width: 220px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 0;
+    box-shadow: 0 2px 8px rgba(220,53,69,0.15);
     transition: background 0.2s;
 }
-#resetProfileBtn.big-red-btn.counting-down {
+.big-red-btn:hover {
     background: #b71c1c;
-    animation: pulse 1s infinite alternate;
 }
-.clean-back {
+.edit-fields-container {
+    margin-top: 18px;
+}
+#qrcode {
+    margin: 24px 0 12px 0;
+    width: 180px;
+    height: 180px;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 0;
 }
-.clean-back h2 {
-    margin-bottom: 18px;
-}
-.clean-back #barcode {
-    margin: 24px 0 12px 0;
-    width: 250px;
-    height: 80px;
+#staffIdDisplay {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 16px;
 }
 .clean-back #staffIdDisplay {
     font-size: 1.5em;
