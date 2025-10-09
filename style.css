@@ -1,12 +1,14 @@
 /* Clean Profile Config Redesign */
+/* Profile config matches home/main menu layout */
 .clean-profile {
-    max-width: 700px;
-    width: 100%;
+    background: white;
+    border-radius: 12px;
+    padding: 32px 48px 40px 48px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    max-width: 70%;
+    width: 70%;
     margin: 40px auto 0 auto;
-    padding: 32px 32px 32px 32px;
-    background: #fff;
-    border-radius: 18px;
-    box-shadow: 0 4px 32px rgba(0,0,0,0.10);
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -24,15 +26,17 @@
     border-radius: 0;
     padding: 0;
 }
+/* More breathing room, match home */
 .clean-profile-main {
     display: flex;
     flex-direction: row;
     align-items: flex-start;
-    gap: 40px;
-    margin-bottom: 32px;
+    gap: 64px;
+    margin-bottom: 40px;
+    width: 100%;
 }
 .clean-profile-pic {
-    flex: 0 0 140px;
+    flex: 0 0 160px;
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -41,33 +45,35 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 36px;
     align-items: flex-end;
     text-align: right;
+    width: 100%;
 }
 .clean-row {
     display: flex;
     align-items: center;
-    gap: 14px;
-    font-size: 1.2em;
+    gap: 18px;
+    font-size: 1.25em;
 }
 .clean-actions-bar {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    margin-top: 32px;
-    gap: 24px;
+    margin-top: 40px;
+    gap: 32px;
+    width: 100%;
 }
 .clean-actions-left {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 16px;
 }
 .clean-actions-right {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 32px;
 }
 #resetProfileBtn.big-red-btn {
     font-size: 1.2em;
