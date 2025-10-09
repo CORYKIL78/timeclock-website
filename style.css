@@ -978,7 +978,7 @@ body.dark .cancel-absence-details-btn:hover {
     height: 40px;
     background: url('https://cdn-icons-png.flaticon.com/512/4436/4436481.png') no-repeat center;
     background-size: contain;
-    animation: tickAnimation 0.5s var(--transition-ease);
+    animation: tickAnimation 0.6s var(--transition-ease);
 }
 
 @keyframes tickAnimation {
