@@ -257,48 +257,49 @@
         </div>
     </div>
     <div id="myProfileScreen" class="screen">
-        <div class="container profile-config-container">
-            <div class="profile-card" id="profileCard">
-                <div class="profile-card-front">
-                    <div class="profile-config-row">
-                        <div class="profile-config-pic-col">
+        <div class="container profile-config-container clean-profile">
+            <div class="profile-card clean-card" id="profileCard">
+                <div class="profile-card-front clean-front">
+                    <div class="clean-profile-main">
+                        <div class="clean-profile-pic">
                             <img id="profilePic" class="profile-img-large" src="" alt="Profile Picture">
                         </div>
-                        <div class="profile-config-info-col">
-                            <div class="profile-row">
+                        <div class="clean-profile-info">
+                            <div class="clean-row">
                                 <span class="profile-label">Name:</span>
                                 <span id="profileName"></span>
                                 <button class="edit-btn" id="editNameBtn" title="Edit Name">✎</button>
                             </div>
-                            <div class="profile-row">
+                            <div class="clean-row">
                                 <span class="profile-label">Email:</span>
                                 <span id="profileEmail"></span>
                                 <button class="edit-btn" id="editEmailBtn" title="Edit Email">✎</button>
                             </div>
-                            <div class="profile-row">
+                            <div class="clean-row">
                                 <span class="profile-label">Department:</span>
                                 <span id="profileDepartment"></span>
                                 <button class="edit-btn" id="editDeptBtn" title="Edit Department">✎</button>
                             </div>
                         </div>
                     </div>
-                    <hr style="margin:32px 0 24px 0;width:100%;border:0;border-top:1px solid #eee;">
-                    <div class="profile-config-actions-row">
-                        <div class="profile-config-actions-right">
+                    <div id="editFieldsContainer" class="edit-fields-container"></div>
+                    <div class="clean-actions-bar">
+                        <div class="clean-actions-left">
                             <label class="switch darkmode-switch">
                                 <input type="checkbox" id="modeToggle">
                                 <span class="slider"></span>
                             </label>
                             <span class="darkmode-label">Dark Mode</span>
-                            <button id="showIdBtn">ID</button>
                         </div>
-                        <button id="resetProfileBtn" class="big-red-btn">Reset Profile</button>
+                        <div class="clean-actions-right">
+                            <button id="showIdBtn">Show ID Card</button>
+                            <button id="resetProfileBtn" class="big-red-btn">Reset Profile</button>
+                        </div>
                     </div>
-                    <div id="editFieldsContainer" class="edit-fields-container"></div>
                 </div>
-                <div class="profile-card-back">
+                <div class="profile-card-back clean-back">
                     <h2>Staff ID Card</h2>
-                    <svg id="barcode"></svg>
+                    <div id="qrcode"></div>
                     <p id="staffIdDisplay"></p>
                     <button id="backToProfileBtn">Back</button>
                 </div>
@@ -403,6 +404,7 @@
 
     <footer>© Cirkle Development 2024</footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

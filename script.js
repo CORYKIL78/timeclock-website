@@ -1,10 +1,10 @@
 // --- Profile Edit Buttons, Barcode, and Reset Countdown ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Card flip and barcode logic (existing)
+    // Card flip and QR code logic
     const profileCard = document.getElementById('profileCard');
     const showIdBtn = document.getElementById('showIdBtn');
     const backToProfileBtn = document.getElementById('backToProfileBtn');
-    const barcodeEl = document.getElementById('barcode');
+    const qrcodeEl = document.getElementById('qrcode');
     const staffIdDisplay = document.getElementById('staffIdDisplay');
     // Edit buttons
     const editNameBtn = document.getElementById('editNameBtn');
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let resetCountdown = null;
     let resetTimer = null;
     // Card flip logic
-    if (showIdBtn && profileCard && backToProfileBtn && barcodeEl && staffIdDisplay) {
+    if (showIdBtn && profileCard && backToProfileBtn && qrcodeEl && staffIdDisplay) {
         showIdBtn.addEventListener('click', async () => {
             // Get user info
             const name = profileName.textContent || '';
@@ -40,29 +40,20 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (window.currentUser?.staffId) {
                 staffId = window.currentUser.staffId;
             }
-            // Compose barcode data string as TXT
-            const barcodeData = `${staffId}|${name}|${department}|${email}|${discordUsername}|${discordId}`;
+            // Compose QR code data string as TXT
+            const qrData = `${staffId}|${name}|${department}|${email}|${discordUsername}|${discordId}`;
             staffIdDisplay.textContent = `Staff ID: ${staffId}`;
-            function renderBarcode() {
-                JsBarcode(barcodeEl, barcodeData, {
-                    format: 'CODE128',
-                    lineColor: '#222',
-                    width: 4,
-                    height: 100,
-                    displayValue: false,
-                    margin: 0
-                });
-            }
-            if (window.JsBarcode) {
-                renderBarcode();
-            } else {
-                const interval = setInterval(() => {
-                    if (window.JsBarcode) {
-                        clearInterval(interval);
-                        renderBarcode();
-                    }
-                }, 100);
-            }
+            // Clear previous QR code
+            qrcodeEl.innerHTML = '';
+            // Generate QR code
+            new QRCode(qrcodeEl, {
+                text: qrData,
+                width: 180,
+                height: 180,
+                colorDark: '#222',
+                colorLight: '#fff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
             profileCard.classList.add('flipped');
         });
         backToProfileBtn.addEventListener('click', () => {
@@ -141,66 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 1000);
         };
-    }
-});
-// --- JsBarcode CDN injection (if not present) ---
-if (!window.JsBarcode) {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js';
-    script.onload = () => { window.JsBarcodeLoaded = true; };
-    document.head.appendChild(script);
-}
-
-// --- Profile Card Flip and Barcode Logic ---
-document.addEventListener('DOMContentLoaded', () => {
-    const profileCard = document.getElementById('profileCard');
-    const showIdBtn = document.getElementById('showIdBtn');
-    const backToProfileBtn = document.getElementById('backToProfileBtn');
-    const barcodeEl = document.getElementById('barcode');
-    const staffIdDisplay = document.getElementById('staffIdDisplay');
-
-    if (showIdBtn && profileCard && backToProfileBtn && barcodeEl && staffIdDisplay) {
-        showIdBtn.addEventListener('click', async () => {
-            // Get user info (replace with your actual user data source)
-            const name = document.getElementById('profileName').textContent || '';
-            const email = document.getElementById('profileEmail').textContent || '';
-            const department = document.getElementById('profileDepartment').textContent || '';
-            // You may need to fetch these from your user/session object:
-            const discordUsername = window.currentUser?.name || '';
-            const discordId = window.currentUser?.id || '';
-            // Staff ID: fetch from backend or local cache (assume it's available on window.currentUser.staffId or similar)
-            let staffId = window.currentUser?.staffId || '';
-            // If not available, try to get from a hidden field or fetch profile
-            if (!staffId && window.currentUser?.profile?.staffId) staffId = window.currentUser.profile.staffId;
-            // Compose barcode data string
-            const barcodeData = `${staffId}|${name}|${department}|${email}|${discordUsername}|${discordId}`;
-            // Show staff ID
-            staffIdDisplay.textContent = `Staff ID: ${staffId}`;
-            // Wait for JsBarcode to load if needed
-            function renderBarcode() {
-                JsBarcode(barcodeEl, barcodeData, {
-                    format: 'CODE128',
-                    lineColor: '#222',
-                    width: 2,
-                    height: 60,
-                    displayValue: false
-                });
-            }
-            if (window.JsBarcode) {
-                renderBarcode();
-            } else {
-                const interval = setInterval(() => {
-                    if (window.JsBarcode) {
-                        clearInterval(interval);
-                        renderBarcode();
-                    }
-                }, 100);
-            }
-            profileCard.classList.add('flipped');
-        });
-        backToProfileBtn.addEventListener('click', () => {
-            profileCard.classList.remove('flipped');
-        });
     }
 });
 // --- USER PROFILE & STRIKES BACKEND INTEGRATION ---

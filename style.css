@@ -1,3 +1,110 @@
+/* Clean Profile Config Redesign */
+.clean-profile {
+    max-width: 700px;
+    width: 100%;
+    margin: 40px auto 0 auto;
+    padding: 32px 32px 32px 32px;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+.clean-card {
+    width: 100%;
+    min-height: 420px;
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+}
+.clean-front, .clean-back {
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+}
+.clean-profile-main {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 40px;
+    margin-bottom: 32px;
+}
+.clean-profile-pic {
+    flex: 0 0 140px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+.clean-profile-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    align-items: flex-end;
+    text-align: right;
+}
+.clean-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 1.2em;
+}
+.clean-actions-bar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+    gap: 24px;
+}
+.clean-actions-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.clean-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+#resetProfileBtn.big-red-btn {
+    font-size: 1.2em;
+    padding: 18px 36px;
+    border-radius: 10px;
+    background: var(--danger);
+    color: #fff;
+    font-weight: bold;
+    margin-left: 0;
+    margin-right: 0;
+    box-shadow: 0 2px 12px rgba(220,53,69,0.18);
+    transition: background 0.2s;
+}
+#resetProfileBtn.big-red-btn.counting-down {
+    background: #b71c1c;
+    animation: pulse 1s infinite alternate;
+}
+.clean-back {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+.clean-back h2 {
+    margin-bottom: 18px;
+}
+.clean-back #barcode {
+    margin: 24px 0 12px 0;
+    width: 250px;
+    height: 80px;
+}
+.clean-back #staffIdDisplay {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 16px;
+}
 /* Profile Config Layout Improvements */
 .profile-config-container {
     max-width: 900px;
@@ -230,15 +337,19 @@
 .edit-fields-container {
     margin-top: 18px;
 }
-#barcode {
-    margin: 32px 0 16px 0;
-    width: 400px;
-    height: 120px;
+/* QR code display for profile card */
+#qrcode {
+    margin: 24px 0 12px 0;
+    width: 180px;
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 #staffIdDisplay {
-    font-size: 1.7em;
+    font-size: 1.5em;
     font-weight: bold;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
 }
 #showIdBtn {
     position: relative;
