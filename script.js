@@ -50,30 +50,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetProfileBtn = document.getElementById('resetProfileBtn');
     let resetCountdown = null;
     let resetTimer = null;
-    // Card flip logic
-    if (showIdBtn && profileCard && backToProfileBtn && qrcodeEl && staffIdDisplay) {
-        showIdBtn.addEventListener('click', async () => {
-            // Always fetch latest profile from Sheets before showing QR
-            let profile = await fetchUserProfile(window.currentUser.id);
-            if (!profile) profile = {};
-            const name = profile.name || '';
-            const email = profile.email || '';
-            const department = profile.department || '';
-            const discordUsername = window.currentUser?.name || '';
-            const discordId = window.currentUser?.id || '';
-            const staffId = profile.staffId || '';
-            // Compose QR code data string as multi-line labeled text (all fields)
-            const qrData =
-                `Staff ID: ${staffId}\n` +
-                `Discord Username: ${discordUsername}\n` +
-                `Discord ID: ${discordId}\n` +
-                `Name: ${name}\n` +
-                `Email: ${email}\n` +
-                `Department: ${department}`;
-            staffIdDisplay.textContent = `Staff ID: ${staffId}`;
-            // Clear previous QR code
+    // Card flip logic with live QR code and staff ID
+    let lastProfileData = null;
+    async function updateQrAndStaffId(forceFlip) {
+        let profile = await fetchUserProfile(window.currentUser.id);
+        if (!profile) profile = {};
+        const name = profile.name || '';
+        const email = profile.email || '';
+        const department = profile.department || '';
+        const discordUsername = window.currentUser?.name || '';
+        const discordId = window.currentUser?.id || '';
+        const staffId = profile.staffId || '';
+        // Compose QR code data string as multi-line labeled text (all fields)
+        const qrData =
+            `Staff ID: ${staffId}\n` +
+            `Discord Username: ${discordUsername}\n` +
+            `Discord ID: ${discordId}\n` +
+            `Name: ${name}\n` +
+            `Email: ${email}\n` +
+            `Department: ${department}`;
+        staffIdDisplay.textContent = `Staff ID: ${staffId}`;
+        // Only update QR if data changed or forced
+        const newProfileData = JSON.stringify({staffId, discordUsername, discordId, name, email, department});
+        if (forceFlip || newProfileData !== lastProfileData) {
             qrcodeEl.innerHTML = '';
-            // Generate QR code
             new QRCode(qrcodeEl, {
                 text: qrData,
                 width: 180,
@@ -82,11 +82,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 colorLight: '#fff',
                 correctLevel: QRCode.CorrectLevel.H
             });
+            lastProfileData = newProfileData;
+        }
+    }
+    if (showIdBtn && profileCard && backToProfileBtn && qrcodeEl && staffIdDisplay) {
+        showIdBtn.addEventListener('click', async () => {
+            await updateQrAndStaffId(true);
             profileCard.classList.add('flipped');
         });
         backToProfileBtn.addEventListener('click', () => {
             profileCard.classList.remove('flipped');
         });
+        // Live update QR and staff ID while card is flipped
+        setInterval(() => {
+            if (profileCard.classList.contains('flipped')) {
+                updateQrAndStaffId(false);
+            }
+        }, 15000);
     }
     // Edit logic
     function showEditField(type, currentValue) {
