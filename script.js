@@ -1,3 +1,63 @@
+// --- JsBarcode CDN injection (if not present) ---
+if (!window.JsBarcode) {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js';
+    script.onload = () => { window.JsBarcodeLoaded = true; };
+    document.head.appendChild(script);
+}
+
+// --- Profile Card Flip and Barcode Logic ---
+document.addEventListener('DOMContentLoaded', () => {
+    const profileCard = document.getElementById('profileCard');
+    const showIdBtn = document.getElementById('showIdBtn');
+    const backToProfileBtn = document.getElementById('backToProfileBtn');
+    const barcodeEl = document.getElementById('barcode');
+    const staffIdDisplay = document.getElementById('staffIdDisplay');
+
+    if (showIdBtn && profileCard && backToProfileBtn && barcodeEl && staffIdDisplay) {
+        showIdBtn.addEventListener('click', async () => {
+            // Get user info (replace with your actual user data source)
+            const name = document.getElementById('profileName').textContent || '';
+            const email = document.getElementById('profileEmail').textContent || '';
+            const department = document.getElementById('profileDepartment').textContent || '';
+            // You may need to fetch these from your user/session object:
+            const discordUsername = window.currentUser?.name || '';
+            const discordId = window.currentUser?.id || '';
+            // Staff ID: fetch from backend or local cache (assume it's available on window.currentUser.staffId or similar)
+            let staffId = window.currentUser?.staffId || '';
+            // If not available, try to get from a hidden field or fetch profile
+            if (!staffId && window.currentUser?.profile?.staffId) staffId = window.currentUser.profile.staffId;
+            // Compose barcode data string
+            const barcodeData = `${staffId}|${name}|${department}|${email}|${discordUsername}|${discordId}`;
+            // Show staff ID
+            staffIdDisplay.textContent = `Staff ID: ${staffId}`;
+            // Wait for JsBarcode to load if needed
+            function renderBarcode() {
+                JsBarcode(barcodeEl, barcodeData, {
+                    format: 'CODE128',
+                    lineColor: '#222',
+                    width: 2,
+                    height: 60,
+                    displayValue: false
+                });
+            }
+            if (window.JsBarcode) {
+                renderBarcode();
+            } else {
+                const interval = setInterval(() => {
+                    if (window.JsBarcode) {
+                        clearInterval(interval);
+                        renderBarcode();
+                    }
+                }, 100);
+            }
+            profileCard.classList.add('flipped');
+        });
+        backToProfileBtn.addEventListener('click', () => {
+            profileCard.classList.remove('flipped');
+        });
+    }
+});
 // --- USER PROFILE & STRIKES BACKEND INTEGRATION ---
 const BACKEND_URL = 'https://timeclock-backend.marcusray.workers.dev';
 // --- Backend Integration: Upsert User Profile ---

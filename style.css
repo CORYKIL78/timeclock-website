@@ -1,3 +1,52 @@
+/* Profile Card Flip Styles */
+.profile-card-container {
+    perspective: 1200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+.profile-card {
+    width: 350px;
+    min-height: 400px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.6s var(--transition-ease);
+}
+.profile-card.flipped {
+    transform: rotateY(180deg);
+}
+.profile-card-front, .profile-card-back {
+    position: absolute;
+    width: 100%;
+    min-height: 400px;
+    backface-visibility: hidden;
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.profile-card-back {
+    transform: rotateY(180deg);
+}
+#barcode {
+    margin: 24px 0 12px 0;
+    width: 250px;
+    height: 80px;
+}
+#staffIdDisplay {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 16px;
+}
+#showIdBtn, #backToProfileBtn {
+    margin-top: 16px;
+    width: 120px;
+}
 @media (max-width: 700px) {
     #mainMenuScreen .container {
         max-width: 100vw;
