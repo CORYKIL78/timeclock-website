@@ -28,19 +28,7 @@ function setAuthDebug(msg, isError) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Fetch and sync user profile from backend (Google Sheets) on load
-    const profileDebug = document.getElementById('profileDebug');
-    function setProfileDebug(msg, isError) {
-        if (profileDebug) {
-            profileDebug.textContent = msg;
-            profileDebug.style.color = isError ? '#b71c1c' : '#388e3c';
-        }
-        if (isError) {
-            console.error(msg);
-        } else {
-            console.debug(msg);
-        }
-    }
+    // ...existing code...
     async function syncProfileFromSheets() {
         if (!window.currentUser) {
             setProfileDebug('[syncProfileFromSheets] No currentUser', true);
