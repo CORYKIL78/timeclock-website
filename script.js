@@ -1,4 +1,32 @@
 // --- Profile Edit Buttons, Barcode, and Reset Countdown ---
+// --- Global debug output for profile sync and auth ---
+let profileDebug = null;
+let authDebug = null;
+function setProfileDebug(msg, isError) {
+    if (!profileDebug) profileDebug = document.getElementById('profileDebug');
+    if (profileDebug) {
+        profileDebug.textContent = msg;
+        profileDebug.style.color = isError ? '#b71c1c' : '#388e3c';
+    }
+    if (isError) {
+        console.error(msg);
+    } else {
+        console.debug(msg);
+    }
+}
+function setAuthDebug(msg, isError) {
+    if (!authDebug) authDebug = document.getElementById('authDebug');
+    if (authDebug) {
+        authDebug.textContent = msg;
+        authDebug.style.color = isError ? '#b71c1c' : '#1976d2';
+    }
+    if (isError) {
+        console.error('[AUTH]', msg);
+    } else {
+        console.debug('[AUTH]', msg);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Fetch and sync user profile from backend (Google Sheets) on load
     const profileDebug = document.getElementById('profileDebug');
@@ -41,12 +69,49 @@ document.addEventListener('DOMContentLoaded', () => {
             setProfileDebug('[syncProfileFromSheets] No profile returned for user ' + window.currentUser.id, true);
         }
     }
-    // Initial sync on load
-    syncProfileFromSheets();
+    // Wait for window.currentUser to be set before syncing
+    function waitForCurrentUserAndSync() {
+        if (window.currentUser && window.currentUser.id) {
+            console.debug('[AUTH] Discord user loaded:', window.currentUser);
+            setAuthDebug('Discord user loaded: ' + window.currentUser.id + ' (' + (window.currentUser.username || window.currentUser.name || '') + ')', false);
+            setProfileDebug('User loaded. Syncing profile from Sheets...', false);
+            syncProfileFromSheets();
+            setInterval(syncProfileFromSheets, 15000);
+            // Start role fetch debug
+            if (typeof fetchRoleNames === 'function') {
+                console.debug('[AUTH] Starting role fetch for user:', window.currentUser.id);
+            } else {
+                console.warn('[AUTH] fetchRoleNames function not found. Role fetch will not run.');
+            }
+        } else {
+            console.debug('[AUTH] Waiting for Discord user login...');
+            setAuthDebug('Waiting for Discord user login...', false);
+            setTimeout(waitForCurrentUserAndSync, 500);
+        }
+    }
+    waitForCurrentUserAndSync();
+    // --- Add debug logging for Discord login and role fetch ---
+    if (document.getElementById('discordLoginBtn')) {
+        document.getElementById('discordLoginBtn').addEventListener('click', function() {
+            console.debug('[AUTH] Login with Discord button clicked.');
+        });
+    }
 
-    // Poll for live updates from Sheets every 15 seconds
-    setInterval(syncProfileFromSheets, 15000);
-    // ...existing code...
+    // Patch fetchRoleNames to add debug logs if it exists
+    if (typeof fetchRoleNames === 'function') {
+        const origFetchRoleNames = fetchRoleNames;
+        window.fetchRoleNames = async function(...args) {
+            console.debug('[AUTH] fetchRoleNames called with:', ...args);
+            try {
+                const result = await origFetchRoleNames.apply(this, args);
+                console.debug('[AUTH] fetchRoleNames result:', result);
+                return result;
+            } catch (e) {
+                console.error('[AUTH] fetchRoleNames error:', e);
+                throw e;
+            }
+        };
+    }
     // Edit buttons
     const editNameBtn = document.getElementById('editNameBtn');
     const editEmailBtn = document.getElementById('editEmailBtn');
