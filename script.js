@@ -112,6 +112,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileName = document.getElementById('profileName');
     const profileEmail = document.getElementById('profileEmail');
     const profileDepartment = document.getElementById('profileDepartment');
+
+    // Department Change Modal
+    let deptChangeModal = document.getElementById('deptChangeModal');
+    if (!deptChangeModal) {
+        deptChangeModal = document.createElement('div');
+        deptChangeModal.id = 'deptChangeModal';
+        deptChangeModal.style.display = 'none';
+        deptChangeModal.style.position = 'fixed';
+        deptChangeModal.style.left = '0';
+        deptChangeModal.style.top = '0';
+        deptChangeModal.style.width = '100vw';
+        deptChangeModal.style.height = '100vh';
+        deptChangeModal.style.background = 'rgba(0,0,0,0.5)';
+        deptChangeModal.style.zIndex = '9999';
+        deptChangeModal.innerHTML = `
+            <div style="background:#fff;padding:2em 2em 1.5em 2em;border-radius:10px;max-width:350px;margin:10vh auto;position:relative;box-shadow:0 2px 16px #0002;">
+                <h3 style="margin-top:0">Request Department Change</h3>
+                <label for="deptSelect">Select new department:</label>
+                <select id="deptSelect" style="width:100%;margin:1em 0 1.5em 0;font-size:1.1em">
+                    <option value="Customer Relations Department">Customer Relations</option>
+                    <option value="Development Department">Development</option>
+                    <option value="Careers Department">Careers</option>
+                </select>
+                <button id="deptRequestBtn" style="width:100%;font-size:1.1em">Request Change</button>
+                <button id="deptCancelBtn" style="width:100%;margin-top:0.5em;background:#eee;color:#333">Cancel</button>
+                <div id="deptChangeSuccess" style="display:none;margin-top:1em;color:#388e3c;font-weight:bold;text-align:center;">Successfully requested!</div>
+            </div>
+        `;
+        document.body.appendChild(deptChangeModal);
+    }
     // Profile pic
     const profilePic = document.getElementById('profilePic');
     if (profilePic && window.currentUser && window.currentUser.avatar) {
@@ -140,14 +170,21 @@ document.addEventListener('DOMContentLoaded', () => {
         editFieldsContainer.appendChild(cancelBtn);
         input.focus();
         saveBtn.onclick = async () => {
-            if (type === 'name') profileName.textContent = input.value;
-            if (type === 'email') profileEmail.textContent = input.value;
-            if (type === 'department') profileDepartment.textContent = input.value;
-            // Save to backend after edit
+            // Defensive: ensure window.currentUser and .profile exist
+            if (!window.currentUser) window.currentUser = {};
             if (!window.currentUser.profile) window.currentUser.profile = {};
-            if (type === 'name') window.currentUser.profile.name = input.value;
-            if (type === 'email') window.currentUser.profile.email = input.value;
-            if (type === 'department') window.currentUser.profile.department = input.value;
+            if (type === 'name') {
+                profileName.textContent = input.value;
+                window.currentUser.profile.name = input.value;
+            }
+            if (type === 'email') {
+                profileEmail.textContent = input.value;
+                window.currentUser.profile.email = input.value;
+            }
+            if (type === 'department') {
+                profileDepartment.textContent = input.value;
+                window.currentUser.profile.department = input.value;
+            }
             setProfileDebug('[showEditField] Saving profile to backend...', false);
             await upsertUserProfile();
             setProfileDebug('[showEditField] Saved to backend. Syncing from Sheets...', false);
@@ -160,7 +197,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (editNameBtn) editNameBtn.onclick = () => showEditField('name', profileName.textContent);
     if (editEmailBtn) editEmailBtn.onclick = () => showEditField('email', profileEmail.textContent);
-    if (editDeptBtn) editDeptBtn.style.display = 'none';
+    // Replace department edit with request button
+    if (editDeptBtn) {
+        editDeptBtn.textContent = 'Request Department Change';
+        editDeptBtn.style.display = '';
+        editDeptBtn.onclick = () => {
+            deptChangeModal.style.display = 'block';
+            document.getElementById('deptChangeSuccess').style.display = 'none';
+        };
+    }
+
+    // Modal logic
+    deptChangeModal.addEventListener('click', (e) => {
+        if (e.target === deptChangeModal) deptChangeModal.style.display = 'none';
+    });
+    document.getElementById('deptCancelBtn').onclick = () => {
+        deptChangeModal.style.display = 'none';
+    };
+    document.getElementById('deptRequestBtn').onclick = async () => {
+        const requestedDept = document.getElementById('deptSelect').value;
+        // Animate success
+        document.getElementById('deptChangeSuccess').style.display = 'block';
+        // Send Discord notification (via backend proxy)
+        const staffId = window.currentUser?.profile?.staffId || '';
+        const name = window.currentUser?.profile?.name || '';
+        const currentDept = window.currentUser?.profile?.department || '';
+        await fetch('https://timeclock-discord-proxy.marcusray.workers.dev/postEmbed?channel_id=1417583684525232291&embed_json=' + encodeURIComponent(JSON.stringify({
+            title: 'Department Change Request',
+            color: 0x1976d2,
+            fields: [
+                { name: 'Name', value: name, inline: true },
+                { name: 'Staff ID', value: staffId, inline: true },
+                { name: 'Current Department', value: currentDept, inline: true },
+                { name: 'Requested Department', value: requestedDept, inline: true }
+            ],
+            timestamp: new Date().toISOString()
+        })), { method: 'POST' });
+        setTimeout(() => { deptChangeModal.style.display = 'none'; }, 1200);
+    };
     // Reset profile with countdown
     if (resetProfileBtn) {
         resetProfileBtn.onclick = () => {
@@ -237,7 +311,11 @@ async function fetchUserProfile(discordId) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ discordId })
         });
-        if (!res.ok) throw new Error('Failed to fetch user profile');
+        if (res.status === 404) {
+            console.debug('[fetchUserProfile] User not found (404)');
+            return null;
+        }
+        if (!res.ok) throw new Error('Failed to fetch user profile: ' + res.status);
         const data = await res.json();
         console.debug('[fetchUserProfile] Response: ' + JSON.stringify(data));
         return data;
@@ -1247,7 +1325,7 @@ async function handleOAuthRedirect() {
             name: user.global_name || user.username,
             avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : '',
             roles: member.roles,
-            profile: getEmployee(user.id).profile || {},
+                // First time user: use local or empty profile if backendProfile is null
             absences: getEmployee(user.id).absences || [],
             strikes: getEmployee(user.id).strikes || [],
             payslips: getEmployee(user.id).payslips || [],
@@ -1280,6 +1358,14 @@ async function handleOAuthRedirect() {
     if (isFirstTime || !currentUser.profile.name) {
         console.log('No profile name, redirecting to setupWelcome');
         showScreen('setupWelcome');
+        // Ensure user is added to Sheets after initial setup
+        const observer = new MutationObserver(async () => {
+            if (currentUser.profile && currentUser.profile.name && currentUser.profile.email && currentUser.profile.department) {
+                await upsertUserProfile();
+                observer.disconnect();
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
     } else {
         console.log('Profile found, redirecting to portalWelcome');
         document.getElementById('portalWelcomeName').textContent = emp.profile.name;
