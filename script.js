@@ -4,13 +4,14 @@ let profileDebug = null;
 let authDebug = null;
 function setProfileDebug(msg, isError) {
     if (!profileDebug) profileDebug = document.getElementById('profileDebug');
-    if (profileDebug) {
-        profileDebug.textContent = msg;
-        profileDebug.style.color = isError ? '#b71c1c' : '#388e3c';
-    }
     if (isError) {
+        if (profileDebug) {
+            profileDebug.textContent = msg;
+            profileDebug.style.color = '#b71c1c';
+        }
         console.error(msg);
     } else {
+        // Only log to console for non-errors, don't show in UI
         console.debug(msg);
     }
 }
@@ -31,12 +32,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // ...existing code...
     async function syncProfileFromSheets() {
         if (!window.currentUser) {
-            setProfileDebug('[syncProfileFromSheets] No currentUser', true);
+            // Only log to console, don't show in UI
+            console.debug('[syncProfileFromSheets] No currentUser');
             return;
         }
-        setProfileDebug('Syncing profile from Sheets...', false);
+        console.debug('Syncing profile from Sheets...');
         const profile = await fetchUserProfile(window.currentUser.id);
-        setProfileDebug('[syncProfileFromSheets] fetched profile: ' + JSON.stringify(profile), false);
+        console.debug('[syncProfileFromSheets] fetched profile: ' + JSON.stringify(profile));
         if (profile) {
             // Update UI fields with latest data from Sheets
             if (profile.name && profileName) profileName.textContent = profile.name;
@@ -52,8 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.currentUser.profile.email = profile.email;
                 window.currentUser.profile.department = profile.department;
             }
-            setProfileDebug('[syncProfileFromSheets] UI updated with profile: ' + JSON.stringify(profile), false);
+            console.debug('[syncProfileFromSheets] UI updated with profile: ' + JSON.stringify(profile));
         } else {
+            // Only show real errors in UI if fetch fails
             setProfileDebug('[syncProfileFromSheets] No profile returned for user ' + window.currentUser.id, true);
         }
     }
@@ -228,7 +231,7 @@ async function upsertUserProfile() {
 
 async function fetchUserProfile(discordId) {
     try {
-        setProfileDebug('[fetchUserProfile] Fetching profile for discordId: ' + discordId, false);
+        console.debug('[fetchUserProfile] Fetching profile for discordId: ' + discordId);
         const res = await fetch(`${BACKEND_URL}/api/user/profile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -236,7 +239,7 @@ async function fetchUserProfile(discordId) {
         });
         if (!res.ok) throw new Error('Failed to fetch user profile');
         const data = await res.json();
-        setProfileDebug('[fetchUserProfile] Response: ' + JSON.stringify(data), false);
+        console.debug('[fetchUserProfile] Response: ' + JSON.stringify(data));
         return data;
     } catch (e) {
         setProfileDebug('fetchUserProfile error: ' + e, true);
