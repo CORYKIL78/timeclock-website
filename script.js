@@ -1676,6 +1676,8 @@ document.getElementById('setupStartBtn').addEventListener('click', () => {
 document.getElementById('setupEmailContinueBtn').addEventListener('click', () => {
     const email = document.getElementById('setupEmailInput').value.trim();
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        if (!currentUser) currentUser = {};
+        if (!currentUser.profile) currentUser.profile = {};
         currentUser.profile.email = email;
         showScreen('setupName');
     } else {
@@ -1686,10 +1688,8 @@ document.getElementById('setupEmailContinueBtn').addEventListener('click', () =>
 document.getElementById('setupNameContinueBtn').addEventListener('click', () => {
     const name = document.getElementById('setupNameInput').value.trim();
     if (name) {
-        currentUser.profile.name = name;
-        showScreen('setupDepartment');
-    } else {
-        showModal('alert', 'Please enter your first and last name');
+        if (!currentUser) currentUser = {};
+        if (!currentUser.profile) currentUser.profile = {};
     }
 });
 
