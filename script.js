@@ -1,13 +1,26 @@
 // --- Profile Edit Buttons, Barcode, and Reset Countdown ---
 document.addEventListener('DOMContentLoaded', () => {
     // Fetch and sync user profile from backend (Google Sheets) on load
+    const profileDebug = document.getElementById('profileDebug');
+    function setProfileDebug(msg, isError) {
+        if (profileDebug) {
+            profileDebug.textContent = msg;
+            profileDebug.style.color = isError ? '#b71c1c' : '#388e3c';
+        }
+        if (isError) {
+            console.error(msg);
+        } else {
+            console.debug(msg);
+        }
+    }
     async function syncProfileFromSheets() {
         if (!window.currentUser) {
-            console.debug('[syncProfileFromSheets] No currentUser');
+            setProfileDebug('[syncProfileFromSheets] No currentUser', true);
             return;
         }
+        setProfileDebug('Syncing profile from Sheets...', false);
         const profile = await fetchUserProfile(window.currentUser.id);
-        console.debug('[syncProfileFromSheets] fetched profile:', profile);
+        setProfileDebug('[syncProfileFromSheets] fetched profile: ' + JSON.stringify(profile), false);
         if (profile) {
             // Update UI fields with latest data from Sheets
             if (profile.name && profileName) profileName.textContent = profile.name;
@@ -23,9 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.currentUser.profile.email = profile.email;
                 window.currentUser.profile.department = profile.department;
             }
-            console.debug('[syncProfileFromSheets] UI updated with profile:', profile);
+            setProfileDebug('[syncProfileFromSheets] UI updated with profile: ' + JSON.stringify(profile), false);
         } else {
-            console.warn('[syncProfileFromSheets] No profile returned for user', window.currentUser.id);
+            setProfileDebug('[syncProfileFromSheets] No profile returned for user ' + window.currentUser.id, true);
         }
     }
     // Initial sync on load
@@ -73,19 +86,24 @@ document.addEventListener('DOMContentLoaded', () => {
         saveBtn.onclick = async () => {
             if (type === 'name') profileName.textContent = input.value;
             if (type === 'email') profileEmail.textContent = input.value;
-            // Department is not editable in portal
+            if (type === 'department') profileDepartment.textContent = input.value;
             // Save to backend after edit
-            console.debug('[showEditField] Saving profile to backend...');
+            if (!window.currentUser.profile) window.currentUser.profile = {};
+            if (type === 'name') window.currentUser.profile.name = input.value;
+            if (type === 'email') window.currentUser.profile.email = input.value;
+            if (type === 'department') window.currentUser.profile.department = input.value;
+            setProfileDebug('[showEditField] Saving profile to backend...', false);
             await upsertUserProfile();
+            setProfileDebug('[showEditField] Saved to backend. Syncing from Sheets...', false);
             // Re-sync from Sheets after update
             await syncProfileFromSheets();
+            setProfileDebug('[showEditField] Edit complete.', false);
             editFieldsContainer.innerHTML = '';
         };
         cancelBtn.onclick = () => { editFieldsContainer.innerHTML = ''; };
     }
     if (editNameBtn) editNameBtn.onclick = () => showEditField('name', profileName.textContent);
     if (editEmailBtn) editEmailBtn.onclick = () => showEditField('email', profileEmail.textContent);
-    // Department is not editable in portal
     if (editDeptBtn) editDeptBtn.style.display = 'none';
     // Reset profile with countdown
     if (resetProfileBtn) {
@@ -142,22 +160,22 @@ async function upsertUserProfile() {
             email: currentUser.profile.email,
             department: currentUser.profile.department
         };
-        console.debug('[upsertUserProfile] Sending payload:', payload);
+        setProfileDebug('[upsertUserProfile] Sending payload: ' + JSON.stringify(payload), false);
         const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/user/upsert', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
         const data = await res.json();
-        console.debug('[upsertUserProfile] Backend response:', data);
+        setProfileDebug('[upsertUserProfile] Backend response: ' + JSON.stringify(data), false);
     } catch (e) {
-        console.error('[User Upsert] Failed to upsert user profile:', e);
+        setProfileDebug('[User Upsert] Failed to upsert user profile: ' + e, true);
     }
 }
 
 async function fetchUserProfile(discordId) {
     try {
-        console.debug('[fetchUserProfile] Fetching profile for discordId:', discordId);
+        setProfileDebug('[fetchUserProfile] Fetching profile for discordId: ' + discordId, false);
         const res = await fetch(`${BACKEND_URL}/api/user/profile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -165,10 +183,10 @@ async function fetchUserProfile(discordId) {
         });
         if (!res.ok) throw new Error('Failed to fetch user profile');
         const data = await res.json();
-        console.debug('[fetchUserProfile] Response:', data);
+        setProfileDebug('[fetchUserProfile] Response: ' + JSON.stringify(data), false);
         return data;
     } catch (e) {
-        console.error('fetchUserProfile error:', e);
+        setProfileDebug('fetchUserProfile error: ' + e, true);
         return null;
     }
 }
