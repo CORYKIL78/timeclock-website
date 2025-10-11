@@ -625,6 +625,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             await sendAbsenceWebhook(absence);
             closeModal('absenceRequest');
+            // Only show one success message: forcibly close any open alert modal
+            const alertModal = document.getElementById('alertModal');
+            if (alertModal && alertModal.style.display === 'flex') {
+                alertModal.style.display = 'none';
+            }
+            setTimeout(() => {
+                showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
+            }, 100);
             addNotification('absence', 'Absence request submitted!', 'absences');
             // Ensure pending tab is active and render
             document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -1687,17 +1695,9 @@ document.getElementById('setupEmailContinueBtn').addEventListener('click', () =>
 
 document.getElementById('setupNameContinueBtn').addEventListener('click', () => {
     const name = document.getElementById('setupNameInput').value.trim();
+    console.log('[DEBUG] setupNameContinueBtn clicked, name input value:', name);
     if (name) {
         if (!currentUser) currentUser = {};
-        if (!currentUser.profile) currentUser.profile = {};
-    }
-});
-
-document.getElementById('setupDepartmentContinueBtn').addEventListener('click', () => {
-    const selectedDept = document.querySelector('input[name="department"]:checked');
-    if (selectedDept) {
-        currentUser.profile.department = selectedDept.value;
-        showScreen('setupVerify');
         setTimeout(() => {
             const deptRole = DEPT_ROLES[currentUser.profile.department];
             if (currentUser.roles.includes(deptRole)) {
