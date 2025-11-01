@@ -72,46 +72,34 @@
 
         async function sendDiscordDM(userId, embed) {
             try {
-                log(`📤 Creating DM channel for user ${userId}...`);
+                // Convert embed to text message for your proxy
+                let message = `**${embed.title}**\n\n${embed.description}`;
                 
-                // Create DM channel
-                const dmRes = await fetch(`https://discord.com/api/v10/users/@me/channels`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bot ${getBotToken()}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ recipient_id: userId })
+                if (embed.fields) {
+                    embed.fields.forEach(field => {
+                        message += `\n**${field.name}:** ${field.value}`;
+                    });
+                }
+                
+                if (embed.footer) {
+                    message += `\n\n_${embed.footer.text}_`;
+                }
+                
+                log(`📤 Sending DM via proxy for user ${userId}...`);
+                
+                const response = await fetch(`https://timeclock-proxy.marcusray.workers.dev/sendDM?user_id=${userId}&message=${encodeURIComponent(message)}`, {
+                    method: 'GET'
                 });
                 
-                if (!dmRes.ok) {
-                    const error = await dmRes.text();
-                    log(`❌ Failed to create DM channel: ${dmRes.status} - ${error}`);
+                if (!response.ok) {
+                    const error = await response.text();
+                    log(`❌ Failed to send DM via proxy: ${response.status} - ${error}`);
                     return false;
                 }
                 
-                const dmChannel = await dmRes.json();
-                log(`✅ DM channel created: ${dmChannel.id}`);
-                
-                // Send message
-                log(`📨 Sending message...`);
-                const msgRes = await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bot ${getBotToken()}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ embeds: [embed] })
-                });
-                
-                if (!msgRes.ok) {
-                    const error = await msgRes.text();
-                    log(`❌ Failed to send message: ${msgRes.status} - ${error}`);
-                    return false;
-                }
-                
-                const msg = await msgRes.json();
-                log(`✅ Message sent successfully! Message ID: ${msg.id}`);
+                const result = await response.json();
+                log(`✅ DM sent successfully via proxy!`);
+                log(`📨 Message sent: "${message.substring(0, 100)}..."`);
                 log(`\n`);
                 return true;
             } catch (e) {
