@@ -34,47 +34,67 @@ document.addEventListener('DOMContentLoaded', () => {
             console.debug('[syncProfileFromSheets] No currentUser');
             return;
         }
-        console.debug('Syncing profile from Sheets...');
+        console.debug('[syncProfileFromSheets] Starting sync for user:', currentUser.id);
         const profile = await fetchUserProfile(currentUser.id);
         console.debug('[syncProfileFromSheets] fetched profile: ' + JSON.stringify(profile));
         
-        if (profile) {
+        if (profile && profile.name) {
             // Ensure currentUser.profile exists
             if (!currentUser.profile) currentUser.profile = {};
+            
+            // Update currentUser profile with all data from backend first
+            currentUser.profile.name = profile.name;
+            currentUser.profile.email = profile.email;
+            currentUser.profile.department = profile.department;
+            currentUser.profile.staffId = profile.staffId;
+            
+            console.debug('[syncProfileFromSheets] Updated currentUser.profile: ' + JSON.stringify(currentUser.profile));
             
             // Update UI fields with latest data from Sheets
             const profileNameEl = document.getElementById('profileName');
             const profileEmailEl = document.getElementById('profileEmail');
             const profileDepartmentEl = document.getElementById('profileDepartment');
             
-            if (profile.name && profileNameEl) profileNameEl.textContent = profile.name;
-            if (profile.email && profileEmailEl) profileEmailEl.textContent = profile.email;
-            if (profile.department && profileDepartmentEl) profileDepartmentEl.textContent = profile.department;
-            
-            // Update currentUser profile with all data from backend
-            currentUser.profile.name = profile.name;
-            currentUser.profile.email = profile.email;
-            currentUser.profile.department = profile.department;
-            currentUser.profile.staffId = profile.staffId;
+            if (profile.name && profileNameEl) {
+                profileNameEl.textContent = profile.name;
+                console.debug('[syncProfileFromSheets] Set profileName to:', profile.name);
+            }
+            if (profile.email && profileEmailEl) {
+                profileEmailEl.textContent = profile.email;
+                console.debug('[syncProfileFromSheets] Set profileEmail to:', profile.email);
+            }
+            if (profile.department && profileDepartmentEl) {
+                profileDepartmentEl.textContent = profile.department;
+                console.debug('[syncProfileFromSheets] Set profileDepartment to:', profile.department);
+            }
             
             // Update profile pictures after getting name
             updateProfilePictures();
             
-            console.debug('[syncProfileFromSheets] UI updated with profile: ' + JSON.stringify(profile));
-            console.debug('[syncProfileFromSheets] currentUser.profile now: ' + JSON.stringify(currentUser.profile));
+            console.debug('[syncProfileFromSheets] UI update completed successfully');
         } else {
+            console.debug('[syncProfileFromSheets] No valid profile from backend, profile was:', profile);
             // If no profile from backend, use local currentUser data if available
-            console.debug('[syncProfileFromSheets] No profile from backend, using local data');
             const profileNameEl = document.getElementById('profileName');
             const profileEmailEl = document.getElementById('profileEmail');
             const profileDepartmentEl = document.getElementById('profileDepartment');
             
             if (currentUser.profile) {
-                if (currentUser.profile.name && profileNameEl) profileNameEl.textContent = currentUser.profile.name;
-                if (currentUser.profile.email && profileEmailEl) profileEmailEl.textContent = currentUser.profile.email;
-                if (currentUser.profile.department && profileDepartmentEl) profileDepartmentEl.textContent = currentUser.profile.department;
+                if (currentUser.profile.name && profileNameEl) {
+                    profileNameEl.textContent = currentUser.profile.name;
+                    console.debug('[syncProfileFromSheets] Used local name:', currentUser.profile.name);
+                }
+                if (currentUser.profile.email && profileEmailEl) {
+                    profileEmailEl.textContent = currentUser.profile.email;
+                    console.debug('[syncProfileFromSheets] Used local email:', currentUser.profile.email);
+                }
+                if (currentUser.profile.department && profileDepartmentEl) {
+                    profileDepartmentEl.textContent = currentUser.profile.department;
+                    console.debug('[syncProfileFromSheets] Used local department:', currentUser.profile.department);
+                }
                 updateProfilePictures();
             } else {
+                console.debug('[syncProfileFromSheets] No profile data available at all');
                 setProfileDebug('[syncProfileFromSheets] No profile data available', true);
             }
         }
@@ -971,55 +991,53 @@ setInterval(async () => {
     console.log('[DEBUG] Polling for absence status updates...');
     if (!window.currentUser) return;
     const emp = getEmployee(window.currentUser.id);
-    if (!emp || !emp.absences) return;
-    for (const absence of emp.absences) {
-        if (absence.status === 'archived') continue;
-        console.log(`[DEBUG] Checking absence:`, absence);
-        try {
-            const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/getStatus', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: emp.profile?.name || '',
-                    startDate: absence.startDate,
-                    endDate: absence.endDate
-                })
-            });
-            if (!res.ok) continue;
-            const data = await res.json();
-            console.log(`[DEBUG] Received status from backend:`, data.status);
-            if (data.status && absence.status !== data.status.toLowerCase()) {
-                const oldStatus = absence.status;
-                absence.status = data.status.toLowerCase();
-                updateEmployee(emp);
+    if (!emp || !emp.profile?.name) return;
+    
+    try {
+        // Check for new approved/denied absences
+        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/check-approved', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: emp.profile.name,
+                discordId: window.currentUser.id
+            })
+        });
+        
+        if (!res.ok) return;
+        
+        const data = await res.json();
+        console.log('[DEBUG] Absence check response:', data);
+        
+        if (data.hasNewStatuses && data.processedAbsences) {
+            // Update local absence records
+            if (!emp.absences) emp.absences = [];
+            
+            for (const processedAbsence of data.processedAbsences) {
+                // Find matching absence in local data
+                const localAbsence = emp.absences.find(a => 
+                    a.startDate === processedAbsence.startDate && 
+                    a.endDate === processedAbsence.endDate
+                );
                 
-                // Send DM notification for status change
-                if (oldStatus === 'pending' && (absence.status === 'approved' || absence.status === 'rejected')) {
-                    const isApproved = absence.status === 'approved';
-                    await sendDiscordDM(window.currentUser.id, {
-                        title: isApproved ? '✅ Absence Request Approved' : '❌ Absence Request Rejected',
-                        description: `Your absence request has been **${isApproved ? 'approved' : 'rejected'}**.\n\n**Type:** ${absence.type}\n**Start Date:** ${absence.startDate}\n**End Date:** ${absence.endDate}\n**Reason:** ${absence.comment || absence.reason || 'N/A'}`,
-                        color: isApproved ? 0x4CAF50 : 0xF44336,
-                        footer: { text: 'Cirkle Development HR Portal' },
-                        timestamp: new Date().toISOString()
-                    });
+                if (localAbsence) {
+                    const oldStatus = localAbsence.status;
+                    localAbsence.status = processedAbsence.status;
+                    console.log(`[DEBUG] Updated absence status: ${oldStatus} -> ${processedAbsence.status}`);
                     
-                    // Add portal notification with sound
+                    // Add portal notification
+                    const isApproved = processedAbsence.status === 'approved';
                     addNotification('absence', `${isApproved ? '✅' : '❌'} Absence request ${isApproved ? 'approved' : 'rejected'}!`, 'absences');
                 }
-                
-                // Always re-render all absence tabs so they move to the correct tab
-                ['pending', 'approved', 'rejected', 'archived'].forEach(tab => renderAbsences(tab));
-                // Update Discord message if info available
-                if (absence.messageId && absence.channelId) {
-                    let statusText = data.status === 'APPROVE' || data.status === 'APPROVED' ? 'Approved' : (data.status === 'REJECT' || data.status === 'REJECTED' ? 'Rejected' : data.status);
-                    const newMsg = `STATUS: ${statusText}`;
-                    await updateEmbed(absence.channelId, absence.messageId, { description: newMsg });
-                }
             }
-        } catch (e) {
-            // Ignore errors
+            
+            updateEmployee(emp);
+            
+            // Re-render absence tabs to show updated statuses
+            ['pending', 'approved', 'rejected', 'archived'].forEach(tab => renderAbsences(tab));
         }
+    } catch (e) {
+        console.error('[DEBUG] Error checking absence approvals:', e);
     }
 }, 30000); // Poll every 30 seconds
 
