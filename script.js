@@ -777,23 +777,16 @@ const REDIRECT_URI = 'https://portal.cirkledevelopment.co.uk';
 // Discord DM utility functions
 async function sendDiscordDM(userId, embed) {
     try {
-        // Convert embed to a simple text message for now
-        let message = `**${embed.title}**\n\n${embed.description}`;
-        
-        // Add fields if present
-        if (embed.fields) {
-            embed.fields.forEach(field => {
-                message += `\n**${field.name}:** ${field.value}`;
-            });
-        }
-        
-        // Add footer if present
-        if (embed.footer) {
-            message += `\n\n_${embed.footer.text}_`;
-        }
-        
-        const response = await fetch(`https://timeclock-proxy.marcusray.workers.dev/sendDM?user_id=${userId}&message=${encodeURIComponent(message)}`, {
-            method: 'GET'
+        // Use the new POST endpoint with native Discord embeds
+        const response = await fetch(`https://timeclock-proxy.marcusray.workers.dev/sendDM`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId: userId,
+                embed: embed
+            })
         });
         
         if (!response.ok) {
@@ -2417,28 +2410,54 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
         const data = await res.json();
         const payslips = data.payslips || [];
         
+        content.innerHTML = '';
+        
+        // Add admin assignment button
+        const adminSection = document.createElement('div');
+        adminSection.style.cssText = 'margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;';
+        adminSection.innerHTML = `
+            <h3 style="margin: 0 0 10px 0;">Admin Functions</h3>
+            <button id="openAssignPayslipModal" style="padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 5px; cursor: pointer;">Assign Payslip</button>
+        `;
+        content.appendChild(adminSection);
+        
+        // Add click handler for assign payslip button
+        document.getElementById('openAssignPayslipModal').onclick = () => {
+            document.getElementById('assignPayslipModal').style.display = 'flex';
+        };
+        
         if (payslips.length === 0) {
-            content.innerHTML = '<p>No payslips found.</p>';
+            const noPayslipsDiv = document.createElement('div');
+            noPayslipsDiv.innerHTML = '<p>No payslips found.</p>';
+            content.appendChild(noPayslipsDiv);
             return;
         }
         
-        content.innerHTML = '';
-        payslips.forEach((payslip, index) => {
+        // Add scrollable container for payslips
+        const payslipsContainer = document.createElement('div');
+        payslipsContainer.style.cssText = 'max-height: 400px; overflow-y: auto; padding: 10px;';
+        
+        payslips.forEach((payslip) => {
             const div = document.createElement('div');
             div.className = 'payslip-item';
-            div.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; cursor: pointer; transition: background 0.2s;';
+            div.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; cursor: pointer; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center;';
             div.onmouseenter = () => div.style.background = '#f5f5f5';
             div.onmouseleave = () => div.style.background = 'white';
             
-            const today = new Date().toLocaleDateString();
-            div.innerHTML = `
-                <h3 style="margin: 0 0 10px 0;">PAYSLIP: ${today}</h3>
-                <p style="margin: 5px 0; color: #666;">Click to view details</p>
-            `;
+            const leftSide = document.createElement('div');
+            leftSide.innerHTML = `<h3 style="margin: 0; font-size: 16px;">PAYSLIP: ${payslip.dateAssigned}</h3>`;
+            
+            const rightSide = document.createElement('div');
+            rightSide.innerHTML = `<p style="margin: 0; color: #666; font-size: 14px;">Assigned by: ${payslip.assignedBy}</p>`;
+            
+            div.appendChild(leftSide);
+            div.appendChild(rightSide);
             
             div.onclick = () => showPayslipModal(payslip);
-            content.appendChild(div);
+            payslipsContainer.appendChild(div);
         });
+        
+        content.appendChild(payslipsContainer);
     } catch (e) {
         console.error('Error fetching payslips:', e);
         content.innerHTML = '<p>Error loading payslips. Please try again later.</p>';
@@ -2447,35 +2466,19 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
 
 function showPayslipModal(payslip) {
     const modal = document.getElementById('payslipViewModal');
-    document.getElementById('payslipDescription').textContent = payslip.description || 'No description provided';
     
-    const fileContainer = document.getElementById('payslipFileContainer');
-    fileContainer.innerHTML = '';
+    // Populate the modal with payslip data
+    document.getElementById('payslipDate').textContent = payslip.dateAssigned || 'N/A';
+    document.getElementById('payslipComment').textContent = payslip.comment || 'No comment provided';
+    document.getElementById('payslipAssignedBy').textContent = payslip.assignedBy || 'Unknown';
     
-    if (payslip.fileUrl) {
-        // Check if it's a Google Drive link
-        if (payslip.fileUrl.includes('drive.google.com')) {
-            let fileId = '';
-            if (payslip.fileUrl.includes('/file/d/')) {
-                fileId = payslip.fileUrl.split('/file/d/')[1].split('/')[0];
-            } else if (payslip.fileUrl.includes('id=')) {
-                fileId = payslip.fileUrl.split('id=')[1].split('&')[0];
-            }
-            
-            if (fileId) {
-                const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-                fileContainer.innerHTML = `
-                    <iframe src="${embedUrl}" width="100%" height="500px" style="border: none; margin-top: 15px;"></iframe>
-                    <a href="${payslip.fileUrl}" target="_blank" style="display: inline-block; margin-top: 10px; padding: 10px 20px; background: #1976d2; color: white; text-decoration: none; border-radius: 5px;">Open in New Tab</a>
-                `;
-            } else {
-                fileContainer.innerHTML = `<a href="${payslip.fileUrl}" target="_blank" style="display: inline-block; margin-top: 10px; padding: 10px 20px; background: #1976d2; color: white; text-decoration: none; border-radius: 5px;">View File</a>`;
-            }
-        } else {
-            fileContainer.innerHTML = `<a href="${payslip.fileUrl}" target="_blank" style="display: inline-block; margin-top: 10px; padding: 10px 20px; background: #1976d2; color: white; text-decoration: none; border-radius: 5px;">Download Payslip</a>`;
-        }
+    const linkElement = document.getElementById('payslipLink');
+    if (payslip.link) {
+        linkElement.href = payslip.link;
+        linkElement.style.display = 'inline';
+        linkElement.textContent = 'View Payslip';
     } else {
-        fileContainer.innerHTML = '<p style="color: #999; margin-top: 10px;">No file attached</p>';
+        linkElement.style.display = 'none';
     }
     
     modal.style.display = 'flex';
@@ -2826,6 +2829,99 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
             `;
         }, 1000);
     }
+    
+    // Payslip assignment modal handlers
+    const assignPayslipModal = document.getElementById('assignPayslipModal');
+    const assignPayslipBtn = document.getElementById('assignPayslipBtn');
+    const cancelAssignPayslipBtn = document.getElementById('cancelAssignPayslipBtn');
+    
+    // Close modal handlers
+    assignPayslipModal.querySelector('.close').onclick = () => {
+        assignPayslipModal.style.display = 'none';
+        clearAssignPayslipForm();
+    };
+    
+    cancelAssignPayslipBtn.onclick = () => {
+        assignPayslipModal.style.display = 'none';
+        clearAssignPayslipForm();
+    };
+    
+    window.onclick = (e) => {
+        if (e.target === assignPayslipModal) {
+            assignPayslipModal.style.display = 'none';
+            clearAssignPayslipForm();
+        }
+    };
+    
+    // Function to clear the form
+    function clearAssignPayslipForm() {
+        document.getElementById('assignStaffId').value = '';
+        document.getElementById('assignPayslipLink').value = '';
+        document.getElementById('assignPayslipComment').value = '';
+        document.getElementById('assignedByName').value = '';
+        document.getElementById('submitAction').value = '';
+    }
+    
+    // Assign payslip button handler
+    assignPayslipBtn.onclick = async () => {
+        const staffId = document.getElementById('assignStaffId').value.trim();
+        const link = document.getElementById('assignPayslipLink').value.trim();
+        const comment = document.getElementById('assignPayslipComment').value.trim();
+        const assignedBy = document.getElementById('assignedByName').value.trim();
+        const action = document.getElementById('submitAction').value;
+        
+        if (!staffId || !link || !assignedBy || !action) {
+            alert('Please fill in all required fields (Staff ID, Link, Your Name, and Action).');
+            return;
+        }
+        
+        if (action !== 'Submit') {
+            alert('Please select "Submit" from the Action dropdown.');
+            return;
+        }
+        
+        try {
+            assignPayslipBtn.disabled = true;
+            assignPayslipBtn.textContent = 'Assigning...';
+            
+            const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/payslips/assign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    staffId,
+                    link,
+                    comment,
+                    assignedBy
+                })
+            });
+            
+            if (!res.ok) {
+                throw new Error('Failed to assign payslip');
+            }
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                alert('Payslip assigned successfully!');
+                assignPayslipModal.style.display = 'none';
+                clearAssignPayslipForm();
+                
+                // Refresh payslips if on payslips page
+                if (document.getElementById('payslipsScreen').style.display !== 'none') {
+                    document.getElementById('payslipsBtn').click();
+                }
+            } else {
+                throw new Error('Assignment failed');
+            }
+        } catch (e) {
+            console.error('Error assigning payslip:', e);
+            alert('Error assigning payslip: ' + e.message);
+        } finally {
+            assignPayslipBtn.disabled = false;
+            assignPayslipBtn.textContent = 'Assign Payslip';
+        }
+    };
+
     if (savedUser) {
         try {
             currentUser = JSON.parse(savedUser);
