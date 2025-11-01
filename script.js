@@ -544,6 +544,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 if (response.ok) {
+                    // Mark profile as having pending name change
+                    const emp = getEmployee(currentUser.id);
+                    emp.pendingNameChange = newName;
+                    updateEmployee(emp);
+                    
                     // Show success modal
                     showModal('alert', '✅ Name change request submitted successfully! You will receive a notification when it\'s reviewed.');
                     
@@ -622,6 +627,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 if (response.ok) {
+                    // Mark profile as having pending email change
+                    const emp = getEmployee(currentUser.id);
+                    emp.pendingEmailChange = newEmail;
+                    updateEmployee(emp);
+                    
                     // Show success modal
                     showModal('✅ Email change request submitted successfully! You will receive a notification when it\'s reviewed.');
                     
@@ -1014,10 +1024,10 @@ async function checkForReset(discordId) {
     return null;
 }
 
-// Function to check for approved change requests and apply them
+// Function to check for approved/rejected change requests and apply them
 async function checkApprovedChangeRequests(discordId) {
     try {
-        console.log('[DEBUG] Checking approved change requests for Discord ID:', discordId);
+        console.log('[DEBUG] Checking approved/rejected change requests for Discord ID:', discordId);
         const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/check-approved', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1031,60 +1041,88 @@ async function checkApprovedChangeRequests(discordId) {
         if (response.ok) {
             const result = JSON.parse(responseText);
             console.log('[DEBUG] Change request check result:', result);
-            if (result.hasApprovedRequests && result.appliedChanges) {
-                // Notify user of approved changes
+            
+            if (result.appliedChanges && result.appliedChanges.length > 0) {
+                // Handle both approved and rejected changes
                 for (const change of result.appliedChanges) {
-                    if (change.type === 'name') {
-                        addNotification('profile', `✅ Name change approved: ${change.from} → ${change.to}`, 'myProfile');
-                        // Send DM notification for approved name change
-                        try {
-                            await sendDiscordDM(discordId, {
-                                title: "✅ Request Approved",
-                                description: `Your name change request has been approved!\n\n**From:** ${change.from}\n**To:** ${change.to}`,
-                                color: 0x00ff00
-                            });
-                        } catch (e) {
-                            console.error('Failed to send name change approval DM:', e);
+                    if (change.approved) {
+                        // Handle approved changes
+                        if (change.type === 'name') {
+                            addNotification('profile', `✅ Name change approved: ${change.from} → ${change.to}`, 'myProfile');
+                        } else if (change.type === 'department') {
+                            addNotification('profile', `✅ Department change approved: ${change.from} → ${change.to}`, 'myProfile');
+                        } else if (change.type === 'email') {
+                            addNotification('profile', `✅ Email change approved: ${change.from} → ${change.to}`, 'myProfile');
                         }
-                    } else if (change.type === 'department') {
-                        addNotification('profile', `✅ Department change approved: ${change.from} → ${change.to}`, 'myProfile');
-                        // Send DM notification for approved department change
-                        try {
-                            await sendDiscordDM(discordId, {
-                                title: "✅ Request Approved",
-                                description: `Your department change request has been approved!\n\n**From:** ${change.from}\n**To:** ${change.to}`,
-                                color: 0x00ff00
-                            });
-                        } catch (e) {
-                            console.error('Failed to send department change approval DM:', e);
+                    } else {
+                        // Handle rejected changes
+                        if (change.type === 'name') {
+                            addNotification('profile', `❌ Name change rejected: ${change.from} → ${change.to}`, 'myProfile');
+                        } else if (change.type === 'department') {
+                            addNotification('profile', `❌ Department change rejected: ${change.from} → ${change.to}`, 'myProfile');
+                        } else if (change.type === 'email') {
+                            addNotification('profile', `❌ Email change rejected: ${change.from} → ${change.to}`, 'myProfile');
                         }
                     }
                 }
                 
-                // Refresh user profile to get updated information
-                const updatedProfile = await fetchUserProfile(discordId);
-                if (updatedProfile) {
+                // If there were approved changes, refresh user profile
+                if (result.hasApprovedRequests) {
+                    const updatedProfile = await fetchUserProfile(discordId);
+                    if (updatedProfile) {
+                        const emp = getEmployee(discordId);
+                        emp.profile = {
+                            name: updatedProfile.name || '',
+                            email: updatedProfile.email || '',
+                            department: updatedProfile.department || '',
+                            discordTag: updatedProfile.discordTag || '',
+                            status: updatedProfile.status || 'Active'
+                        };
+                        
+                        // Clear pending change flags
+                        emp.pendingDeptChange = null;
+                        emp.pendingNameChange = null;
+                        emp.pendingEmailChange = null;
+                        
+                        updateEmployee(emp);
+                        currentUser.profile = emp.profile;
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        
+                        // Update profile display if on profile page
+                        if (document.getElementById('profileName')) {
+                            document.getElementById('profileName').textContent = emp.profile.name;
+                            document.getElementById('profileName').classList.remove('pending-name');
+                        }
+                        if (document.getElementById('profileDepartment')) {
+                            document.getElementById('profileDepartment').textContent = emp.profile.department;
+                            document.getElementById('profileDepartment').classList.remove('pending-department');
+                        }
+                        if (document.getElementById('profileEmail')) {
+                            document.getElementById('profileEmail').textContent = emp.profile.email;
+                            document.getElementById('profileEmail').classList.remove('pending-email');
+                        }
+                    }
+                }
+                
+                // If there were rejected changes, clear any pending flags
+                if (result.hasRejectedRequests) {
                     const emp = getEmployee(discordId);
-                    emp.profile = {
-                        name: updatedProfile.name || '',
-                        email: updatedProfile.email || '',
-                        department: updatedProfile.department || '',
-                        discordTag: updatedProfile.discordTag || '',
-                        status: updatedProfile.status || 'Active'
-                    };
-                    
-                    // Clear pending change flags
-                    emp.pendingDeptChange = null;
-                    
-                    updateEmployee(emp);
-                    currentUser.profile = emp.profile;
-                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    
-                    // Update profile display if on profile page
-                    if (document.getElementById('profileName')) {
-                        document.getElementById('profileName').textContent = emp.profile.name;
-                        document.getElementById('profileDepartment').textContent = emp.profile.department;
-                        document.getElementById('profileDepartment').classList.remove('pending-department');
+                    if (emp) {
+                        emp.pendingDeptChange = null;
+                        emp.pendingNameChange = null;
+                        emp.pendingEmailChange = null;
+                        updateEmployee(emp);
+                        
+                        // Remove any pending styling
+                        if (document.getElementById('profileDepartment')) {
+                            document.getElementById('profileDepartment').classList.remove('pending-department');
+                        }
+                        if (document.getElementById('profileName')) {
+                            document.getElementById('profileName').classList.remove('pending-name');
+                        }
+                        if (document.getElementById('profileEmail')) {
+                            document.getElementById('profileEmail').classList.remove('pending-email');
+                        }
                     }
                 }
             }
@@ -1841,6 +1879,8 @@ function getEmployee(id) {
         drafts: [], 
         onLOA: false,
         pendingDeptChange: null,
+        pendingNameChange: null,
+        pendingEmailChange: null,
         lastLogin: null,
         notifications: []
     };
@@ -2770,6 +2810,7 @@ if (sidebarProfilePic) {
         }
         
         const profileDepartmentEl = document.getElementById('profileDepartment');
+        
         if (profileDepartmentEl) {
             profileDepartmentEl.classList.toggle('pending-department', !!emp.pendingDeptChange);
         }
@@ -2806,6 +2847,17 @@ if (sidebarProfilePic) {
         const profileDeptEl = document.getElementById('profileDepartment');
         const updateNameInputEl = document.getElementById('updateNameInput');
         const updateEmailInputEl = document.getElementById('updateEmailInput');
+        
+        // Apply pending change styling
+        if (profileNameEl) {
+            profileNameEl.classList.toggle('pending-name', !!emp.pendingNameChange);
+        }
+        if (profileEmailEl) {
+            profileEmailEl.classList.toggle('pending-email', !!emp.pendingEmailChange);
+        }
+        if (profileDeptEl) {
+            profileDeptEl.classList.toggle('pending-department', !!emp.pendingDeptChange);
+        }
         
         // Use currentUser profile data if available, otherwise use emp data
         const profileDisplayName2 = currentUser.profile?.name || emp.profile?.name || currentUser.name || 'Not set';
