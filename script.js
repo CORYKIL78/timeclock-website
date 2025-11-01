@@ -555,6 +555,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Add notification to sidebar
                     addNotification('profile', 'Name change request submitted', 'myProfile');
                     
+                    // Start checking for approval every 1 second for 30 seconds
+                    let checkCount = 0;
+                    const quickCheckInterval = setInterval(async () => {
+                        checkCount++;
+                        console.log(`[DEBUG] Quick checking for name change approval (${checkCount}/30)`);
+                        await checkApprovedChangeRequests(currentUser.id);
+                        if (checkCount >= 30) {
+                            clearInterval(quickCheckInterval);
+                        }
+                    }, 1000);
+                    
                     // Close modal after delay
                     setTimeout(() => { 
                         nameChangeModal.style.display = 'none'; 
@@ -615,17 +626,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         discordId: currentUser.id,
-                        requestType: 'email',
-                        currentValue: currentUser.profile?.email || '',
-                        requestedValue: newEmail,
-                        reason: reason,
-                        staffName: currentUser.profile?.name || currentUser.name || 'User',
-                        email: currentUser.profile?.email || '',
-                        department: currentUser.profile?.department || '',
-                        staffId: currentUser.profile?.staffId || 'Not assigned'
-                    })
-                });
-                
                 if (response.ok) {
                     // Mark profile as having pending email change
                     const emp = getEmployee(currentUser.id);
@@ -634,6 +634,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // Show success modal
                     showModal('✅ Email change request submitted successfully! You will receive a notification when it\'s reviewed.');
+                    
+                    // Add notification to sidebar
+                    addNotification('profile', 'Email change request submitted', 'myProfile');
+                    
+                    // Start checking for approval every 1 second for 30 seconds
+                    let checkCount = 0;
+                    const quickCheckInterval = setInterval(async () => {
+                        checkCount++;
+                        console.log(`[DEBUG] Quick checking for email change approval (${checkCount}/30)`);
+                        await checkApprovedChangeRequests(currentUser.id);
+                        if (checkCount >= 30) {
+                            clearInterval(quickCheckInterval);
+                        }
+                    }, 1000);
+                    
+                    // Close modal after delay
+                    setTimeout(() => { 
+                        emailChangeModal.style.display = 'none'; 
+                        if (newEmailInput) newEmailInput.value = '';
+                        if (reasonInput) reasonInput.value = '';
+                    }, 1500);
+                } else {Modal('✅ Email change request submitted successfully! You will receive a notification when it\'s reviewed.');
                     
                     // Add notification to sidebar
                     addNotification('profile', 'Email change request submitted', 'myProfile');
@@ -1002,19 +1024,19 @@ async function syncUserProfileOnLogin() {
         await checkApprovedChangeRequests(currentUser.id);
         
         // Ensure user login is recorded for mail system
-        await upsertUserProfile(); // Log to Google Sheets after login/profile sync
-    }
-}
-
-// Function to check if user account has been reset
-async function checkForReset(discordId) {
+// Function to check for approved/rejected change requests and apply them
+async function checkApprovedChangeRequests(discordId) {
     try {
-        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/user/check-reset', {
+        console.log('[DEBUG] checkApprovedChangeRequests called for Discord ID:', discordId);
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/check-approved', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ discordId })
         });
         
+        console.log('[DEBUG] Change request check response status:', response.status);
+        const responseText = await response.text();
+        console.log('[DEBUG] Change request check raw response:', responseText);
         if (response.ok) {
             return await response.json();
         }
@@ -1140,7 +1162,7 @@ setInterval(async () => {
     } catch (e) {
         console.error('Error polling for approved change requests:', e);
     }
-}, 5000); // Poll every 5 seconds for near-instant notifications
+}, 2000); // Poll every 2 seconds for faster notifications
 
 // Call syncUserProfileOnLogin() after successful login (e.g. after setting currentUser)
 // Polling for absence status updates
@@ -2956,17 +2978,28 @@ const submitDeptChangeBtn = document.getElementById('submitDeptChangeBtn');
 if (submitDeptChangeBtn) {
     submitDeptChangeBtn.addEventListener('click', async () => {
     const selectedDept = document.querySelector('input[name="newDepartment"]:checked');
-    if (selectedDept) {
-        const emp = getEmployee(currentUser.id);
-        const submitBtn = document.getElementById('submitDeptChangeBtn');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting...';
-        
-        try {
-            // Submit change request to backend
-            const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/submit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            if (response.ok) {
+                closeModal('deptChange');
+                showModal('alert', '<span class="success-tick"></span> Department change request submitted for approval!');
+                playSuccessSound();
+                addNotification('department', 'Department change request submitted for approval!', 'myProfile');
+                
+                // Mark profile as having pending change
+                emp.pendingDeptChange = selectedDept.value;
+                updateEmployee(emp);
+                document.getElementById('profileDepartment').classList.add('pending-department');
+                
+                // Start checking for approval every 1 second for 30 seconds
+                let checkCount = 0;
+                const quickCheckInterval = setInterval(async () => {
+                    checkCount++;
+                    console.log(`[DEBUG] Quick checking for department change approval (${checkCount}/30)`);
+                    await checkApprovedChangeRequests(currentUser.id);
+                    if (checkCount >= 30) {
+                        clearInterval(quickCheckInterval);
+                    }
+                }, 1000);
+            } else {ers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     discordId: currentUser.id,
                     staffName: emp.profile.name || currentUser.name,
