@@ -2368,11 +2368,16 @@ if (changeDeptBtn) {
     });
 }
 
-document.getElementById('changeDepartmentBtn').addEventListener('click', () => {
-    showModal('deptChange');
-});
+const changeDepartmentBtn = document.getElementById('changeDepartmentBtn');
+if (changeDepartmentBtn) {
+    changeDepartmentBtn.addEventListener('click', () => {
+        showModal('deptChange');
+    });
+}
 
-document.getElementById('submitDeptChangeBtn').addEventListener('click', async () => {
+const submitDeptChangeBtn = document.getElementById('submitDeptChangeBtn');
+if (submitDeptChangeBtn) {
+    submitDeptChangeBtn.addEventListener('click', async () => {
     const selectedDept = document.querySelector('input[name="newDepartment"]:checked');
     if (selectedDept) {
         const emp = getEmployee(currentUser.id);
@@ -2420,12 +2425,18 @@ document.getElementById('submitDeptChangeBtn').addEventListener('click', async (
         showModal('alert', 'Please select a department');
     }
 });
+}
 
-document.getElementById('resetProfileBtn').addEventListener('click', () => {
-    showModal('resetProfile');
-});
+const resetProfileBtn = document.getElementById('resetProfileBtn');
+if (resetProfileBtn) {
+    resetProfileBtn.addEventListener('click', () => {
+        showModal('resetProfile');
+    });
+}
 
-document.getElementById('confirmResetBtn').addEventListener('click', async () => {
+const confirmResetBtn = document.getElementById('confirmResetBtn');
+if (confirmResetBtn) {
+    confirmResetBtn.addEventListener('click', async () => {
     // Send goodbye DM before resetting
     await sendGoodbyeMessage(currentUser.id, currentUser.id);
     
@@ -2455,58 +2466,87 @@ document.getElementById('confirmResetBtn').addEventListener('click', async () =>
     showModal('alert', '<span class="success-tick"></span> Profile reset successfully!');
     playSuccessSound();
 });
+}
 
-document.getElementById('myRolesBtn').addEventListener('click', () => {
-    showScreen('myRoles');
-    const list = document.getElementById('rolesList');
-    list.innerHTML = '';
-    currentUser.roles.forEach(roleId => {
-        const li = document.createElement('li');
-        li.textContent = `${roleNames[roleId] || 'Unknown Role'} (${roleId})`;
-        list.appendChild(li);
+const myRolesBtn = document.getElementById('myRolesBtn');
+if (myRolesBtn) {
+    myRolesBtn.addEventListener('click', () => {
+        showScreen('myRoles');
+        const list = document.getElementById('rolesList');
+        list.innerHTML = '';
+        currentUser.roles.forEach(roleId => {
+            const li = document.createElement('li');
+            li.textContent = `${roleNames[roleId] || 'Unknown Role'} (${roleId})`;
+            list.appendChild(li);
+        });
     });
-});
+}
 
-document.getElementById('tasksBtn').addEventListener('click', () => {
-    showScreen('tasks');
-    loadTasks();
-});
+const tasksBtn = document.getElementById('tasksBtn');
+if (tasksBtn) {
+    tasksBtn.addEventListener('click', () => {
+        showScreen('tasks');
+        loadTasks();
+    });
+}
 
-document.getElementById('addTaskBtn').addEventListener('click', () => {
-    const taskText = document.getElementById('taskInput').value.trim();
-    if (taskText) {
-        currentTasks.push({ text: taskText, completed: false });
-        saveTasks();
-        renderTasks();
-        document.getElementById('taskInput').value = '';
-        showModal('alert', '<span class="success-tick"></span> Task added successfully!');
-        playSuccessSound();
-        addNotification('task', 'New task added!', 'tasks');
-    } else {
-        showModal('alert', 'Please enter a task');
-    }
-});
+const addTaskBtn = document.getElementById('addTaskBtn');
+if (addTaskBtn) {
+    addTaskBtn.addEventListener('click', () => {
+        const taskText = document.getElementById('taskInput').value.trim();
+        if (taskText) {
+            currentTasks.push({ text: taskText, completed: false });
+            saveTasks();
+            renderTasks();
+            document.getElementById('taskInput').value = '';
+            showModal('alert', '<span class="success-tick"></span> Task added successfully!');
+            playSuccessSound();
+            addNotification('task', 'New task added!', 'tasks');
+        } else {
+            showModal('alert', 'Please enter a task');
+        }
+    });
+}
 
-document.getElementById('absencesBtn').addEventListener('click', () => {
-    showScreen('absences');
-    document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
-    document.getElementById('pendingFolder').classList.add('active');
-    document.getElementById('approvedFolder').classList.remove('active');
-    document.getElementById('rejectedFolder').classList.remove('active');
-    document.getElementById('archivedFolder').classList.remove('active');
-    updateAbsenceTabSlider();
-    renderAbsences('pending');
-});
+const absencesBtn = document.getElementById('absencesBtn');
+if (absencesBtn) {
+    absencesBtn.addEventListener('click', () => {
+        showScreen('absences');
+        document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
+        const pendingTabBtn = document.querySelector('.absence-tab-btn[data-tab="pending"]');
+        if (pendingTabBtn) pendingTabBtn.classList.add('active');
+        
+        const pendingFolder = document.getElementById('pendingFolder');
+        const approvedFolder = document.getElementById('approvedFolder');
+        const rejectedFolder = document.getElementById('rejectedFolder');
+        const archivedFolder = document.getElementById('archivedFolder');
+        
+        if (pendingFolder) pendingFolder.classList.add('active');
+        if (approvedFolder) approvedFolder.classList.remove('active');
+        if (rejectedFolder) rejectedFolder.classList.remove('active');
+        if (archivedFolder) archivedFolder.classList.remove('active');
+        
+        updateAbsenceTabSlider();
+        renderAbsences('pending');
+    });
+}
 
-document.getElementById('requestAbsenceBtn').addEventListener('click', () => {
-    showModal('absenceRequest');
-});
+const requestAbsenceBtn = document.getElementById('requestAbsenceBtn');
+if (requestAbsenceBtn) {
+    requestAbsenceBtn.addEventListener('click', () => {
+        showModal('absenceRequest');
+    });
+}
 
-document.getElementById('absenceStartDate').addEventListener('change', calculateAbsenceDays);
-document.getElementById('absenceEndDate').addEventListener('change', calculateAbsenceDays);
+const absenceStartDate = document.getElementById('absenceStartDate');
+const absenceEndDate = document.getElementById('absenceEndDate');
 
-function calculateAbsenceDays() {
+if (absenceStartDate) {
+    absenceStartDate.addEventListener('change', calculateAbsenceDays);
+}
+if (absenceEndDate) {
+    absenceEndDate.addEventListener('change', calculateAbsenceDays);
+}function calculateAbsenceDays() {
     const start = new Date(document.getElementById('absenceStartDate').value);
     const end = new Date(document.getElementById('absenceEndDate').value);
     if (start && end && end >= start) {
@@ -3272,26 +3312,27 @@ function updateTabSlider() {
     slider.style.transform = `translateX(${rect.left - containerRect.left}px)`;
 }
 
-document.getElementById('logoutBtn').addEventListener('click', () => {
-    console.log('Logging out user:', currentUser.id);
-    const emp = getEmployee(currentUser.id);
-    document.getElementById('goodbyeName').textContent = emp.profile.name || 'User';
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('lastProcessedCode');
-    localStorage.removeItem('clockInTime');
-    if (isClockedIn) {
-        clearInterval(clockInInterval);
-        isClockedIn = false;
-        const session = downloadTXT(currentUser, clockInTime, Date.now(), clockInActions);
-        previousSessions = JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`)) || [];
-        previousSessions.unshift(session);
-        localStorage.setItem(`previousSessions_${currentUser.id}`, JSON.stringify(previousSessions));
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        console.log('Logging out user:', currentUser.id);
+        const emp = getEmployee(currentUser.id);
+        const goodbyeName = document.getElementById('goodbyeName');
+        if (goodbyeName) {
+            goodbyeName.textContent = emp.profile.name || 'User';
+        }
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('lastProcessedCode');
+        localStorage.removeItem('clockInTime');
+        if (isClockedIn) {
+            clearInterval(clockInInterval);
         sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()} due to logout`);
     }
     playLogoffSound();
     showScreen('setupVerify'); // show loading spinner screen
     setTimeout(() => showScreen('discord'), 2000);
 });
+}
 
 const sidebarToggle = document.querySelector('.sidebar-toggle');
 if (sidebarToggle) {
