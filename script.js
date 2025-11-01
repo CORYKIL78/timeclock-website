@@ -29,7 +29,6 @@ function setAuthDebug(msg, isError) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ...existing code...
     async function syncProfileFromSheets() {
         if (!currentUser) {
             // Only log to console, don't show in UI
@@ -152,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetProfileBtn = document.getElementById('resetProfileBtn');
     let resetCountdown = null;
     let resetTimer = null;
-    // ...existing code...
+    
     // Edit logic
     function showEditField(type, currentValue) {
         editFieldsContainer.innerHTML = '';
@@ -2491,7 +2490,6 @@ function calculateAbsenceDays() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ...existing code...
     const submitBtn = document.getElementById('submitAbsenceBtn');
     if (submitBtn) {
         submitBtn.addEventListener('click', async () => {
