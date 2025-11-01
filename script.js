@@ -869,14 +869,23 @@ setInterval(async () => {
             // New payslip(s) detected
             const newCount = payslips.length - lastCount;
             
-            // Send Discord DM
-            await sendDiscordDM(window.currentUser.id, {
-                title: '💰 New Payslip Available',
-                description: `You have ${newCount} new payslip${newCount > 1 ? 's' : ''} available!\n\nPlease check the Staff Portal to view your payslip details.`,
-                color: 0xFF9800,
-                footer: { text: 'Cirkle Development HR Portal • portal.cirkledevelopment.co.uk' },
-                timestamp: new Date().toISOString()
-            });
+            // Send backend notification to trigger Discord DM
+            try {
+                await fetch('https://timeclock-backend.marcusray.workers.dev/api/notifications/payslip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        discordId: window.currentUser.id,
+                        staffId: staffId,
+                        payslipData: {
+                            date: new Date().toLocaleDateString(),
+                            link: 'portal.cirkledevelopment.co.uk'
+                        }
+                    })
+                });
+            } catch (e) {
+                console.error('Failed to send payslip notification:', e);
+            }
             
             // Add portal notification with sound
             addNotification('payslip', `💰 ${newCount} new payslip${newCount > 1 ? 's' : ''} available!`, 'payslips');
@@ -919,14 +928,24 @@ setInterval(async () => {
             const newCount = disciplinaries.length - lastCount;
             const latestDisciplinary = disciplinaries[disciplinaries.length - 1];
             
-            // Send Discord DM
-            await sendDiscordDM(window.currentUser.id, {
-                title: '⚠️ New Disciplinary Notice',
-                description: `You have received ${newCount} new disciplinary notice${newCount > 1 ? 's' : ''}!\n\n**Latest Type:** ${latestDisciplinary?.strikeType || 'N/A'}\n**Date:** ${latestDisciplinary?.dateAssigned ? new Date(latestDisciplinary.dateAssigned).toLocaleDateString() : 'N/A'}\n\nPlease check the Staff Portal for full details.`,
-                color: 0xF44336,
-                footer: { text: 'Cirkle Development HR Portal • portal.cirkledevelopment.co.uk' },
-                timestamp: new Date().toISOString()
-            });
+            // Send backend notification to trigger Discord DM
+            try {
+                await fetch('https://timeclock-backend.marcusray.workers.dev/api/notifications/disciplinary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        discordId: window.currentUser.id,
+                        staffId: staffId,
+                        disciplinaryData: {
+                            type: latestDisciplinary?.strikeType || 'N/A',
+                            date: latestDisciplinary?.dateAssigned ? new Date(latestDisciplinary.dateAssigned).toLocaleDateString() : 'N/A',
+                            reason: latestDisciplinary?.reason || 'Check portal for details'
+                        }
+                    })
+                });
+            } catch (e) {
+                console.error('Failed to send disciplinary notification:', e);
+            }
             
             // Add portal notification with sound
             addNotification('disciplinary', `⚠️ ${newCount} new disciplinary notice${newCount > 1 ? 's' : ''} received!`, 'disciplinaries');
