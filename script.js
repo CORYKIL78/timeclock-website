@@ -758,6 +758,7 @@ async function sendAbsenceWebhook(absence) {
         body: JSON.stringify({ content: msg })
     });
 }
+
 // Bot token stored securely (obfuscated from inspect)
 const getBotToken = () => atob('TVRReE56a3hOVGc1TmpZek5ESTNOemM0T0Rvby5HTFV2NWwuMDQ1c1pELWxNa2haTHMyeTZiRXRKMUY2VmxSRFBrV1FIRUFELU0=');
 
@@ -776,38 +777,32 @@ const REDIRECT_URI = 'https://portal.cirkledevelopment.co.uk';
 // Discord DM utility functions
 async function sendDiscordDM(userId, embed) {
     try {
-        // Create DM channel
-        const dmRes = await fetch(`https://discord.com/api/v10/users/@me/channels`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bot ${getBotToken()}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ recipient_id: userId })
-        });
+        // Convert embed to a simple text message for now
+        let message = `**${embed.title}**\n\n${embed.description}`;
         
-        if (!dmRes.ok) {
-            console.error('Failed to create DM channel:', await dmRes.text());
-            return;
+        // Add fields if present
+        if (embed.fields) {
+            embed.fields.forEach(field => {
+                message += `\n**${field.name}:** ${field.value}`;
+            });
         }
         
-        const dmChannel = await dmRes.json();
+        // Add footer if present
+        if (embed.footer) {
+            message += `\n\n_${embed.footer.text}_`;
+        }
         
-        // Send message
-        const msgRes = await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bot ${getBotToken()}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ embeds: [embed] })
+        const response = await fetch(`https://timeclock-proxy.marcusray.workers.dev/sendDM?user_id=${userId}&message=${encodeURIComponent(message)}`, {
+            method: 'GET'
         });
         
-        if (!msgRes.ok) {
-            console.error('Failed to send DM:', await msgRes.text());
+        if (!response.ok) {
+            console.error('Failed to send DM via proxy:', await response.text());
+        } else {
+            console.log('DM sent successfully via proxy');
         }
     } catch (e) {
-        console.error('Error sending Discord DM:', e);
+        console.error('Error sending Discord DM via proxy:', e);
     }
 }
 const SUCCESS_SOUND_URL = 'https://cdn.pixabay.com/audio/2023/01/07/audio_cae2a6c2fc.mp3';
