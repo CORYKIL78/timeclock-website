@@ -29,6 +29,28 @@ function setAuthDebug(msg, isError) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Simple profile display update using Discord data
+    function updateProfileDisplay() {
+        if (!currentUser) return;
+        
+        // Update profile fields with Discord data
+        const profileNameEl = document.getElementById('profileName');
+        const profileEmailEl = document.getElementById('profileEmail');
+        const profileDepartmentEl = document.getElementById('profileDepartment');
+        
+        if (profileNameEl && currentUser.username) {
+            profileNameEl.textContent = currentUser.username;
+        }
+        if (profileEmailEl && currentUser.email) {
+            profileEmailEl.textContent = currentUser.email;
+        }
+        if (profileDepartmentEl && currentUser.profile?.department) {
+            profileDepartmentEl.textContent = currentUser.profile.department;
+        }
+        
+        updateProfilePictures();
+    }
+
     async function syncProfileFromSheets() {
         if (!currentUser) {
             console.debug('[syncProfileFromSheets] No currentUser');
@@ -116,9 +138,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.currentUser && window.currentUser.id) {
             console.debug('[AUTH] Discord user loaded:', window.currentUser);
             setAuthDebug('Discord user loaded: ' + window.currentUser.id + ' (' + (window.currentUser.username || window.currentUser.name || '') + ')', false);
-            setProfileDebug('User loaded. Syncing profile from Sheets...', false);
-            syncProfileFromSheets();
-            setInterval(syncProfileFromSheets, 15000);
+            setProfileDebug('User loaded. Updating profile display...', false);
+            updateProfileDisplay();
+            setInterval(updateProfileDisplay, 15000);
             // Check for approved change requests periodically
             setInterval(() => {
                 if (window.currentUser && window.currentUser.id) {
@@ -2572,7 +2594,8 @@ if (sidebarProfilePic) {
         showScreen('myProfile');
         
         // Trigger profile sync to get latest data and wait for it
-        await syncProfileFromSheets();
+        // Update profile directly from current user data
+        updateProfileDisplay();
         
         const emp = getEmployee(currentUser.id);
         
@@ -2658,8 +2681,8 @@ if (mainProfilePic) {
     mainProfilePic.addEventListener('click', () => {
         showScreen('myProfile');
         
-        // Trigger profile sync to get latest data
-        syncProfileFromSheets();
+        // Update profile display with latest data
+        updateProfileDisplay();
         
         const emp = getEmployee(currentUser.id);
         // Update profile information
