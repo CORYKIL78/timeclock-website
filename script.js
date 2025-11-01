@@ -28,28 +28,29 @@ function setAuthDebug(msg, isError) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Simple profile display update using Discord data
-    function updateProfileDisplay() {
-        if (!currentUser) return;
-        
-        // Update profile fields with Discord data
-        const profileNameEl = document.getElementById('profileName');
-        const profileEmailEl = document.getElementById('profileEmail');
-        const profileDepartmentEl = document.getElementById('profileDepartment');
-        
-        if (profileNameEl && currentUser.username) {
-            profileNameEl.textContent = currentUser.username;
-        }
-        if (profileEmailEl && currentUser.email) {
-            profileEmailEl.textContent = currentUser.email;
-        }
-        if (profileDepartmentEl && currentUser.profile?.department) {
-            profileDepartmentEl.textContent = currentUser.profile.department;
-        }
-        
-        updateProfilePictures();
+// Simple profile display update using Discord data - GLOBAL FUNCTION
+function updateProfileDisplay() {
+    if (!currentUser) return;
+    
+    // Update profile fields with Discord data
+    const profileNameEl = document.getElementById('profileName');
+    const profileEmailEl = document.getElementById('profileEmail');
+    const profileDepartmentEl = document.getElementById('profileDepartment');
+    
+    if (profileNameEl && currentUser.username) {
+        profileNameEl.textContent = currentUser.username;
     }
+    if (profileEmailEl && currentUser.email) {
+        profileEmailEl.textContent = currentUser.email;
+    }
+    if (profileDepartmentEl && currentUser.profile?.department) {
+        profileDepartmentEl.textContent = currentUser.profile.department;
+    }
+    
+    updateProfilePictures();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
 
     async function syncProfileFromSheets() {
         if (!currentUser) {
@@ -531,7 +532,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         nameChangeModal.style.display = 'none'; 
                         if (newNameInput) newNameInput.value = '';
                         if (reasonInput) reasonInput.value = '';
-                        if (successDiv) successDiv.style.display = 'none';
                     }, 1500);
                 } else {
                     throw new Error('Failed to submit request');
