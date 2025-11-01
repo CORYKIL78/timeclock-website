@@ -1108,10 +1108,15 @@ setInterval(async () => {
 // Polling for absence status updates
 setInterval(async () => {
     console.log('[DEBUG] Polling for absence status updates...');
-    if (!window.currentUser) return;
+    if (!window.currentUser) {
+        console.log('[DEBUG] No currentUser found');
+        return;
+    }
+    console.log('[DEBUG] CurrentUser:', window.currentUser.id);
     const emp = getEmployee(window.currentUser.id);
+    console.log('[DEBUG] Employee found:', emp);
     if (!emp || !emp.profile?.name) {
-        console.log('[DEBUG] No employee profile name found for absence check');
+        console.log('[DEBUG] No employee profile name found for absence check. emp:', emp, 'profile:', emp?.profile);
         return;
     }
     
