@@ -2400,7 +2400,10 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
     const staffId = currentUser?.profile?.staffId;
     
     console.log('[DEBUG] Payslips - Current user:', currentUser);
+    console.log('[DEBUG] Payslips - Profile keys:', currentUser?.profile ? Object.keys(currentUser.profile) : 'no profile');
+    console.log('[DEBUG] Payslips - Full profile:', JSON.stringify(currentUser?.profile));
     console.log('[DEBUG] Payslips - Staff ID:', staffId);
+    console.log('[DEBUG] Payslips - Staff ID type:', typeof staffId);
     
     if (!staffId) {
         content.innerHTML = '<p>No Staff ID found. Please contact HR.</p>';
