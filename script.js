@@ -1092,6 +1092,16 @@ async function checkApprovedChangeRequests(discordId) {
     }
 }
 
+// Polling for approved change requests
+setInterval(async () => {
+    if (!window.currentUser) return;
+    try {
+        await checkApprovedChangeRequests(window.currentUser.id);
+    } catch (e) {
+        console.error('Error polling for approved change requests:', e);
+    }
+}, 5000); // Poll every 5 seconds for near-instant notifications
+
 // Call syncUserProfileOnLogin() after successful login (e.g. after setting currentUser)
 // Polling for absence status updates
 setInterval(async () => {
@@ -1166,7 +1176,7 @@ setInterval(async () => {
     } catch (e) {
         console.error('[DEBUG] Error checking absence approvals:', e);
     }
-}, 30000); // Poll every 30 seconds
+}, 5000); // Poll every 5 seconds for near-instant notifications
 
 // Polling for new payslips
 let lastPayslipCheck = localStorage.getItem('lastPayslipCheck') ? JSON.parse(localStorage.getItem('lastPayslipCheck')) : {};
@@ -1232,7 +1242,7 @@ setInterval(async () => {
     } catch (e) {
         // Ignore errors
     }
-}, 60000); // Poll every 60 seconds
+}, 5000); // Poll every 5 seconds for near-instant notifications
 
 // Polling for new disciplinaries
 let lastDisciplinaryCheck = localStorage.getItem('lastDisciplinaryCheck') ? JSON.parse(localStorage.getItem('lastDisciplinaryCheck')) : {};
@@ -1300,7 +1310,7 @@ setInterval(async () => {
     } catch (e) {
         // Ignore errors
     }
-}, 60000); // Poll every 60 seconds
+}, 5000); // Poll every 5 seconds for near-instant notifications
 
 // Update absence status (approve/reject) from backend
 async function updateAbsenceStatus({ name, startDate, endDate, status, messageId }) {
