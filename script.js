@@ -871,6 +871,7 @@ const screens = {
     setupWelcome: document.getElementById('setupWelcomeScreen'),
     setupEmail: document.getElementById('setupEmailScreen'),
     setupName: document.getElementById('setupNameScreen'),
+    setupPreferences: document.getElementById('setupPreferencesScreen'),
     setupDepartment: document.getElementById('setupDepartmentScreen'),
     setupVerify: document.getElementById('setupVerifyScreen'),
     setupComplete: document.getElementById('setupCompleteScreen'),
@@ -1528,27 +1529,6 @@ async function handleOAuthRedirect() {
     }
 
     window.history.replaceState({}, document.title, REDIRECT_URI);
-}
-
-// --- Signup flow: Name entry continue button ---
-const nameContinueBtn = document.getElementById('setupNameContinueBtn');
-if (nameContinueBtn) {
-    nameContinueBtn.onclick = () => {
-        // Defensive: ensure window.currentUser and .profile exist
-        if (!window.currentUser) window.currentUser = {};
-        if (!window.currentUser.profile) window.currentUser.profile = {};
-        const nameInput = document.getElementById('setupNameInput');
-        if (nameInput && nameInput.value.trim()) {
-            window.currentUser.profile.name = nameInput.value.trim();
-            console.debug('[Signup] Name set:', window.currentUser.profile.name);
-            // Advance to department selection screen
-            if (typeof showScreen === 'function') {
-                showScreen('setupDepartment');
-            }
-        } else {
-            setProfileDebug('Please enter your name.', true);
-        }
-    };
 }
 
 // Tutorial and onboarding logic
