@@ -43,15 +43,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!currentUser.profile) currentUser.profile = {};
             
             // Update UI fields with latest data from Sheets
-            if (profile.name && profileName) profileName.textContent = profile.name;
-            if (profile.email && profileEmail) profileEmail.textContent = profile.email;
-            if (profile.department && profileDepartment) profileDepartment.textContent = profile.department;
+            const profileNameEl = document.getElementById('profileName');
+            const profileEmailEl = document.getElementById('profileEmail');
+            const profileDepartmentEl = document.getElementById('profileDepartment');
+            
+            if (profile.name && profileNameEl) profileNameEl.textContent = profile.name;
+            if (profile.email && profileEmailEl) profileEmailEl.textContent = profile.email;
+            if (profile.department && profileDepartmentEl) profileDepartmentEl.textContent = profile.department;
             
             // Update currentUser profile with all data from backend
             currentUser.profile.name = profile.name;
             currentUser.profile.email = profile.email;
             currentUser.profile.department = profile.department;
             currentUser.profile.staffId = profile.staffId;
+            
+            // Update profile pictures after getting name
+            updateProfilePictures();
             
             console.debug('[syncProfileFromSheets] UI updated with profile: ' + JSON.stringify(profile));
             console.debug('[syncProfileFromSheets] currentUser.profile now: ' + JSON.stringify(currentUser.profile));
@@ -141,11 +148,66 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         document.body.appendChild(deptChangeModal);
     }
-    // Profile pic
-    const profilePic = document.getElementById('profilePic');
-    if (profilePic && window.currentUser && window.currentUser.avatar) {
-        profilePic.src = window.currentUser.avatar;
+    
+    // Function to generate initials-based profile picture
+    function generateInitialsAvatar(name, size = 100) {
+        if (!name) return null;
+        
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size;
+        canvas.height = size;
+        
+        // Background gradient
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, '#667eea');
+        gradient.addColorStop(1, '#764ba2');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+        
+        // Get initials (first letter of first name and first letter of last name)
+        const initials = name.split(' ')
+            .map(word => word.charAt(0).toUpperCase())
+            .slice(0, 2)
+            .join('');
+        
+        // Text styling
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${size * 0.4}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Draw initials
+        ctx.fillText(initials, size / 2, size / 2);
+        
+        return canvas.toDataURL();
     }
+    
+    // Function to update profile pictures with fallback to initials
+    function updateProfilePictures() {
+        const profilePics = document.querySelectorAll('#profilePic, #sidebarProfilePic, #mainProfilePic');
+        
+        profilePics.forEach(pic => {
+            if (window.currentUser) {
+                if (window.currentUser.avatar) {
+                    // Use Discord avatar if available
+                    pic.src = window.currentUser.avatar;
+                } else if (window.currentUser.profile && window.currentUser.profile.name) {
+                    // Generate initials avatar if name is available
+                    pic.src = generateInitialsAvatar(window.currentUser.profile.name);
+                } else if (window.currentUser.username) {
+                    // Fallback to username initials
+                    pic.src = generateInitialsAvatar(window.currentUser.username);
+                } else {
+                    // Ultimate fallback
+                    pic.src = generateInitialsAvatar('User');
+                }
+            }
+        });
+    }
+    
+    // Profile pic - call update function
+    updateProfilePictures();
     // Reset profile
     const resetProfileBtn = document.getElementById('resetProfileBtn');
     let resetCountdown = null;
@@ -2268,64 +2330,90 @@ if (portalLoginBtn) {
 const sidebarProfilePic = document.getElementById('sidebarProfilePic');
 if (sidebarProfilePic) {
     sidebarProfilePic.addEventListener('click', () => {
-    showScreen('myProfile');
-    const emp = getEmployee(currentUser.id);
-    
-    // Update profile header
-    document.getElementById('profileDisplayName').textContent = emp.profile.name || currentUser.username || 'User';
-    document.getElementById('profileSubtitle').textContent = `${emp.profile.department || 'Staff'} • ${emp.profile.email || 'No Email'}`;
-    
-    document.getElementById('profileDepartment').classList.toggle('pending-department', !!emp.pendingDeptChange);
-    
-    // Update profile inputs if they exist
-    const updateNameInput = document.getElementById('updateNameInput');
-    const updateEmailInput = document.getElementById('updateEmailInput');
-    if (updateNameInput) updateNameInput.value = emp.profile.name || '';
-    if (updateEmailInput) updateEmailInput.value = emp.profile.email || '';
-    
-    // Update profile statisticsfile-badge status-${status.toLowerCase()}`;
-    
-    // Update department badge
-    const deptBadge = document.getElementById('deptBadge');
-    if (emp.profile.department) {
-        deptBadge.textContent = emp.profile.department;
-        deptBadge.style.display = 'inline-block';
-    } else {
-        deptBadge.style.display = 'none';
-    }
-    
-    // Update status indicator
-    const statusIndicator = document.getElementById('profileStatusIndicator');
-    statusIndicator.className = `profile-status-indicator ${status.toLowerCase()}`;
-    
-    // Update profile information
-    const profileNameEl = document.getElementById('profileName');
-    const profileEmailEl = document.getElementById('profileEmail');
-    const profileDepartmentEl = document.getElementById('profileDepartment');
-    const updateNameInputEl = document.getElementById('updateNameInput');
-    const updateEmailInputEl = document.getElementById('updateEmailInput');
-    
-    if (profileNameEl) profileNameEl.textContent = emp.profile.name || 'N/A';
-    if (profileEmailEl) profileEmailEl.textContent = emp.profile.email || 'N/A';
-    if (profileDepartmentEl) profileDepartmentEl.textContent = emp.profile.department || 'N/A';
-    if (updateNameInputEl) updateNameInputEl.value = emp.profile.name || '';
-    if (updateEmailInputEl) updateEmailInputEl.value = emp.profile.email || '';
-});
+        showScreen('myProfile');
+        
+        // Trigger profile sync to get latest data
+        syncProfileFromSheets();
+        
+        const emp = getEmployee(currentUser.id);
+        
+        // Update profile header
+        const profileDisplayName = document.getElementById('profileDisplayName');
+        const profileSubtitle = document.getElementById('profileSubtitle');
+        
+        if (profileDisplayName) {
+            profileDisplayName.textContent = emp.profile.name || currentUser.username || 'User';
+        }
+        if (profileSubtitle) {
+            profileSubtitle.textContent = `${emp.profile.department || 'Staff'} • ${emp.profile.email || 'No Email'}`;
+        }
+        
+        const profileDepartmentEl = document.getElementById('profileDepartment');
+        if (profileDepartmentEl) {
+            profileDepartmentEl.classList.toggle('pending-department', !!emp.pendingDeptChange);
+        }
+        
+        // Update profile inputs if they exist
+        const updateNameInput = document.getElementById('updateNameInput');
+        const updateEmailInput = document.getElementById('updateEmailInput');
+        if (updateNameInput) updateNameInput.value = emp.profile.name || '';
+        if (updateEmailInput) updateEmailInput.value = emp.profile.email || '';
+        
+        // Update department badge
+        const deptBadge = document.getElementById('deptBadge');
+        if (deptBadge) {
+            if (emp.profile.department) {
+                deptBadge.textContent = emp.profile.department;
+                deptBadge.style.display = 'inline-block';
+            } else {
+                deptBadge.style.display = 'none';
+            }
+        }
+        
+        // Update status indicator
+        const statusIndicator = document.getElementById('profileStatusIndicator');
+        if (statusIndicator) {
+            statusIndicator.className = `profile-status-indicator online`;
+        }
+        
+        // Update profile information
+        const profileNameEl = document.getElementById('profileName');
+        const profileEmailEl = document.getElementById('profileEmail');
+        const profileDeptEl = document.getElementById('profileDepartment');
+        const updateNameInputEl = document.getElementById('updateNameInput');
+        const updateEmailInputEl = document.getElementById('updateEmailInput');
+        
+        if (profileNameEl) profileNameEl.textContent = emp.profile.name || 'Not set';
+        if (profileEmailEl) profileEmailEl.textContent = emp.profile.email || 'Not set';
+        if (profileDeptEl) profileDeptEl.textContent = emp.profile.department || 'Not set';
+        if (updateNameInputEl) updateNameInputEl.value = emp.profile.name || '';
+        if (updateEmailInputEl) updateEmailInputEl.value = emp.profile.email || '';
+        
+        // Update profile pictures
+        updateProfilePictures();
+    });
 }
 
 const mainProfilePic = document.getElementById('mainProfilePic');
 if (mainProfilePic) {
     mainProfilePic.addEventListener('click', () => {
         showScreen('myProfile');
+        
+        // Trigger profile sync to get latest data
+        syncProfileFromSheets();
+        
         const emp = getEmployee(currentUser.id);
         // Update profile information
         const profileNameEl2 = document.getElementById('profileName');
         const profileEmailEl2 = document.getElementById('profileEmail');
         const profileDepartmentEl2 = document.getElementById('profileDepartment');
         
-        if (profileNameEl2) profileNameEl2.textContent = emp.profile.name || 'N/A';
-        if (profileEmailEl2) profileEmailEl2.textContent = emp.profile.email || 'N/A';
-        if (profileDepartmentEl2) profileDepartmentEl2.textContent = emp.profile.department || 'N/A';
+        if (profileNameEl2) profileNameEl2.textContent = emp.profile.name || 'Not set';
+        if (profileEmailEl2) profileEmailEl2.textContent = emp.profile.email || 'Not set';
+        if (profileDepartmentEl2) profileDepartmentEl2.textContent = emp.profile.department || 'Not set';
+        
+        // Update profile pictures
+        updateProfilePictures();
     });
 }
 
