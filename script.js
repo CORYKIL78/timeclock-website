@@ -470,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         currentValue: currentUser.profile?.department || '',
                         requestedValue: requestedDept,
                         reason: reason,
-                        staffName: currentUser.profile?.name || currentUser.username || 'User',
+                        staffName: currentUser.profile?.name || currentUser.name || 'User',
                         email: currentUser.profile?.email || '',
                         department: currentUser.profile?.department || '',
                         staffId: currentUser.profile?.staffId || 'Not assigned'
@@ -536,7 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         currentValue: currentUser.profile?.name || '',
                         requestedValue: newName,
                         reason: reason,
-                        staffName: currentUser.profile?.name || currentUser.username || 'User',
+                        staffName: currentUser.profile?.name || currentUser.name || 'User',
                         email: currentUser.profile?.email || '',
                         department: currentUser.profile?.department || '',
                         staffId: currentUser.profile?.staffId || 'Not assigned'
@@ -614,7 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         currentValue: currentUser.profile?.email || '',
                         requestedValue: newEmail,
                         reason: reason,
-                        staffName: currentUser.profile?.name || currentUser.username || 'User',
+                        staffName: currentUser.profile?.name || currentUser.name || 'User',
                         email: currentUser.profile?.email || '',
                         department: currentUser.profile?.department || '',
                         staffId: currentUser.profile?.staffId || 'Not assigned'
@@ -1017,14 +1017,18 @@ async function checkForReset(discordId) {
 // Function to check for approved change requests and apply them
 async function checkApprovedChangeRequests(discordId) {
     try {
+        console.log('[DEBUG] Checking approved change requests for Discord ID:', discordId);
         const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/check-approved', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ discordId })
         });
         
+        console.log('[DEBUG] Change request check response status:', response.status);
+        
         if (response.ok) {
             const result = await response.json();
+            console.log('[DEBUG] Change request check result:', result);
             if (result.hasApprovedRequests && result.appliedChanges) {
                 // Notify user of approved changes
                 for (const change of result.appliedChanges) {
@@ -1074,7 +1078,12 @@ setInterval(async () => {
     console.log('[DEBUG] Polling for absence status updates...');
     if (!window.currentUser) return;
     const emp = getEmployee(window.currentUser.id);
-    if (!emp || !emp.profile?.name) return;
+    if (!emp || !emp.profile?.name) {
+        console.log('[DEBUG] No employee profile name found for absence check');
+        return;
+    }
+    
+    console.log('[DEBUG] Checking absences for name:', emp.profile.name, 'Discord ID:', window.currentUser.id);
     
     try {
         // Check for new approved/denied absences
@@ -1317,7 +1326,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        name: currentUser.username || emp.profile?.name || 'Unknown User',
+                        name: currentUser.name || emp.profile?.name || 'Unknown User',
                         startDate,
                         endDate,
                         reason: type,                    // Type goes to D: Reason
@@ -2673,7 +2682,7 @@ if (sidebarProfilePic) {
         const profileDisplayName = document.getElementById('profileDisplayName');
         const profileSubtitle = document.getElementById('profileSubtitle');
         
-        const headerDisplayName = currentUser.profile?.name || emp.profile?.name || currentUser.username || 'User';
+        const headerDisplayName = currentUser.profile?.name || emp.profile?.name || currentUser.name || 'User';
         const headerDisplayEmail = currentUser.profile?.email || emp.profile?.email || 'No Email';
         const headerDisplayDept = currentUser.profile?.department || emp.profile?.department || 'Staff';
         
@@ -2723,7 +2732,7 @@ if (sidebarProfilePic) {
         const updateEmailInputEl = document.getElementById('updateEmailInput');
         
         // Use currentUser profile data if available, otherwise use emp data
-        const profileDisplayName2 = currentUser.profile?.name || emp.profile?.name || currentUser.username || 'Not set';
+        const profileDisplayName2 = currentUser.profile?.name || emp.profile?.name || currentUser.name || 'Not set';
         const profileDisplayEmail2 = currentUser.profile?.email || emp.profile?.email || 'Not set';
         const profileDisplayDept2 = currentUser.profile?.department || emp.profile?.department || 'Not set';
         
@@ -2832,7 +2841,7 @@ if (submitDeptChangeBtn) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     discordId: currentUser.id,
-                    staffName: emp.profile.name || currentUser.username,
+                    staffName: emp.profile.name || currentUser.name,
                     requestType: 'department',
                     currentValue: emp.profile.department || 'Not Set',
                     requestedValue: selectedDept.value,
