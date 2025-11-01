@@ -596,6 +596,55 @@ textarea {
     resize: vertical;
 }
 
+/* Preferences Screen Styling */
+.preference-group {
+    margin: 20px 0;
+    text-align: left;
+}
+
+.preference-group h3 {
+    margin-bottom: 8px;
+    color: var(--primary);
+    font-size: 1.1em;
+}
+
+.preference-group label {
+    display: block;
+    margin: 8px 0;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.preference-group label:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.preference-group input[type="radio"] {
+    width: auto;
+    margin-right: 8px;
+}
+
+.preference-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--mail-border);
+    border-radius: 6px;
+    background: white;
+    font-size: 16px;
+}
+
+body.dark .preference-group select {
+    background: #34495e;
+    border-color: #576574;
+    color: #e0e0e0;
+}
+
+body.dark .preference-group label:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
 #taskInput {
     height: 60px;
     padding: 16px;

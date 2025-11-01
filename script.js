@@ -289,7 +289,10 @@ async function upsertUserProfile() {
             discordId: currentUser.id,
             name: currentUser.profile.name,
             email: currentUser.profile.email,
-            department: currentUser.profile.department
+            department: currentUser.profile.department,
+            timezone: currentUser.profile.timezone,
+            dateFormat: currentUser.profile.dateFormat,
+            country: currentUser.profile.country
         };
         setProfileDebug('[upsertUserProfile] Sending payload: ' + JSON.stringify(payload), false);
         const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/user/upsert', {
@@ -767,7 +770,7 @@ const REQUIRED_ROLE = '1315346851616002158';
 const DEPT_ROLES = {
     'Development Department': '1315323804528017498',
     'Customer Relations Department': '1315042036969242704',
-    'Careers Department': '1315065603178102794'
+    'Finance Department': '1433453982453338122'
 };
 const GUILD_ID = '1310656642672627752';
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1417260030851551273/KGKnWF3mwTt7mNWmC3OTAPWcWJSl1FnQ3-Ub-l1-xpk46tOsAYAtIhRTlti2qxjJSOds';
@@ -1811,10 +1814,30 @@ document.getElementById('setupNameContinueBtn').addEventListener('click', () => 
         if (!currentUser) currentUser = {};
         if (!currentUser.profile) currentUser.profile = {};
         currentUser.profile.name = name;
-        console.log('[DEBUG] Name saved, redirecting to department selection');
-        showScreen('setupDepartment');
+        console.log('[DEBUG] Name saved, redirecting to preferences selection');
+        showScreen('setupPreferences');
     } else {
         showModal('alert', 'Please enter your name');
+    }
+});
+
+document.getElementById('setupPreferencesContinueBtn').addEventListener('click', () => {
+    const timezone = document.getElementById('setupTimezoneSelect').value;
+    const dateFormat = document.querySelector('input[name="dateFormat"]:checked')?.value;
+    const country = document.getElementById('setupCountrySelect').value;
+    
+    console.log('[DEBUG] setupPreferencesContinueBtn clicked, timezone:', timezone, 'dateFormat:', dateFormat, 'country:', country);
+    
+    if (timezone && dateFormat && country) {
+        if (!currentUser) currentUser = {};
+        if (!currentUser.profile) currentUser.profile = {};
+        currentUser.profile.timezone = timezone;
+        currentUser.profile.dateFormat = dateFormat;
+        currentUser.profile.country = country;
+        console.log('[DEBUG] Preferences saved, redirecting to department selection');
+        showScreen('setupDepartment');
+    } else {
+        showModal('alert', 'Please complete all preference selections');
     }
 });
 
@@ -1829,8 +1852,14 @@ document.getElementById('setupDepartmentContinueBtn').addEventListener('click', 
         showScreen('setupVerify');
         setTimeout(async () => {
             const deptRole = DEPT_ROLES[currentUser.profile.department];
-            console.log('[DEBUG] Checking role:', deptRole, 'User roles:', currentUser.roles);
-            if (currentUser.roles && currentUser.roles.includes(deptRole)) {
+            console.log('[DEBUG] Checking department role:', deptRole, 'and base employee role:', REQUIRED_ROLE);
+            console.log('[DEBUG] User roles:', currentUser.roles);
+            
+            // Check if user has both the required employee role AND the department role
+            const hasBaseRole = currentUser.roles && currentUser.roles.includes(REQUIRED_ROLE);
+            const hasDeptRole = currentUser.roles && currentUser.roles.includes(deptRole);
+            
+            if (hasBaseRole && hasDeptRole) {
                 updateEmployee(currentUser);
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 // Save to Google Sheets via backend
