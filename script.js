@@ -291,7 +291,6 @@ async function upsertUserProfile() {
             email: currentUser.profile.email,
             department: currentUser.profile.department,
             timezone: currentUser.profile.timezone,
-            dateFormat: currentUser.profile.dateFormat,
             country: currentUser.profile.country
         };
         setProfileDebug('[upsertUserProfile] Sending payload: ' + JSON.stringify(payload), false);
@@ -479,12 +478,19 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
 async function syncUserProfileOnLogin() {
     const profile = await fetchUserProfile(currentUser.id);
     if (profile) {
+        // Check account status
+        if (profile.status === "Suspended") {
+            showSuspendedPortal();
+            return;
+        }
+        
         const emp = getEmployee(currentUser.id);
         emp.profile = {
             name: profile.name || '',
             email: profile.email || '',
             department: profile.department || '',
-            discordTag: profile.discordTag || ''
+            discordTag: profile.discordTag || '',
+            status: profile.status || 'Active'
         };
         emp.strikes = profile.strikes || [];
         updateEmployee(emp);
@@ -885,7 +891,8 @@ const screens = {
     disciplinaries: document.getElementById('disciplinariesScreen'),
     timeclock: document.getElementById('timeclockScreen'),
     mail: document.getElementById('mailScreen'),
-    goodbye: document.getElementById('goodbyeScreen')
+    goodbye: document.getElementById('goodbyeScreen'),
+    suspended: document.getElementById('suspendedScreen')
 };
 
 const modals = {
@@ -974,6 +981,11 @@ function closeModal(modalId) {
         modals[modalId].style.display = 'none';
         modals[modalId].classList.remove('success');
     }
+}
+
+function showSuspendedPortal() {
+    console.log('Showing suspended portal');
+    showScreen('suspended');
 }
 
 function preloadAudio() {
@@ -1862,16 +1874,17 @@ document.getElementById('setupPreferencesContinueBtn').addEventListener('click',
     
     console.log('[DEBUG] setupPreferencesContinueBtn clicked, timezone:', timezone, 'dateFormat:', dateFormat, 'country:', country);
     
-    if (timezone && dateFormat && country) {
+    if (timezone && country) {
         if (!currentUser) currentUser = {};
         if (!currentUser.profile) currentUser.profile = {};
         currentUser.profile.timezone = timezone;
+        // Note: dateFormat is collected for UI purposes but not stored in backend
         currentUser.profile.dateFormat = dateFormat;
         currentUser.profile.country = country;
         console.log('[DEBUG] Preferences saved, redirecting to department selection');
         showScreen('setupDepartment');
     } else {
-        showModal('alert', 'Please complete all preference selections');
+        showModal('alert', 'Please select timezone and country');
     }
 });
 
