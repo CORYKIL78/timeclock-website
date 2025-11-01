@@ -40,21 +40,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const profile = await fetchUserProfile(window.currentUser.id);
         console.debug('[syncProfileFromSheets] fetched profile: ' + JSON.stringify(profile));
         if (profile) {
+            // Ensure currentUser.profile exists
+            if (!window.currentUser.profile) window.currentUser.profile = {};
+            
             // Update UI fields with latest data from Sheets
             if (profile.name && profileName) profileName.textContent = profile.name;
             if (profile.email && profileEmail) profileEmail.textContent = profile.email;
             if (profile.department && profileDepartment) profileDepartment.textContent = profile.department;
-            if (profile.staffId && window.currentUser) {
-                if (!window.currentUser.profile) window.currentUser.profile = {};
-                window.currentUser.profile.staffId = profile.staffId;
-            }
-            // Also update local currentUser fields for consistency
-            if (window.currentUser.profile) {
-                window.currentUser.profile.name = profile.name;
-                window.currentUser.profile.email = profile.email;
-                window.currentUser.profile.department = profile.department;
-            }
+            
+            // Update currentUser profile with all data from backend
+            window.currentUser.profile.name = profile.name;
+            window.currentUser.profile.email = profile.email;
+            window.currentUser.profile.department = profile.department;
+            window.currentUser.profile.staffId = profile.staffId;
+            
             console.debug('[syncProfileFromSheets] UI updated with profile: ' + JSON.stringify(profile));
+            console.debug('[syncProfileFromSheets] currentUser.profile now: ' + JSON.stringify(window.currentUser.profile));
         } else {
             // Only show real errors in UI if fetch fails
             setProfileDebug('[syncProfileFromSheets] No profile returned for user ' + window.currentUser.id, true);
@@ -2388,11 +2389,15 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
     const content = document.getElementById('payslipsContent');
     content.innerHTML = '<p>Loading payslips...</p>';
     
-    const emp = getEmployee(currentUser.id);
-    const staffId = emp.profile?.staffId;
+    // Get Staff ID from the backend profile data that was synced
+    const staffId = window.currentUser?.profile?.staffId;
+    
+    console.log('[DEBUG] Payslips - Current user:', window.currentUser);
+    console.log('[DEBUG] Payslips - Staff ID:', staffId);
     
     if (!staffId) {
         content.innerHTML = '<p>No Staff ID found. Please contact HR.</p>';
+        console.error('[DEBUG] No Staff ID found in window.currentUser.profile.staffId');
         return;
     }
     
@@ -2409,6 +2414,8 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
         
         const data = await res.json();
         const payslips = data.payslips || [];
+        
+        console.log('[DEBUG] Fetched payslips:', payslips);
         
         if (payslips.length === 0) {
             content.innerHTML = '<p>No payslips found.</p>';
