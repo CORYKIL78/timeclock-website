@@ -432,13 +432,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 if (response.ok) {
-                    // Show success message with checkmark
-                    const deptChangeSuccess = document.getElementById('deptChangeSuccess');
-                    if (deptChangeSuccess) {
-                        deptChangeSuccess.innerHTML = '✅ Request submitted successfully!';
-                        deptChangeSuccess.style.display = 'block';
-                        deptChangeSuccess.style.color = '#4caf50';
-                    }
+                    // Show success modal
+                    showModal('alert', '✅ Department change request submitted successfully! You will receive a notification when it\'s reviewed.');
                     
                     // Add notification to sidebar
                     addNotification('profile', 'Department change request submitted', 'myProfile');
@@ -503,13 +498,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 if (response.ok) {
-                    // Show success message with checkmark
-                    const successDiv = document.getElementById('nameChangeSuccess');
-                    if (successDiv) {
-                        successDiv.innerHTML = '✅ Request submitted successfully!';
-                        successDiv.style.display = 'block';
-                        successDiv.style.color = '#4caf50';
-                    }
+                    // Show success modal
+                    showModal('alert', '✅ Name change request submitted successfully! You will receive a notification when it\'s reviewed.');
                     
                     // Add notification to sidebar
                     addNotification('profile', 'Name change request submitted', 'myProfile');
@@ -587,13 +577,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 if (response.ok) {
-                    // Show success message with checkmark
-                    const successDiv = document.getElementById('emailChangeSuccess');
-                    if (successDiv) {
-                        successDiv.innerHTML = '✅ Request submitted successfully!';
-                        successDiv.style.display = 'block';
-                        successDiv.style.color = '#4caf50';
-                    }
+                    // Show success modal
+                    showModal('✅ Email change request submitted successfully! You will receive a notification when it\'s reviewed.');
                     
                     // Add notification to sidebar
                     addNotification('profile', 'Email change request submitted', 'myProfile');
@@ -603,7 +588,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         emailChangeModal.style.display = 'none'; 
                         if (newEmailInput) newEmailInput.value = '';
                         if (reasonInput) reasonInput.value = '';
-                        if (successDiv) successDiv.style.display = 'none';
                     }, 1500);
                 } else {
                     throw new Error('Failed to submit request');
