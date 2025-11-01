@@ -359,32 +359,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Animate success
-            const deptChangeSuccess = document.getElementById('deptChangeSuccess');
-            if (deptChangeSuccess) {
-                deptChangeSuccess.style.display = 'block';
+            // Disable button while processing
+            deptRequestBtn.disabled = true;
+            deptRequestBtn.textContent = 'Submitting...';
+            
+            try {
+                // Save to Google Sheets via backend API
+                const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        discordId: currentUser.id,
+                        requestType: 'department',
+                        currentValue: currentUser.profile?.department || '',
+                        requestedValue: requestedDept,
+                        reason: reason,
+                        staffName: currentUser.profile?.name || currentUser.username || 'User',
+                        email: currentUser.profile?.email || '',
+                        department: currentUser.profile?.department || '',
+                        staffId: currentUser.profile?.staffId || 'Not assigned'
+                    })
+                });
+                
+                if (response.ok) {
+                    // Show success message with checkmark
+                    const deptChangeSuccess = document.getElementById('deptChangeSuccess');
+                    if (deptChangeSuccess) {
+                        deptChangeSuccess.innerHTML = '✅ Request submitted successfully!';
+                        deptChangeSuccess.style.display = 'block';
+                        deptChangeSuccess.style.color = '#4caf50';
+                    }
+                    
+                    // Add notification to sidebar
+                    addNotification('profile', 'Department change request submitted', 'myProfile');
+                    
+                    // Close modal after delay
+                    setTimeout(() => { 
+                        deptChangeModal.style.display = 'none'; 
+                        if (deptSelect) deptSelect.value = '';
+                        if (reasonTextarea) reasonTextarea.value = '';
+                        if (deptChangeSuccess) deptChangeSuccess.style.display = 'none';
+                    }, 1500);
+                } else {
+                    throw new Error('Failed to submit request');
+                }
+            } catch (error) {
+                console.error('Error submitting department change request:', error);
+                alert('Failed to submit request. Please try again.');
+            } finally {
+                deptRequestBtn.disabled = false;
+                deptRequestBtn.textContent = 'Request Change';
             }
-            // Send Discord notification (via backend proxy)
-            const staffId = window.currentUser?.profile?.staffId || '';
-            const name = window.currentUser?.profile?.name || '';
-            const currentDept = window.currentUser?.profile?.department || '';
-            await fetch('https://timeclock-discord-proxy.marcusray.workers.dev/postEmbed?channel_id=1417583684525232291&embed_json=' + encodeURIComponent(JSON.stringify({
-                title: 'Department Change Request',
-                color: 0x1976d2,
-                fields: [
-                    { name: 'Name', value: name, inline: true },
-                    { name: 'Staff ID', value: staffId, inline: true },
-                    { name: 'Current Department', value: currentDept, inline: true },
-                    { name: 'Requested Department', value: requestedDept, inline: true },
-                    { name: 'Reason', value: reason, inline: false }
-                ],
-                timestamp: new Date().toISOString()
-            })), { method: 'POST' });
-            setTimeout(() => { 
-                deptChangeModal.style.display = 'none'; 
-                // Clear form
-                if (reasonTextarea) reasonTextarea.value = '';
-            }, 1200);
         };
     }
     
@@ -415,13 +440,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        userId: currentUser.id,
-                        type: 'name',
+                        discordId: currentUser.id,
+                        requestType: 'name',
                         currentValue: currentUser.profile?.name || '',
-                        newValue: newName,
+                        requestedValue: newName,
                         reason: reason,
-                        userName: currentUser.profile?.name || currentUser.username || 'User',
-                        userEmail: currentUser.profile?.email || '',
+                        staffName: currentUser.profile?.name || currentUser.username || 'User',
+                        email: currentUser.profile?.email || '',
                         department: currentUser.profile?.department || '',
                         staffId: currentUser.profile?.staffId || 'Not assigned'
                     })
@@ -499,13 +524,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        userId: currentUser.id,
-                        type: 'email',
+                        discordId: currentUser.id,
+                        requestType: 'email',
                         currentValue: currentUser.profile?.email || '',
-                        newValue: newEmail,
+                        requestedValue: newEmail,
                         reason: reason,
-                        userName: currentUser.profile?.name || currentUser.username || 'User',
-                        userEmail: currentUser.profile?.email || '',
+                        staffName: currentUser.profile?.name || currentUser.username || 'User',
+                        email: currentUser.profile?.email || '',
                         department: currentUser.profile?.department || '',
                         staffId: currentUser.profile?.staffId || 'Not assigned'
                     })
@@ -2563,9 +2588,17 @@ if (sidebarProfilePic) {
         const updateEmailInputEl = document.getElementById('updateEmailInput');
         
         // Use currentUser profile data if available, otherwise use emp data
-        const displayName = currentUser.profile?.name || emp.profile?.name || 'Not set';
+        const displayName = currentUser.profile?.name || emp.profile?.name || currentUser.username || 'Not set';
         const displayEmail = currentUser.profile?.email || emp.profile?.email || 'Not set';
         const displayDept = currentUser.profile?.department || emp.profile?.department || 'Not set';
+        
+        console.log('[DEBUG] Profile display data:', {
+            currentUserProfile: currentUser.profile,
+            empProfile: emp.profile,
+            displayName,
+            displayEmail,
+            displayDept
+        });
         
         if (profileNameEl) profileNameEl.textContent = displayName;
         if (profileEmailEl) profileEmailEl.textContent = displayEmail;
