@@ -1108,19 +1108,19 @@ setInterval(async () => {
 // Polling for absence status updates
 setInterval(async () => {
     console.log('[DEBUG] Polling for absence status updates...');
-    if (!window.currentUser) {
+    if (!currentUser) {
         console.log('[DEBUG] No currentUser found');
         return;
     }
-    console.log('[DEBUG] CurrentUser:', window.currentUser.id);
-    const emp = getEmployee(window.currentUser.id);
+    console.log('[DEBUG] CurrentUser:', currentUser.id);
+    const emp = getEmployee(currentUser.id);
     console.log('[DEBUG] Employee found:', emp);
     if (!emp || !emp.profile?.name) {
         console.log('[DEBUG] No employee profile name found for absence check. emp:', emp, 'profile:', emp?.profile);
         return;
     }
     
-    console.log('[DEBUG] Checking absences for name:', emp.profile.name, 'Discord ID:', window.currentUser.id);
+    console.log('[DEBUG] Checking absences for name:', emp.profile.name, 'Discord ID:', currentUser.id);
     
     try {
         // Check for new approved/denied absences
@@ -1129,7 +1129,7 @@ setInterval(async () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 name: emp.profile.name,
-                discordId: window.currentUser.id
+                discordId: currentUser.id
             })
         });
         
@@ -1171,7 +1171,7 @@ setInterval(async () => {
                         const status = isApproved ? 'approved' : 'rejected';
                         const color = isApproved ? 0x00ff00 : 0xff0000;
                         
-                        await sendDiscordDM(window.currentUser.id, {
+                        await sendDiscordDM(currentUser.id, {
                             title: `${emoji} Absence Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
                             description: `Your absence request has been ${status}!\n\n**Dates:** ${processedAbsence.startDate} to ${processedAbsence.endDate}\n**Status:** ${status.charAt(0).toUpperCase() + status.slice(1)}`,
                             color: color
