@@ -570,6 +570,9 @@ setInterval(async () => {
                         footer: { text: 'Cirkle Development HR Portal' },
                         timestamp: new Date().toISOString()
                     });
+                    
+                    // Add portal notification with sound
+                    addNotification('absence', `${isApproved ? '✅' : '❌'} Absence request ${isApproved ? 'approved' : 'rejected'}!`, 'absences');
                 }
                 
                 // Always re-render all absence tabs so they move to the correct tab
@@ -614,6 +617,8 @@ setInterval(async () => {
         if (payslips.length > lastCount) {
             // New payslip(s) detected
             const newCount = payslips.length - lastCount;
+            
+            // Send Discord DM
             await sendDiscordDM(window.currentUser.id, {
                 title: '💰 New Payslip Available',
                 description: `You have ${newCount} new payslip${newCount > 1 ? 's' : ''} available!\n\nPlease check the Staff Portal to view your payslip details.`,
@@ -621,6 +626,9 @@ setInterval(async () => {
                 footer: { text: 'Cirkle Development HR Portal • portal.cirkledevelopment.co.uk' },
                 timestamp: new Date().toISOString()
             });
+            
+            // Add portal notification with sound
+            addNotification('payslip', `💰 ${newCount} new payslip${newCount > 1 ? 's' : ''} available!`, 'payslips');
             
             // Update last check count
             lastPayslipCheck[userKey] = payslips.length;
@@ -660,6 +668,7 @@ setInterval(async () => {
             const newCount = disciplinaries.length - lastCount;
             const latestDisciplinary = disciplinaries[disciplinaries.length - 1];
             
+            // Send Discord DM
             await sendDiscordDM(window.currentUser.id, {
                 title: '⚠️ New Disciplinary Notice',
                 description: `You have received ${newCount} new disciplinary notice${newCount > 1 ? 's' : ''}!\n\n**Latest Type:** ${latestDisciplinary?.strikeType || 'N/A'}\n**Date:** ${latestDisciplinary?.dateAssigned ? new Date(latestDisciplinary.dateAssigned).toLocaleDateString() : 'N/A'}\n\nPlease check the Staff Portal for full details.`,
@@ -667,6 +676,9 @@ setInterval(async () => {
                 footer: { text: 'Cirkle Development HR Portal • portal.cirkledevelopment.co.uk' },
                 timestamp: new Date().toISOString()
             });
+            
+            // Add portal notification with sound
+            addNotification('disciplinary', `⚠️ ${newCount} new disciplinary notice${newCount > 1 ? 's' : ''} received!`, 'disciplinaries');
             
             // Update last check count
             lastDisciplinaryCheck[userKey] = disciplinaries.length;
