@@ -244,6 +244,108 @@
     font-weight: bold;
     cursor: pointer;
 }
+
+/* Change Requests Section */
+.change-requests-section {
+    margin-top: 24px;
+    padding: 20px;
+    background: white;
+    border: 1px solid var(--mail-border);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+body.dark .change-requests-section {
+    background: #34495e;
+    border-color: #576574;
+}
+
+.change-requests-section h3 {
+    margin: 0 0 16px 0;
+    color: var(--primary);
+    font-size: 1.2em;
+}
+
+.change-requests-list {
+    margin-bottom: 16px;
+}
+
+.change-request-item {
+    padding: 12px;
+    margin-bottom: 8px;
+    background: rgba(241, 242, 246, 0.5);
+    border: 1px solid var(--mail-border);
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+body.dark .change-request-item {
+    background: rgba(44, 62, 80, 0.5);
+    border-color: #576574;
+}
+
+.change-request-item.pending {
+    border-left: 4px solid #FF9800;
+}
+
+.change-request-item.approved {
+    border-left: 4px solid #4CAF50;
+}
+
+.change-request-item.rejected {
+    border-left: 4px solid #F44336;
+}
+
+.change-request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.change-request-type {
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.change-request-status {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.change-request-status.pending {
+    background: rgba(255, 152, 0, 0.1);
+    color: #FF9800;
+    border: 1px solid #FF9800;
+}
+
+.change-request-status.approved {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+    border: 1px solid #4CAF50;
+}
+
+.change-request-status.rejected {
+    background: rgba(244, 67, 54, 0.1);
+    color: #F44336;
+    border: 1px solid #F44336;
+}
+
+.change-request-details {
+    font-size: 13px;
+    color: var(--secondary);
+}
+
+.change-request-details div {
+    margin: 4px 0;
+}
+
+.change-request-details strong {
+    color: var(--text);
+}
 #resetProfileBtn.counting-down {
     background: #b71c1c;
     color: #fff;

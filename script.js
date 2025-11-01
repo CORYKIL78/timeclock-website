@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         input.value = currentValue;
         input.className = 'edit-field-input';
         const saveBtn = document.createElement('button');
-        saveBtn.textContent = 'Save';
+        saveBtn.textContent = type === 'name' ? 'Request Change' : 'Save';
         saveBtn.className = 'edit-field-save';
         const cancelBtn = document.createElement('button');
         cancelBtn.textContent = 'Cancel';
@@ -174,10 +174,45 @@ document.addEventListener('DOMContentLoaded', () => {
             // Defensive: ensure window.currentUser and .profile exist
             if (!window.currentUser) window.currentUser = {};
             if (!window.currentUser.profile) window.currentUser.profile = {};
+            
             if (type === 'name') {
-                profileName.textContent = input.value;
-                window.currentUser.profile.name = input.value;
+                // Submit name change request instead of direct edit
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Submitting...';
+                
+                try {
+                    const emp = getEmployee(currentUser.id);
+                    const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/submit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            discordId: currentUser.id,
+                            staffName: emp.profile.name || currentUser.username,
+                            requestType: 'name',
+                            currentValue: currentValue,
+                            requestedValue: input.value,
+                            reason: 'User requested name change via portal',
+                            email: emp.profile.email || ''
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        showModal('alert', '<span class="success-tick"></span> Name change request submitted for approval!');
+                        playSuccessSound();
+                        addNotification('profile', 'Name change request submitted for approval!', 'myProfile');
+                        editFieldsContainer.innerHTML = '';
+                    } else {
+                        throw new Error('Failed to submit name change request');
+                    }
+                } catch (error) {
+                    console.error('Error submitting name change request:', error);
+                    showModal('alert', 'Failed to submit name change request. Please try again.');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Request Change';
+                }
+                return;
             }
+            
             if (type === 'email') {
                 profileEmail.textContent = input.value;
                 window.currentUser.profile.email = input.value;
@@ -510,6 +545,10 @@ async function syncUserProfileOnLogin() {
         currentUser.profile = emp.profile;
         currentUser.strikes = emp.strikes;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        // Check for approved change requests
+        await checkApprovedChangeRequests(currentUser.id);
+        
         await upsertUserProfile(); // Log to Google Sheets after login/profile sync
     }
 }
@@ -530,6 +569,112 @@ async function checkForReset(discordId) {
         console.error('Error checking for reset:', error);
     }
     return null;
+}
+
+// Function to check for approved change requests and apply them
+async function checkApprovedChangeRequests(discordId) {
+    try {
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/check-approved', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ discordId })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result.hasApprovedRequests && result.appliedChanges) {
+                // Notify user of approved changes
+                for (const change of result.appliedChanges) {
+                    if (change.type === 'name') {
+                        addNotification('profile', `✅ Name change approved: ${change.from} → ${change.to}`, 'myProfile');
+                    } else if (change.type === 'department') {
+                        addNotification('profile', `✅ Department change approved: ${change.from} → ${change.to}`, 'myProfile');
+                    }
+                }
+                
+                // Refresh user profile to get updated information
+                const updatedProfile = await fetchUserProfile(discordId);
+                if (updatedProfile) {
+                    const emp = getEmployee(discordId);
+                    emp.profile = {
+                        name: updatedProfile.name || '',
+                        email: updatedProfile.email || '',
+                        department: updatedProfile.department || '',
+                        discordTag: updatedProfile.discordTag || '',
+                        status: updatedProfile.status || 'Active'
+                    };
+                    
+                    // Clear pending change flags
+                    emp.pendingDeptChange = null;
+                    
+                    updateEmployee(emp);
+                    currentUser.profile = emp.profile;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    // Update profile display if on profile page
+                    if (document.getElementById('profileName')) {
+                        document.getElementById('profileName').textContent = emp.profile.name;
+                        document.getElementById('profileDepartment').textContent = emp.profile.department;
+                        document.getElementById('profileDepartment').classList.remove('pending-department');
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error checking for approved change requests:', error);
+    }
+}
+
+// Function to fetch and display user's change requests
+async function loadChangeRequests(discordId) {
+    try {
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ discordId })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            renderChangeRequests(result.requests || []);
+        }
+    } catch (error) {
+        console.error('Error loading change requests:', error);
+    }
+}
+
+// Function to render change requests in the UI
+function renderChangeRequests(requests) {
+    const container = document.getElementById('changeRequestsList');
+    if (!container) return;
+    
+    if (requests.length === 0) {
+        container.innerHTML = '<p style="color: var(--secondary); font-style: italic;">No change requests found.</p>';
+        return;
+    }
+    
+    container.innerHTML = requests.map(request => {
+        const statusClass = request.status.toLowerCase();
+        const requestDate = new Date(request.requestDate).toLocaleDateString();
+        const approvalDate = request.approvalDate ? new Date(request.approvalDate).toLocaleDateString() : '';
+        
+        return `
+            <div class="change-request-item ${statusClass}">
+                <div class="change-request-header">
+                    <span class="change-request-type">${request.requestType} Change</span>
+                    <span class="change-request-status ${statusClass}">${request.status}</span>
+                </div>
+                <div class="change-request-details">
+                    <div><strong>From:</strong> ${request.currentValue}</div>
+                    <div><strong>To:</strong> ${request.requestedValue}</div>
+                    <div><strong>Reason:</strong> ${request.reason}</div>
+                    <div><strong>Requested:</strong> ${requestDate}</div>
+                    ${request.approvedBy ? `<div><strong>Approved By:</strong> ${request.approvedBy}</div>` : ''}
+                    ${approvalDate ? `<div><strong>Approval Date:</strong> ${approvalDate}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 // Call syncUserProfileOnLogin() after successful login (e.g. after setting currentUser)
@@ -2055,6 +2200,9 @@ document.getElementById('sidebarProfilePic').addEventListener('click', () => {
     document.getElementById('profileDepartment').classList.toggle('pending-department', !!emp.pendingDeptChange);
     document.getElementById('updateNameInput').value = emp.profile.name || '';
     document.getElementById('updateEmailInput').value = emp.profile.email || '';
+    
+    // Load change requests
+    loadChangeRequests(currentUser.id);
 });
 
 document.getElementById('mainProfilePic').addEventListener('click', () => {
@@ -2064,14 +2212,20 @@ document.getElementById('mainProfilePic').addEventListener('click', () => {
     document.getElementById('profileEmail').textContent = emp.profile.email || 'N/A';
     document.getElementById('profileDepartment').textContent = emp.profile.department || 'N/A';
     document.getElementById('profileDepartment').classList.toggle('pending-department', !!emp.pendingDeptChange);
-    document.getElementById('updateNameInput').value = emp.profile.name || '';
-    document.getElementById('updateEmailInput').value = emp.profile.email || '';
+    
+    // Load change requests
+    loadChangeRequests(currentUser.id);
 });
 
 document.getElementById('homeBtn').addEventListener('click', () => {
     console.log('Home button clicked');
     showScreen('mainMenu');
     updateMainScreen();
+});
+
+// Refresh change requests button
+document.getElementById('refreshRequestsBtn').addEventListener('click', () => {
+    loadChangeRequests(currentUser.id);
 });
 
 const updateProfileBtn = document.getElementById('updateProfileBtn');
@@ -2108,35 +2262,50 @@ document.getElementById('changeDepartmentBtn').addEventListener('click', () => {
     showModal('deptChange');
 });
 
-document.getElementById('submitDeptChangeBtn').addEventListener('click', () => {
+document.getElementById('submitDeptChangeBtn').addEventListener('click', async () => {
     const selectedDept = document.querySelector('input[name="newDepartment"]:checked');
     if (selectedDept) {
         const emp = getEmployee(currentUser.id);
-        // Upsert user profile to backend after department is set
-        upsertUserProfile();
-        showScreen('setupVerify');
-        setTimeout(() => {
-            const deptRole = DEPT_ROLES[currentUser.profile.department];
-            if (currentUser.roles.includes(deptRole)) {
-                // ...existing code for success...
-            } else {
-                // ...existing code for failure...
-            }
-            // Send department change notification (simulate webhook or log)
-            // Example: sendEmbed or webhook call can go here if needed
-            // For now, just log
-            console.log('Department Change Request:', {
-                title: 'Department Change Request',
-                description: `User: <@${currentUser.id}> (${emp.profile.name})\nRequested Department: ${selectedDept.value}`,
-                color: 0xffff00
+        const submitBtn = document.getElementById('submitDeptChangeBtn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+        
+        try {
+            // Submit change request to backend
+            const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    discordId: currentUser.id,
+                    staffName: emp.profile.name || currentUser.username,
+                    requestType: 'department',
+                    currentValue: emp.profile.department || 'Not Set',
+                    requestedValue: selectedDept.value,
+                    reason: 'User requested department change via portal',
+                    email: emp.profile.email || ''
+                })
             });
-            closeModal('deptChange');
-            showModal('alert', '<span class="success-tick"></span> Request to change department has been sent.');
-            playSuccessSound();
-            addNotification('department', 'Department change request submitted!', 'myProfile');
-            document.getElementById('profileDepartment').textContent = emp.profile.department;
-            document.getElementById('profileDepartment').classList.add('pending-department');
-        }, 2000);
+            
+            if (response.ok) {
+                closeModal('deptChange');
+                showModal('alert', '<span class="success-tick"></span> Department change request submitted for approval!');
+                playSuccessSound();
+                addNotification('department', 'Department change request submitted for approval!', 'myProfile');
+                
+                // Mark profile as having pending change
+                emp.pendingDeptChange = selectedDept.value;
+                updateEmployee(emp);
+                document.getElementById('profileDepartment').classList.add('pending-department');
+            } else {
+                throw new Error('Failed to submit change request');
+            }
+        } catch (error) {
+            console.error('Error submitting department change request:', error);
+            showModal('alert', 'Failed to submit change request. Please try again.');
+        }
+        
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Request';
     } else {
         showModal('alert', 'Please select a department');
     }
