@@ -107,7 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const editNameBtn = document.getElementById('editNameBtn');
     const editEmailBtn = document.getElementById('editEmailBtn');
     const editDeptBtn = document.getElementById('editDeptBtn');
-    const editFieldsContainer = document.getElementById('editFieldsContainer');
     // Profile fields
     const profileName = document.getElementById('profileName');
     const profileEmail = document.getElementById('profileEmail');
@@ -151,85 +150,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetProfileBtn = document.getElementById('resetProfileBtn');
     let resetCountdown = null;
     let resetTimer = null;
-    
-    // Edit logic
-    function showEditField(type, currentValue) {
-        editFieldsContainer.innerHTML = '';
-        const input = document.createElement('input');
-        input.type = type === 'email' ? 'email' : 'text';
-        input.value = currentValue;
-        input.className = 'edit-field-input';
-        const saveBtn = document.createElement('button');
-        saveBtn.textContent = type === 'name' ? 'Request Change' : 'Save';
-        saveBtn.className = 'edit-field-save';
-        const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = 'Cancel';
-        cancelBtn.className = 'edit-field-cancel';
-        editFieldsContainer.appendChild(input);
-        editFieldsContainer.appendChild(saveBtn);
-        editFieldsContainer.appendChild(cancelBtn);
-        input.focus();
-        saveBtn.onclick = async () => {
-            // Defensive: ensure window.currentUser and .profile exist
-            if (!window.currentUser) window.currentUser = {};
-            if (!window.currentUser.profile) window.currentUser.profile = {};
-            
-            if (type === 'name') {
-                // Submit name change request instead of direct edit
-                saveBtn.disabled = true;
-                saveBtn.textContent = 'Submitting...';
-                
-                try {
-                    const emp = getEmployee(currentUser.id);
-                    const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/submit', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            discordId: currentUser.id,
-                            staffName: emp.profile.name || currentUser.username,
-                            requestType: 'name',
-                            currentValue: currentValue,
-                            requestedValue: input.value,
-                            reason: 'User requested name change via portal',
-                            email: emp.profile.email || ''
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        showModal('alert', '<span class="success-tick"></span> Name change request submitted for approval!');
-                        playSuccessSound();
-                        addNotification('profile', 'Name change request submitted for approval!', 'myProfile');
-                        editFieldsContainer.innerHTML = '';
-                    } else {
-                        throw new Error('Failed to submit name change request');
-                    }
-                } catch (error) {
-                    console.error('Error submitting name change request:', error);
-                    showModal('alert', 'Failed to submit name change request. Please try again.');
-                    saveBtn.disabled = false;
-                    saveBtn.textContent = 'Request Change';
-                }
-                return;
-            }
-            
-            if (type === 'email') {
-                profileEmail.textContent = input.value;
-                window.currentUser.profile.email = input.value;
-            }
-            if (type === 'department') {
-                profileDepartment.textContent = input.value;
-                window.currentUser.profile.department = input.value;
-            }
-            setProfileDebug('[showEditField] Saving profile to backend...', false);
-            await upsertUserProfile();
-            setProfileDebug('[showEditField] Saved to backend. Syncing from Sheets...', false);
-            // Re-sync from Sheets after update
-            await syncProfileFromSheets();
-            setProfileDebug('[showEditField] Edit complete.', false);
-            editFieldsContainer.innerHTML = '';
-        };
-        cancelBtn.onclick = () => { editFieldsContainer.innerHTML = ''; };
-    }
     
     // New streamlined edit handlers - open modals instead of inline editing
     if (editNameBtn) {
