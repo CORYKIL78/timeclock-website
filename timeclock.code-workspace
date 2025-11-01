@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "/workspaces/timeclock-website",
+			"name": "timeclock-website"
+		},
+		{
+			"path": "/home/codespace/timeclock-backend/timeclock-backend",
+			"name": "timeclock-backend"
+		}
+	],
+	"settings": {}
+}

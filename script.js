@@ -598,31 +598,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             emp.absences.push(absence);
             updateEmployee(emp);
-            // Send absence to backend for Google Sheets logging
-            try {
-                const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: emp.profile.name,
-                        startDate,
-                        endDate,
-                        reason: type,
-                        totalDays: days,
-                        comment
-                    })
-                });
-                if (response.ok) {
-                    playSuccessSound();
-                    setTimeout(() => {
-                        showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
-                    }, 100);
-                } else {
-                    showModal('alert', 'Failed to log absence in Google Sheets.');
-                }
-            } catch (e) {
-                showModal('alert', 'Error connecting to backend.');
-            }
             await sendAbsenceWebhook(absence);
             closeModal('absenceRequest');
             // Only show one success message: forcibly close any open alert modal
@@ -1384,6 +1359,28 @@ async function handleOAuthRedirect() {
     window.history.replaceState({}, document.title, REDIRECT_URI);
 }
 
+// --- Signup flow: Name entry continue button ---
+const nameContinueBtn = document.getElementById('setupNameContinueBtn');
+if (nameContinueBtn) {
+    nameContinueBtn.onclick = () => {
+        // Defensive: ensure window.currentUser and .profile exist
+        if (!window.currentUser) window.currentUser = {};
+        if (!window.currentUser.profile) window.currentUser.profile = {};
+        const nameInput = document.getElementById('setupNameInput');
+        if (nameInput && nameInput.value.trim()) {
+            window.currentUser.profile.name = nameInput.value.trim();
+            console.debug('[Signup] Name set:', window.currentUser.profile.name);
+            // Advance to department selection screen
+            if (typeof showScreen === 'function') {
+                showScreen('setupDepartment');
+            }
+        } else {
+            setProfileDebug('Please enter your name.', true);
+        }
+    };
+}
+
+// Tutorial and onboarding logic
 function startTutorial() {
     console.log('Starting tutorial');
     showScreen('mainMenu');
@@ -1698,17 +1695,39 @@ document.getElementById('setupNameContinueBtn').addEventListener('click', () => 
     console.log('[DEBUG] setupNameContinueBtn clicked, name input value:', name);
     if (name) {
         if (!currentUser) currentUser = {};
-        setTimeout(() => {
+        if (!currentUser.profile) currentUser.profile = {};
+        currentUser.profile.name = name;
+        console.log('[DEBUG] Name saved, redirecting to department selection');
+        showScreen('setupDepartment');
+    } else {
+        showModal('alert', 'Please enter your name');
+    }
+});
+
+document.getElementById('setupDepartmentContinueBtn').addEventListener('click', async () => {
+    const selectedDept = document.querySelector('input[name="department"]:checked');
+    console.log('[DEBUG] setupDepartmentContinueBtn clicked, selected department:', selectedDept?.value);
+    if (selectedDept) {
+        if (!currentUser) currentUser = {};
+        if (!currentUser.profile) currentUser.profile = {};
+        currentUser.profile.department = selectedDept.value;
+        console.log('[DEBUG] Department saved, verifying roles...');
+        showScreen('setupVerify');
+        setTimeout(async () => {
             const deptRole = DEPT_ROLES[currentUser.profile.department];
-            if (currentUser.roles.includes(deptRole)) {
+            console.log('[DEBUG] Checking role:', deptRole, 'User roles:', currentUser.roles);
+            if (currentUser.roles && currentUser.roles.includes(deptRole)) {
                 updateEmployee(currentUser);
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                console.log('Role verification successful, redirecting to confirm');
+                // Save to Google Sheets via backend
+                await upsertUserProfile();
+                console.log('[DEBUG] Profile saved to Google Sheets');
+                console.log('[DEBUG] Role verification successful, redirecting to confirm');
                 showScreen('confirm');
                 playSuccessSound();
             } else {
-                console.log('Role verification failed for department:', currentUser.profile.department);
-                showModal('alert', 'Role verification failed');
+                console.log('[DEBUG] Role verification failed for department:', currentUser.profile.department);
+                showModal('alert', 'Role not found for selected department. Please ensure you have the correct role in Discord.');
                 showScreen('setupDepartment');
             }
         }, 2000);
