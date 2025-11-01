@@ -1134,9 +1134,14 @@ async function checkApprovedChangeRequests(discordId) {
 
 // Polling for approved change requests
 setInterval(async () => {
-    if (!window.currentUser) return;
+    console.log('[DEBUG] Polling for change request updates...');
+    if (!currentUser) {
+        console.log('[DEBUG] No currentUser found for change requests');
+        return;
+    }
+    console.log('[DEBUG] Checking change requests for Discord ID:', currentUser.id);
     try {
-        await checkApprovedChangeRequests(window.currentUser.id);
+        await checkApprovedChangeRequests(currentUser.id);
     } catch (e) {
         console.error('Error polling for approved change requests:', e);
     }
