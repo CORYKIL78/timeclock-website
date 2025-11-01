@@ -476,6 +476,19 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
 
 // --- ON LOGIN, SYNC PROFILE FROM BACKEND ---
 async function syncUserProfileOnLogin() {
+    // First check for account reset
+    const resetCheck = await checkForReset(currentUser.id);
+    if (resetCheck && resetCheck.resetProcessed) {
+        // Account was reset, clear local data and redirect to setup
+        showModal('alert', resetCheck.message);
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('employees');
+        setTimeout(() => {
+            window.location.reload();
+        }, 3000);
+        return;
+    }
+    
     const profile = await fetchUserProfile(currentUser.id);
     if (profile) {
         // Check account status
@@ -499,6 +512,24 @@ async function syncUserProfileOnLogin() {
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         await upsertUserProfile(); // Log to Google Sheets after login/profile sync
     }
+}
+
+// Function to check if user account has been reset
+async function checkForReset(discordId) {
+    try {
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/user/check-reset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ discordId })
+        });
+        
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.error('Error checking for reset:', error);
+    }
+    return null;
 }
 
 // Call syncUserProfileOnLogin() after successful login (e.g. after setting currentUser)
