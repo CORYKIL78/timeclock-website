@@ -1115,12 +1115,12 @@ setInterval(async () => {
     console.log('[DEBUG] CurrentUser:', currentUser.id);
     const emp = getEmployee(currentUser.id);
     console.log('[DEBUG] Employee found:', emp);
-    if (!emp || !emp.profile?.name) {
-        console.log('[DEBUG] No employee profile name found for absence check. emp:', emp, 'profile:', emp?.profile);
+    if (!emp || !emp.name) {
+        console.log('[DEBUG] No employee Discord name found for absence check. emp:', emp, 'name:', emp?.name);
         return;
     }
     
-    console.log('[DEBUG] Checking absences for name:', emp.profile.name, 'Discord ID:', currentUser.id);
+    console.log('[DEBUG] Checking absences for name:', emp.name, 'Discord ID:', currentUser.id);
     
     try {
         // Check for new approved/denied absences
@@ -1128,7 +1128,7 @@ setInterval(async () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                name: emp.profile.name,
+                name: emp.name, // Use Discord name instead of profile name
                 discordId: currentUser.id
             })
         });
