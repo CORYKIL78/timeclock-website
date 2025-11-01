@@ -31,13 +31,13 @@ function setAuthDebug(msg, isError) {
 document.addEventListener('DOMContentLoaded', () => {
     async function syncProfileFromSheets() {
         if (!currentUser) {
-            // Only log to console, don't show in UI
             console.debug('[syncProfileFromSheets] No currentUser');
             return;
         }
         console.debug('Syncing profile from Sheets...');
         const profile = await fetchUserProfile(currentUser.id);
         console.debug('[syncProfileFromSheets] fetched profile: ' + JSON.stringify(profile));
+        
         if (profile) {
             // Ensure currentUser.profile exists
             if (!currentUser.profile) currentUser.profile = {};
@@ -63,8 +63,20 @@ document.addEventListener('DOMContentLoaded', () => {
             console.debug('[syncProfileFromSheets] UI updated with profile: ' + JSON.stringify(profile));
             console.debug('[syncProfileFromSheets] currentUser.profile now: ' + JSON.stringify(currentUser.profile));
         } else {
-            // Only show real errors in UI if fetch fails
-            setProfileDebug('[syncProfileFromSheets] No profile returned for user ' + currentUser.id, true);
+            // If no profile from backend, use local currentUser data if available
+            console.debug('[syncProfileFromSheets] No profile from backend, using local data');
+            const profileNameEl = document.getElementById('profileName');
+            const profileEmailEl = document.getElementById('profileEmail');
+            const profileDepartmentEl = document.getElementById('profileDepartment');
+            
+            if (currentUser.profile) {
+                if (currentUser.profile.name && profileNameEl) profileNameEl.textContent = currentUser.profile.name;
+                if (currentUser.profile.email && profileEmailEl) profileEmailEl.textContent = currentUser.profile.email;
+                if (currentUser.profile.department && profileDepartmentEl) profileDepartmentEl.textContent = currentUser.profile.department;
+                updateProfilePictures();
+            } else {
+                setProfileDebug('[syncProfileFromSheets] No profile data available', true);
+            }
         }
     }
     // Wait for window.currentUser to be set before syncing
@@ -75,6 +87,12 @@ document.addEventListener('DOMContentLoaded', () => {
             setProfileDebug('User loaded. Syncing profile from Sheets...', false);
             syncProfileFromSheets();
             setInterval(syncProfileFromSheets, 15000);
+            // Check for approved change requests periodically
+            setInterval(() => {
+                if (window.currentUser && window.currentUser.id) {
+                    checkApprovedChangeRequests(window.currentUser.id);
+                }
+            }, 30000); // Check every 30 seconds
             // Start role fetch debug
             if (typeof fetchRoleNames === 'function') {
                 console.debug('[AUTH] Starting role fetch for user:', window.currentUser.id);
@@ -868,6 +886,7 @@ async function syncUserProfileOnLogin() {
         // Check for approved change requests
         await checkApprovedChangeRequests(currentUser.id);
         
+        // Ensure user login is recorded for mail system
         await upsertUserProfile(); // Log to Google Sheets after login/profile sync
     }
 }
