@@ -2552,23 +2552,27 @@ if (portalLoginBtn) {
 
 const sidebarProfilePic = document.getElementById('sidebarProfilePic');
 if (sidebarProfilePic) {
-    sidebarProfilePic.addEventListener('click', () => {
+    sidebarProfilePic.addEventListener('click', async () => {
         showScreen('myProfile');
         
-        // Trigger profile sync to get latest data
-        syncProfileFromSheets();
+        // Trigger profile sync to get latest data and wait for it
+        await syncProfileFromSheets();
         
         const emp = getEmployee(currentUser.id);
         
-        // Update profile header
+        // Update profile header with fresh data
         const profileDisplayName = document.getElementById('profileDisplayName');
         const profileSubtitle = document.getElementById('profileSubtitle');
         
+        const headerDisplayName = currentUser.profile?.name || emp.profile?.name || currentUser.username || 'User';
+        const headerDisplayEmail = currentUser.profile?.email || emp.profile?.email || 'No Email';
+        const headerDisplayDept = currentUser.profile?.department || emp.profile?.department || 'Staff';
+        
         if (profileDisplayName) {
-            profileDisplayName.textContent = emp.profile.name || currentUser.username || 'User';
+            profileDisplayName.textContent = headerDisplayName;
         }
         if (profileSubtitle) {
-            profileSubtitle.textContent = `${emp.profile.department || 'Staff'} • ${emp.profile.email || 'No Email'}`;
+            profileSubtitle.textContent = `${headerDisplayDept} • ${headerDisplayEmail}`;
         }
         
         const profileDepartmentEl = document.getElementById('profileDepartment');
@@ -2607,23 +2611,23 @@ if (sidebarProfilePic) {
         const updateEmailInputEl = document.getElementById('updateEmailInput');
         
         // Use currentUser profile data if available, otherwise use emp data
-        const displayName = currentUser.profile?.name || emp.profile?.name || currentUser.username || 'Not set';
-        const displayEmail = currentUser.profile?.email || emp.profile?.email || 'Not set';
-        const displayDept = currentUser.profile?.department || emp.profile?.department || 'Not set';
+        const profileDisplayName2 = currentUser.profile?.name || emp.profile?.name || currentUser.username || 'Not set';
+        const profileDisplayEmail2 = currentUser.profile?.email || emp.profile?.email || 'Not set';
+        const profileDisplayDept2 = currentUser.profile?.department || emp.profile?.department || 'Not set';
         
         console.log('[DEBUG] Profile display data:', {
             currentUserProfile: currentUser.profile,
             empProfile: emp.profile,
-            displayName,
-            displayEmail,
-            displayDept
+            displayName: profileDisplayName2,
+            displayEmail: profileDisplayEmail2,
+            displayDept: profileDisplayDept2
         });
         
-        if (profileNameEl) profileNameEl.textContent = displayName;
-        if (profileEmailEl) profileEmailEl.textContent = displayEmail;
-        if (profileDeptEl) profileDeptEl.textContent = displayDept;
-        if (updateNameInputEl) updateNameInputEl.value = displayName === 'Not set' ? '' : displayName;
-        if (updateEmailInputEl) updateEmailInputEl.value = displayEmail === 'Not set' ? '' : displayEmail;
+        if (profileNameEl) profileNameEl.textContent = profileDisplayName2;
+        if (profileEmailEl) profileEmailEl.textContent = profileDisplayEmail2;
+        if (profileDeptEl) profileDeptEl.textContent = profileDisplayDept2;
+        if (updateNameInputEl) updateNameInputEl.value = profileDisplayName2 === 'Not set' ? '' : profileDisplayName2;
+        if (updateEmailInputEl) updateEmailInputEl.value = profileDisplayEmail2 === 'Not set' ? '' : profileDisplayEmail2;
         
         // Update profile pictures
         updateProfilePictures();
