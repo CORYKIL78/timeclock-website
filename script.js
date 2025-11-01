@@ -579,11 +579,14 @@ function showAppealModal(strikeIndex) {
 }
 
 // --- HOOK INTO DISCIPLINARIES BUTTON ---
-document.getElementById('disciplinariesBtn').addEventListener('click', async () => {
-    showScreen('disciplinaries');
-    const strikes = await fetchUserStrikes(currentUser.id);
-    renderStrikes(strikes);
-});
+const disciplinariesBtn = document.getElementById('disciplinariesBtn');
+if (disciplinariesBtn) {
+    disciplinariesBtn.addEventListener('click', async () => {
+        showScreen('disciplinaries');
+        const strikes = await fetchUserStrikes(currentUser.id);
+        renderStrikes(strikes);
+    });
+}
 
 // Removed broken updateProfileBtn logic (no such element in HTML)
 
@@ -2109,18 +2112,26 @@ async function sendDraft(index) {
     renderMail();
 }
 
-document.getElementById('discordLoginBtn').addEventListener('click', () => {
-    const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify&prompt=none`;
-    console.log('Initiating OAuth redirect:', oauthUrl);
-    window.location.href = oauthUrl;
-});
+const discordLoginBtn = document.getElementById('discordLoginBtn');
+if (discordLoginBtn) {
+    discordLoginBtn.addEventListener('click', () => {
+        const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify&prompt=none`;
+        console.log('Initiating OAuth redirect:', oauthUrl);
+        window.location.href = oauthUrl;
+    });
+}
 
-document.getElementById('setupStartBtn').addEventListener('click', () => {
-    console.log('Setup start button clicked');
-    showScreen('setupEmail');
-});
+const setupStartBtn = document.getElementById('setupStartBtn');
+if (setupStartBtn) {
+    setupStartBtn.addEventListener('click', () => {
+        console.log('Setup start button clicked');
+        showScreen('setupEmail');
+    });
+}
 
-document.getElementById('setupEmailContinueBtn').addEventListener('click', () => {
+const setupEmailContinueBtn = document.getElementById('setupEmailContinueBtn');
+if (setupEmailContinueBtn) {
+    setupEmailContinueBtn.addEventListener('click', () => {
     const email = document.getElementById('setupEmailInput').value.trim();
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         if (!currentUser) currentUser = {};
@@ -2132,21 +2143,26 @@ document.getElementById('setupEmailContinueBtn').addEventListener('click', () =>
     }
 });
 
-document.getElementById('setupNameContinueBtn').addEventListener('click', () => {
-    const name = document.getElementById('setupNameInput').value.trim();
-    console.log('[DEBUG] setupNameContinueBtn clicked, name input value:', name);
-    if (name) {
-        if (!currentUser) currentUser = {};
-        if (!currentUser.profile) currentUser.profile = {};
-        currentUser.profile.name = name;
-        console.log('[DEBUG] Name saved, redirecting to preferences selection');
-        showScreen('setupPreferences');
-    } else {
-        showModal('alert', 'Please enter your name');
-    }
-});
+const setupNameContinueBtn = document.getElementById('setupNameContinueBtn');
+if (setupNameContinueBtn) {
+    setupNameContinueBtn.addEventListener('click', () => {
+        const name = document.getElementById('setupNameInput').value.trim();
+        console.log('[DEBUG] setupNameContinueBtn clicked, name input value:', name);
+        if (name) {
+            if (!currentUser) currentUser = {};
+            if (!currentUser.profile) currentUser.profile = {};
+            currentUser.profile.name = name;
+            console.log('[DEBUG] Name saved, redirecting to preferences selection');
+            showScreen('setupPreferences');
+        } else {
+            showModal('alert', 'Please enter your name');
+        }
+    });
+}
 
-document.getElementById('setupPreferencesContinueBtn').addEventListener('click', () => {
+const setupPreferencesContinueBtn = document.getElementById('setupPreferencesContinueBtn');
+if (setupPreferencesContinueBtn) {
+    setupPreferencesContinueBtn.addEventListener('click', () => {
     const timezone = document.getElementById('setupTimezoneSelect').value;
     const dateFormat = document.querySelector('input[name="dateFormat"]:checked')?.value;
     const country = document.getElementById('setupCountrySelect').value;
@@ -2166,8 +2182,11 @@ document.getElementById('setupPreferencesContinueBtn').addEventListener('click',
         showModal('alert', 'Please select timezone and country');
     }
 });
+}
 
-document.getElementById('setupDepartmentContinueBtn').addEventListener('click', async () => {
+const setupDepartmentContinueBtn = document.getElementById('setupDepartmentContinueBtn');
+if (setupDepartmentContinueBtn) {
+    setupDepartmentContinueBtn.addEventListener('click', async () => {
     const selectedDept = document.querySelector('input[name="department"]:checked');
     console.log('[DEBUG] setupDepartmentContinueBtn clicked, selected department:', selectedDept?.value);
     if (selectedDept) {
@@ -2221,22 +2240,34 @@ document.getElementById('setupDepartmentContinueBtn').addEventListener('click', 
         showModal('alert', 'Please select a department');
     }
 });
+}
 
-document.getElementById('continueBtn').addEventListener('click', () => {
-    console.log('Finalise button clicked, redirecting to setupComplete');
-    showScreen('setupComplete');
-    document.getElementById('setupWelcomeName').textContent = currentUser.profile.name;
-    setTimeout(() => startTutorial(), 3000);
-});
+const continueBtn = document.getElementById('continueBtn');
+if (continueBtn) {
+    continueBtn.addEventListener('click', () => {
+        console.log('Finalise button clicked, redirecting to setupComplete');
+        showScreen('setupComplete');
+        const setupWelcomeName = document.getElementById('setupWelcomeName');
+        if (setupWelcomeName) {
+            setupWelcomeName.textContent = currentUser.profile.name;
+        }
+        setTimeout(() => startTutorial(), 3000);
+    });
+}
 
-document.getElementById('portalLoginBtn').addEventListener('click', () => {
-    console.log('Portal login button clicked, redirecting to mainMenu');
-    showScreen('mainMenu');
-    updateSidebarProfile();
-    updateMainScreen();
-});
+const portalLoginBtn = document.getElementById('portalLoginBtn');
+if (portalLoginBtn) {
+    portalLoginBtn.addEventListener('click', () => {
+        console.log('Portal login button clicked, redirecting to mainMenu');
+        showScreen('mainMenu');
+        updateSidebarProfile();
+        updateMainScreen();
+    });
+}
 
-document.getElementById('sidebarProfilePic').addEventListener('click', () => {
+const sidebarProfilePic = document.getElementById('sidebarProfilePic');
+if (sidebarProfilePic) {
+    sidebarProfilePic.addEventListener('click', () => {
     showScreen('myProfile');
     const emp = getEmployee(currentUser.id);
     
@@ -2268,28 +2299,44 @@ document.getElementById('sidebarProfilePic').addEventListener('click', () => {
     statusIndicator.className = `profile-status-indicator ${status.toLowerCase()}`;
     
     // Update profile information
-    document.getElementById('profileName').textContent = emp.profile.name || 'N/A';
-    document.getElementById('profileEmail').textContent = emp.profile.email || 'N/A';
-    document.getElementById('profileDepartment').textContent = emp.profile.department || 'N/A';
-    document.getElementById('updateNameInput').value = emp.profile.name || '';
-    document.getElementById('updateEmailInput').value = emp.profile.email || '';
-});
-
-document.getElementById('mainProfilePic').addEventListener('click', () => {
-    showScreen('myProfile');
-    const emp = getEmployee(currentUser.id);
+    const profileNameEl = document.getElementById('profileName');
+    const profileEmailEl = document.getElementById('profileEmail');
+    const profileDepartmentEl = document.getElementById('profileDepartment');
+    const updateNameInputEl = document.getElementById('updateNameInput');
+    const updateEmailInputEl = document.getElementById('updateEmailInput');
     
-    // Update profile information
-    document.getElementById('profileName').textContent = emp.profile.name || 'N/A';
-    document.getElementById('profileEmail').textContent = emp.profile.email || 'N/A';
-    document.getElementById('profileDepartment').textContent = emp.profile.department || 'N/A';
+    if (profileNameEl) profileNameEl.textContent = emp.profile.name || 'N/A';
+    if (profileEmailEl) profileEmailEl.textContent = emp.profile.email || 'N/A';
+    if (profileDepartmentEl) profileDepartmentEl.textContent = emp.profile.department || 'N/A';
+    if (updateNameInputEl) updateNameInputEl.value = emp.profile.name || '';
+    if (updateEmailInputEl) updateEmailInputEl.value = emp.profile.email || '';
 });
+}
 
-document.getElementById('homeBtn').addEventListener('click', () => {
-    console.log('Home button clicked');
-    showScreen('mainMenu');
-    updateMainScreen();
-});
+const mainProfilePic = document.getElementById('mainProfilePic');
+if (mainProfilePic) {
+    mainProfilePic.addEventListener('click', () => {
+        showScreen('myProfile');
+        const emp = getEmployee(currentUser.id);
+        // Update profile information
+        const profileNameEl2 = document.getElementById('profileName');
+        const profileEmailEl2 = document.getElementById('profileEmail');
+        const profileDepartmentEl2 = document.getElementById('profileDepartment');
+        
+        if (profileNameEl2) profileNameEl2.textContent = emp.profile.name || 'N/A';
+        if (profileEmailEl2) profileEmailEl2.textContent = emp.profile.email || 'N/A';
+        if (profileDepartmentEl2) profileDepartmentEl2.textContent = emp.profile.department || 'N/A';
+    });
+}
+
+const homeBtn = document.getElementById('homeBtn');
+if (homeBtn) {
+    homeBtn.addEventListener('click', () => {
+        console.log('Home button clicked');
+        showScreen('mainMenu');
+        updateMainScreen();
+    });
+}
 
 const updateProfileBtn = document.getElementById('updateProfileBtn');
 if (updateProfileBtn) {
@@ -3246,10 +3293,13 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     setTimeout(() => showScreen('discord'), 2000);
 });
 
-document.querySelector('.sidebar-toggle').addEventListener('click', () => {
-    console.log('Sidebar toggle clicked');
-    document.getElementById('sidebar').classList.toggle('extended');
-});
+const sidebarToggle = document.querySelector('.sidebar-toggle');
+if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', () => {
+        console.log('Sidebar toggle clicked');
+        document.getElementById('sidebar').classList.toggle('extended');
+    });
+}
 
 const modeToggle = document.getElementById('modeToggle');
 if (modeToggle) {
@@ -3306,4 +3356,4 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
         }
     }
     await handleOAuthRedirect();
-})();
+})();}
