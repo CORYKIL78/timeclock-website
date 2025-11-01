@@ -32,19 +32,42 @@ function setAuthDebug(msg, isError) {
 function updateProfileDisplay() {
     if (!currentUser) return;
     
+    console.log('[DEBUG] updateProfileDisplay - currentUser:', currentUser);
+    console.log('[DEBUG] updateProfileDisplay - currentUser.profile:', currentUser.profile);
+    
     // Update profile fields with Discord data
     const profileNameEl = document.getElementById('profileName');
     const profileEmailEl = document.getElementById('profileEmail');
     const profileDepartmentEl = document.getElementById('profileDepartment');
     
-    if (profileNameEl && currentUser.username) {
-        profileNameEl.textContent = currentUser.username;
+    // Use currentUser.name (from Discord) or profile.name (from backend)
+    if (profileNameEl) {
+        const displayName = currentUser.profile?.name || currentUser.name || 'Not set';
+        profileNameEl.textContent = displayName;
+        console.log('[DEBUG] Set profileName to:', displayName);
     }
-    if (profileEmailEl && currentUser.email) {
-        profileEmailEl.textContent = currentUser.email;
+    
+    // Use profile.email from backend
+    if (profileEmailEl) {
+        const displayEmail = currentUser.profile?.email || 'Not set';
+        profileEmailEl.textContent = displayEmail;
+        console.log('[DEBUG] Set profileEmail to:', displayEmail);
     }
-    if (profileDepartmentEl && currentUser.profile?.department) {
-        profileDepartmentEl.textContent = currentUser.profile.department;
+    
+    // Use profile.department from backend  
+    if (profileDepartmentEl) {
+        const displayDept = currentUser.profile?.department || 'Not set';
+        profileDepartmentEl.textContent = displayDept;
+        console.log('[DEBUG] Set profileDepartment to:', displayDept);
+        
+        // Check if there's a pending department change
+        const emp = getEmployee(currentUser.id);
+        if (emp && emp.pendingDeptChange) {
+            profileDepartmentEl.classList.add('pending-department');
+            console.log('[DEBUG] Added pending-department class');
+        } else {
+            profileDepartmentEl.classList.remove('pending-department');
+        }
     }
     
     updateProfilePictures();
@@ -1290,19 +1313,24 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Send to Google Sheets backend
             try {
-                await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence', {
+                const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        name: emp.profile.name,
+                        name: currentUser.username || emp.profile?.name || 'Unknown User',
                         startDate,
                         endDate,
-                        type,
-                        reason: comment,
-                        days: days.toString(),
-                        status: 'PENDING'
+                        reason: type,                    // Type goes to D: Reason
+                        totalDays: days.toString(),      // Total days to E: Total Days
+                        comment                          // Comment to F: Comment
                     })
                 });
+                
+                console.log('[DEBUG] Absence submission response:', response.status);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('[DEBUG] Absence submission error:', errorData);
+                }
             } catch (e) {
                 console.error('Failed to save absence to Sheets:', e);
             }
