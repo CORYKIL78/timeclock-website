@@ -88,6 +88,107 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     waitForCurrentUserAndSync();
+    
+    // Check for suspension status
+    async function checkSuspensionStatus() {
+        if (!window.currentUser || !window.currentUser.id) return;
+        
+        try {
+            const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/user-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: window.currentUser.id })
+            });
+            
+            if (response.ok) {
+                const statusData = await response.json();
+                if (statusData.status === 'suspended') {
+                    showSuspensionModal();
+                    return true; // User is suspended
+                }
+            }
+        } catch (error) {
+            console.error('Error checking suspension status:', error);
+        }
+        return false; // User is not suspended
+    }
+    
+    // Show suspension modal
+    function showSuspensionModal() {
+        // Create suspension modal if it doesn't exist
+        let suspensionModal = document.getElementById('suspensionModal');
+        if (!suspensionModal) {
+            suspensionModal = document.createElement('div');
+            suspensionModal.id = 'suspensionModal';
+            suspensionModal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                backdrop-filter: blur(5px);
+            `;
+            
+            suspensionModal.innerHTML = `
+                <div style="
+                    background: white;
+                    padding: 3em 2.5em 2em 2.5em;
+                    border-radius: 15px;
+                    max-width: 450px;
+                    text-align: center;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                    border: 3px solid #f44336;
+                ">
+                    <div style="font-size: 4em; margin-bottom: 0.5em;">⚠️</div>
+                    <h2 style="color: #f44336; margin-bottom: 1em; font-size: 1.5em;">Portal Suspended</h2>
+                    <p style="color: #333; font-size: 1.1em; line-height: 1.6; margin-bottom: 2em;">
+                        Your portal is suspended temporarily. Please contact Marcus Ray if this is a concern.
+                    </p>
+                    <button id="suspensionLogoutBtn" style="
+                        background: #f44336;
+                        color: white;
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 8px;
+                        font-size: 1.1em;
+                        cursor: pointer;
+                        transition: background 0.3s;
+                    " onmouseover="this.style.background='#d32f2f'" onmouseout="this.style.background='#f44336'">
+                        Log Out
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(suspensionModal);
+            
+            // Add logout functionality
+            const logoutBtn = document.getElementById('suspensionLogoutBtn');
+            logoutBtn.onclick = () => {
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('lastProcessedCode');
+                localStorage.removeItem('clockInTime');
+                window.location.reload();
+            };
+        }
+        
+        suspensionModal.style.display = 'flex';
+    }
+    
+    // Check suspension status when user loads
+    setTimeout(async () => {
+        if (window.currentUser && window.currentUser.id) {
+            const isSuspended = await checkSuspensionStatus();
+            if (!isSuspended) {
+                // Only check periodically if not suspended initially
+                setInterval(checkSuspensionStatus, 30000); // Check every 30 seconds
+            }
+        }
+    }, 2000);
     // --- Add debug logging for Discord login and role fetch ---
     if (document.getElementById('discordLoginBtn')) {
         document.getElementById('discordLoginBtn').addEventListener('click', function() {
@@ -304,31 +405,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Show success message
-            const successDiv = document.getElementById('nameChangeSuccess');
-            if (successDiv) successDiv.style.display = 'block';
+            // Disable button while processing
+            submitNameChangeBtn.disabled = true;
+            submitNameChangeBtn.textContent = 'Submitting...';
             
-            // Send Discord notification
-            const staffId = window.currentUser?.profile?.staffId || '';
-            const currentName = window.currentUser?.profile?.name || '';
-            await fetch('https://timeclock-discord-proxy.marcusray.workers.dev/postEmbed?channel_id=1417583684525232291&embed_json=' + encodeURIComponent(JSON.stringify({
-                title: 'Name Change Request',
-                color: 0x4caf50,
-                fields: [
-                    { name: 'Current Name', value: currentName, inline: true },
-                    { name: 'Staff ID', value: staffId, inline: true },
-                    { name: 'Requested Name', value: newName, inline: true },
-                    { name: 'Reason', value: reason, inline: false }
-                ],
-                timestamp: new Date().toISOString()
-            })), { method: 'POST' });
-            
-            setTimeout(() => { 
-                nameChangeModal.style.display = 'none'; 
-                // Clear form
-                if (newNameInput) newNameInput.value = '';
-                if (reasonInput) reasonInput.value = '';
-            }, 1200);
+            try {
+                // Save to Google Sheets via backend API
+                const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUser.id,
+                        type: 'name',
+                        currentValue: currentUser.profile?.name || '',
+                        newValue: newName,
+                        reason: reason,
+                        userName: currentUser.profile?.name || currentUser.username || 'User',
+                        userEmail: currentUser.profile?.email || '',
+                        department: currentUser.profile?.department || '',
+                        staffId: currentUser.profile?.staffId || 'Not assigned'
+                    })
+                });
+                
+                if (response.ok) {
+                    // Show success message with checkmark
+                    const successDiv = document.getElementById('nameChangeSuccess');
+                    if (successDiv) {
+                        successDiv.innerHTML = '✅ Request submitted successfully!';
+                        successDiv.style.display = 'block';
+                        successDiv.style.color = '#4caf50';
+                    }
+                    
+                    // Add notification to sidebar
+                    addNotification('profile', 'Name change request submitted', 'myProfile');
+                    
+                    // Close modal after delay
+                    setTimeout(() => { 
+                        nameChangeModal.style.display = 'none'; 
+                        if (newNameInput) newNameInput.value = '';
+                        if (reasonInput) reasonInput.value = '';
+                        if (successDiv) successDiv.style.display = 'none';
+                    }, 1500);
+                } else {
+                    throw new Error('Failed to submit request');
+                }
+            } catch (error) {
+                console.error('Error submitting name change request:', error);
+                alert('Failed to submit request. Please try again.');
+            } finally {
+                submitNameChangeBtn.disabled = false;
+                submitNameChangeBtn.textContent = 'Submit Request';
+            }
         };
     }
     
@@ -362,33 +489,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Show success message
-            const successDiv = document.getElementById('emailChangeSuccess');
-            if (successDiv) successDiv.style.display = 'block';
+            // Disable button while processing
+            submitEmailChangeBtn.disabled = true;
+            submitEmailChangeBtn.textContent = 'Submitting...';
             
-            // Send Discord notification
-            const staffId = window.currentUser?.profile?.staffId || '';
-            const currentEmail = window.currentUser?.profile?.email || '';
-            const name = window.currentUser?.profile?.name || '';
-            await fetch('https://timeclock-discord-proxy.marcusray.workers.dev/postEmbed?channel_id=1417583684525232291&embed_json=' + encodeURIComponent(JSON.stringify({
-                title: 'Email Change Request',
-                color: 0xff9800,
-                fields: [
-                    { name: 'Name', value: name, inline: true },
-                    { name: 'Staff ID', value: staffId, inline: true },
-                    { name: 'Current Email', value: currentEmail, inline: true },
-                    { name: 'Requested Email', value: newEmail, inline: true },
-                    { name: 'Reason', value: reason, inline: false }
-                ],
-                timestamp: new Date().toISOString()
-            })), { method: 'POST' });
-            
-            setTimeout(() => { 
-                emailChangeModal.style.display = 'none'; 
-                // Clear form
-                if (newEmailInput) newEmailInput.value = '';
-                if (reasonInput) reasonInput.value = '';
-            }, 1200);
+            try {
+                // Save to Google Sheets via backend API
+                const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUser.id,
+                        type: 'email',
+                        currentValue: currentUser.profile?.email || '',
+                        newValue: newEmail,
+                        reason: reason,
+                        userName: currentUser.profile?.name || currentUser.username || 'User',
+                        userEmail: currentUser.profile?.email || '',
+                        department: currentUser.profile?.department || '',
+                        staffId: currentUser.profile?.staffId || 'Not assigned'
+                    })
+                });
+                
+                if (response.ok) {
+                    // Show success message with checkmark
+                    const successDiv = document.getElementById('emailChangeSuccess');
+                    if (successDiv) {
+                        successDiv.innerHTML = '✅ Request submitted successfully!';
+                        successDiv.style.display = 'block';
+                        successDiv.style.color = '#4caf50';
+                    }
+                    
+                    // Add notification to sidebar
+                    addNotification('profile', 'Email change request submitted', 'myProfile');
+                    
+                    // Close modal after delay
+                    setTimeout(() => { 
+                        emailChangeModal.style.display = 'none'; 
+                        if (newEmailInput) newEmailInput.value = '';
+                        if (reasonInput) reasonInput.value = '';
+                        if (successDiv) successDiv.style.display = 'none';
+                    }, 1500);
+                } else {
+                    throw new Error('Failed to submit request');
+                }
+            } catch (error) {
+                console.error('Error submitting email change request:', error);
+                alert('Failed to submit request. Please try again.');
+            } finally {
+                submitEmailChangeBtn.disabled = false;
+                submitEmailChangeBtn.textContent = 'Submit Request';
+            }
         };
     }
     
@@ -889,8 +1040,8 @@ let lastDisciplinaryCheck = localStorage.getItem('lastDisciplinaryCheck') ? JSON
 setInterval(async () => {
     if (!window.currentUser) return;
     const emp = getEmployee(window.currentUser.id);
-    const staffId = emp.profile?.staffId || window.currentUser.id; // Use Discord ID as fallback
-    if (!staffId) return;
+    const staffId = emp.profile?.staffId || 'Not assigned'; // Use actual staff ID
+    if (!staffId || staffId === 'Not assigned') return;
     
     try {
         const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/disciplinaries/fetch', {
@@ -1195,8 +1346,7 @@ async function sendGoodbyeMessage(userId, staffId) {
         description: 'Your profile has been successfully reset. All your data has been erased from our systems.',
         fields: [
             { name: '🆔 Staff ID', value: staffId, inline: true },
-            { name: '🗑️ Data Cleared', value: 'All personal information, payslips, and disciplinaries have been removed', inline: false },
-            { name: '🔄 Fresh Start', value: 'You can sign up again anytime at portal.cirkledevelopment.co.uk', inline: false }
+            { name: '🗑️ Data Cleared', value: 'All personal information, payslips, and disciplinaries have been removed', inline: false }
         ],
         color: 0x9E9E9E,
         footer: { text: 'Thank you for being part of Cirkle Development' },
@@ -2072,14 +2222,43 @@ function renderMail() {
         draftsContent.appendChild(li);
     });
 
+    // Load recipients from cirklehrUsers sheet via backend
+    async function loadMailRecipients() {
+        try {
+            const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/mail/recipients', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.ok) {
+                const recipients = await response.json();
+                const recipientSelect = document.getElementById('mailRecipients');
+                recipientSelect.innerHTML = '<option value="" disabled>Select Recipients</option>';
+                
+                recipients.forEach(recipient => {
+                    if (recipient.userId !== currentUser.id) { // Don't include self
+                        const option = document.createElement('option');
+                        option.value = recipient.userId;
+                        option.textContent = recipient.name || 'Unknown User';
+                        recipientSelect.appendChild(option);
+                    }
+                });
+            } else {
+                console.error('Failed to load mail recipients');
+                // Fallback to empty list
+                const recipientSelect = document.getElementById('mailRecipients');
+                recipientSelect.innerHTML = '<option value="" disabled>No recipients available</option>';
+            }
+        } catch (error) {
+            console.error('Error loading mail recipients:', error);
+            const recipientSelect = document.getElementById('mailRecipients');
+            recipientSelect.innerHTML = '<option value="" disabled>Error loading recipients</option>';
+        }
+    }
+
     const recipientSelect = document.getElementById('mailRecipients');
-    recipientSelect.innerHTML = '<option value="" disabled>Select Recipients</option>';
-    employees.filter(e => e.profile.name && e.id !== currentUser.id && e.roles.includes(REQUIRED_ROLE)).forEach(e => {
-        const option = document.createElement('option');
-        option.value = e.id;
-        option.textContent = e.profile.name;
-        recipientSelect.appendChild(option);
-    });
+    // Load recipients when mail screen is accessed
+    loadMailRecipients();
 
     draftsContent.querySelectorAll('.edit-draft').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -2383,11 +2562,16 @@ if (sidebarProfilePic) {
         const updateNameInputEl = document.getElementById('updateNameInput');
         const updateEmailInputEl = document.getElementById('updateEmailInput');
         
-        if (profileNameEl) profileNameEl.textContent = emp.profile.name || 'Not set';
-        if (profileEmailEl) profileEmailEl.textContent = emp.profile.email || 'Not set';
-        if (profileDeptEl) profileDeptEl.textContent = emp.profile.department || 'Not set';
-        if (updateNameInputEl) updateNameInputEl.value = emp.profile.name || '';
-        if (updateEmailInputEl) updateEmailInputEl.value = emp.profile.email || '';
+        // Use currentUser profile data if available, otherwise use emp data
+        const displayName = currentUser.profile?.name || emp.profile?.name || 'Not set';
+        const displayEmail = currentUser.profile?.email || emp.profile?.email || 'Not set';
+        const displayDept = currentUser.profile?.department || emp.profile?.department || 'Not set';
+        
+        if (profileNameEl) profileNameEl.textContent = displayName;
+        if (profileEmailEl) profileEmailEl.textContent = displayEmail;
+        if (profileDeptEl) profileDeptEl.textContent = displayDept;
+        if (updateNameInputEl) updateNameInputEl.value = displayName === 'Not set' ? '' : displayName;
+        if (updateEmailInputEl) updateEmailInputEl.value = displayEmail === 'Not set' ? '' : displayEmail;
         
         // Update profile pictures
         updateProfilePictures();
