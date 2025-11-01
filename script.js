@@ -2396,13 +2396,13 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
         return;
     }
     
-    // Get Staff ID from the backend profile data that was synced
-    const staffId = currentUser?.profile?.staffId;
+    // Use Discord ID as Staff ID directly
+    const staffId = currentUser?.id;
     
     console.log('[DEBUG] Payslips - Current user:', currentUser);
     console.log('[DEBUG] Payslips - Profile keys:', currentUser?.profile ? Object.keys(currentUser.profile) : 'no profile');
     console.log('[DEBUG] Payslips - Full profile:', JSON.stringify(currentUser?.profile));
-    console.log('[DEBUG] Payslips - Staff ID:', staffId);
+    console.log('[DEBUG] Payslips - Using Discord ID as Staff ID:', staffId);
     console.log('[DEBUG] Payslips - Staff ID type:', typeof staffId);
     
     if (!staffId) {
