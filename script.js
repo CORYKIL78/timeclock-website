@@ -1378,6 +1378,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         name: currentUser.name || emp.profile?.name || 'Unknown User',
+                        discordId: currentUser.id,       // Add Discord ID for reliable matching
                         startDate,
                         endDate,
                         reason: type,                    // Type goes to D: Reason
