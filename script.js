@@ -752,14 +752,14 @@ async function saveUserProfile(profile) {
 
 async function fetchUserStrikes(discordId) {
     try {
-        const res = await fetch(`${BACKEND_URL}/api/user/profile`, {
+        const res = await fetch(`${BACKEND_URL}/api/disciplinaries/fetch`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ discordId })
+            body: JSON.stringify({ staffId: discordId })
         });
-        if (!res.ok) throw new Error('Failed to fetch strikes');
+        if (!res.ok) throw new Error('Failed to fetch disciplinaries');
         const data = await res.json();
-        return data.strikes || [];
+        return data.disciplinaries || [];
     } catch (e) {
         console.error('fetchUserStrikes error:', e);
         return [];
@@ -815,28 +815,80 @@ function renderStrikes(strikes) {
     const content = document.getElementById('disciplinariesContent');
     content.innerHTML = '';
     if (!strikes.length) {
-        content.innerHTML = '<p>No strikes found.</p>';
+        content.innerHTML = '<div class="no-data">No disciplinaries found.</div>';
         return;
     }
     strikes.forEach((s, i) => {
         const div = document.createElement('div');
-        div.className = 'strike-item';
+        div.className = 'disciplinary-item';
+        div.style.cssText = `
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            background: #f9f9f9; 
+            cursor: pointer;
+            transition: background 0.2s;
+        `;
+        div.onmouseover = () => div.style.background = '#ffe8e8';
+        div.onmouseout = () => div.style.background = '#f9f9f9';
+        div.onclick = () => showDisciplinaryDetails(s);
+        
         div.innerHTML = `
-            <p>Level: ${s.level || ''}</p>
-            <p>Reason: ${s.reason || ''}</p>
-            <p>Details: ${s.details || ''}</p>
-            <p>Action: ${s.action || ''}</p>
-            <p>Timestamp: ${s.timestamp || ''}</p>
-            <button class="appeal-strike-btn" data-index="${i}">Appeal</button>
+            <div style="flex: 1;">
+                <span style="font-weight: bold; color: #d32f2f;">New Disciplinary</span>
+            </div>
+            <div style="flex: 1; text-align: right;">
+                <span style="color: #666;">By ${s.assignedBy || 'Unknown'}</span>
+            </div>
         `;
         content.appendChild(div);
     });
-    content.querySelectorAll('.appeal-strike-btn').forEach(btn => {
-        btn.onclick = (e) => {
-            const idx = btn.dataset.index;
-            showAppealModal(idx);
-        };
-    });
+}
+
+function showDisciplinaryDetails(disciplinary) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.5); display: flex; align-items: center; 
+        justify-content: center; z-index: 10000;
+    `;
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    
+    modal.innerHTML = `
+        <div style="
+            background: white; padding: 30px; border-radius: 8px; 
+            max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        ">
+            <h3 style="margin: 0 0 20px 0; color: #d32f2f;">Disciplinary Details</h3>
+            <div style="margin-bottom: 15px;">
+                <strong>Date:</strong> ${disciplinary.dateAssigned}
+            </div>
+            <div style="margin-bottom: 15px;">
+                <strong>Type:</strong> ${disciplinary.strikeType || 'N/A'}
+            </div>
+            <div style="margin-bottom: 15px;">
+                <strong>Comment:</strong> ${disciplinary.comment || 'No comment provided'}
+            </div>
+            <div style="margin-bottom: 20px;">
+                <strong>Assigned By:</strong> ${disciplinary.assignedBy || 'Unknown'}
+            </div>
+            <div style="background: #fff3cd; padding: 15px; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+                <strong>To appeal this, please contact the OP.</strong>
+            </div>
+            <div style="text-align: center;">
+                <button onclick="this.closest('[style*=fixed]').remove()" style="
+                    background: #666; color: white; border: none; 
+                    padding: 12px 24px; border-radius: 4px; cursor: pointer;
+                ">Close</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
 }
 
 function showAppealModal(strikeIndex) {
@@ -870,16 +922,6 @@ function showAppealModal(strikeIndex) {
             alert('Failed to submit appeal.');
         }
     };
-}
-
-// --- HOOK INTO DISCIPLINARIES BUTTON ---
-const disciplinariesBtn = document.getElementById('disciplinariesBtn');
-if (disciplinariesBtn) {
-    disciplinariesBtn.addEventListener('click', async () => {
-        showScreen('disciplinaries');
-        const strikes = await fetchUserStrikes(currentUser.id);
-        renderStrikes(strikes);
-    });
 }
 
 // Removed broken updateProfileBtn logic (no such element in HTML)
@@ -3289,25 +3331,85 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
             return;
         }
         
-        // Display payslips in a structured format
+        // Display payslips in ROW format as requested
         content.innerHTML = `
             <div class="payslips-list">
                 ${payslips.map((payslip, index) => `
-                    <div class="payslip-item">
-                        <h4>Payslip: ${payslip.dateAssigned}</h4>
-                        <p><strong>Comment:</strong> ${payslip.comment || 'No comment provided'}</p>
-                        <p><strong>Assigned By:</strong> ${payslip.assignedBy}</p>
-                        <a href="${payslip.link}" target="_blank" class="payslip-link">View Payslip</a>
+                    <div class="payslip-item" onclick="showPayslipDetails(${index})" style="
+                        display: flex; 
+                        justify-content: space-between; 
+                        align-items: center; 
+                        border: 1px solid #ddd; 
+                        padding: 15px; 
+                        margin: 10px 0; 
+                        border-radius: 8px; 
+                        background: #f9f9f9; 
+                        cursor: pointer;
+                        transition: background 0.2s;
+                    " onmouseover="this.style.background='#e8f4f8'" onmouseout="this.style.background='#f9f9f9'">
+                        <div style="flex: 1;">
+                            <span style="font-weight: bold; color: #1976d2;">PAYSLIP: ${payslip.dateAssigned}</span>
+                        </div>
+                        <div style="flex: 1; text-align: right;">
+                            <span style="color: #666;">by ${payslip.assignedBy || 'Unknown'}</span>
+                        </div>
                     </div>
                 `).join('')}
             </div>
         `;
+        
+        // Store payslips data for details modal
+        window.currentPayslips = payslips;
         
     } catch (e) {
         console.error('Error fetching payslips:', e);
         content.innerHTML = '<p>Error loading payslips. Please try again later.</p>';
     }
 });
+
+function showPayslipDetails(index) {
+    const payslip = window.currentPayslips[index];
+    if (!payslip) return;
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.5); display: flex; align-items: center; 
+        justify-content: center; z-index: 10000;
+    `;
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    
+    modal.innerHTML = `
+        <div style="
+            background: white; padding: 30px; border-radius: 8px; 
+            max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        ">
+            <h3 style="margin: 0 0 20px 0; color: #1976d2;">Payslip Details</h3>
+            <div style="margin-bottom: 15px;">
+                <strong>Date Assigned:</strong> ${payslip.dateAssigned}
+            </div>
+            <div style="margin-bottom: 15px;">
+                <strong>Assigned By:</strong> ${payslip.assignedBy || 'Unknown'}
+            </div>
+            <div style="margin-bottom: 20px;">
+                <strong>Comment:</strong> ${payslip.comment || 'No comment provided'}
+            </div>
+            <div style="text-align: center;">
+                <button onclick="window.open('${payslip.link}', '_blank')" style="
+                    background: #4caf50; color: white; border: none; 
+                    padding: 12px 24px; border-radius: 4px; cursor: pointer;
+                    font-weight: bold; margin-right: 10px;
+                ">View Payslip</button>
+                <button onclick="this.closest('[style*=fixed]').remove()" style="
+                    background: #666; color: white; border: none; 
+                    padding: 12px 24px; border-radius: 4px; cursor: pointer;
+                ">Close</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
 
 function showPayslipModal(payslip) {
     const modal = document.getElementById('payslipViewModal');
