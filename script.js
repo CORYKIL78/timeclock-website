@@ -855,6 +855,8 @@ async function syncUserProfileOnLogin() {
         showModal('alert', resetCheck.message);
         localStorage.removeItem('currentUser');
         localStorage.removeItem('employees');
+        localStorage.removeItem('lastDisciplinaryCheck'); // Clear disciplinary counter
+        localStorage.removeItem('lastPayslipCheck'); // Clear payslip counter  
         setTimeout(() => {
             window.location.reload();
         }, 3000);
@@ -3339,6 +3341,13 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
         loadingEl.classList.add('hidden');
         
         if (disciplinaries.length === 0) {
+            // Update localStorage counter to reflect no disciplinaries
+            let lastDisciplinaryCheck = localStorage.getItem('lastDisciplinaryCheck') ? JSON.parse(localStorage.getItem('lastDisciplinaryCheck')) : {};
+            const userKey = currentUser.id;
+            lastDisciplinaryCheck[userKey] = 0;
+            localStorage.setItem('lastDisciplinaryCheck', JSON.stringify(lastDisciplinaryCheck));
+            console.log('[DEBUG] Reset disciplinary counter to 0 in localStorage');
+            
             emptyEl.classList.remove('hidden');
             return;
         }
@@ -3346,6 +3355,14 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
         // Update header with count
         const header = document.querySelector('#disciplinariesScreen h2');
         header.textContent = `Disciplinaries (${disciplinaries.length})`;
+        
+        // Update localStorage counter to reflect current reality
+        let lastDisciplinaryCheck = localStorage.getItem('lastDisciplinaryCheck') ? JSON.parse(localStorage.getItem('lastDisciplinaryCheck')) : {};
+        const userKey = currentUser.id;
+        lastDisciplinaryCheck[userKey] = disciplinaries.length;
+        localStorage.setItem('lastDisciplinaryCheck', JSON.stringify(lastDisciplinaryCheck));
+        
+        console.log('[DEBUG] Updated disciplinary counter in localStorage to:', disciplinaries.length);
         
         // Generate simple row-based list
         disciplinaries.forEach((disc, index) => {
