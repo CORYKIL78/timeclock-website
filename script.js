@@ -2580,17 +2580,20 @@ if (sidebarProfilePic) {
             profileDepartmentEl.classList.toggle('pending-department', !!emp.pendingDeptChange);
         }
         
-        // Update profile inputs if they exist
+        // Update profile inputs if they exist (use currentUser.profile with emp.profile fallback)
         const updateNameInput = document.getElementById('updateNameInput');
         const updateEmailInput = document.getElementById('updateEmailInput');
-        if (updateNameInput) updateNameInput.value = emp.profile.name || '';
-        if (updateEmailInput) updateEmailInput.value = emp.profile.email || '';
+        const inputDisplayName = currentUser.profile?.name || emp.profile?.name || '';
+        const inputDisplayEmail = currentUser.profile?.email || emp.profile?.email || '';
+        if (updateNameInput) updateNameInput.value = inputDisplayName;
+        if (updateEmailInput) updateEmailInput.value = inputDisplayEmail;
         
         // Update department badge
         const deptBadge = document.getElementById('deptBadge');
         if (deptBadge) {
-            if (emp.profile.department) {
-                deptBadge.textContent = emp.profile.department;
+            const deptDisplayText = currentUser.profile?.department || emp.profile?.department || '';
+            if (deptDisplayText) {
+                deptBadge.textContent = deptDisplayText;
                 deptBadge.style.display = 'inline-block';
             } else {
                 deptBadge.style.display = 'none';
