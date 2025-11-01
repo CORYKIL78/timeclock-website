@@ -1034,8 +1034,28 @@ async function checkApprovedChangeRequests(discordId) {
                 for (const change of result.appliedChanges) {
                     if (change.type === 'name') {
                         addNotification('profile', `✅ Name change approved: ${change.from} → ${change.to}`, 'myProfile');
+                        // Send DM notification for approved name change
+                        try {
+                            await sendDiscordDM(discordId, {
+                                title: "✅ Request Approved",
+                                description: `Your name change request has been approved!\n\n**From:** ${change.from}\n**To:** ${change.to}`,
+                                color: 0x00ff00
+                            });
+                        } catch (e) {
+                            console.error('Failed to send name change approval DM:', e);
+                        }
                     } else if (change.type === 'department') {
                         addNotification('profile', `✅ Department change approved: ${change.from} → ${change.to}`, 'myProfile');
+                        // Send DM notification for approved department change
+                        try {
+                            await sendDiscordDM(discordId, {
+                                title: "✅ Request Approved",
+                                description: `Your department change request has been approved!\n\n**From:** ${change.from}\n**To:** ${change.to}`,
+                                color: 0x00ff00
+                            });
+                        } catch (e) {
+                            console.error('Failed to send department change approval DM:', e);
+                        }
                     }
                 }
                 
@@ -1120,6 +1140,21 @@ setInterval(async () => {
                     // Add portal notification
                     const isApproved = processedAbsence.status === 'approved';
                     addNotification('absence', `${isApproved ? '✅' : '❌'} Absence request ${isApproved ? 'approved' : 'rejected'}!`, 'absences');
+                    
+                    // Send DM notification for absence approval/rejection
+                    try {
+                        const emoji = isApproved ? '✅' : '❌';
+                        const status = isApproved ? 'approved' : 'rejected';
+                        const color = isApproved ? 0x00ff00 : 0xff0000;
+                        
+                        await sendDiscordDM(window.currentUser.id, {
+                            title: `${emoji} Absence Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+                            description: `Your absence request has been ${status}!\n\n**Dates:** ${processedAbsence.startDate} to ${processedAbsence.endDate}\n**Status:** ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+                            color: color
+                        });
+                    } catch (e) {
+                        console.error('Failed to send absence approval DM:', e);
+                    }
                 }
             }
             
