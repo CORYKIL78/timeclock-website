@@ -55,6 +55,7 @@
         <button onclick="testAbsenceApproved()">Test Absence Approved DM</button>
         <button onclick="testAbsenceRejected()">Test Absence Rejected DM</button>
         <button onclick="testPayslipDM()">Test New Payslip DM</button>
+        <button onclick="testBotInfo()" style="background: #28a745;">Test Bot Token</button>
         
         <div id="result"></div>
     </div>
@@ -178,6 +179,46 @@
                 footer: { text: 'Cirkle Development HR Portal • portal.cirkledevelopment.co.uk' },
                 timestamp: new Date().toISOString()
             });
+        }
+
+        async function testBotInfo() {
+            log('=== Testing Bot Token Validity ===');
+            try {
+                const botRes = await fetch('https://discord.com/api/v10/users/@me', {
+                    headers: {
+                        'Authorization': `Bot ${getBotToken()}`
+                    }
+                });
+                
+                if (!botRes.ok) {
+                    const error = await botRes.text();
+                    log(`❌ Bot token invalid: ${botRes.status} - ${error}`);
+                    return;
+                }
+                
+                const botInfo = await botRes.json();
+                log(`✅ Bot token is valid!`);
+                log(`🤖 Bot: ${botInfo.username}#${botInfo.discriminator} (ID: ${botInfo.id})`);
+                log(`📊 Is bot verified: ${botInfo.verified}`);
+                
+                // Test if bot can access the user
+                const userRes = await fetch(`https://discord.com/api/v10/users/${TEST_USER_ID}`, {
+                    headers: {
+                        'Authorization': `Bot ${getBotToken()}`
+                    }
+                });
+                
+                if (userRes.ok) {
+                    const userInfo = await userRes.json();
+                    log(`✅ Can access user: ${userInfo.username}`);
+                } else {
+                    log(`❌ Cannot access user: ${userRes.status}`);
+                }
+                
+                log(`\n`);
+            } catch (e) {
+                log(`❌ Error testing bot: ${e.message}`);
+            }
         }
 
         log('Ready to test! Click any button above.\n');
