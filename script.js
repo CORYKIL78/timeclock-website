@@ -634,81 +634,6 @@ async function checkApprovedChangeRequests(discordId) {
     }
 }
 
-// Function to fetch and display user's change requests
-async function loadChangeRequests(discordId) {
-    try {
-        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/list', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ discordId })
-        });
-        
-        if (response.ok) {
-            const result = await response.json();
-            renderChangeRequests(result.requests || []);
-        }
-    } catch (error) {
-        console.error('Error loading change requests:', error);
-    }
-}
-
-// Function to render change requests in the UI
-function renderChangeRequests(requests) {
-    const container = document.getElementById('changeRequestsList');
-    if (!container) return;
-    
-    if (requests.length === 0) {
-        container.innerHTML = '<p style="color: var(--secondary); font-style: italic;">No change requests found.</p>';
-        return;
-    }
-    
-    container.innerHTML = requests.map(request => {
-        const statusClass = request.status.toLowerCase();
-        const requestDate = new Date(request.requestDate).toLocaleDateString();
-        const approvalDate = request.approvalDate ? new Date(request.approvalDate).toLocaleDateString() : '';
-        
-        return `
-            <div class="change-request-item ${statusClass}">
-                <div class="change-request-header">
-                    <span class="change-request-type">${request.requestType} Change</span>
-                    <span class="change-request-status ${statusClass}">${request.status}</span>
-                </div>
-                <div class="change-request-details">
-                    <div><strong>From:</strong> ${request.currentValue}</div>
-                    <div><strong>To:</strong> ${request.requestedValue}</div>
-                    <div><strong>Reason:</strong> ${request.reason}</div>
-                    <div><strong>Requested:</strong> ${requestDate}</div>
-                    ${request.approvedBy ? `<div><strong>Approved By:</strong> ${request.approvedBy}</div>` : ''}
-                    ${approvalDate ? `<div><strong>Approval Date:</strong> ${approvalDate}</div>` : ''}
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-// Function to update profile statistics
-function updateProfileStatistics(emp) {
-    // Count absences
-    const absences = emp.absences || [];
-    const totalAbsences = absences.length;
-    const pendingAbsences = absences.filter(a => a.status === 'pending').length;
-    
-    // Count other items (these would be fetched from backend in a real scenario)
-    const totalPayslips = 0; // Could be fetched from backend
-    const totalDisciplinaries = emp.strikes ? emp.strikes.length : 0;
-    
-    // Update the display
-    const totalAbsEl = document.getElementById('totalAbsences');
-    const pendingAbsEl = document.getElementById('pendingAbsences');
-    const totalPayslipsEl = document.getElementById('totalPayslips');
-    const totalDisciplinariesEl = document.getElementById('totalDisciplinaries');
-    
-    if (totalAbsEl) totalAbsEl.textContent = totalAbsences;
-    if (pendingAbsEl) pendingAbsEl.textContent = pendingAbsences;
-    if (totalPayslipsEl) totalPayslipsEl.textContent = totalPayslips;
-    if (totalDisciplinariesEl) totalDisciplinariesEl.textContent = totalDisciplinaries;
-}
-
 // Call syncUserProfileOnLogin() after successful login (e.g. after setting currentUser)
 // Polling for absence status updates
 setInterval(async () => {
@@ -2258,15 +2183,8 @@ document.getElementById('sidebarProfilePic').addEventListener('click', () => {
     document.getElementById('profileName').textContent = emp.profile.name || 'N/A';
     document.getElementById('profileEmail').textContent = emp.profile.email || 'N/A';
     document.getElementById('profileDepartment').textContent = emp.profile.department || 'N/A';
-    document.getElementById('profileDepartment').classList.toggle('pending-department', !!emp.pendingDeptChange);
     document.getElementById('updateNameInput').value = emp.profile.name || '';
     document.getElementById('updateEmailInput').value = emp.profile.email || '';
-    
-    // Update profile statistics
-    updateProfileStatistics(emp);
-    
-    // Load change requests
-    loadChangeRequests(currentUser.id);
 });
 
 document.getElementById('mainProfilePic').addEventListener('click', () => {
@@ -2277,47 +2195,16 @@ document.getElementById('mainProfilePic').addEventListener('click', () => {
     document.getElementById('profileDisplayName').textContent = emp.profile.name || currentUser.username || 'User';
     document.getElementById('profileSubtitle').textContent = `${emp.profile.department || 'Staff'} • ${emp.profile.email || 'No Email'}`;
     
-    // Update status badge
-    const statusBadge = document.getElementById('statusBadge');
-    const status = emp.profile.status || 'Active';
-    statusBadge.textContent = status;
-    statusBadge.className = `profile-badge status-${status.toLowerCase()}`;
-    
-    // Update department badge
-    const deptBadge = document.getElementById('deptBadge');
-    if (emp.profile.department) {
-        deptBadge.textContent = emp.profile.department;
-        deptBadge.style.display = 'inline-block';
-    } else {
-        deptBadge.style.display = 'none';
-    }
-    
-    // Update status indicator
-    const statusIndicator = document.getElementById('profileStatusIndicator');
-    statusIndicator.className = `profile-status-indicator ${status.toLowerCase()}`;
-    
     // Update profile information
     document.getElementById('profileName').textContent = emp.profile.name || 'N/A';
     document.getElementById('profileEmail').textContent = emp.profile.email || 'N/A';
     document.getElementById('profileDepartment').textContent = emp.profile.department || 'N/A';
-    document.getElementById('profileDepartment').classList.toggle('pending-department', !!emp.pendingDeptChange);
-    
-    // Update profile statistics
-    updateProfileStatistics(emp);
-    
-    // Load change requests
-    loadChangeRequests(currentUser.id);
 });
 
 document.getElementById('homeBtn').addEventListener('click', () => {
     console.log('Home button clicked');
     showScreen('mainMenu');
     updateMainScreen();
-});
-
-// Refresh change requests button
-document.getElementById('refreshRequestsBtn').addEventListener('click', () => {
-    loadChangeRequests(currentUser.id);
 });
 
 const updateProfileBtn = document.getElementById('updateProfileBtn');
