@@ -802,6 +802,60 @@ async function sendDiscordDM(userId, embed) {
         console.error('Error sending Discord DM via proxy:', e);
     }
 }
+
+// Notification functions for payslips and disciplinaries
+async function sendPayslipNotification(userId, staffId) {
+    const embed = {
+        title: '📄 New Payslip Available',
+        description: 'You have received a new payslip!',
+        fields: [
+            { name: '🆔 Staff ID', value: staffId, inline: true },
+            { name: '📅 Date', value: new Date().toLocaleDateString(), inline: true },
+            { name: '🔗 Portal', value: 'portal.cirkledevelopment.co.uk', inline: false }
+        ],
+        color: 0x2196F3,
+        footer: { text: 'Cirkle Development HR Portal' },
+        timestamp: new Date().toISOString()
+    };
+    
+    await sendDiscordDM(userId, embed);
+}
+
+async function sendDisciplinaryNotification(userId, staffId, strikeType) {
+    const embed = {
+        title: '⚠️ New Disciplinary Notice',
+        description: 'You have received a new disciplinary notice.',
+        fields: [
+            { name: '🆔 Staff ID', value: staffId, inline: true },
+            { name: '📋 Type', value: strikeType, inline: true },
+            { name: '📅 Date', value: new Date().toLocaleDateString(), inline: true },
+            { name: '🔗 Portal', value: 'portal.cirkledevelopment.co.uk', inline: false }
+        ],
+        color: 0xF44336,
+        footer: { text: 'Cirkle Development HR Portal' },
+        timestamp: new Date().toISOString()
+    };
+    
+    await sendDiscordDM(userId, embed);
+}
+
+async function sendGoodbyeMessage(userId, staffId) {
+    const embed = {
+        title: '👋 Profile Reset Complete',
+        description: 'Your profile has been successfully reset. All your data has been erased from our systems.',
+        fields: [
+            { name: '🆔 Staff ID', value: staffId, inline: true },
+            { name: '🗑️ Data Cleared', value: 'All personal information, payslips, and disciplinaries have been removed', inline: false },
+            { name: '🔄 Fresh Start', value: 'You can sign up again anytime at portal.cirkledevelopment.co.uk', inline: false }
+        ],
+        color: 0x9E9E9E,
+        footer: { text: 'Thank you for being part of Cirkle Development' },
+        timestamp: new Date().toISOString()
+    };
+    
+    await sendDiscordDM(userId, embed);
+}
+
 const SUCCESS_SOUND_URL = 'https://cdn.pixabay.com/audio/2023/01/07/audio_cae2a6c2fc.mp3';
 const NOTIFICATION_SOUND_URL = 'https://cdn.pixabay.com/audio/2025/09/02/audio_4e70a465f7.mp3';
 const ABSENCE_CHANNEL = '1417583684525232291';
@@ -2011,6 +2065,9 @@ document.getElementById('resetProfileBtn').addEventListener('click', () => {
 });
 
 document.getElementById('confirmResetBtn').addEventListener('click', async () => {
+    // Send goodbye DM before resetting
+    await sendGoodbyeMessage(currentUser.id, currentUser.id);
+    
     // Delete from backend Google Sheets
     try {
         await fetch('https://timeclock-backend.marcusray.workers.dev/api/user/delete', {
@@ -2462,33 +2519,47 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
             return;
         }
         
-        content.innerHTML = '';
+        // Display payslips in a structured format
+        content.innerHTML = `
+            <div class="payslips-list">
+                ${payslips.map((payslip, index) => `
+                    <div class="payslip-item">
+                        <h4>Payslip: ${payslip.dateAssigned}</h4>
+                        <p><strong>Comment:</strong> ${payslip.comment || 'No comment provided'}</p>
+                        <p><strong>Assigned By:</strong> ${payslip.assignedBy}</p>
+                        <a href="${payslip.link}" target="_blank" class="payslip-link">View Payslip</a>
+                        <button class="remove-payslip-btn" data-id="${index}">Remove</button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
         
-        // Add scrollable container for payslips
-        const payslipsContainer = document.createElement('div');
-        payslipsContainer.style.cssText = 'max-height: 400px; overflow-y: auto; padding: 10px;';
-        
-        payslips.forEach((payslip) => {
-            const div = document.createElement('div');
-            div.className = 'payslip-item';
-            div.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; cursor: pointer; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center;';
-            div.onmouseenter = () => div.style.background = '#f5f5f5';
-            div.onmouseleave = () => div.style.background = 'white';
-            
-            const leftSide = document.createElement('div');
-            leftSide.innerHTML = `<h3 style="margin: 0; font-size: 16px;">PAYSLIP: ${payslip.dateAssigned}</h3>`;
-            
-            const rightSide = document.createElement('div');
-            rightSide.innerHTML = `<p style="margin: 0; color: #666; font-size: 14px;">Assigned by: ${payslip.assignedBy}</p>`;
-            
-            div.appendChild(leftSide);
-            div.appendChild(rightSide);
-            
-            div.onclick = () => showPayslipModal(payslip);
-            payslipsContainer.appendChild(div);
+        // Add event listeners for remove buttons
+        content.querySelectorAll('.remove-payslip-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const payslipIndex = parseInt(e.target.dataset.id);
+                
+                if (confirm('Are you sure you want to remove this payslip?')) {
+                    try {
+                        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/payslips/remove', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ staffId, payslipIndex })
+                        });
+                        
+                        if (res.ok) {
+                            // Refresh the payslips list
+                            document.getElementById('payslipsBtn').click();
+                        } else {
+                            alert('Failed to remove payslip');
+                        }
+                    } catch (error) {
+                        console.error('Error removing payslip:', error);
+                        alert('Error removing payslip');
+                    }
+                }
+            });
         });
-        
-        content.appendChild(payslipsContainer);
     } catch (e) {
         console.error('Error fetching payslips:', e);
         content.innerHTML = '<p>Error loading payslips. Please try again later.</p>';
@@ -2520,22 +2591,92 @@ function showPayslipModal(payslip) {
     window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
 }
 
-document.getElementById('disciplinariesBtn').addEventListener('click', () => {
+document.getElementById('disciplinariesBtn').addEventListener('click', async () => {
     showScreen('disciplinaries');
     const content = document.getElementById('disciplinariesContent');
-    content.innerHTML = '';
-    const emp = getEmployee(currentUser.id);
-    emp.strikes.forEach(s => {
-        const div = document.createElement('div');
-        div.innerHTML = `
-            <p>Level: ${s.level}</p>
-            <p>Reason: ${s.reason}</p>
-            <p>Details: ${s.details}</p>
-            <p>Action: ${s.action}</p>
-            <p>Timestamp: ${s.timestamp}</p>
+    content.innerHTML = '<p>Loading disciplinaries...</p>';
+    
+    // Use Discord ID as Staff ID
+    const staffId = currentUser?.id;
+    
+    console.log('[DEBUG] Disciplinaries - Using Discord ID as Staff ID:', staffId);
+    
+    if (!staffId) {
+        content.innerHTML = '<p>Please log in first.</p>';
+        console.error('[DEBUG] No currentUser found - user not logged in');
+        return;
+    }
+    
+    try {
+        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/disciplinaries/fetch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ staffId })
+        });
+        
+        if (!res.ok) {
+            throw new Error('Failed to fetch disciplinaries');
+        }
+        
+        const data = await res.json();
+        const disciplinaries = data.disciplinaries || [];
+        
+        console.log('[DEBUG] Fetched disciplinaries:', disciplinaries);
+        
+        if (disciplinaries.length === 0) {
+            content.innerHTML = '<p>No disciplinaries found.</p>';
+            return;
+        }
+        
+        // Display disciplinaries with count
+        const activeDisciplinaries = disciplinaries.length;
+        content.innerHTML = `
+            <h3>Active Disciplinaries: ${activeDisciplinaries}</h3>
+            <div class="disciplinaries-list">
+                ${disciplinaries.map((disc, index) => `
+                    <div class="disciplinary-item">
+                        <h4>Disciplinary: #${index + 1}</h4>
+                        <p><strong>Type:</strong> ${disc.strikeType}</p>
+                        <p><strong>Comment:</strong> ${disc.comment}</p>
+                        <p><strong>Assigned By:</strong> ${disc.assignedBy}</p>
+                        <p><strong>Date:</strong> ${disc.dateAssigned}</p>
+                        <button class="remove-disciplinary-btn" data-id="${index}">Remove</button>
+                    </div>
+                `).join('')}
+            </div>
         `;
-        content.appendChild(div);
-    });
+        
+        // Add event listeners for remove buttons
+        content.querySelectorAll('.remove-disciplinary-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const disciplinaryIndex = parseInt(e.target.dataset.id);
+                
+                if (confirm('Are you sure you want to remove this disciplinary?')) {
+                    try {
+                        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/disciplinaries/remove', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ staffId, disciplinaryIndex })
+                        });
+                        
+                        if (res.ok) {
+                            // Refresh the disciplinaries list
+                            document.getElementById('disciplinariesBtn').click();
+                        } else {
+                            alert('Failed to remove disciplinary');
+                        }
+                    } catch (error) {
+                        console.error('Error removing disciplinary:', error);
+                        alert('Error removing disciplinary');
+                    }
+                }
+            });
+        });
+        
+    } catch (error) {
+        console.error('Error fetching disciplinaries:', error);
+        content.innerHTML = '<p>Error loading disciplinaries. Please try again.</p>';
+    }
 });
 
 document.getElementById('timeclockBtn').addEventListener('click', () => {

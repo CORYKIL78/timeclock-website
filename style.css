@@ -1951,6 +1951,74 @@ body.dark .stat-card {
     color: var(--secondary);
 }
 
+/* Disciplinaries and Payslips Styling */
+.disciplinaries-list, .payslips-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.disciplinary-item, .payslip-item {
+    background: white;
+    border: 1px solid var(--mail-border);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+body.dark .disciplinary-item, 
+body.dark .payslip-item {
+    background: #34495e;
+    border-color: #576574;
+}
+
+.disciplinary-item h4, .payslip-item h4 {
+    margin: 0 0 12px 0;
+    color: var(--primary);
+    font-size: 1.1em;
+}
+
+.disciplinary-item p, .payslip-item p {
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.remove-disciplinary-btn, .remove-payslip-btn {
+    background: var(--danger);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 12px;
+    transition: background-color 0.2s;
+}
+
+.remove-disciplinary-btn:hover, .remove-payslip-btn:hover {
+    background: #c0392b;
+}
+
+.payslip-link {
+    display: inline-block;
+    background: var(--primary);
+    color: white;
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-top: 8px;
+    margin-right: 8px;
+    transition: background-color 0.2s;
+}
+
+.payslip-link:hover {
+    background: #0056b3;
+    color: white;
+    text-decoration: none;
+}
+
 @media (max-width: 600px) {
     .container { 
         max-width: 100%; 
