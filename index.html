@@ -95,14 +95,26 @@
         </div>
     </div>
     <div id="deptChangeModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content request-modal">
             <span class="close">&times;</span>
-            <h2>Change Department</h2>
-            <p>Which department do you wish to change to?</p>
-            <label><input type="radio" name="newDepartment" value="Development Department"> Development</label>
-            <label><input type="radio" name="newDepartment" value="Customer Relations Department"> Customer Relations</label>
-            <label><input type="radio" name="newDepartment" value="Finance Department"> Finance</label>
-            <button id="submitDeptChangeBtn">Submit</button>
+            <h2>Request Department Change</h2>
+            <div class="request-field">
+                <label for="deptSelect">New Department:</label>
+                <select id="deptSelect">
+                    <option value="Customer Relations Department">Customer Relations</option>
+                    <option value="Development Department">Development</option>
+                    <option value="Careers Department">Careers</option>
+                </select>
+            </div>
+            <div class="request-field">
+                <label for="deptChangeReason">Reason:</label>
+                <textarea id="deptChangeReason" placeholder="Please explain why you need to change departments"></textarea>
+            </div>
+            <div class="request-buttons">
+                <button id="deptRequestBtn" class="submit-request-btn">Submit Request</button>
+                <button id="deptCancelBtn" class="cancel-request-btn">Cancel</button>
+            </div>
+            <div id="deptChangeSuccess" class="request-success hidden">Request submitted successfully!</div>
         </div>
     </div>
     <div id="viewMailModal" class="modal">
@@ -155,6 +167,48 @@
                 <p><strong>Comment:</strong> <span id="payslipComment"></span></p>
                 <p><strong>Assigned by:</strong> <span id="payslipAssignedBy"></span></p>
             </div>
+        </div>
+    </div>
+
+    <!-- Name Change Request Modal -->
+    <div id="nameChangeModal" class="modal">
+        <div class="modal-content request-modal">
+            <span class="close">&times;</span>
+            <h2>Request Name Change</h2>
+            <div class="request-field">
+                <label for="newNameInput">New Name:</label>
+                <input type="text" id="newNameInput" placeholder="Enter your new name">
+            </div>
+            <div class="request-field">
+                <label for="nameChangeReason">Reason:</label>
+                <textarea id="nameChangeReason" placeholder="Please explain why you need to change your name"></textarea>
+            </div>
+            <div class="request-buttons">
+                <button id="submitNameChangeBtn" class="submit-request-btn">Submit Request</button>
+                <button id="cancelNameChangeBtn" class="cancel-request-btn">Cancel</button>
+            </div>
+            <div id="nameChangeSuccess" class="request-success hidden">Request submitted successfully!</div>
+        </div>
+    </div>
+
+    <!-- Email Change Request Modal -->
+    <div id="emailChangeModal" class="modal">
+        <div class="modal-content request-modal">
+            <span class="close">&times;</span>
+            <h2>Request Email Change</h2>
+            <div class="request-field">
+                <label for="newEmailInput">New Email:</label>
+                <input type="email" id="newEmailInput" placeholder="Enter your new email">
+            </div>
+            <div class="request-field">
+                <label for="emailChangeReason">Reason:</label>
+                <textarea id="emailChangeReason" placeholder="Please explain why you need to change your email"></textarea>
+            </div>
+            <div class="request-buttons">
+                <button id="submitEmailChangeBtn" class="submit-request-btn">Submit Request</button>
+                <button id="cancelEmailChangeBtn" class="cancel-request-btn">Cancel</button>
+            </div>
+            <div id="emailChangeSuccess" class="request-success hidden">Request submitted successfully!</div>
         </div>
     </div>
 
@@ -319,46 +373,43 @@
     </div>
         <div id="myProfileScreen" class="screen">
         <div class="container">
-            <div class="profile-container">
-                <!-- Profile Header -->
-                <div class="profile-header">
-                    <div class="profile-avatar">
-                        <img id="profilePic" class="profile-img-large" src="" alt="Profile Picture">
+            <div class="profile-container-streamlined">
+                <!-- Streamlined Profile Layout -->
+                <div class="profile-main-layout">
+                    <!-- Profile Picture (Left Side) -->
+                    <div class="profile-pic-section">
+                        <img id="profilePic" class="profile-img-streamlined" src="" alt="Profile Picture">
                     </div>
-                    <div class="profile-header-info">
-                        <h2 id="profileDisplayName">User Profile</h2>
-                        <p class="profile-subtitle" id="profileSubtitle">Staff Member</p>
+                    
+                    <!-- Profile Info (Right Side) -->
+                    <div class="profile-info-section">
+                        <div class="profile-info-row">
+                            <span class="profile-info-label">Name:</span>
+                            <span id="profileName" class="profile-info-value">Loading...</span>
+                            <button class="pencil-btn" id="editNameBtn" title="Request Name Change">✎</button>
+                        </div>
+                        
+                        <div class="profile-info-row">
+                            <span class="profile-info-label">Department:</span>
+                            <span id="profileDepartment" class="profile-info-value">Loading...</span>
+                            <button class="pencil-btn" id="editDeptBtn" title="Request Department Change">✎</button>
+                        </div>
+                        
+                        <div class="profile-info-row">
+                            <span class="profile-info-label">Email:</span>
+                            <span id="profileEmail" class="profile-info-value">Loading...</span>
+                            <button class="pencil-btn" id="editEmailBtn" title="Request Email Change">✎</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Profile Information Card -->
-                <div class="profile-card">
-                    <h3 class="profile-card-title">Profile Information</h3>
-                    <div class="profile-info-grid">
-                        <div class="profile-row">
-                            <span class="profile-label">Name:</span>
-                            <span id="profileName"></span>
-                            <button class="edit-btn" id="editNameBtn" title="Request Name Change">✎</button>
-                        </div>
-                        <div class="profile-row">
-                            <span class="profile-label">Email:</span>
-                            <span id="profileEmail"></span>
-                            <button class="edit-btn" id="editEmailBtn" title="Edit Email">✎</button>
-                        </div>
-                        <div class="profile-row">
-                            <span class="profile-label">Department:</span>
-                            <span id="profileDepartment"></span>
-                            <button class="edit-btn" id="editDeptBtn" title="Request Department Change">✎</button>
-                        </div>
-                    </div>
-                    <div id="editFieldsContainer" class="edit-fields-container"></div>
+                <!-- Reset Profile Button (Bottom) -->
+                <div class="profile-actions-bottom">
+                    <button id="resetProfileBtn" class="reset-profile-btn">Reset Profile</button>
                 </div>
-
-                <!-- Profile Actions Card -->
-                <div class="profile-card">
-                    <h3 class="profile-card-title">Account Actions</h3>
-                    <div class="profile-actions">
-                        <button id="resetProfileBtn" class="action-btn danger">Reset Profile</button>
+            </div>
+        </div>
+    </div>
                     </div>
                 </div>
                 

@@ -230,14 +230,25 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         cancelBtn.onclick = () => { editFieldsContainer.innerHTML = ''; };
     }
-    if (editNameBtn) editNameBtn.onclick = () => showEditField('name', profileName.textContent);
-    if (editEmailBtn) editEmailBtn.onclick = () => showEditField('email', profileEmail.textContent);
-    // Replace department edit with request button
+    
+    // New streamlined edit handlers - open modals instead of inline editing
+    if (editNameBtn) {
+        editNameBtn.onclick = () => {
+            document.getElementById('nameChangeModal').style.display = 'block';
+            document.getElementById('nameChangeSuccess').style.display = 'none';
+        };
+    }
+    
+    if (editEmailBtn) {
+        editEmailBtn.onclick = () => {
+            document.getElementById('emailChangeModal').style.display = 'block';
+            document.getElementById('emailChangeSuccess').style.display = 'none';
+        };
+    }
+    
     if (editDeptBtn) {
-        editDeptBtn.textContent = 'Request Department Change';
-        editDeptBtn.style.display = '';
         editDeptBtn.onclick = () => {
-            deptChangeModal.style.display = 'block';
+            document.getElementById('deptChangeModal').style.display = 'block';
             document.getElementById('deptChangeSuccess').style.display = 'none';
         };
     }
@@ -256,7 +267,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (deptRequestBtn) {
         deptRequestBtn.onclick = async () => {
             const deptSelect = document.getElementById('deptSelect');
+            const reasonTextarea = document.getElementById('deptChangeReason');
             const requestedDept = deptSelect ? deptSelect.value : '';
+            const reason = reasonTextarea ? reasonTextarea.value.trim() : '';
+            
+            if (!requestedDept || !reason) {
+                alert('Please select a department and provide a reason.');
+                return;
+            }
+            
             // Animate success
             const deptChangeSuccess = document.getElementById('deptChangeSuccess');
             if (deptChangeSuccess) {
@@ -273,13 +292,143 @@ document.addEventListener('DOMContentLoaded', () => {
                     { name: 'Name', value: name, inline: true },
                     { name: 'Staff ID', value: staffId, inline: true },
                     { name: 'Current Department', value: currentDept, inline: true },
-                    { name: 'Requested Department', value: requestedDept, inline: true }
+                    { name: 'Requested Department', value: requestedDept, inline: true },
+                    { name: 'Reason', value: reason, inline: false }
                 ],
                 timestamp: new Date().toISOString()
             })), { method: 'POST' });
-            setTimeout(() => { deptChangeModal.style.display = 'none'; }, 1200);
+            setTimeout(() => { 
+                deptChangeModal.style.display = 'none'; 
+                // Clear form
+                if (reasonTextarea) reasonTextarea.value = '';
+            }, 1200);
         };
     }
+    
+    // Name Change Modal Handlers
+    const nameChangeModal = document.getElementById('nameChangeModal');
+    const submitNameChangeBtn = document.getElementById('submitNameChangeBtn');
+    const cancelNameChangeBtn = document.getElementById('cancelNameChangeBtn');
+    
+    if (submitNameChangeBtn) {
+        submitNameChangeBtn.onclick = async () => {
+            const newNameInput = document.getElementById('newNameInput');
+            const reasonInput = document.getElementById('nameChangeReason');
+            const newName = newNameInput ? newNameInput.value.trim() : '';
+            const reason = reasonInput ? reasonInput.value.trim() : '';
+            
+            if (!newName || !reason) {
+                alert('Please enter a new name and provide a reason.');
+                return;
+            }
+            
+            // Show success message
+            const successDiv = document.getElementById('nameChangeSuccess');
+            if (successDiv) successDiv.style.display = 'block';
+            
+            // Send Discord notification
+            const staffId = window.currentUser?.profile?.staffId || '';
+            const currentName = window.currentUser?.profile?.name || '';
+            await fetch('https://timeclock-discord-proxy.marcusray.workers.dev/postEmbed?channel_id=1417583684525232291&embed_json=' + encodeURIComponent(JSON.stringify({
+                title: 'Name Change Request',
+                color: 0x4caf50,
+                fields: [
+                    { name: 'Current Name', value: currentName, inline: true },
+                    { name: 'Staff ID', value: staffId, inline: true },
+                    { name: 'Requested Name', value: newName, inline: true },
+                    { name: 'Reason', value: reason, inline: false }
+                ],
+                timestamp: new Date().toISOString()
+            })), { method: 'POST' });
+            
+            setTimeout(() => { 
+                nameChangeModal.style.display = 'none'; 
+                // Clear form
+                if (newNameInput) newNameInput.value = '';
+                if (reasonInput) reasonInput.value = '';
+            }, 1200);
+        };
+    }
+    
+    if (cancelNameChangeBtn) {
+        cancelNameChangeBtn.onclick = () => {
+            nameChangeModal.style.display = 'none';
+        };
+    }
+    
+    // Email Change Modal Handlers
+    const emailChangeModal = document.getElementById('emailChangeModal');
+    const submitEmailChangeBtn = document.getElementById('submitEmailChangeBtn');
+    const cancelEmailChangeBtn = document.getElementById('cancelEmailChangeBtn');
+    
+    if (submitEmailChangeBtn) {
+        submitEmailChangeBtn.onclick = async () => {
+            const newEmailInput = document.getElementById('newEmailInput');
+            const reasonInput = document.getElementById('emailChangeReason');
+            const newEmail = newEmailInput ? newEmailInput.value.trim() : '';
+            const reason = reasonInput ? reasonInput.value.trim() : '';
+            
+            if (!newEmail || !reason) {
+                alert('Please enter a new email and provide a reason.');
+                return;
+            }
+            
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(newEmail)) {
+                alert('Please enter a valid email address.');
+                return;
+            }
+            
+            // Show success message
+            const successDiv = document.getElementById('emailChangeSuccess');
+            if (successDiv) successDiv.style.display = 'block';
+            
+            // Send Discord notification
+            const staffId = window.currentUser?.profile?.staffId || '';
+            const currentEmail = window.currentUser?.profile?.email || '';
+            const name = window.currentUser?.profile?.name || '';
+            await fetch('https://timeclock-discord-proxy.marcusray.workers.dev/postEmbed?channel_id=1417583684525232291&embed_json=' + encodeURIComponent(JSON.stringify({
+                title: 'Email Change Request',
+                color: 0xff9800,
+                fields: [
+                    { name: 'Name', value: name, inline: true },
+                    { name: 'Staff ID', value: staffId, inline: true },
+                    { name: 'Current Email', value: currentEmail, inline: true },
+                    { name: 'Requested Email', value: newEmail, inline: true },
+                    { name: 'Reason', value: reason, inline: false }
+                ],
+                timestamp: new Date().toISOString()
+            })), { method: 'POST' });
+            
+            setTimeout(() => { 
+                emailChangeModal.style.display = 'none'; 
+                // Clear form
+                if (newEmailInput) newEmailInput.value = '';
+                if (reasonInput) reasonInput.value = '';
+            }, 1200);
+        };
+    }
+    
+    if (cancelEmailChangeBtn) {
+        cancelEmailChangeBtn.onclick = () => {
+            emailChangeModal.style.display = 'none';
+        };
+    }
+    
+    // Modal close handlers (click outside to close)
+    if (nameChangeModal) {
+        nameChangeModal.addEventListener('click', (e) => {
+            if (e.target === nameChangeModal) nameChangeModal.style.display = 'none';
+        });
+    }
+    
+    if (emailChangeModal) {
+        emailChangeModal.addEventListener('click', (e) => {
+            if (e.target === emailChangeModal) emailChangeModal.style.display = 'none';
+        });
+    }
+    
     // Reset profile with countdown
     if (resetProfileBtn) {
         resetProfileBtn.onclick = () => {
@@ -2190,10 +2339,6 @@ document.getElementById('sidebarProfilePic').addEventListener('click', () => {
 document.getElementById('mainProfilePic').addEventListener('click', () => {
     showScreen('myProfile');
     const emp = getEmployee(currentUser.id);
-    
-    // Update profile header
-    document.getElementById('profileDisplayName').textContent = emp.profile.name || currentUser.username || 'User';
-    document.getElementById('profileSubtitle').textContent = `${emp.profile.department || 'Staff'} • ${emp.profile.email || 'No Email'}`;
     
     // Update profile information
     document.getElementById('profileName').textContent = emp.profile.name || 'N/A';
