@@ -55,17 +55,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const profileEmailEl = document.getElementById('profileEmail');
             const profileDepartmentEl = document.getElementById('profileDepartment');
             
+            console.debug('[syncProfileFromSheets] DOM elements found:', {
+                profileNameEl: !!profileNameEl,
+                profileEmailEl: !!profileEmailEl,
+                profileDepartmentEl: !!profileDepartmentEl
+            });
+            
             if (profile.name && profileNameEl) {
                 profileNameEl.textContent = profile.name;
                 console.debug('[syncProfileFromSheets] Set profileName to:', profile.name);
+            } else {
+                console.debug('[syncProfileFromSheets] Could not set profileName:', { hasName: !!profile.name, hasElement: !!profileNameEl });
             }
             if (profile.email && profileEmailEl) {
                 profileEmailEl.textContent = profile.email;
                 console.debug('[syncProfileFromSheets] Set profileEmail to:', profile.email);
+            } else {
+                console.debug('[syncProfileFromSheets] Could not set profileEmail:', { hasEmail: !!profile.email, hasElement: !!profileEmailEl });
             }
             if (profile.department && profileDepartmentEl) {
                 profileDepartmentEl.textContent = profile.department;
                 console.debug('[syncProfileFromSheets] Set profileDepartment to:', profile.department);
+            } else {
+                console.debug('[syncProfileFromSheets] Could not set profileDepartment:', { hasDepartment: !!profile.department, hasElement: !!profileDepartmentEl });
             }
             
             // Update profile pictures after getting name
@@ -698,7 +710,7 @@ async function upsertUserProfile() {
 async function fetchUserProfile(discordId) {
     try {
         console.debug('[fetchUserProfile] Fetching profile for discordId: ' + discordId);
-        const res = await fetch(`${BACKEND_URL}/api/user/profile`, {
+        const res = await fetch(`${BACKEND_URL}/api/user/profile?t=${Date.now()}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ discordId })
