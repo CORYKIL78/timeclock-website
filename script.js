@@ -1341,14 +1341,7 @@ async function handleOAuthRedirect() {
     if (isFirstTime || !currentUser.profile.name) {
         console.log('No profile name, redirecting to setupWelcome');
         showScreen('setupWelcome');
-        // Ensure user is added to Sheets after initial setup
-        const observer = new MutationObserver(async () => {
-            if (currentUser.profile && currentUser.profile.name && currentUser.profile.email && currentUser.profile.department) {
-                await upsertUserProfile();
-                observer.disconnect();
-            }
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
+        // Profile will be saved to Sheets when user completes department selection
     } else {
         console.log('Profile found, redirecting to portalWelcome');
         document.getElementById('portalWelcomeName').textContent = emp.profile.name;
@@ -2234,20 +2227,101 @@ function animateAbsenceFolderScale() {
 }
 
 
-document.getElementById('payslipsBtn').addEventListener('click', () => {
+document.getElementById('payslipsBtn').addEventListener('click', async () => {
     showScreen('payslips');
     const content = document.getElementById('payslipsContent');
-    content.innerHTML = '';
+    content.innerHTML = '<p>Loading payslips...</p>';
+    
     const emp = getEmployee(currentUser.id);
-    emp.payslips.forEach(p => {
-        const div = document.createElement('div');
-        div.innerHTML = `
-            <p>Issued: ${p.timestamp}</p>
-            <a href="${p.fileBase64}" download="payslip_${p.timestamp.replace(/[^a-z0-9]/gi, '_')}.pdf">Download</a>
-        `;
-        content.appendChild(div);
-    });
+    const staffId = emp.profile?.staffId;
+    
+    if (!staffId) {
+        content.innerHTML = '<p>No Staff ID found. Please contact HR.</p>';
+        return;
+    }
+    
+    try {
+        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/payslips/fetch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ staffId })
+        });
+        
+        if (!res.ok) {
+            throw new Error('Failed to fetch payslips');
+        }
+        
+        const data = await res.json();
+        const payslips = data.payslips || [];
+        
+        if (payslips.length === 0) {
+            content.innerHTML = '<p>No payslips found.</p>';
+            return;
+        }
+        
+        content.innerHTML = '';
+        payslips.forEach((payslip, index) => {
+            const div = document.createElement('div');
+            div.className = 'payslip-item';
+            div.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; cursor: pointer; transition: background 0.2s;';
+            div.onmouseenter = () => div.style.background = '#f5f5f5';
+            div.onmouseleave = () => div.style.background = 'white';
+            
+            const today = new Date().toLocaleDateString();
+            div.innerHTML = `
+                <h3 style="margin: 0 0 10px 0;">PAYSLIP: ${today}</h3>
+                <p style="margin: 5px 0; color: #666;">Click to view details</p>
+            `;
+            
+            div.onclick = () => showPayslipModal(payslip);
+            content.appendChild(div);
+        });
+    } catch (e) {
+        console.error('Error fetching payslips:', e);
+        content.innerHTML = '<p>Error loading payslips. Please try again later.</p>';
+    }
 });
+
+function showPayslipModal(payslip) {
+    const modal = document.getElementById('payslipViewModal');
+    document.getElementById('payslipDescription').textContent = payslip.description || 'No description provided';
+    
+    const fileContainer = document.getElementById('payslipFileContainer');
+    fileContainer.innerHTML = '';
+    
+    if (payslip.fileUrl) {
+        // Check if it's a Google Drive link
+        if (payslip.fileUrl.includes('drive.google.com')) {
+            let fileId = '';
+            if (payslip.fileUrl.includes('/file/d/')) {
+                fileId = payslip.fileUrl.split('/file/d/')[1].split('/')[0];
+            } else if (payslip.fileUrl.includes('id=')) {
+                fileId = payslip.fileUrl.split('id=')[1].split('&')[0];
+            }
+            
+            if (fileId) {
+                const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+                fileContainer.innerHTML = `
+                    <iframe src="${embedUrl}" width="100%" height="500px" style="border: none; margin-top: 15px;"></iframe>
+                    <a href="${payslip.fileUrl}" target="_blank" style="display: inline-block; margin-top: 10px; padding: 10px 20px; background: #1976d2; color: white; text-decoration: none; border-radius: 5px;">Open in New Tab</a>
+                `;
+            } else {
+                fileContainer.innerHTML = `<a href="${payslip.fileUrl}" target="_blank" style="display: inline-block; margin-top: 10px; padding: 10px 20px; background: #1976d2; color: white; text-decoration: none; border-radius: 5px;">View File</a>`;
+            }
+        } else {
+            fileContainer.innerHTML = `<a href="${payslip.fileUrl}" target="_blank" style="display: inline-block; margin-top: 10px; padding: 10px 20px; background: #1976d2; color: white; text-decoration: none; border-radius: 5px;">Download Payslip</a>`;
+        }
+    } else {
+        fileContainer.innerHTML = '<p style="color: #999; margin-top: 10px;">No file attached</p>';
+    }
+    
+    modal.style.display = 'flex';
+    
+    // Close modal handlers
+    const closeBtn = modal.querySelector('.close');
+    closeBtn.onclick = () => modal.style.display = 'none';
+    window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+}
 
 document.getElementById('disciplinariesBtn').addEventListener('click', () => {
     showScreen('disciplinaries');
