@@ -1163,7 +1163,8 @@ setInterval(async () => {
             
             // Send backend notification to trigger Discord DM
             try {
-                await fetch('https://timeclock-backend.marcusray.workers.dev/api/notifications/payslip', {
+                console.log('[DEBUG] Sending payslip DM notification for user:', window.currentUser.id);
+                const dmResponse = await fetch('https://timeclock-backend.marcusray.workers.dev/api/notifications/payslip', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1175,6 +1176,13 @@ setInterval(async () => {
                         }
                     })
                 });
+                
+                if (dmResponse.ok) {
+                    const dmResult = await dmResponse.json();
+                    console.log('[DEBUG] Payslip DM notification result:', dmResult);
+                } else {
+                    console.error('[DEBUG] Payslip DM notification failed:', dmResponse.status, await dmResponse.text());
+                }
             } catch (e) {
                 console.error('Failed to send payslip notification:', e);
             }
@@ -1222,7 +1230,8 @@ setInterval(async () => {
             
             // Send backend notification to trigger Discord DM
             try {
-                await fetch('https://timeclock-backend.marcusray.workers.dev/api/notifications/disciplinary', {
+                console.log('[DEBUG] Sending disciplinary DM notification for user:', window.currentUser.id);
+                const dmResponse = await fetch('https://timeclock-backend.marcusray.workers.dev/api/notifications/disciplinary', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1235,6 +1244,16 @@ setInterval(async () => {
                         }
                     })
                 });
+                
+                if (dmResponse.ok) {
+                    const dmResult = await dmResponse.json();
+                    console.log('[DEBUG] Disciplinary DM notification result:', dmResult);
+                } else {
+                    console.error('[DEBUG] Disciplinary DM notification failed:', dmResponse.status, await dmResponse.text());
+                }
+            } catch (e) {
+                console.error('Failed to send disciplinary notification:', e);
+            }
             } catch (e) {
                 console.error('Failed to send disciplinary notification:', e);
             }
