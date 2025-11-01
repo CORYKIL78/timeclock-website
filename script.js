@@ -1254,9 +1254,6 @@ setInterval(async () => {
             } catch (e) {
                 console.error('Failed to send disciplinary notification:', e);
             }
-            } catch (e) {
-                console.error('Failed to send disciplinary notification:', e);
-            }
             
             // Add portal notification with sound
             addNotification('disciplinary', `⚠️ ${newCount} new disciplinary notice${newCount > 1 ? 's' : ''} received!`, 'disciplinaries');
