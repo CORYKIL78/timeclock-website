@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Discord DMs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #5865F2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 10px 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #4752C4;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        h1 {
+            color: #5865F2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Discord DM Tester</h1>
+        <p>Testing DMs for User ID: <strong>1088907566844739624</strong></p>
+        
+        <button onclick="testSignupDM()">Test Signup Welcome DM</button>
+        <button onclick="testAbsenceSubmitted()">Test Absence Submitted DM</button>
+        <button onclick="testAbsenceApproved()">Test Absence Approved DM</button>
+        <button onclick="testAbsenceRejected()">Test Absence Rejected DM</button>
+        <button onclick="testPayslipDM()">Test New Payslip DM</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const getBotToken = () => atob('TVRReE56a3hOVGc1TmpZek5ESTNOemM0T0Rvby5HTFV2NWwuMDQ1c1pELWxNa2haTHMyeTZiRXRKMUY2VmxSRFBrV1FIRUFELU0=');
+        const TEST_USER_ID = '1088907566844739624';
+
+        function log(message) {
+            const result = document.getElementById('result');
+            result.textContent += message + '\n';
+            console.log(message);
+        }
+
+        async function sendDiscordDM(userId, embed) {
+            try {
+                log(`📤 Creating DM channel for user ${userId}...`);
+                
+                // Create DM channel
+                const dmRes = await fetch(`https://discord.com/api/v10/users/@me/channels`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${getBotToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ recipient_id: userId })
+                });
+                
+                if (!dmRes.ok) {
+                    const error = await dmRes.text();
+                    log(`❌ Failed to create DM channel: ${dmRes.status} - ${error}`);
+                    return false;
+                }
+                
+                const dmChannel = await dmRes.json();
+                log(`✅ DM channel created: ${dmChannel.id}`);
+                
+                // Send message
+                log(`📨 Sending message...`);
+                const msgRes = await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bot ${getBotToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ embeds: [embed] })
+                });
+                
+                if (!msgRes.ok) {
+                    const error = await msgRes.text();
+                    log(`❌ Failed to send message: ${msgRes.status} - ${error}`);
+                    return false;
+                }
+                
+                const msg = await msgRes.json();
+                log(`✅ Message sent successfully! Message ID: ${msg.id}`);
+                log(`\n`);
+                return true;
+            } catch (e) {
+                log(`❌ Error: ${e.message}`);
+                return false;
+            }
+        }
+
+        async function testSignupDM() {
+            log('=== Testing Signup Welcome DM ===');
+            await sendDiscordDM(TEST_USER_ID, {
+                title: '🎉 Welcome to Cirkle Development!',
+                description: `Welcome to the Cirkle Development Staff Portal!\n\nYour profile has been successfully created.`,
+                fields: [
+                    { name: '👤 Name', value: 'Test User', inline: true },
+                    { name: '📧 Email', value: 'test@example.com', inline: true },
+                    { name: '🏢 Department', value: 'Development Department', inline: false },
+                    { name: '🆔 Staff ID', value: 'TEST-001', inline: true }
+                ],
+                color: 0x2196F3,
+                footer: { text: 'Cirkle Development HR Portal • portal.cirkledevelopment.co.uk' },
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        async function testAbsenceSubmitted() {
+            log('=== Testing Absence Submitted DM ===');
+            await sendDiscordDM(TEST_USER_ID, {
+                title: '✅ Absence Request Submitted',
+                description: `Your absence request has been successfully submitted!\n\n**Type:** Vacation\n**Start Date:** 2025-11-10\n**End Date:** 2025-11-15\n**Days:** 5\n\nYou will be notified here once it has been reviewed.`,
+                color: 0x4CAF50,
+                footer: { text: 'Cirkle Development HR Portal' },
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        async function testAbsenceApproved() {
+            log('=== Testing Absence Approved DM ===');
+            await sendDiscordDM(TEST_USER_ID, {
+                title: '✅ Absence Request Approved',
+                description: `Your absence request has been **approved**.\n\n**Type:** Vacation\n**Start Date:** 2025-11-10\n**End Date:** 2025-11-15\n**Reason:** Holiday`,
+                color: 0x4CAF50,
+                footer: { text: 'Cirkle Development HR Portal' },
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        async function testAbsenceRejected() {
+            log('=== Testing Absence Rejected DM ===');
+            await sendDiscordDM(TEST_USER_ID, {
+                title: '❌ Absence Request Rejected',
+                description: `Your absence request has been **rejected**.\n\n**Type:** Personal\n**Start Date:** 2025-11-05\n**End Date:** 2025-11-06\n**Reason:** Short notice`,
+                color: 0xF44336,
+                footer: { text: 'Cirkle Development HR Portal' },
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        async function testPayslipDM() {
+            log('=== Testing New Payslip DM ===');
+            await sendDiscordDM(TEST_USER_ID, {
+                title: '💰 New Payslip Available',
+                description: `You have 1 new payslip available!\n\nPlease check the Staff Portal to view your payslip details.`,
+                color: 0xFF9800,
+                footer: { text: 'Cirkle Development HR Portal • portal.cirkledevelopment.co.uk' },
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        log('Ready to test! Click any button above.\n');
+    </script>
+</body>
+</html>
