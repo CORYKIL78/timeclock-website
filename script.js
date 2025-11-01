@@ -2904,11 +2904,11 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
     // Show loading state
     const loadingEl = document.getElementById('disciplinariesLoading');
     const emptyEl = document.getElementById('disciplinariesEmpty');
-    const tableBody = document.getElementById('disciplinariesTableBody');
+    const listEl = document.getElementById('disciplinariesList');
     
     loadingEl.classList.remove('hidden');
     emptyEl.classList.add('hidden');
-    tableBody.innerHTML = '';
+    listEl.innerHTML = '';
     
     // Use Discord ID as Staff ID
     const staffId = currentUser?.id;
@@ -2950,58 +2950,27 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
         const header = document.querySelector('#disciplinariesScreen h2');
         header.textContent = `Disciplinaries (${disciplinaries.length})`;
         
-        // Generate table rows
+        // Generate simple row-based list
         disciplinaries.forEach((disc, index) => {
-            const row = document.createElement('tr');
-            row.className = 'disciplinary-row';
-            row.dataset.index = index;
+            const item = document.createElement('div');
+            item.className = 'disciplinary-item';
             
             const date = new Date(disc.dateAssigned).toLocaleDateString();
-            const status = 'Active'; // For now, all are active - can be enhanced later
             
-            row.innerHTML = `
-                <td>${date}</td>
-                <td>${disc.strikeType || 'N/A'}</td>
-                <td>${disc.assignedBy || 'N/A'}</td>
-                <td><span class="disciplinary-status active">${status}</span></td>
-                <td><button class="disciplinary-expand-btn" onclick="toggleDisciplinaryDetails(${index})">View</button></td>
+            item.innerHTML = `
+                <div class="disciplinary-header">
+                    <h4>Disciplinary #${index + 1}</h4>
+                    <span class="disciplinary-date">${date}</span>
+                </div>
+                <div class="disciplinary-details">
+                    <p><strong>Type:</strong> ${disc.strikeType || 'N/A'}</p>
+                    <p><strong>Comment:</strong> ${disc.comment || 'No comment provided'}</p>
+                    <p><strong>Assigned By:</strong> ${disc.assignedBy || 'N/A'}</p>
+                    <p><strong>Status:</strong> Active</p>
+                </div>
             `;
             
-            tableBody.appendChild(row);
-            
-            // Create details row
-            const detailsRow = document.createElement('tr');
-            detailsRow.className = 'disciplinary-details';
-            detailsRow.dataset.index = index;
-            detailsRow.innerHTML = `
-                <td colspan="5">
-                    <div class="disciplinary-details-content">
-                        <h4>Disciplinary Details #${index + 1}</h4>
-                        <div class="detail-row">
-                            <span class="detail-label">Type:</span>
-                            <span class="detail-value">${disc.strikeType || 'N/A'}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Comment:</span>
-                            <span class="detail-value">${disc.comment || 'No comment provided'}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Assigned By:</span>
-                            <span class="detail-value">${disc.assignedBy || 'N/A'}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Date Assigned:</span>
-                            <span class="detail-value">${new Date(disc.dateAssigned).toLocaleString()}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Status:</span>
-                            <span class="detail-value">${status}</span>
-                        </div>
-                    </div>
-                </td>
-            `;
-            
-            tableBody.appendChild(detailsRow);
+            listEl.appendChild(item);
         });
         
     } catch (error) {
@@ -3011,27 +2980,6 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
         emptyEl.classList.remove('hidden');
     }
 });
-
-// Function to toggle disciplinary details
-function toggleDisciplinaryDetails(index) {
-    const row = document.querySelector(`tr.disciplinary-row[data-index="${index}"]`);
-    const detailsRow = document.querySelector(`tr.disciplinary-details[data-index="${index}"]`);
-    const button = row.querySelector('.disciplinary-expand-btn');
-    
-    if (detailsRow.classList.contains('expanded')) {
-        // Collapse
-        detailsRow.classList.remove('expanded');
-        row.classList.remove('expanded');
-        button.textContent = 'View';
-        button.classList.remove('expanded');
-    } else {
-        // Expand
-        detailsRow.classList.add('expanded');
-        row.classList.add('expanded');
-        button.textContent = 'Hide';
-        button.classList.add('expanded');
-    }
-}
 
 document.getElementById('timeclockBtn').addEventListener('click', () => {
     showScreen('timeclock');
