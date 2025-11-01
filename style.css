@@ -1984,22 +1984,6 @@ body.dark .payslip-item {
     font-size: 14px;
 }
 
-.remove-disciplinary-btn, .remove-payslip-btn {
-    background: var(--danger);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    margin-top: 12px;
-    transition: background-color 0.2s;
-}
-
-.remove-disciplinary-btn:hover, .remove-payslip-btn:hover {
-    background: #c0392b;
-}
-
 .payslip-link {
     display: inline-block;
     background: var(--primary);

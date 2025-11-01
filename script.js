@@ -2528,38 +2528,11 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
                         <p><strong>Comment:</strong> ${payslip.comment || 'No comment provided'}</p>
                         <p><strong>Assigned By:</strong> ${payslip.assignedBy}</p>
                         <a href="${payslip.link}" target="_blank" class="payslip-link">View Payslip</a>
-                        <button class="remove-payslip-btn" data-id="${index}">Remove</button>
                     </div>
                 `).join('')}
             </div>
         `;
         
-        // Add event listeners for remove buttons
-        content.querySelectorAll('.remove-payslip-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const payslipIndex = parseInt(e.target.dataset.id);
-                
-                if (confirm('Are you sure you want to remove this payslip?')) {
-                    try {
-                        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/payslips/remove', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ staffId, payslipIndex })
-                        });
-                        
-                        if (res.ok) {
-                            // Refresh the payslips list
-                            document.getElementById('payslipsBtn').click();
-                        } else {
-                            alert('Failed to remove payslip');
-                        }
-                    } catch (error) {
-                        console.error('Error removing payslip:', error);
-                        alert('Error removing payslip');
-                    }
-                }
-            });
-        });
     } catch (e) {
         console.error('Error fetching payslips:', e);
         content.innerHTML = '<p>Error loading payslips. Please try again later.</p>';
@@ -2640,38 +2613,10 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
                         <p><strong>Comment:</strong> ${disc.comment}</p>
                         <p><strong>Assigned By:</strong> ${disc.assignedBy}</p>
                         <p><strong>Date:</strong> ${disc.dateAssigned}</p>
-                        <button class="remove-disciplinary-btn" data-id="${index}">Remove</button>
                     </div>
                 `).join('')}
             </div>
         `;
-        
-        // Add event listeners for remove buttons
-        content.querySelectorAll('.remove-disciplinary-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const disciplinaryIndex = parseInt(e.target.dataset.id);
-                
-                if (confirm('Are you sure you want to remove this disciplinary?')) {
-                    try {
-                        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/disciplinaries/remove', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ staffId, disciplinaryIndex })
-                        });
-                        
-                        if (res.ok) {
-                            // Refresh the disciplinaries list
-                            document.getElementById('disciplinariesBtn').click();
-                        } else {
-                            alert('Failed to remove disciplinary');
-                        }
-                    } catch (error) {
-                        console.error('Error removing disciplinary:', error);
-                        alert('Error removing disciplinary');
-                    }
-                }
-            });
-        });
         
     } catch (error) {
         console.error('Error fetching disciplinaries:', error);
