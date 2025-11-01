@@ -1025,9 +1025,11 @@ async function checkApprovedChangeRequests(discordId) {
         });
         
         console.log('[DEBUG] Change request check response status:', response.status);
+        const responseText = await response.text();
+        console.log('[DEBUG] Change request check raw response:', responseText);
         
         if (response.ok) {
-            const result = await response.json();
+            const result = JSON.parse(responseText);
             console.log('[DEBUG] Change request check result:', result);
             if (result.hasApprovedRequests && result.appliedChanges) {
                 // Notify user of approved changes
@@ -1126,9 +1128,16 @@ setInterval(async () => {
             })
         });
         
-        if (!res.ok) return;
+        console.log('[DEBUG] Absence check response status:', res.status);
+        const responseText = await res.text();
+        console.log('[DEBUG] Absence check raw response:', responseText);
         
-        const data = await res.json();
+        if (!res.ok) {
+            console.error('[DEBUG] Absence check failed:', res.status, responseText);
+            return;
+        }
+        
+        const data = JSON.parse(responseText);
         console.log('[DEBUG] Absence check response:', data);
         
         if (data.hasNewStatuses && data.processedAbsences) {
