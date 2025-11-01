@@ -1992,13 +1992,32 @@ document.getElementById('resetProfileBtn').addEventListener('click', () => {
     showModal('resetProfile');
 });
 
-document.getElementById('confirmResetBtn').addEventListener('click', () => {
+document.getElementById('confirmResetBtn').addEventListener('click', async () => {
+    // Delete from backend Google Sheets
+    try {
+        await fetch('https://timeclock-backend.marcusray.workers.dev/api/user/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ discordId: currentUser.id })
+        });
+    } catch (e) {
+        console.error('Failed to delete user from backend:', e);
+    }
+    
+    // Clear local data
     resetEmployeeData(currentUser.id);
+    
+    // Clear profile from currentUser but keep id and roles for re-setup
+    if (currentUser.profile) {
+        delete currentUser.profile.name;
+        delete currentUser.profile.email;
+        delete currentUser.profile.department;
+    }
+    
     closeModal('resetProfile');
     showScreen('setupWelcome');
     showModal('alert', '<span class="success-tick"></span> Profile reset successfully!');
     playSuccessSound();
-    // No notification sent for profile reset
 });
 
 document.getElementById('myRolesBtn').addEventListener('click', () => {
