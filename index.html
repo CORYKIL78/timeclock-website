@@ -313,54 +313,92 @@
             </div>
         </div>
     </div>
-    <div id="myProfileScreen" class="screen">
-        <div class="container profile-config-container">
-            <div class="profile-main-row">
-                <div class="profile-pic-col">
-                    <img id="profilePic" class="profile-img-large" src="" alt="Profile Picture">
+        <div id="myProfileScreen" class="screen">
+        <div class="container">
+            <div class="profile-container">
+                <!-- Profile Header -->
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <img id="profilePic" class="profile-img-large" src="" alt="Profile Picture">
+                        <div class="profile-status-indicator" id="profileStatusIndicator"></div>
+                    </div>
+                    <div class="profile-header-info">
+                        <h2 id="profileDisplayName">User Profile</h2>
+                        <p class="profile-subtitle" id="profileSubtitle">Staff Member</p>
+                        <div class="profile-badges">
+                            <span class="profile-badge" id="statusBadge">Active</span>
+                            <span class="profile-badge" id="deptBadge"></span>
+                        </div>
+                    </div>
                 </div>
-                <div class="profile-info-col">
-                    <div class="profile-row">
-                        <span class="profile-label">Name:</span>
-                        <span id="profileName"></span>
-                        <button class="edit-btn" id="editNameBtn" title="Edit Name">✎</button>
-                    </div>
-                    <div class="profile-row">
-                        <span class="profile-label">Email:</span>
-                        <span id="profileEmail"></span>
-                        <button class="edit-btn" id="editEmailBtn" title="Edit Email">✎</button>
-                    </div>
-                    <div class="profile-row">
-                        <span class="profile-label">Department:</span>
-                        <span id="profileDepartment"></span>
-                        <button class="edit-btn" id="editDeptBtn" title="Edit Department">✎</button>
+
+                <!-- Profile Information Card -->
+                <div class="profile-card">
+                    <h3 class="profile-card-title">Personal Information</h3>
+                    <div class="profile-info-grid">
+                        <div class="profile-row">
+                            <span class="profile-label">Name:</span>
+                            <span id="profileName"></span>
+                            <button class="edit-btn" id="editNameBtn" title="Request Name Change">✎</button>
+                        </div>
+                        <div class="profile-row">
+                            <span class="profile-label">Email:</span>
+                            <span id="profileEmail"></span>
+                            <button class="edit-btn" id="editEmailBtn" title="Edit Email">✎</button>
+                        </div>
+                        <div class="profile-row">
+                            <span class="profile-label">Department:</span>
+                            <span id="profileDepartment"></span>
+                            <button class="edit-btn" id="editDeptBtn" title="Request Department Change">✎</button>
+                        </div>
                     </div>
                     <div id="editFieldsContainer" class="edit-fields-container"></div>
-                    
-                    <!-- Change Requests Section -->
-                    <div id="changeRequestsSection" class="change-requests-section">
-                        <h3>Change Requests</h3>
-                        <div id="changeRequestsList" class="change-requests-list">
-                            <!-- Dynamic content will be inserted here -->
+                </div>
+
+                <!-- Profile Statistics Card -->
+                <div class="profile-card">
+                    <h3 class="profile-card-title">Overview</h3>
+                    <div class="profile-stats-grid">
+                        <div class="profile-stat">
+                            <span class="stat-value" id="totalAbsences">0</span>
+                            <span class="stat-label">Total Absences</span>
                         </div>
-                        <button id="refreshRequestsBtn" class="action-btn">Refresh Requests</button>
-                    </div>
-                    
-                    <div id="profileDebug" style="margin-top:16px;color:#b71c1c;font-size:0.95em;"></div>
-                    <div id="authDebug" style="margin-top:8px;color:#1976d2;font-size:0.95em;"></div>
-                    <div class="profile-actions-row">
-                        <div class="profile-actions-left">
-                            <label class="switch darkmode-switch">
-                                <input type="checkbox" id="modeToggle">
-                                <span class="slider"></span>
-                            </label>
-                            <span class="darkmode-label">Dark Mode</span>
+                        <div class="profile-stat">
+                            <span class="stat-value" id="pendingAbsences">0</span>
+                            <span class="stat-label">Pending Absences</span>
                         </div>
-                        <div class="profile-actions-right">
-                            <button id="resetProfileBtn" class="big-red-btn">Reset Profile</button>
+                        <div class="profile-stat">
+                            <span class="stat-value" id="totalPayslips">0</span>
+                            <span class="stat-label">Payslips</span>
+                        </div>
+                        <div class="profile-stat">
+                            <span class="stat-value" id="totalDisciplinaries">0</span>
+                            <span class="stat-label">Disciplinaries</span>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Change Requests Card -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h3 class="profile-card-title">Change Requests</h3>
+                        <button id="refreshRequestsBtn" class="action-btn secondary">Refresh</button>
+                    </div>
+                    <div id="changeRequestsList" class="change-requests-list">
+                        <!-- Dynamic content will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Profile Actions Card -->
+                <div class="profile-card">
+                    <h3 class="profile-card-title">Account Actions</h3>
+                    <div class="profile-actions">
+                        <button id="resetProfileBtn" class="action-btn danger">Reset Profile</button>
+                    </div>
+                </div>
+                
+                <div id="profileDebug" style="margin-top:16px;color:#b71c1c;font-size:0.95em;"></div>
+                <div id="authDebug" style="margin-top:8px;color:#1976d2;font-size:0.95em;"></div>
             </div>
         </div>
     </div>

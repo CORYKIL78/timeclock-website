@@ -677,6 +677,29 @@ function renderChangeRequests(requests) {
     }).join('');
 }
 
+// Function to update profile statistics
+function updateProfileStatistics(emp) {
+    // Count absences
+    const absences = emp.absences || [];
+    const totalAbsences = absences.length;
+    const pendingAbsences = absences.filter(a => a.status === 'pending').length;
+    
+    // Count other items (these would be fetched from backend in a real scenario)
+    const totalPayslips = 0; // Could be fetched from backend
+    const totalDisciplinaries = emp.strikes ? emp.strikes.length : 0;
+    
+    // Update the display
+    const totalAbsEl = document.getElementById('totalAbsences');
+    const pendingAbsEl = document.getElementById('pendingAbsences');
+    const totalPayslipsEl = document.getElementById('totalPayslips');
+    const totalDisciplinariesEl = document.getElementById('totalDisciplinaries');
+    
+    if (totalAbsEl) totalAbsEl.textContent = totalAbsences;
+    if (pendingAbsEl) pendingAbsEl.textContent = pendingAbsences;
+    if (totalPayslipsEl) totalPayslipsEl.textContent = totalPayslips;
+    if (totalDisciplinariesEl) totalDisciplinariesEl.textContent = totalDisciplinaries;
+}
+
 // Call syncUserProfileOnLogin() after successful login (e.g. after setting currentUser)
 // Polling for absence status updates
 setInterval(async () => {
@@ -2194,12 +2217,44 @@ document.getElementById('portalLoginBtn').addEventListener('click', () => {
 document.getElementById('sidebarProfilePic').addEventListener('click', () => {
     showScreen('myProfile');
     const emp = getEmployee(currentUser.id);
+    
+    // Update profile header
+    document.getElementById('profileDisplayName').textContent = emp.profile.name || currentUser.username || 'User';
+    document.getElementById('profileSubtitle').textContent = `${emp.profile.department || 'Staff'} • ${emp.profile.email || 'No Email'}`;
+    
+    document.getElementById('profileDepartment').classList.toggle('pending-department', !!emp.pendingDeptChange);
+    
+    // Update profile inputs if they exist
+    const updateNameInput = document.getElementById('updateNameInput');
+    const updateEmailInput = document.getElementById('updateEmailInput');
+    if (updateNameInput) updateNameInput.value = emp.profile.name || '';
+    if (updateEmailInput) updateEmailInput.value = emp.profile.email || '';
+    
+    // Update profile statisticsfile-badge status-${status.toLowerCase()}`;
+    
+    // Update department badge
+    const deptBadge = document.getElementById('deptBadge');
+    if (emp.profile.department) {
+        deptBadge.textContent = emp.profile.department;
+        deptBadge.style.display = 'inline-block';
+    } else {
+        deptBadge.style.display = 'none';
+    }
+    
+    // Update status indicator
+    const statusIndicator = document.getElementById('profileStatusIndicator');
+    statusIndicator.className = `profile-status-indicator ${status.toLowerCase()}`;
+    
+    // Update profile information
     document.getElementById('profileName').textContent = emp.profile.name || 'N/A';
     document.getElementById('profileEmail').textContent = emp.profile.email || 'N/A';
     document.getElementById('profileDepartment').textContent = emp.profile.department || 'N/A';
     document.getElementById('profileDepartment').classList.toggle('pending-department', !!emp.pendingDeptChange);
     document.getElementById('updateNameInput').value = emp.profile.name || '';
     document.getElementById('updateEmailInput').value = emp.profile.email || '';
+    
+    // Update profile statistics
+    updateProfileStatistics(emp);
     
     // Load change requests
     loadChangeRequests(currentUser.id);
@@ -2208,10 +2263,38 @@ document.getElementById('sidebarProfilePic').addEventListener('click', () => {
 document.getElementById('mainProfilePic').addEventListener('click', () => {
     showScreen('myProfile');
     const emp = getEmployee(currentUser.id);
+    
+    // Update profile header
+    document.getElementById('profileDisplayName').textContent = emp.profile.name || currentUser.username || 'User';
+    document.getElementById('profileSubtitle').textContent = `${emp.profile.department || 'Staff'} • ${emp.profile.email || 'No Email'}`;
+    
+    // Update status badge
+    const statusBadge = document.getElementById('statusBadge');
+    const status = emp.profile.status || 'Active';
+    statusBadge.textContent = status;
+    statusBadge.className = `profile-badge status-${status.toLowerCase()}`;
+    
+    // Update department badge
+    const deptBadge = document.getElementById('deptBadge');
+    if (emp.profile.department) {
+        deptBadge.textContent = emp.profile.department;
+        deptBadge.style.display = 'inline-block';
+    } else {
+        deptBadge.style.display = 'none';
+    }
+    
+    // Update status indicator
+    const statusIndicator = document.getElementById('profileStatusIndicator');
+    statusIndicator.className = `profile-status-indicator ${status.toLowerCase()}`;
+    
+    // Update profile information
     document.getElementById('profileName').textContent = emp.profile.name || 'N/A';
     document.getElementById('profileEmail').textContent = emp.profile.email || 'N/A';
     document.getElementById('profileDepartment').textContent = emp.profile.department || 'N/A';
     document.getElementById('profileDepartment').classList.toggle('pending-department', !!emp.pendingDeptChange);
+    
+    // Update profile statistics
+    updateProfileStatistics(emp);
     
     // Load change requests
     loadChangeRequests(currentUser.id);
