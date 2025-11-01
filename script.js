@@ -631,6 +631,52 @@ setInterval(async () => {
     }
 }, 60000); // Poll every 60 seconds
 
+// Polling for new disciplinaries
+let lastDisciplinaryCheck = localStorage.getItem('lastDisciplinaryCheck') ? JSON.parse(localStorage.getItem('lastDisciplinaryCheck')) : {};
+setInterval(async () => {
+    if (!window.currentUser) return;
+    const emp = getEmployee(window.currentUser.id);
+    const staffId = emp.profile?.staffId || window.currentUser.id; // Use Discord ID as fallback
+    if (!staffId) return;
+    
+    try {
+        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/disciplinaries/fetch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ staffId })
+        });
+        
+        if (!res.ok) return;
+        
+        const data = await res.json();
+        const disciplinaries = data.disciplinaries || [];
+        
+        // Check if there are new disciplinaries
+        const userKey = window.currentUser.id;
+        const lastCount = lastDisciplinaryCheck[userKey] || 0;
+        
+        if (disciplinaries.length > lastCount) {
+            // New disciplinary(s) detected
+            const newCount = disciplinaries.length - lastCount;
+            const latestDisciplinary = disciplinaries[disciplinaries.length - 1];
+            
+            await sendDiscordDM(window.currentUser.id, {
+                title: '⚠️ New Disciplinary Notice',
+                description: `You have received ${newCount} new disciplinary notice${newCount > 1 ? 's' : ''}!\n\n**Latest Type:** ${latestDisciplinary?.strikeType || 'N/A'}\n**Date:** ${latestDisciplinary?.dateAssigned ? new Date(latestDisciplinary.dateAssigned).toLocaleDateString() : 'N/A'}\n\nPlease check the Staff Portal for full details.`,
+                color: 0xF44336,
+                footer: { text: 'Cirkle Development HR Portal • portal.cirkledevelopment.co.uk' },
+                timestamp: new Date().toISOString()
+            });
+            
+            // Update last check count
+            lastDisciplinaryCheck[userKey] = disciplinaries.length;
+            localStorage.setItem('lastDisciplinaryCheck', JSON.stringify(lastDisciplinaryCheck));
+        }
+    } catch (e) {
+        // Ignore errors
+    }
+}, 60000); // Poll every 60 seconds
+
 // Update absence status (approve/reject) from backend
 async function updateAbsenceStatus({ name, startDate, endDate, status, messageId }) {
     // 1. Update the absence in Google Sheets (column G)
