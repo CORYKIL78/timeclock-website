@@ -246,30 +246,40 @@ document.addEventListener('DOMContentLoaded', () => {
     deptChangeModal.addEventListener('click', (e) => {
         if (e.target === deptChangeModal) deptChangeModal.style.display = 'none';
     });
-    document.getElementById('deptCancelBtn').onclick = () => {
-        deptChangeModal.style.display = 'none';
-    };
-    document.getElementById('deptRequestBtn').onclick = async () => {
-        const requestedDept = document.getElementById('deptSelect').value;
-        // Animate success
-        document.getElementById('deptChangeSuccess').style.display = 'block';
-        // Send Discord notification (via backend proxy)
-        const staffId = window.currentUser?.profile?.staffId || '';
-        const name = window.currentUser?.profile?.name || '';
-        const currentDept = window.currentUser?.profile?.department || '';
-        await fetch('https://timeclock-discord-proxy.marcusray.workers.dev/postEmbed?channel_id=1417583684525232291&embed_json=' + encodeURIComponent(JSON.stringify({
-            title: 'Department Change Request',
-            color: 0x1976d2,
-            fields: [
-                { name: 'Name', value: name, inline: true },
-                { name: 'Staff ID', value: staffId, inline: true },
-                { name: 'Current Department', value: currentDept, inline: true },
-                { name: 'Requested Department', value: requestedDept, inline: true }
-            ],
-            timestamp: new Date().toISOString()
-        })), { method: 'POST' });
-        setTimeout(() => { deptChangeModal.style.display = 'none'; }, 1200);
-    };
+    const deptCancelBtn = document.getElementById('deptCancelBtn');
+    if (deptCancelBtn) {
+        deptCancelBtn.onclick = () => {
+            deptChangeModal.style.display = 'none';
+        };
+    }
+    const deptRequestBtn = document.getElementById('deptRequestBtn');
+    if (deptRequestBtn) {
+        deptRequestBtn.onclick = async () => {
+            const deptSelect = document.getElementById('deptSelect');
+            const requestedDept = deptSelect ? deptSelect.value : '';
+            // Animate success
+            const deptChangeSuccess = document.getElementById('deptChangeSuccess');
+            if (deptChangeSuccess) {
+                deptChangeSuccess.style.display = 'block';
+            }
+            // Send Discord notification (via backend proxy)
+            const staffId = window.currentUser?.profile?.staffId || '';
+            const name = window.currentUser?.profile?.name || '';
+            const currentDept = window.currentUser?.profile?.department || '';
+            await fetch('https://timeclock-discord-proxy.marcusray.workers.dev/postEmbed?channel_id=1417583684525232291&embed_json=' + encodeURIComponent(JSON.stringify({
+                title: 'Department Change Request',
+                color: 0x1976d2,
+                fields: [
+                    { name: 'Name', value: name, inline: true },
+                    { name: 'Staff ID', value: staffId, inline: true },
+                    { name: 'Current Department', value: currentDept, inline: true },
+                    { name: 'Requested Department', value: requestedDept, inline: true }
+                ],
+                timestamp: new Date().toISOString()
+            })), { method: 'POST' });
+            setTimeout(() => { deptChangeModal.style.display = 'none'; }, 1200);
+        };
+    }
     // Reset profile with countdown
     if (resetProfileBtn) {
         resetProfileBtn.onclick = () => {
@@ -3270,10 +3280,13 @@ document.querySelector('.sidebar-toggle').addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('extended');
 });
 
-document.getElementById('modeToggle').addEventListener('change', (e) => {
-    document.body.classList.toggle('dark', e.target.checked);
-    localStorage.setItem('darkMode', e.target.checked);
-});
+const modeToggle = document.getElementById('modeToggle');
+if (modeToggle) {
+    modeToggle.addEventListener('change', (e) => {
+        document.body.classList.toggle('dark', e.target.checked);
+        localStorage.setItem('darkMode', e.target.checked);
+    });
+}
 
 document.querySelectorAll('.modal .close').forEach(closeBtn => {
     closeBtn.addEventListener('click', () => {
