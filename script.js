@@ -2410,28 +2410,12 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
         const data = await res.json();
         const payslips = data.payslips || [];
         
-        content.innerHTML = '';
-        
-        // Add admin assignment button
-        const adminSection = document.createElement('div');
-        adminSection.style.cssText = 'margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;';
-        adminSection.innerHTML = `
-            <h3 style="margin: 0 0 10px 0;">Admin Functions</h3>
-            <button id="openAssignPayslipModal" style="padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 5px; cursor: pointer;">Assign Payslip</button>
-        `;
-        content.appendChild(adminSection);
-        
-        // Add click handler for assign payslip button
-        document.getElementById('openAssignPayslipModal').onclick = () => {
-            document.getElementById('assignPayslipModal').style.display = 'flex';
-        };
-        
         if (payslips.length === 0) {
-            const noPayslipsDiv = document.createElement('div');
-            noPayslipsDiv.innerHTML = '<p>No payslips found.</p>';
-            content.appendChild(noPayslipsDiv);
+            content.innerHTML = '<p>No payslips found.</p>';
             return;
         }
+        
+        content.innerHTML = '';
         
         // Add scrollable container for payslips
         const payslipsContainer = document.createElement('div');
@@ -2829,98 +2813,6 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
             `;
         }, 1000);
     }
-    
-    // Payslip assignment modal handlers
-    const assignPayslipModal = document.getElementById('assignPayslipModal');
-    const assignPayslipBtn = document.getElementById('assignPayslipBtn');
-    const cancelAssignPayslipBtn = document.getElementById('cancelAssignPayslipBtn');
-    
-    // Close modal handlers
-    assignPayslipModal.querySelector('.close').onclick = () => {
-        assignPayslipModal.style.display = 'none';
-        clearAssignPayslipForm();
-    };
-    
-    cancelAssignPayslipBtn.onclick = () => {
-        assignPayslipModal.style.display = 'none';
-        clearAssignPayslipForm();
-    };
-    
-    window.onclick = (e) => {
-        if (e.target === assignPayslipModal) {
-            assignPayslipModal.style.display = 'none';
-            clearAssignPayslipForm();
-        }
-    };
-    
-    // Function to clear the form
-    function clearAssignPayslipForm() {
-        document.getElementById('assignStaffId').value = '';
-        document.getElementById('assignPayslipLink').value = '';
-        document.getElementById('assignPayslipComment').value = '';
-        document.getElementById('assignedByName').value = '';
-        document.getElementById('submitAction').value = '';
-    }
-    
-    // Assign payslip button handler
-    assignPayslipBtn.onclick = async () => {
-        const staffId = document.getElementById('assignStaffId').value.trim();
-        const link = document.getElementById('assignPayslipLink').value.trim();
-        const comment = document.getElementById('assignPayslipComment').value.trim();
-        const assignedBy = document.getElementById('assignedByName').value.trim();
-        const action = document.getElementById('submitAction').value;
-        
-        if (!staffId || !link || !assignedBy || !action) {
-            alert('Please fill in all required fields (Staff ID, Link, Your Name, and Action).');
-            return;
-        }
-        
-        if (action !== 'Submit') {
-            alert('Please select "Submit" from the Action dropdown.');
-            return;
-        }
-        
-        try {
-            assignPayslipBtn.disabled = true;
-            assignPayslipBtn.textContent = 'Assigning...';
-            
-            const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/payslips/assign', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    staffId,
-                    link,
-                    comment,
-                    assignedBy
-                })
-            });
-            
-            if (!res.ok) {
-                throw new Error('Failed to assign payslip');
-            }
-            
-            const data = await res.json();
-            
-            if (data.success) {
-                alert('Payslip assigned successfully!');
-                assignPayslipModal.style.display = 'none';
-                clearAssignPayslipForm();
-                
-                // Refresh payslips if on payslips page
-                if (document.getElementById('payslipsScreen').style.display !== 'none') {
-                    document.getElementById('payslipsBtn').click();
-                }
-            } else {
-                throw new Error('Assignment failed');
-            }
-        } catch (e) {
-            console.error('Error assigning payslip:', e);
-            alert('Error assigning payslip: ' + e.message);
-        } finally {
-            assignPayslipBtn.disabled = false;
-            assignPayslipBtn.textContent = 'Assign Payslip';
-        }
-    };
 
     if (savedUser) {
         try {
