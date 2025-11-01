@@ -31,17 +31,17 @@ function setAuthDebug(msg, isError) {
 document.addEventListener('DOMContentLoaded', () => {
     // ...existing code...
     async function syncProfileFromSheets() {
-        if (!window.currentUser) {
+        if (!currentUser) {
             // Only log to console, don't show in UI
             console.debug('[syncProfileFromSheets] No currentUser');
             return;
         }
         console.debug('Syncing profile from Sheets...');
-        const profile = await fetchUserProfile(window.currentUser.id);
+        const profile = await fetchUserProfile(currentUser.id);
         console.debug('[syncProfileFromSheets] fetched profile: ' + JSON.stringify(profile));
         if (profile) {
             // Ensure currentUser.profile exists
-            if (!window.currentUser.profile) window.currentUser.profile = {};
+            if (!currentUser.profile) currentUser.profile = {};
             
             // Update UI fields with latest data from Sheets
             if (profile.name && profileName) profileName.textContent = profile.name;
@@ -49,16 +49,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (profile.department && profileDepartment) profileDepartment.textContent = profile.department;
             
             // Update currentUser profile with all data from backend
-            window.currentUser.profile.name = profile.name;
-            window.currentUser.profile.email = profile.email;
-            window.currentUser.profile.department = profile.department;
-            window.currentUser.profile.staffId = profile.staffId;
+            currentUser.profile.name = profile.name;
+            currentUser.profile.email = profile.email;
+            currentUser.profile.department = profile.department;
+            currentUser.profile.staffId = profile.staffId;
             
             console.debug('[syncProfileFromSheets] UI updated with profile: ' + JSON.stringify(profile));
-            console.debug('[syncProfileFromSheets] currentUser.profile now: ' + JSON.stringify(window.currentUser.profile));
+            console.debug('[syncProfileFromSheets] currentUser.profile now: ' + JSON.stringify(currentUser.profile));
         } else {
             // Only show real errors in UI if fetch fails
-            setProfileDebug('[syncProfileFromSheets] No profile returned for user ' + window.currentUser.id, true);
+            setProfileDebug('[syncProfileFromSheets] No profile returned for user ' + currentUser.id, true);
         }
     }
     // Wait for window.currentUser to be set before syncing
@@ -2389,15 +2389,23 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
     const content = document.getElementById('payslipsContent');
     content.innerHTML = '<p>Loading payslips...</p>';
     
-    // Get Staff ID from the backend profile data that was synced
-    const staffId = window.currentUser?.profile?.staffId;
+    // Use the global currentUser variable instead of window.currentUser
+    if (!currentUser) {
+        content.innerHTML = '<p>Please log in first.</p>';
+        console.error('[DEBUG] No currentUser found - user not logged in');
+        return;
+    }
     
-    console.log('[DEBUG] Payslips - Current user:', window.currentUser);
+    // Get Staff ID from the backend profile data that was synced
+    const staffId = currentUser?.profile?.staffId;
+    
+    console.log('[DEBUG] Payslips - Current user:', currentUser);
     console.log('[DEBUG] Payslips - Staff ID:', staffId);
     
     if (!staffId) {
         content.innerHTML = '<p>No Staff ID found. Please contact HR.</p>';
-        console.error('[DEBUG] No Staff ID found in window.currentUser.profile.staffId');
+        console.error('[DEBUG] No Staff ID found in currentUser.profile.staffId');
+        console.error('[DEBUG] currentUser.profile:', currentUser?.profile);
         return;
     }
     
