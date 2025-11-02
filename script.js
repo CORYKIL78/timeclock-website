@@ -2327,6 +2327,9 @@ function startTutorial() {
     showScreen('mainMenu');
     updateSidebarProfile();
     updateMainScreen();
+    
+    // Initialize sample mail data for new users
+    initializeSampleMail();
 
     const steps = [
         {
@@ -2420,221 +2423,258 @@ function renderMail() {
     const sentContent = document.getElementById('sentContent');
     const draftsContent = document.getElementById('draftsContent');
     if (!inboxContent || !sentContent || !draftsContent) return;
+    
     inboxContent.innerHTML = '';
     sentContent.innerHTML = '';
     draftsContent.innerHTML = '';
-    const emp = getEmployee(currentUser.id);
     
-    emp.mail.forEach((m, index) => {
-        const sender = employees.find(e => e.id === m.senderId) || { id: m.senderId, avatar: 'https://via.placeholder.com/40' };
-        const li = document.createElement('li');
-        li.className = 'mail-item';
-        li.innerHTML = `
-            <img src="${sender.avatar || 'https://via.placeholder.com/40'}" alt="Sender">
-            <span class="subject">${m.subject || 'No Subject'}</span>
-            <span class="timestamp">${m.timestamp}</span>
-        `;
-        li.addEventListener('click', () => {
-            currentMail = { ...m, index };
-            document.getElementById('viewMailContent').innerHTML = `
-                <p><strong>From:</strong> ${m.from}</p>
-                <p><strong>Subject:</strong> ${m.subject || 'No Subject'}</p>
-                <p>${m.content}</p>
-                <p><em>${m.timestamp}</em></p>
-                ${m.attachments ? m.attachments.map(file => `<p><a href="${file.url}" download="${file.name}">Download ${file.name}</a></p>`).join('') : ''}
-                ${m.thread && m.thread.length ? '<div class="mail-thread">' + m.thread.map(t => `
-                    <div class="thread-item">
-                        <p><strong>From:</strong> ${t.from}</p>
-                        <p>${t.content}</p>
-                        <p><em>${t.timestamp}</em></p>
+    // Get mail from localStorage for the current user
+    const userMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
+    
+    // Render inbox
+    if (userMail.inbox && userMail.inbox.length > 0) {
+        userMail.inbox.forEach((mail, index) => {
+            const li = document.createElement('li');
+            li.className = 'mail-item';
+            li.innerHTML = `
+                <div class="mail-avatar">
+                    <div class="avatar-circle">${mail.senderName ? mail.senderName.charAt(0).toUpperCase() : 'S'}</div>
+                </div>
+                <div class="mail-details">
+                    <div class="mail-subject">${mail.subject || 'No Subject'}</div>
+                    <div class="mail-preview">${mail.content.substring(0, 100)}${mail.content.length > 100 ? '...' : ''}</div>
+                    <div class="mail-meta">
+                        <span class="mail-sender">From: ${mail.senderName || 'Unknown'}</span>
+                        <span class="mail-timestamp">${new Date(mail.timestamp).toLocaleDateString()}</span>
                     </div>
-                `).join('') + '</div>' : ''}
+                </div>
             `;
-            document.getElementById('replyMailBtn').classList.toggle('hidden', m.senderId === 'system');
-            showModal('viewMail');
+            li.addEventListener('click', () => viewMail(mail, index, 'inbox'));
+            inboxContent.appendChild(li);
         });
-        inboxContent.appendChild(li);
-    });
-
-    emp.sentMail.forEach(m => {
-        const li = document.createElement('li');
-        li.className = 'mail-item';
-        li.innerHTML = `
-            <img src="${currentUser.avatar || 'https://via.placeholder.com/40'}" alt="Sender">
-            <span class="subject">${m.subject || 'No Subject'}</span>
-            <span class="timestamp">${m.timestamp}</span>
-        `;
-        li.addEventListener('click', () => {
-            document.getElementById('viewMailContent').innerHTML = `
-                <p><strong>To:</strong> ${m.to.join(', ')}</p>
-                <p><strong>Subject:</strong> ${m.subject || 'No Subject'}</p>
-                <p>${m.content}</p>
-                <p><em>${m.timestamp}</em></p>
-                ${m.attachments ? m.attachments.map(file => `<p><a href="${file.url}" download="${file.name}">Download ${file.name}</a></p>`).join('') : ''}
+    } else {
+        inboxContent.innerHTML = '<li class="no-mail">No messages in inbox</li>';
+    }
+    
+    // Render sent mail
+    if (userMail.sent && userMail.sent.length > 0) {
+        userMail.sent.forEach((mail, index) => {
+            const li = document.createElement('li');
+            li.className = 'mail-item';
+            li.innerHTML = `
+                <div class="mail-avatar">
+                    <div class="avatar-circle">You</div>
+                </div>
+                <div class="mail-details">
+                    <div class="mail-subject">${mail.subject || 'No Subject'}</div>
+                    <div class="mail-preview">${mail.content.substring(0, 100)}${mail.content.length > 100 ? '...' : ''}</div>
+                    <div class="mail-meta">
+                        <span class="mail-recipients">To: ${Array.isArray(mail.recipients) ? mail.recipients.join(', ') : 'Unknown'}</span>
+                        <span class="mail-timestamp">${new Date(mail.timestamp).toLocaleDateString()}</span>
+                    </div>
+                </div>
             `;
-            document.getElementById('replyMailBtn').classList.add('hidden');
-            showModal('viewMail');
+            li.addEventListener('click', () => viewMail(mail, index, 'sent'));
+            sentContent.appendChild(li);
         });
-        sentContent.appendChild(li);
-    });
-
-    emp.drafts.forEach((d, index) => {
-        const li = document.createElement('li');
-        li.className = 'mail-item';
-        li.innerHTML = `
-            <img src="${currentUser.avatar || 'https://via.placeholder.com/40'}" alt="Sender">
-            <span class="subject">${d.subject || 'No Subject'}</span>
-            <span class="timestamp">${d.timestamp}</span>
-            <div class="draft-actions">
-                <button class="edit-draft" data-index="${index}">Edit</button>
-                <button class="delete-draft" data-index="${index}">Delete</button>
-                <button class="send-draft" data-index="${index}">Send</button>
-            </div>
-        `;
-        li.addEventListener('click', (e) => {
-            if (e.target.classList.contains('edit-draft') || e.target.classList.contains('delete-draft') || e.target.classList.contains('send-draft')) return;
-            document.getElementById('viewMailContent').innerHTML = `
-                <p><strong>To:</strong> ${d.recipients.join(', ') || 'None'}</p>
-                <p><strong>Subject:</strong> ${d.subject || 'No Subject'}</p>
-                <p>${d.content}</p>
-                <p><em>${d.timestamp}</em></p>
-                ${d.attachments ? d.attachments.map(file => `<p><a href="${file.url}" download="${file.name}">Download ${file.name}</a></p>`).join('') : ''}
+    } else {
+        sentContent.innerHTML = '<li class="no-mail">No sent messages</li>';
+    }
+    
+    // Render drafts
+    if (userMail.drafts && userMail.drafts.length > 0) {
+        userMail.drafts.forEach((draft, index) => {
+            const li = document.createElement('li');
+            li.className = 'mail-item draft-item';
+            li.innerHTML = `
+                <div class="mail-avatar">
+                    <div class="avatar-circle">📝</div>
+                </div>
+                <div class="mail-details">
+                    <div class="mail-subject">${draft.subject || 'No Subject'} <span class="draft-badge">DRAFT</span></div>
+                    <div class="mail-preview">${draft.content.substring(0, 100)}${draft.content.length > 100 ? '...' : ''}</div>
+                    <div class="mail-meta">
+                        <span class="mail-recipients">To: ${Array.isArray(draft.recipients) ? draft.recipients.join(', ') : 'Select recipients'}</span>
+                        <span class="mail-timestamp">${new Date(draft.timestamp).toLocaleDateString()}</span>
+                    </div>
+                </div>
+                <div class="draft-actions">
+                    <button class="btn btn-sm edit-draft" data-index="${index}">Edit</button>
+                    <button class="btn btn-sm btn-danger delete-draft" data-index="${index}">Delete</button>
+                </div>
             `;
-            document.getElementById('replyMailBtn').classList.add('hidden');
-            showModal('viewMail');
-        });
-        draftsContent.appendChild(li);
-    });
-
-    // Load recipients from cirklehrUsers sheet via backend
-    async function loadMailRecipients() {
-        try {
-            const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/mail/recipients', {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
+            
+            // Add event listeners for draft actions
+            li.querySelector('.edit-draft').addEventListener('click', (e) => {
+                e.stopPropagation();
+                editDraft(index);
             });
             
-            if (response.ok) {
-                const recipients = await response.json();
-                const recipientSelect = document.getElementById('mailRecipients');
-                recipientSelect.innerHTML = '<option value="" disabled>Select Recipients</option>';
-                
-                recipients.forEach(recipient => {
-                    if (recipient.userId !== currentUser.id) { // Don't include self
-                        const option = document.createElement('option');
-                        option.value = recipient.userId;
-                        option.textContent = recipient.name || 'Unknown User';
-                        recipientSelect.appendChild(option);
-                    }
-                });
-            } else {
-                console.error('Failed to load mail recipients');
-                // Fallback to empty list
-                const recipientSelect = document.getElementById('mailRecipients');
-                recipientSelect.innerHTML = '<option value="" disabled>No recipients available</option>';
-            }
-        } catch (error) {
-            console.error('Error loading mail recipients:', error);
-            const recipientSelect = document.getElementById('mailRecipients');
-            recipientSelect.innerHTML = '<option value="" disabled>Error loading recipients</option>';
-        }
+            li.querySelector('.delete-draft').addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteDraft(index);
+            });
+            
+            li.addEventListener('click', () => viewMail(draft, index, 'drafts'));
+            draftsContent.appendChild(li);
+        });
+    } else {
+        draftsContent.innerHTML = '<li class="no-mail">No draft messages</li>';
     }
-
-    const recipientSelect = document.getElementById('mailRecipients');
-    // Load recipients when mail screen is accessed
-    loadMailRecipients();
-
-    draftsContent.querySelectorAll('.edit-draft').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const index = btn.dataset.index;
-            const draft = emp.drafts[index];
-            setSelectValues('mailRecipients', draft.recipientIds);
-            document.getElementById('mailSubject').value = draft.subject || '';
-            document.getElementById('mailContent').value = draft.content || '';
-            document.getElementById('mailAttachments').value = '';
-            document.getElementById('sendMailBtn').dataset.draftIndex = index;
-            showModal('composeMail');
-        });
-    });
-
-    draftsContent.querySelectorAll('.delete-draft').forEach(btn => {
-        btn.addEventListener('click', () => {
-            emp.drafts.splice(btn.dataset.index, 1);
-            updateEmployee(emp);
-            renderMail();
-            showModal('alert', '<span class="success-tick"></span> Draft deleted successfully!');
-            playSuccessSound();
-        });
-    });
-
-    draftsContent.querySelectorAll('.send-draft').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const index = btn.dataset.index;
-            const draft = emp.drafts[index];
-            setSelectValues('mailRecipients', draft.recipientIds);
-            document.getElementById('mailSubject').value = draft.subject || '';
-            document.getElementById('mailContent').value = draft.content || '';
-            document.getElementById('mailAttachments').value = '';
-            document.getElementById('sendMailBtn').dataset.draftIndex = index;
-            sendDraft(index);
-        });
-    });
 }
 
-async function sendDraft(index) {
-    const recipientIds = Array.from(document.getElementById('mailRecipients').selectedOptions).map(opt => opt.value);
-    const subject = document.getElementById('mailSubject').value.trim();
-    const content = document.getElementById('mailContent').value.trim();
-    const files = document.getElementById('mailAttachments').files;
-    if (!recipientIds.length || recipientIds.includes('')) {
-        document.getElementById('mailError').classList.remove('hidden');
-        setTimeout(() => document.getElementById('mailError').classList.add('hidden'), 2000);
-        return;
+function viewMail(mail, index, folder) {
+    const content = document.getElementById('viewMailContent');
+    const isInbox = folder === 'inbox';
+    const isSent = folder === 'sent';
+    const isDraft = folder === 'drafts';
+    
+    content.innerHTML = `
+        <div class="mail-header">
+            <h3>${mail.subject || 'No Subject'}</h3>
+            ${isDraft ? '<span class="draft-badge">DRAFT</span>' : ''}
+        </div>
+        <div class="mail-info">
+            ${isInbox ? `<p><strong>From:</strong> ${mail.senderName || 'Unknown'}</p>` : ''}
+            ${isSent ? `<p><strong>To:</strong> ${Array.isArray(mail.recipients) ? mail.recipients.join(', ') : 'Unknown'}</p>` : ''}
+            ${isDraft ? `<p><strong>To:</strong> ${Array.isArray(mail.recipients) ? mail.recipients.join(', ') : 'Select recipients'}</p>` : ''}
+            <p><strong>Date:</strong> ${new Date(mail.timestamp).toLocaleString()}</p>
+        </div>
+        <div class="mail-body">
+            ${mail.content}
+        </div>
+        ${mail.attachments && mail.attachments.length ? 
+            '<div class="mail-attachments"><h4>Attachments:</h4>' + 
+            mail.attachments.map(file => `<p><a href="${file.url}" download="${file.name}">${file.name}</a></p>`).join('') + 
+            '</div>' : ''}
+    `;
+    
+    // Show/hide reply button
+    const replyBtn = document.getElementById('replyMailBtn');
+    if (replyBtn) {
+        replyBtn.classList.toggle('hidden', !isInbox);
+        if (isInbox) {
+            replyBtn.onclick = () => replyToMail(mail);
+        }
     }
-    if (!content) {
-        showModal('alert', 'Please enter a message');
-        return;
+    
+    showModal('viewMail');
+}
+
+function editDraft(index) {
+    const userMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
+    const draft = userMail.drafts[index];
+    if (!draft) return;
+    
+    // Populate compose form with draft data
+    document.getElementById('mailSubject').value = draft.subject || '';
+    document.getElementById('mailContent').value = draft.content || '';
+    
+    // Set recipients if available
+    if (draft.recipients && Array.isArray(draft.recipients)) {
+        setSelectValues('mailRecipients', draft.recipients);
     }
-    showModal('alert', 'Sending...');
-    await new Promise(r => setTimeout(r, 1000));
-    const emp = getEmployee(currentUser.id);
-    const timestamp = new Date().toLocaleString();
-    const attachments = await Promise.all(Array.from(files).map(async file => {
-        const reader = new FileReader();
-        return new Promise(resolve => {
-            reader.onload = () => resolve({ name: file.name, url: reader.result });
-            reader.readAsDataURL(file);
+    
+    // Mark as editing draft
+    document.getElementById('sendMailBtn').dataset.draftIndex = index;
+    showModal('composeMail');
+}
+
+function deleteDraft(index) {
+    if (confirm('Are you sure you want to delete this draft?')) {
+        const userMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
+        userMail.drafts.splice(index, 1);
+        localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(userMail));
+        renderMail();
+    }
+}
+
+function replyToMail(originalMail) {
+    // Set up reply
+    document.getElementById('mailSubject').value = `Re: ${originalMail.subject || 'No Subject'}`;
+    document.getElementById('mailContent').value = `\n\n--- Original Message ---\nFrom: ${originalMail.senderName}\nDate: ${new Date(originalMail.timestamp).toLocaleString()}\n\n${originalMail.content}`;
+    
+    // Set recipient to original sender if we have recipient data
+    // For now, just clear recipients as we don't have a user lookup system
+    setSelectValues('mailRecipients', []);
+    
+    showModal('composeMail');
+}
+
+// Load recipients from cirklehrUsers sheet via backend
+async function loadMailRecipients() {
+    try {
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/mail/recipients', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
         });
-    }));
-    const mailData = {
-        id: Date.now().toString(),
-        from: emp.profile.name,
-        senderId: currentUser.id,
-        to: recipientIds.map(id => getEmployee(id).profile.name),
-        recipientIds,
-        subject,
-        content,
-        timestamp,
-        attachments: attachments.length ? attachments : null,
-        thread: []
+        
+        if (response.ok) {
+            const recipients = await response.json();
+            const recipientSelect = document.getElementById('mailRecipients');
+            recipientSelect.innerHTML = '<option value="" disabled>Select Recipients</option>';
+            
+            recipients.forEach(recipient => {
+                if (recipient.userId !== currentUser.id) { // Don't include self
+                    const option = document.createElement('option');
+                    option.value = recipient.userId;
+                    option.textContent = recipient.name || 'Unknown User';
+                    recipientSelect.appendChild(option);
+                }
+            });
+        } else {
+            console.error('Failed to load mail recipients');
+            // Fallback to empty list
+            const recipientSelect = document.getElementById('mailRecipients');
+            recipientSelect.innerHTML = '<option value="" disabled>No recipients available</option>';
+        }
+    } catch (error) {
+        console.error('Error loading mail recipients:', error);
+        const recipientSelect = document.getElementById('mailRecipients');
+        recipientSelect.innerHTML = '<option value="" disabled>Error loading recipients</option>';
+    }
+}
+
+// Load recipients when mail screen is accessed
+if (document.getElementById('mailRecipients')) {
+    loadMailRecipients();
+}
+
+// Initialize sample mail data for testing (remove in production)
+function initializeSampleMail() {
+    const currentUserId = currentUser?.id;
+    if (!currentUserId) return;
+    
+    const sampleMail = {
+        inbox: [
+            {
+                id: "sample1",
+                senderName: "Marcus Ray",
+                senderId: "admin",
+                subject: "Welcome to the Portal",
+                content: "Welcome to the Cirkle Development staff portal! This is your inbox where you'll receive important messages from management and colleagues.\n\nFeel free to explore all the features available to you.",
+                timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+                attachments: null
+            },
+            {
+                id: "sample2", 
+                senderName: "HR Department",
+                senderId: "hr",
+                subject: "Monthly Reminder",
+                content: "This is a reminder to submit your monthly reports by the end of this week. Please ensure all timesheets are accurate and complete.",
+                timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+                attachments: null
+            }
+        ],
+        sent: [],
+        drafts: []
     };
-    emp.sentMail = emp.sentMail || [];
-    emp.sentMail.push(mailData);
-    recipientIds.forEach(id => {
-        const recipient = getEmployee(id);
-        recipient.mail = recipient.mail || [];
-        recipient.mail.push(mailData);
-        updateEmployee(recipient);
-        sendDM(id, `New message from ${emp.profile.name}: ${subject}\n${content}`);
-        addNotification('mail', `New message from ${emp.profile.name}: ${subject}`, 'mail', id);
-    });
-    emp.drafts.splice(index, 1);
-    updateEmployee(emp);
-    showMailDeliveryAnimation();
-    showModal('alert', '<span class="success-tick"></span> Successfully sent!');
-    playSuccessSound();
-    addNotification('mail', 'Your mail has been sent!', 'mail');
-    renderMail();
+    
+    // Only add sample data if no mail exists
+    const existingMail = localStorage.getItem(`mail_${currentUserId}`);
+    if (!existingMail) {
+        localStorage.setItem(`mail_${currentUserId}`, JSON.stringify(sampleMail));
+    }
 }
 
 const discordLoginBtn = document.getElementById('discordLoginBtn');
@@ -3798,6 +3838,7 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
     const subject = document.getElementById('mailSubject').value.trim();
     const content = document.getElementById('mailContent').value.trim();
     const files = document.getElementById('mailAttachments').files;
+    
     if (!recipientIds.length || recipientIds.includes('')) {
         document.getElementById('mailError').classList.remove('hidden');
         setTimeout(() => document.getElementById('mailError').classList.add('hidden'), 2000);
@@ -3807,10 +3848,14 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
         showModal('alert', 'Please enter a message');
         return;
     }
+    
     showModal('alert', 'Sending...');
     await new Promise(r => setTimeout(r, 1000));
-    const emp = getEmployee(currentUser.id);
-    const timestamp = new Date().toLocaleString();
+    
+    const timestamp = new Date().toISOString();
+    const senderName = currentUser.profile?.name || 'Unknown User';
+    
+    // Process attachments
     const attachments = await Promise.all(Array.from(files).map(async file => {
         const reader = new FileReader();
         return new Promise(resolve => {
@@ -3818,91 +3863,85 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
             reader.readAsDataURL(file);
         });
     }));
+    
     const mailData = {
         id: Date.now().toString(),
-        from: emp.profile.name,
+        senderName: senderName,
         senderId: currentUser.id,
-        to: recipientIds.map(id => getEmployee(id).profile.name),
-        recipientIds,
+        recipients: recipientIds,
         subject,
         content,
         timestamp,
-        attachments: attachments.length ? attachments : null,
-        thread: []
+        attachments: attachments.length ? attachments : null
     };
-    emp.sentMail = emp.sentMail || [];
-    emp.sentMail.push(mailData);
-    recipientIds.forEach(id => {
-        const recipient = getEmployee(id);
-        recipient.mail = recipient.mail || [];
-        recipient.mail.push(mailData);
-        updateEmployee(recipient);
-        sendDM(id, `New message from ${emp.profile.name}: ${subject}\n${content}`);
-        addNotification('mail', `New message from ${emp.profile.name}: ${subject}`, 'mail', id);
+    
+    // Add to sender's sent mail
+    const senderMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
+    senderMail.sent.push(mailData);
+    localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(senderMail));
+    
+    // Add to each recipient's inbox
+    recipientIds.forEach(recipientId => {
+        const recipientMail = JSON.parse(localStorage.getItem(`mail_${recipientId}`) || '{"inbox": [], "sent": [], "drafts": []}');
+        recipientMail.inbox.push(mailData);
+        localStorage.setItem(`mail_${recipientId}`, JSON.stringify(recipientMail));
     });
+    
+    // Remove from drafts if this was a draft being sent
     if ('draftIndex' in document.getElementById('sendMailBtn').dataset) {
-        emp.drafts.splice(parseInt(document.getElementById('sendMailBtn').dataset.draftIndex), 1);
+        senderMail.drafts.splice(parseInt(document.getElementById('sendMailBtn').dataset.draftIndex), 1);
+        localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(senderMail));
         delete document.getElementById('sendMailBtn').dataset.draftIndex;
     }
-    updateEmployee(emp);
+    
     showMailDeliveryAnimation();
     showModal('alert', '<span class="success-tick"></span> Successfully sent!');
     playSuccessSound();
     addNotification('mail', 'Your mail has been sent!', 'mail');
     renderMail();
+    closeModal('composeMail');
 });
 
-document.getElementById('saveDraftBtn').addEventListener('click', () => {
+document.getElementById('saveDraftBtn').addEventListener('click', async () => {
     const recipientIds = Array.from(document.getElementById('mailRecipients').selectedOptions).map(opt => opt.value);
     const subject = document.getElementById('mailSubject').value.trim();
     const content = document.getElementById('mailContent').value.trim();
     const files = document.getElementById('mailAttachments').files;
-    const emp = getEmployee(currentUser.id);
-    emp.drafts = emp.drafts || [];
+    
+    // Process attachments
+    const attachments = await Promise.all(Array.from(files).map(async file => {
+        const reader = new FileReader();
+        return new Promise(resolve => {
+            reader.onload = () => resolve({ name: file.name, url: reader.result });
+            reader.readAsDataURL(file);
+        });
+    }));
+    
     const draftData = {
-        recipientIds,
-        recipients: recipientIds.map(id => getEmployee(id).profile.name),
+        recipients: recipientIds,
         subject,
         content,
-        timestamp: new Date().toLocaleString(),
-        attachments: null
+        timestamp: new Date().toISOString(),
+        attachments: attachments.length ? attachments : null
     };
-    if (files.length) {
-        Promise.all(Array.from(files).map(file => {
-            const reader = new FileReader();
-            return new Promise(resolve => {
-                reader.onload = () => resolve({ name: file.name, url: reader.result });
-                reader.readAsDataURL(file);
-            });
-        })).then(attachments => {
-            draftData.attachments = attachments;
-            if ('draftIndex' in document.getElementById('sendMailBtn').dataset) {
-                emp.drafts[parseInt(document.getElementById('sendMailBtn').dataset.draftIndex)] = draftData;
-                delete document.getElementById('sendMailBtn').dataset.draftIndex;
-            } else {
-                emp.drafts.push(draftData);
-            }
-            updateEmployee(emp);
-            closeModal('composeMail');
-            showModal('alert', '<span class="success-tick"></span> Draft saved successfully!');
-            playSuccessSound();
-            addNotification('mail', 'Mail draft saved!', 'mail');
-            renderMail();
-        });
+    
+    const userMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
+    
+    if ('draftIndex' in document.getElementById('sendMailBtn').dataset) {
+        // Update existing draft
+        userMail.drafts[parseInt(document.getElementById('sendMailBtn').dataset.draftIndex)] = draftData;
+        delete document.getElementById('sendMailBtn').dataset.draftIndex;
     } else {
-        if ('draftIndex' in document.getElementById('sendMailBtn').dataset) {
-            emp.drafts[parseInt(document.getElementById('sendMailBtn').dataset.draftIndex)] = draftData;
-            delete document.getElementById('sendMailBtn').dataset.draftIndex;
-        } else {
-            emp.drafts.push(draftData);
-        }
-        updateEmployee(emp);
-        closeModal('composeMail');
-        showModal('alert', '<span class="success-tick"></span> Draft saved successfully!');
-        playSuccessSound();
-        addNotification('mail', 'Mail draft saved!', 'mail');
-        renderMail();
+        // Add new draft
+        userMail.drafts.push(draftData);
     }
+    
+    localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(userMail));
+    closeModal('composeMail');
+    showModal('alert', '<span class="success-tick"></span> Draft saved successfully!');
+    playSuccessSound();
+    addNotification('mail', 'Mail draft saved!', 'mail');
+    renderMail();
 });
 
 document.getElementById('replyMailBtn').addEventListener('click', () => {
