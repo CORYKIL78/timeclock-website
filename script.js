@@ -478,19 +478,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 if (response.ok) {
-                    // Show success modal
+                    // Immediately close the modal
+                    deptChangeModal.style.display = 'none';
+                    if (deptSelect) deptSelect.value = '';
+                    if (reasonTextarea) reasonTextarea.value = '';
+                    
+                    // Show success modal for 2 seconds
                     showModal('alert', '✅ Department change request submitted successfully! You will receive a notification when it\'s reviewed.');
+                    setTimeout(() => {
+                        closeModal('alert');
+                    }, 2000);
                     
                     // Add notification to sidebar
                     addNotification('profile', 'Department change request submitted', 'myProfile');
-                    
-                    // Close modal after delay
-                    setTimeout(() => { 
-                        deptChangeModal.style.display = 'none'; 
-                        if (deptSelect) deptSelect.value = '';
-                        if (reasonTextarea) reasonTextarea.value = '';
-                        if (deptChangeSuccess) deptChangeSuccess.style.display = 'none';
-                    }, 1500);
                 } else {
                     throw new Error('Failed to submit request');
                 }
@@ -549,18 +549,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     emp.pendingNameChange = newName;
                     updateEmployee(emp);
                     
-                    // Show success modal
+                    // Immediately close the modal
+                    nameChangeModal.style.display = 'none';
+                    if (newNameInput) newNameInput.value = '';
+                    if (reasonInput) reasonInput.value = '';
+                    
+                    // Show success modal for 2 seconds
                     showModal('alert', '✅ Name change request submitted successfully! You will receive a notification when it\'s reviewed.');
+                    setTimeout(() => {
+                        closeModal('alert');
+                    }, 2000);
                     
                     // Add notification to sidebar
                     addNotification('profile', 'Name change request submitted', 'myProfile');
-                    
-                    // Close modal after delay
-                    setTimeout(() => { 
-                        nameChangeModal.style.display = 'none'; 
-                        if (newNameInput) newNameInput.value = '';
-                        if (reasonInput) reasonInput.value = '';
-                    }, 1500);
                 } else {
                     throw new Error('Failed to submit request');
                 }
@@ -632,18 +633,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     emp.pendingEmailChange = newEmail;
                     updateEmployee(emp);
                     
-                    // Show success modal
-                    showModal('✅ Email change request submitted successfully! You will receive a notification when it\'s reviewed.');
+                    // Immediately close the modal
+                    emailChangeModal.style.display = 'none';
+                    if (newEmailInput) newEmailInput.value = '';
+                    if (reasonInput) reasonInput.value = '';
+                    
+                    // Show success modal for 2 seconds
+                    showModal('alert', '✅ Email change request submitted successfully! You will receive a notification when it\'s reviewed.');
+                    setTimeout(() => {
+                        closeModal('alert');
+                    }, 2000);
                     
                     // Add notification to sidebar
                     addNotification('profile', 'Email change request submitted', 'myProfile');
-                    
-                    // Close modal after delay
-                    setTimeout(() => { 
-                        emailChangeModal.style.display = 'none'; 
-                        if (newEmailInput) newEmailInput.value = '';
-                        if (reasonInput) reasonInput.value = '';
-                    }, 1500);
                 } else {
                     throw new Error('Failed to submit request');
                 }
@@ -2984,8 +2986,15 @@ if (submitDeptChangeBtn) {
             });
             
             if (response.ok) {
+                // Immediately close the modal
                 closeModal('deptChange');
+                
+                // Show success modal for 2 seconds
                 showModal('alert', '<span class="success-tick"></span> Department change request submitted for approval!');
+                setTimeout(() => {
+                    closeModal('alert');
+                }, 2000);
+                
                 playSuccessSound();
                 addNotification('department', 'Department change request submitted for approval!', 'myProfile');
                 
