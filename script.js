@@ -3562,15 +3562,11 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
     
     closeMobileSidebar();
     console.log('[DEBUG] Payslips - Current user:', currentUser);
-    console.log('[DEBUG] Payslips - Profile keys:', currentUser?.profile ? Object.keys(currentUser.profile) : 'no profile');
-    console.log('[DEBUG] Payslips - Full profile:', JSON.stringify(currentUser?.profile));
     console.log('[DEBUG] Payslips - Using Discord ID as Staff ID:', staffId);
-    console.log('[DEBUG] Payslips - Staff ID type:', typeof staffId);
     
     if (!staffId) {
         content.innerHTML = '<p>No Staff ID found. Please contact HR.</p>';
-        console.error('[DEBUG] No Staff ID found in currentUser.profile.staffId');
-        console.error('[DEBUG] currentUser.profile:', currentUser?.profile);
+        console.error('[DEBUG] No Staff ID found');
         return;
     }
     
@@ -3591,31 +3587,31 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
         console.log('[DEBUG] Fetched payslips:', payslips);
         
         if (payslips.length === 0) {
-            content.innerHTML = '<p>No payslips found.</p>';
+            content.innerHTML = '<p style="text-align: center; padding: 40px; color: #666;">No payslips found.</p>';
             return;
         }
         
-        // Display payslips in ROW format as requested
+        // Display payslips in clean row format matching the design
         content.innerHTML = `
-            <div class="payslips-list">
+            <div class="payslips-list" style="display: flex; flex-direction: column; gap: 12px; padding: 20px;">
                 ${payslips.map((payslip, index) => `
-                    <div class="payslip-item" onclick="showPayslipDetails(${index})" style="
+                    <div class="payslip-row" onclick="showPayslipDetails(${index})" style="
                         display: flex; 
                         justify-content: space-between; 
                         align-items: center; 
-                        border: 1px solid #ddd; 
-                        padding: 15px; 
-                        margin: 10px 0; 
+                        border: 1px solid #e0e0e0; 
+                        padding: 20px 24px; 
                         border-radius: 8px; 
-                        background: #f9f9f9; 
+                        background: white; 
                         cursor: pointer;
-                        transition: background 0.2s;
-                    " onmouseover="this.style.background='#e8f4f8'" onmouseout="this.style.background='#f9f9f9'">
+                        transition: all 0.2s ease;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+                    " onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.08)'; this.style.transform='translateY(0)'">
                         <div style="flex: 1;">
-                            <span style="font-weight: bold; color: #1976d2;">PAYSLIP: ${payslip.dateAssigned}</span>
+                            <span style="font-weight: 600; color: #1976d2; font-size: 16px;">PAYSLIP: ${payslip.dateAssigned}</span>
                         </div>
                         <div style="flex: 1; text-align: right;">
-                            <span style="color: #666;">by ${payslip.assignedBy || 'Unknown'}</span>
+                            <span style="color: #888; font-size: 14px;">by ${payslip.assignedBy || 'Marcus Ray'}</span>
                         </div>
                     </div>
                 `).join('')}
@@ -3753,13 +3749,16 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
             localStorage.setItem('lastDisciplinaryCheck', JSON.stringify(lastDisciplinaryCheck));
             console.log('[DEBUG] Reset disciplinary counter to 0 in localStorage');
             
+            emptyEl.innerHTML = '<p style="text-align: center; padding: 40px; color: #666;">No disciplinaries found.</p>';
             emptyEl.classList.remove('hidden');
             return;
         }
         
         // Update header with count
         const header = document.querySelector('#disciplinariesScreen h2');
-        header.textContent = `Disciplinaries (${disciplinaries.length})`;
+        if (header) {
+            header.textContent = `Disciplinaries (${disciplinaries.length})`;
+        }
         
         // Update localStorage counter to reflect current reality
         let lastDisciplinaryCheck = localStorage.getItem('lastDisciplinaryCheck') ? JSON.parse(localStorage.getItem('lastDisciplinaryCheck')) : {};
@@ -3769,25 +3768,48 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
         
         console.log('[DEBUG] Updated disciplinary counter in localStorage to:', disciplinaries.length);
         
-        // Generate simple row-based list
+        // Generate clean row-based list matching payslips design
+        listEl.style.cssText = 'display: flex; flex-direction: column; gap: 12px; padding: 20px;';
+        
         disciplinaries.forEach((disc, index) => {
             const item = document.createElement('div');
-            item.className = 'disciplinary-item';
+            item.className = 'disciplinary-row';
             
-            const date = new Date(disc.dateAssigned).toLocaleDateString();
+            const date = disc.dateAssigned || new Date().toLocaleDateString();
+            
+            item.style.cssText = `
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                border: 1px solid #e0e0e0; 
+                padding: 20px 24px; 
+                border-radius: 8px; 
+                background: white; 
+                cursor: pointer;
+                transition: all 0.2s ease;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            `;
+            
+            item.onmouseover = () => {
+                item.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)';
+                item.style.transform = 'translateY(-2px)';
+            };
+            
+            item.onmouseout = () => {
+                item.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
+                item.style.transform = 'translateY(0)';
+            };
             
             item.innerHTML = `
-                <div class="disciplinary-header">
-                    <h4>Disciplinary #${index + 1}</h4>
-                    <span class="disciplinary-date">${date}</span>
+                <div style="flex: 1;">
+                    <span style="font-weight: 600; color: #f44336; font-size: 16px;">New Disciplinary</span>
                 </div>
-                <div class="disciplinary-details">
-                    <p><strong>Type:</strong> ${disc.strikeType || 'N/A'}</p>
-                    <p><strong>Comment:</strong> ${disc.comment || 'No comment provided'}</p>
-                    <p><strong>Assigned By:</strong> ${disc.assignedBy || 'N/A'}</p>
-                    <p><strong>Status:</strong> Active</p>
+                <div style="flex: 1; text-align: right;">
+                    <span style="color: #888; font-size: 14px;">by ${disc.assignedBy || 'Marcus Ray'}</span>
                 </div>
             `;
+            
+            item.onclick = () => showDisciplinaryDetails(disc);
             
             listEl.appendChild(item);
         });
