@@ -1237,6 +1237,25 @@ setInterval(async () => {
     }
 }, 5000); // Poll every 5 seconds for near-instant notifications
 
+// Auto-process pending payslips and disciplinaries (check for "Submit" status in Google Sheets)
+setInterval(async () => {
+    try {
+        // Check and process pending payslips
+        await fetch('https://timeclock-backend.marcusray.workers.dev/api/payslips/check-pending', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        // Check and process pending disciplinaries
+        await fetch('https://timeclock-backend.marcusray.workers.dev/api/disciplinaries/check-pending', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+    } catch (e) {
+        console.error('[DEBUG] Error auto-processing submissions:', e);
+    }
+}, 3000); // Check every 3 seconds for instant processing
+
 // Polling for new payslips
 let lastPayslipCheck = localStorage.getItem('lastPayslipCheck') ? JSON.parse(localStorage.getItem('lastPayslipCheck')) : {};
 setInterval(async () => {
