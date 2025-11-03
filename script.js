@@ -1755,6 +1755,7 @@ let employees = JSON.parse(localStorage.getItem('employees')) || [];
 let isClockedIn = false;
 let clockInActions = [];
 let clockInInterval = null;
+let clockDisplayInterval = null;
 let previousSessions = [];
 let roleNames = {};
 let successAudio = null;
@@ -3988,6 +3989,49 @@ function showDisciplinaryDetails(disciplinary) {
 document.getElementById('timeclockBtn').addEventListener('click', () => {
     showScreen('timeclock');
     updateMainScreen();
+    
+    // Clear any existing clock display interval
+    if (clockDisplayInterval) clearInterval(clockDisplayInterval);
+    
+    // Update clock display with current time
+    const updateClock = () => {
+        const now = new Date();
+        document.getElementById('clockDisplay').textContent = now.toLocaleTimeString();
+    };
+    updateClock();
+    clockDisplayInterval = setInterval(updateClock, 1000);
+    
+    // Ensure session info is showing if user is clocked in
+    if (isClockedIn && clockInTime) {
+        const sessionInfo = document.getElementById('sessionInfo');
+        sessionInfo.classList.remove('hidden');
+        
+        // Update session info immediately
+        const elapsed = Date.now() - clockInTime;
+        sessionInfo.innerHTML = `
+            <p>Session started: ${new Date(clockInTime).toLocaleString()}</p>
+            <p>Elapsed: ${formatTime(elapsed)}</p>
+            <p>Actions: ${clockInActions.join(', ') || 'None'}</p>
+        `;
+        
+        // Ensure interval is running (but don't create duplicates)
+        if (!clockInInterval) {
+            clockInInterval = setInterval(() => {
+                if (isClockedIn && clockInTime) {
+                    const elapsed = Date.now() - clockInTime;
+                    const sessionInfoEl = document.getElementById('sessionInfo');
+                    if (sessionInfoEl) {
+                        sessionInfoEl.innerHTML = `
+                            <p>Session started: ${new Date(clockInTime).toLocaleString()}</p>
+                            <p>Elapsed: ${formatTime(elapsed)}</p>
+                            <p>Actions: ${clockInActions.join(', ') || 'None'}</p>
+                        `;
+                    }
+                }
+            }, 1000);
+        }
+    }
+    
     closeMobileSidebar();
 });
 
