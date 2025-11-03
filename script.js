@@ -2944,8 +2944,22 @@ if (continueBtn) {
 
 const portalLoginBtn = document.getElementById('portalLoginBtn');
 if (portalLoginBtn) {
-    portalLoginBtn.addEventListener('click', () => {
-        console.log('Portal login button clicked, redirecting to mainMenu');
+    portalLoginBtn.addEventListener('click', async () => {
+        console.log('Portal login button clicked, recording last login and redirecting to mainMenu');
+        
+        // Record last login time
+        if (currentUser && currentUser.id) {
+            const now = new Date().toISOString();
+            currentUser.lastLogin = now;
+            
+            // Update employee data with last login
+            const emp = getEmployee(currentUser.id);
+            if (emp) {
+                emp.lastLogin = now;
+                await saveEmployeeData();
+            }
+        }
+        
         showScreen('mainMenu');
         updateSidebarProfile();
         updateMainScreen();
@@ -4290,7 +4304,7 @@ if (mobileNavBtn) {
     mobileNavBtn.addEventListener('click', () => {
         const sidebar = document.getElementById('sidebar');
         if (sidebar) {
-            sidebar.classList.toggle('active');
+            sidebar.classList.toggle('extended');
         }
     });
 }
