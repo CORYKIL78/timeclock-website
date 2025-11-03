@@ -3822,7 +3822,7 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
             
             item.innerHTML = `
                 <div style="flex: 1;">
-                    <span style="font-weight: 600; color: #f44336; font-size: 16px;">New Disciplinary</span>
+                    <span style="font-weight: 600; color: #f44336; font-size: 16px;">DISCIPLINARY: ${date}</span>
                 </div>
                 <div style="flex: 1; text-align: right;">
                     <span style="color: #888; font-size: 14px;">by ${disc.assignedBy || 'Marcus Ray'}</span>
@@ -3841,6 +3841,45 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
         emptyEl.classList.remove('hidden');
     }
 });
+
+function showDisciplinaryDetails(disciplinary) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.5); display: flex; align-items: center; 
+        justify-content: center; z-index: 10000;
+    `;
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    
+    modal.innerHTML = `
+        <div style="
+            background: white; padding: 30px; border-radius: 8px; 
+            max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        ">
+            <h3 style="margin: 0 0 20px 0; color: #f44336;">Disciplinary Details</h3>
+            <div style="margin-bottom: 15px;">
+                <strong>Date Assigned:</strong> ${disciplinary.dateAssigned || 'N/A'}
+            </div>
+            <div style="margin-bottom: 15px;">
+                <strong>Type:</strong> ${disciplinary.strikeType || 'N/A'}
+            </div>
+            <div style="margin-bottom: 15px;">
+                <strong>Assigned By:</strong> ${disciplinary.assignedBy || 'Unknown'}
+            </div>
+            <div style="margin-bottom: 20px;">
+                <strong>Comment:</strong> ${disciplinary.comment || 'No comment provided'}
+            </div>
+            <div style="text-align: center;">
+                <button onclick="this.closest('[style*=fixed]').remove()" style="
+                    background: #666; color: white; border: none; 
+                    padding: 12px 24px; border-radius: 4px; cursor: pointer;
+                ">Close</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
 
 document.getElementById('timeclockBtn').addEventListener('click', () => {
     showScreen('timeclock');
