@@ -452,30 +452,34 @@
         </div>
     </div>
     <div id="payslipsScreen" class="screen">
-        <div style="padding: 30px; height: 100%; display: flex; flex-direction: column;">
-            <div style="margin-bottom: 20px;">
-                <h2 style="margin: 0 0 10px 0;">Payslips</h2>
-                <p style="color: #666; font-size: 14px; margin: 0;">View payslips that have been assigned to you here. Click into them to view more details</p>
+        <div style="padding: 30px 50px; height: 100%; display: flex; flex-direction: column; align-items: center;">
+            <div style="width: 100%; max-width: 1400px;">
+                <div style="margin-bottom: 20px; padding-left: 20px;">
+                    <h2 style="margin: 0 0 10px 0;">Payslips</h2>
+                    <p style="color: #666; font-size: 14px; margin: 0;">View payslips that have been assigned to you here. Click into them to view more details</p>
+                </div>
+                <div id="payslipsContent" style="width: 100%; min-height: 500px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow-y: auto;"></div>
             </div>
-            <div id="payslipsContent" style="flex: 1; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow-y: auto;"></div>
         </div>
     </div>
     <div id="disciplinariesScreen" class="screen">
-        <div style="padding: 30px; height: 100%; display: flex; flex-direction: column;">
-            <div style="margin-bottom: 20px;">
-                <h2 style="margin: 0 0 10px 0;">Disciplinaries</h2>
-                <p style="color: #666; font-size: 14px; margin: 0;">View your strikes and disciplinaries here. To appeal these, please contact your Department Head or the OP who assigned this to you</p>
-            </div>
-            <div style="flex: 1; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow-y: auto;">
-                <div id="disciplinariesContent" style="height: 100%;">
-                    <div id="disciplinariesList" class="disciplinaries-list">
-                        <!-- Dynamic content will be inserted here -->
-                    </div>
-                    <div id="disciplinariesEmpty" class="empty-state hidden">
-                        <p>No disciplinaries found.</p>
-                    </div>
-                    <div id="disciplinariesLoading" class="loading-state">
-                        <p>Loading disciplinaries...</p>
+        <div style="padding: 30px 50px; height: 100%; display: flex; flex-direction: column; align-items: center;">
+            <div style="width: 100%; max-width: 1400px;">
+                <div style="margin-bottom: 20px; padding-left: 20px;">
+                    <h2 style="margin: 0 0 10px 0;">Disciplinaries</h2>
+                    <p style="color: #666; font-size: 14px; margin: 0;">View your strikes and disciplinaries here. To appeal these, please contact your Department Head or the OP who assigned this to you</p>
+                </div>
+                <div style="width: 100%; min-height: 500px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow-y: auto;">
+                    <div id="disciplinariesContent" style="height: 100%;">
+                        <div id="disciplinariesList" class="disciplinaries-list">
+                            <!-- Dynamic content will be inserted here -->
+                        </div>
+                        <div id="disciplinariesEmpty" class="empty-state hidden">
+                            <p>No disciplinaries found.</p>
+                        </div>
+                        <div id="disciplinariesLoading" class="loading-state">
+                            <p>Loading disciplinaries...</p>
+                        </div>
                     </div>
                 </div>
             </div>
