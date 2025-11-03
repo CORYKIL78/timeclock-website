@@ -2010,9 +2010,27 @@ function renderNotifications() {
     const list = document.getElementById('notificationList');
     if (!list) return;
     list.innerHTML = '';
+    
+    // Update badge count
+    const badge = document.getElementById('notificationBadge');
+    const count = currentNotifications.length;
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+    
+    if (currentNotifications.length === 0) {
+        list.innerHTML = '<li style="text-align: center; color: #9ca3af; padding: 20px;">No notifications</li>';
+        return;
+    }
+    
     currentNotifications.forEach((n, index) => {
         const li = document.createElement('li');
-        li.textContent = `${n.type}: ${n.message} (${n.timestamp})`;
+        li.textContent = `${n.type}: ${n.message}`;
         li.addEventListener('click', () => {
             currentNotifications.splice(index, 1);
             const emp = getEmployee(currentUser.id);
@@ -4190,9 +4208,60 @@ const sidebarToggle = document.querySelector('.sidebar-toggle');
 if (sidebarToggle) {
     sidebarToggle.addEventListener('click', () => {
         console.log('Sidebar toggle clicked');
-        document.getElementById('sidebar').classList.toggle('extended');
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('extended');
+        
+        // Close sidebar when clicking navigation buttons on mobile
+        if (window.innerWidth <= 768) {
+            const navButtons = document.querySelectorAll('#sidebarNav button');
+            navButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    sidebar.classList.remove('extended');
+                });
+            });
+        }
     });
 }
+
+// Notification Button Handlers
+const notificationBtn = document.getElementById('notificationBtn');
+const notificationPanel = document.getElementById('notificationPanel');
+const closeNotifications = document.getElementById('closeNotifications');
+const notificationBadge = document.getElementById('notificationBadge');
+
+if (notificationBtn) {
+    notificationBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        notificationPanel.classList.toggle('hidden');
+        
+        // Update badge count
+        const notificationList = document.getElementById('notificationList');
+        if (notificationList) {
+            const count = notificationList.children.length;
+            if (count > 0) {
+                notificationBadge.textContent = count;
+                notificationBadge.classList.remove('hidden');
+            } else {
+                notificationBadge.classList.add('hidden');
+            }
+        }
+    });
+}
+
+if (closeNotifications) {
+    closeNotifications.addEventListener('click', () => {
+        notificationPanel.classList.add('hidden');
+    });
+}
+
+// Close notification panel when clicking outside
+document.addEventListener('click', (e) => {
+    if (notificationPanel && !notificationPanel.classList.contains('hidden')) {
+        if (!notificationPanel.contains(e.target) && !notificationBtn.contains(e.target)) {
+            notificationPanel.classList.add('hidden');
+        }
+    }
+});
 
 const modeToggle = document.getElementById('modeToggle');
 if (modeToggle) {

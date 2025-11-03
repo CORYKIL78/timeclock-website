@@ -805,49 +805,68 @@ body.dark .profile-stat {
         pointer-events: auto !important;
     }
     .sidebar-toggle {
-        position: static !important;
-        margin-left: auto;
-        margin-right: 12px;
-        top: unset !important;
-        right: unset !important;
+        position: fixed !important;
+        top: 12px !important;
+        left: 12px !important;
+        margin: 0 !important;
         z-index: 1003 !important;
-        font-size: 24px !important;
-        padding: 10px !important;
-        min-width: 44px !important;
-        min-height: 44px !important;
-        display: flex !important; /* Force visible on mobile */
+        font-size: 28px !important;
+        padding: 12px !important;
+        width: 48px !important;
+        height: 48px !important;
+        min-width: 48px !important;
+        min-height: 48px !important;
+        display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         visibility: visible !important;
         opacity: 1 !important;
-        background: transparent !important;
+        background: #3b82f6 !important;
         border: none !important;
+        border-radius: 12px !important;
         color: white !important;
-        color: white;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+        transition: all 0.3s ease !important;
+    }
+    .sidebar-toggle:active {
+        transform: scale(0.95) !important;
     }
     #sidebarNav, .sidebar-footer {
         display: none !important;
     }
     .sidebar.extended {
-        height: auto !important;
-        min-height: 100vh;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        min-height: 100vh !important;
         flex-direction: column;
-        align-items: flex-start;
-        border-bottom: none;
-        border-right: 1px solid var(--mail-border);
+        align-items: stretch !important;
+        border: none !important;
         background: var(--primary);
+        z-index: 1002 !important;
+    }
+    .sidebar.extended .sidebar-toggle {
+        background: #ef4444 !important;
     }
     .sidebar.extended #sidebarNav {
         display: flex !important;
         flex-direction: column;
-        width: 100vw;
+        width: 100% !important;
         background: var(--primary);
-        position: absolute;
-        left: 0;
-        top: 56px;
-        z-index: 1002;
-        border-bottom: 1px solid var(--mail-border);
-        padding: 10px 0;
+        padding: 80px 20px 20px 20px !important;
+        gap: 12px !important;
+        height: calc(100vh - 80px) !important;
+        overflow-y: auto !important;
+    }
+    .sidebar.extended #sidebarNav button {
+        width: 100% !important;
+        padding: 20px !important;
+        font-size: 18px !important;
+        text-align: left !important;
+        border-radius: 12px !important;
+    }
     }
     .sidebar.extended #sidebarNav button {
         font-size: 18px !important;
@@ -891,7 +910,7 @@ body.dark .profile-stat {
         margin-left: 0 !important;
     }
 }
-}
+
 :root {
     --bg-color: #f8f9fa;
     --text-color: #212529;
@@ -910,14 +929,18 @@ body.dark .profile-stat {
 }
 
 body.dark {
-    --bg-color: #1c2526;
-    --text-color: #e0e0e0;
-    --primary: #1e90ff;
-    --secondary: #adb5bd;
-    --success: #218838;
-    --danger: #c82333;
-    --info: #138496;
-    --warning: #e0a800;
+    --bg-color: #0f1419;
+    --text-color: #e6edf3;
+    --primary: #1e293b;
+    --secondary: #475569;
+    --success: #10b981;
+    --danger: #ef4444;
+    --info: #3b82f6;
+    --warning: #f59e0b;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --mail-bg: #1a2332;
+    --mail-border: #2d3748;
+    background: #0f1419;
     --shadow: 0 2px 8px rgba(0,0,0,0.5);
     --tab-active-bg: #1e90ff;
     --mail-bg: #2c3e50;
@@ -998,7 +1021,8 @@ body {
 }
 
 body.dark .container {
-    background: #2c3e50;
+    background: #1a2332;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes slideIn {
@@ -1008,14 +1032,14 @@ body.dark .container {
 
 input, select, textarea {
     width: 100%;
-    padding: 12px;
+    padding: 12px 14px;
     margin: 8px 0;
-    border: 1px solid var(--mail-border);
-    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
     background: white;
     color: var(--text-color);
-    font-size: 16px;
-    transition: border-color 0.3s var(--transition-ease), box-shadow 0.3s var(--transition-ease);
+    font-size: 15px;
+    transition: all 0.2s ease;
 }
 
 select[multiple] {
@@ -1024,14 +1048,19 @@ select[multiple] {
 
 input:focus, select:focus, textarea:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 body.dark input, body.dark select, body.dark textarea {
-    background: #34495e;
-    border-color: #576574;
-    color: #e0e0e0;
+    background: #1e293b;
+    border-color: #334155;
+    color: #e6edf3;
+}
+
+body.dark input:focus, body.dark select:focus, body.dark textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 textarea {
@@ -1094,31 +1123,36 @@ body.dark .preference-group label:hover {
     font-size: 18px;
 }
 
-button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn) {
+button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):not(.notification-btn):not(.close-notifications-btn) {
     width: 100%;
-    padding: 12px;
+    padding: 12px 16px;
     margin: 8px 0;
     border: none;
-    border-radius: 6px;
-    background: var(--primary);
+    border-radius: 8px;
+    background: #3b82f6;
     color: white;
-    font-size: 16px;
+    font-size: 15px;
+    font-weight: 500;
     cursor: pointer;
-    transition: background 0.2s var(--transition-ease), transform 0.1s var(--transition-ease), box-shadow 0.2s var(--transition-ease);
+    transition: all 0.2s ease;
 }
 
-button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):hover {
-    background: #0056b3;
+button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):not(.notification-btn):not(.close-notifications-btn):hover {
+    background: #2563eb;
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
 }
 
-body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn) {
-    background: #1e90ff;
+button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):not(.notification-btn):not(.close-notifications-btn):active {
+    transform: translateY(0);
 }
 
-body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):hover {
-    background: #1873cc;
+body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):not(.notification-btn):not(.close-notifications-btn) {
+    background: #3b82f6;
+}
+
+body.dark button:not(#sidebarNav button):not(.sidebar-toggle):not(#logoutBtn):not(#addTaskBtn):not(.notification-btn):not(.close-notifications-btn):hover {
+    background: #2563eb;
 }
 
 #logoutBtn {
@@ -1682,6 +1716,164 @@ body.dark .notifications {
     border: 1px solid #495057;
 }
 
+/* New Modern Notification Button (Bottom Left Circle) */
+.notification-btn {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.notification-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+}
+
+.notification-btn:active {
+    transform: scale(0.95);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ef4444;
+    color: white;
+    border-radius: 12px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* Modern Notifications Panel */
+.notifications-panel {
+    position: fixed;
+    bottom: 90px;
+    left: 24px;
+    width: 360px;
+    max-height: 480px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    z-index: 999;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: bottom left;
+}
+
+.notifications-panel.hidden {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+    pointer-events: none;
+}
+
+body.dark .notifications-panel {
+    background: #1a2332;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+body.dark .notifications-header {
+    background: #0f1419;
+    border-bottom: 1px solid #2d3748;
+}
+
+.notifications-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    color: #111827;
+}
+
+body.dark .notifications-header h3 {
+    color: #e6edf3;
+}
+
+.close-notifications-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.close-notifications-btn:hover {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+body.dark .close-notifications-btn {
+    color: #9ca3af;
+}
+
+body.dark .close-notifications-btn:hover {
+    background: #2d3748;
+    color: #e6edf3;
+}
+
+.notifications-panel ul {
+    list-style: none;
+    padding: 8px;
+    margin: 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notifications-panel li {
+    padding: 12px;
+    margin: 4px 0;
+    background: #f9fafb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    color: #374151;
+}
+
+.notifications-panel li:hover {
+    background: #e5e7eb;
+    transform: translateX(4px);
+}
+
+body.dark .notifications-panel li {
+    background: #0f1419;
+    color: #e6edf3;
+}
+
+body.dark .notifications-panel li:hover {
+    background: #1e293b;
+}
+
 .notifications h3 {
     font-size: 16px;
     margin-bottom: 12px;
@@ -1745,41 +1937,59 @@ body.dark .notification-item {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
     align-items: center;
     justify-content: center;
     z-index: 2000;
-    animation: fadeIn 0.3s var(--transition-ease);
+    animation: fadeIn 0.3s ease;
 }
 
 .modal-content {
     background: white;
-    border-radius: 12px;
-    padding: 24px;
+    border-radius: 16px;
+    padding: 32px;
     max-width: 500px;
     width: 90%;
     text-align: center;
-    box-shadow: var(--shadow);
-    animation: popIn 0.3s var(--transition-ease);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    animation: popIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
 }
 
 body.dark .modal-content {
-    background: #2c3e50;
+    background: #1a2332;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 }
 
 .modal-content .close {
     position: absolute;
-    top: 15px;
+    top: 16px;
     right: 20px;
-    font-size: 24px;
+    font-size: 28px;
     cursor: pointer;
-    color: var(--text-color);
-    transition: transform 0.2s var(--transition-ease);
+    color: #6b7280;
+    transition: all 0.2s ease;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
 }
 
 .modal-content .close:hover {
-    transform: scale(1.2);
+    background: #f3f4f6;
+    color: #111827;
+}
+
+body.dark .modal-content .close {
+    color: #9ca3af;
+}
+
+body.dark .modal-content .close:hover {
+    background: #2d3748;
+    color: #e6edf3;
 }
 
 .absence-details {
