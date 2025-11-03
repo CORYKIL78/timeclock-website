@@ -808,6 +808,10 @@ body.dark .profile-stat {
         top: unset;
         right: unset;
         z-index: 1003;
+        font-size: 24px !important;
+        padding: 10px !important;
+        min-width: 44px;
+        min-height: 44px;
     }
     #sidebarNav, .sidebar-footer {
         display: none !important;
@@ -831,9 +835,48 @@ body.dark .profile-stat {
         top: 56px;
         z-index: 1002;
         border-bottom: 1px solid var(--mail-border);
+        padding: 10px 0;
+    }
+    .sidebar.extended #sidebarNav button {
+        font-size: 18px !important;
+        padding: 15px 20px !important;
+        min-height: 50px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     .sidebar.extended .sidebar-footer {
-        display: block !important;
+        display: flex !important;
+        width: 100vw;
+        padding: 15px;
+        position: relative;
+        bottom: auto;
+    }
+    .sidebar.extended .sidebar-footer button {
+        min-height: 44px;
+        padding: 10px 15px;
+    }
+    
+    /* Ensure main content is visible below mobile topbar */
+    .screen.active {
+        padding-top: 70px !important;
+    }
+    
+    .container {
+        padding-top: 20px !important;
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+    }
+    
+    /* Make user header stack vertically on mobile */
+    .user-header {
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center;
+        gap: 15px;
+    }
+    
+    .user-header #dateTime {
+        margin-left: 0 !important;
     }
 }
 }
@@ -2675,7 +2718,9 @@ body.dark .suspended-message p {
         transform: translateX(0); 
     }
     #mainMenuScreen .container {
-        padding-left: 70px; /* Accounts for collapsed sidebar (50px) + buffer */
+        padding-top: 80px !important; /* Extra padding for mobile topbar */
+        padding-left: 16px !important;
+        padding-right: 16px !important;
     }
     .sidebar { width: 0; min-width: 0; }
     .sidebar.extended { width: 100vw; min-width: 100vw; }
@@ -2690,6 +2735,24 @@ body.dark .suspended-message p {
     .absence-tabs { flex-wrap: wrap; }
     .absence-tab-btn { flex: 1 1 45%; }
     .absence-tab-slider { width: calc(100% / 2); }
+    
+    /* Ensure greeting and profile are visible on mobile */
+    .user-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 20px 10px;
+    }
+    
+    .user-header img {
+        margin-bottom: 10px;
+    }
+    
+    #greeting {
+        font-size: 1.3em;
+        word-wrap: break-word;
+        max-width: 100%;
+    }
     
     /* Enhanced mobile mail styles */
     .mail-item {

@@ -1731,6 +1731,14 @@ function showScreen(screenId) {
     }
 }
 
+// Helper function to close mobile sidebar after navigation
+function closeMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && window.innerWidth <= 700) {
+        sidebar.classList.remove('extended');
+    }
+}
+
 function showModal(modalId, message = '') {
     console.log('Showing modal:', modalId, message);
     const modal = modals[modalId];
@@ -2046,7 +2054,12 @@ function getGreeting() {
 function updateMainScreen() {
     console.log('Updating main screen for user:', currentUser.id);
     const emp = getEmployee(currentUser.id);
-    document.getElementById('greeting').textContent = `Good ${getGreeting()}, ${emp.profile.name}!`;
+    
+    // Ensure profile data exists before displaying
+    const userName = currentUser.profile?.name || currentUser.name || 'User';
+    const userDept = currentUser.profile?.department || emp.profile?.department || 'N/A';
+    
+    document.getElementById('greeting').textContent = `Good ${getGreeting()}, ${userName}!`;
     document.getElementById('lastLogin').textContent = `Last Log In: ${emp.lastLogin || 'Never'}`;
     document.getElementById('mainProfilePic').src = currentUser.avatar || 'https://via.placeholder.com/100';
     document.getElementById('totalAbsences').textContent = emp.absences.length;
@@ -2059,7 +2072,7 @@ function updateMainScreen() {
         }
     });
     document.getElementById('totalAbsenceDays').textContent = totalDays;
-    document.getElementById('currentDepartment').textContent = emp.profile.department || 'N/A';
+    document.getElementById('currentDepartment').textContent = userDept;
     if (emp.onLOA) {
         showModal('alert', 'You are currently on a Leave of Absence');
         document.getElementById('clockInBtn').disabled = true;
@@ -2169,8 +2182,24 @@ async function handleOAuthRedirect() {
             try {
                 currentUser = JSON.parse(savedUser);
                 if (currentUser.id) {
+                    // Ensure profile exists
+                    if (!currentUser.profile || !currentUser.profile.name) {
+                        const backendProfile = await fetchUserProfile(currentUser.id);
+                        if (backendProfile && backendProfile.name) {
+                            currentUser.profile = {
+                                name: backendProfile.name,
+                                email: backendProfile.email,
+                                department: backendProfile.department,
+                                discordTag: backendProfile.discordTag || currentUser.name,
+                                staffId: backendProfile.staffId
+                            };
+                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        }
+                    }
+                    
                     const emp = getEmployee(currentUser.id);
-                    document.getElementById('portalWelcomeName').textContent = emp.profile.name;
+                    const displayName = currentUser.profile?.name || currentUser.name || 'User';
+                    document.getElementById('portalWelcomeName').textContent = displayName;
                     document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
                     showScreen('portalWelcome');
                     updateSidebarProfile();
@@ -2258,7 +2287,8 @@ async function handleOAuthRedirect() {
                 name: backendProfile.name,
                 email: backendProfile.email,
                 department: backendProfile.department,
-                discordTag: backendProfile.discordTag || user.username
+                discordTag: backendProfile.discordTag || user.username,
+                staffId: backendProfile.staffId
             },
             absences: backendProfile.absences || [],
             strikes: backendProfile.strikes || [],
@@ -2270,22 +2300,28 @@ async function handleOAuthRedirect() {
             lastLogin: backendProfile.lastLogin || null
         };
     } else {
-        // First time user: use local or empty profile
+        // First time user: use Discord name as placeholder
         isFirstTime = true;
+        const localEmp = getEmployee(user.id);
         currentUser = {
             id: user.id,
             name: user.global_name || user.username,
             avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : '',
             roles: member.roles,
-                // First time user: use local or empty profile if backendProfile is null
-            absences: getEmployee(user.id).absences || [],
-            strikes: getEmployee(user.id).strikes || [],
-            payslips: getEmployee(user.id).payslips || [],
-            mail: getEmployee(user.id).mail || [],
-            sentMail: getEmployee(user.id).sentMail || [],
-            drafts: getEmployee(user.id).drafts || [],
-            pendingDeptChange: getEmployee(user.id).pendingDeptChange || null,
-            lastLogin: getEmployee(user.id).lastLogin || null
+            profile: {
+                name: user.global_name || user.username,
+                email: 'Not set',
+                department: 'Not set',
+                discordTag: user.username
+            },
+            absences: localEmp.absences || [],
+            strikes: localEmp.strikes || [],
+            payslips: localEmp.payslips || [],
+            mail: localEmp.mail || [],
+            sentMail: localEmp.sentMail || [],
+            drafts: localEmp.drafts || [],
+            pendingDeptChange: localEmp.pendingDeptChange || null,
+            lastLogin: localEmp.lastLogin || null
         };
     }
 
@@ -2305,15 +2341,16 @@ async function handleOAuthRedirect() {
     emp.lastLogin = new Date().toLocaleString();
     updateEmployee(emp);
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    console.log('User session saved:', currentUser.id);
+    console.log('User session saved with profile:', currentUser.profile);
 
-    if (isFirstTime || !currentUser.profile.name) {
+    if (isFirstTime || !currentUser.profile.name || currentUser.profile.name === 'Not set') {
         console.log('No profile name, redirecting to setupWelcome');
         showScreen('setupWelcome');
         // Profile will be saved to Sheets when user completes department selection
     } else {
         console.log('Profile found, redirecting to portalWelcome');
-        document.getElementById('portalWelcomeName').textContent = emp.profile.name;
+        const displayName = currentUser.profile.name || currentUser.name || 'User';
+        document.getElementById('portalWelcomeName').textContent = displayName;
         document.getElementById('portalLastLogin').textContent = emp.lastLogin;
         showScreen('portalWelcome');
     }
@@ -2862,6 +2899,8 @@ if (sidebarProfilePic) {
             profileDepartmentEl.classList.toggle('pending-department', !!emp.pendingDeptChange);
         }
         
+        closeMobileSidebar();
+        
         // Update profile inputs if they exist (use currentUser.profile with emp.profile fallback)
         const updateNameInput = document.getElementById('updateNameInput');
         const updateEmailInput = document.getElementById('updateEmailInput');
@@ -2959,6 +2998,8 @@ if (homeBtn) {
         console.log('Home button clicked');
         showScreen('mainMenu');
         updateMainScreen();
+        // Close mobile sidebar after navigation
+        closeMobileSidebar();
     });
 }
 
@@ -3110,6 +3151,7 @@ if (myRolesBtn) {
             li.textContent = `${roleNames[roleId] || 'Unknown Role'} (${roleId})`;
             list.appendChild(li);
         });
+        closeMobileSidebar();
     });
 }
 
@@ -3118,6 +3160,7 @@ if (tasksBtn) {
     tasksBtn.addEventListener('click', () => {
         showScreen('tasks');
         loadTasks();
+        closeMobileSidebar();
     });
 }
 
@@ -3159,6 +3202,7 @@ if (absencesBtn) {
         
         updateAbsenceTabSlider();
         renderAbsences('pending');
+        closeMobileSidebar();
     });
 }
 
@@ -3516,6 +3560,7 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
     // Use Discord ID as Staff ID directly
     const staffId = currentUser?.id;
     
+    closeMobileSidebar();
     console.log('[DEBUG] Payslips - Current user:', currentUser);
     console.log('[DEBUG] Payslips - Profile keys:', currentUser?.profile ? Object.keys(currentUser.profile) : 'no profile');
     console.log('[DEBUG] Payslips - Full profile:', JSON.stringify(currentUser?.profile));
@@ -3672,6 +3717,8 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
     
     console.log('[DEBUG] Disciplinaries - Using Discord ID as Staff ID:', staffId);
     
+    closeMobileSidebar();
+    
     if (!staffId) {
         loadingEl.classList.add('hidden');
         emptyEl.innerHTML = '<p>Please log in first.</p>';
@@ -3756,6 +3803,7 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
 document.getElementById('timeclockBtn').addEventListener('click', () => {
     showScreen('timeclock');
     updateMainScreen();
+    closeMobileSidebar();
 });
 
 document.getElementById('clockInBtn').addEventListener('click', async () => {
@@ -3822,6 +3870,7 @@ document.getElementById('mailBtn').addEventListener('click', () => {
     document.getElementById('sentFolder').classList.remove('active');
     document.getElementById('draftsFolder').classList.remove('active');
     updateTabSlider();
+    closeMobileSidebar();
 });
 
 document.getElementById('composeMailBtn').addEventListener('click', () => {
@@ -4087,8 +4136,35 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
             currentUser = JSON.parse(savedUser);
             console.log('Loaded saved user:', currentUser);
             if (currentUser.id) {
+                // Ensure profile object exists and has necessary data
+                if (!currentUser.profile || !currentUser.profile.name) {
+                    console.log('Profile missing, fetching from backend...');
+                    const backendProfile = await fetchUserProfile(currentUser.id);
+                    if (backendProfile && backendProfile.name) {
+                        currentUser.profile = {
+                            name: backendProfile.name,
+                            email: backendProfile.email,
+                            department: backendProfile.department,
+                            discordTag: backendProfile.discordTag || currentUser.name,
+                            staffId: backendProfile.staffId
+                        };
+                        // Save updated currentUser back to localStorage
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        console.log('Profile restored from backend:', currentUser.profile);
+                    } else {
+                        console.log('No backend profile, using Discord name');
+                        currentUser.profile = {
+                            name: currentUser.name || 'Not set',
+                            email: 'Not set',
+                            department: 'Not set',
+                            discordTag: currentUser.name
+                        };
+                    }
+                }
+                
                 const emp = getEmployee(currentUser.id);
-                document.getElementById('portalWelcomeName').textContent = emp.profile.name;
+                const displayName = currentUser.profile?.name || currentUser.name || 'User';
+                document.getElementById('portalWelcomeName').textContent = displayName;
                 document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
                 console.log('Showing portalWelcome screen with sidebar');
                 showScreen('portalWelcome');
