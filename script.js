@@ -2945,21 +2945,7 @@ if (continueBtn) {
 const portalLoginBtn = document.getElementById('portalLoginBtn');
 if (portalLoginBtn) {
     portalLoginBtn.addEventListener('click', () => {
-        console.log('Portal login button clicked, redirecting to mainMenu');
-        
-        // Record last login time in background
-        if (currentUser && currentUser.id) {
-            const now = new Date().toISOString();
-            currentUser.lastLogin = now;
-            
-            // Update employee data with last login (non-blocking)
-            const emp = getEmployee(currentUser.id);
-            if (emp) {
-                emp.lastLogin = now;
-                saveEmployeeData().catch(err => console.error('Failed to save last login:', err));
-            }
-        }
-        
+        console.log('Portal login button clicked');
         showScreen('mainMenu');
         updateSidebarProfile();
         updateMainScreen();
