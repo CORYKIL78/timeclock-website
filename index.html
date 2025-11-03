@@ -26,12 +26,10 @@
             <button id="handbooksBtn">📚 Handbooks</button>
         </div>
         <div class="sidebar-footer">
-            <label class="toggle-switch">
-                <input type="checkbox" id="modeToggle">
-                <span class="slider">🌙</span>
-            </label>
-            <img src="https://media.discordapp.net/attachments/1315278404009988107/1315278404412768266/Utilities.png?ex=68e8ed78&is=68e79bf8&hm=27f1b2498c2043117d89a2d04ed0e42d509e442639da1a553ed7dbed9fa4733c&=&format=webp&quality=lossless&width=550&height=550" alt="logo" style="width: 30px; height: auto;">
-            <button id="logoutBtn" class="action-btn" title="Log Out">Log Out</button>
+            <button id="logoutBtn" class="action-btn logout-btn" title="Log Out">
+                <span class="logout-icon">🚪</span>
+                <span>Log Out</span>
+            </button>
         </div>
     </div>
 
@@ -399,6 +397,17 @@
                             <span class="profile-info-label">Email:</span>
                             <span id="profileEmail" class="profile-info-value">Not set</span>
                             <button class="pencil-btn" id="editEmailBtn" title="Request Email Change">✎</button>
+                        </div>
+                        
+                        <div class="profile-info-row">
+                            <span class="profile-info-label">Theme:</span>
+                            <span class="profile-info-value">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="modeToggle">
+                                    <span class="slider">🌙</span>
+                                </label>
+                                <span id="themeText" style="margin-left: 12px; color: #666;">Light Mode</span>
+                            </span>
                         </div>
                     </div>
                 </div>

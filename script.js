@@ -4199,6 +4199,12 @@ if (modeToggle) {
     modeToggle.addEventListener('change', (e) => {
         document.body.classList.toggle('dark', e.target.checked);
         localStorage.setItem('darkMode', e.target.checked);
+        
+        // Update theme text
+        const themeText = document.getElementById('themeText');
+        if (themeText) {
+            themeText.textContent = e.target.checked ? 'Dark Mode' : 'Light Mode';
+        }
     });
 }
 
@@ -4214,6 +4220,20 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
 (async function init() {
     console.log('Initializing Staff Portal');
     preloadAudio();
+    
+    // Initialize dark mode from localStorage
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    const modeToggle = document.getElementById('modeToggle');
+    const themeText = document.getElementById('themeText');
+    
+    if (savedDarkMode) {
+        document.body.classList.add('dark');
+        if (modeToggle) modeToggle.checked = true;
+        if (themeText) themeText.textContent = 'Dark Mode';
+    } else {
+        if (themeText) themeText.textContent = 'Light Mode';
+    }
+    
     const savedUser = localStorage.getItem('currentUser');
     const savedClockIn = localStorage.getItem('clockInTime');
     if (savedClockIn) {
