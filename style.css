@@ -2958,10 +2958,11 @@ body.dark .suspended-message p {
 
 /* Streamlined Profile Layout */
 .profile-container-streamlined {
-    max-width: 1400px;
-    width: 95%;
+    max-width: 70%;
+    width: 70%;
     margin: 0 auto;
-    padding: 20px 30px;
+    padding: 20px 0;
+    padding-left: 240px;
     display: flex;
     flex-direction: column;
     gap: 30px;
