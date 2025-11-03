@@ -2944,19 +2944,19 @@ if (continueBtn) {
 
 const portalLoginBtn = document.getElementById('portalLoginBtn');
 if (portalLoginBtn) {
-    portalLoginBtn.addEventListener('click', async () => {
-        console.log('Portal login button clicked, recording last login and redirecting to mainMenu');
+    portalLoginBtn.addEventListener('click', () => {
+        console.log('Portal login button clicked, redirecting to mainMenu');
         
-        // Record last login time
+        // Record last login time in background
         if (currentUser && currentUser.id) {
             const now = new Date().toISOString();
             currentUser.lastLogin = now;
             
-            // Update employee data with last login
+            // Update employee data with last login (non-blocking)
             const emp = getEmployee(currentUser.id);
             if (emp) {
                 emp.lastLogin = now;
-                await saveEmployeeData();
+                saveEmployeeData().catch(err => console.error('Failed to save last login:', err));
             }
         }
         

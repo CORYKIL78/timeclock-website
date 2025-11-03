@@ -1617,6 +1617,13 @@ body.dark .sidebar.extended {
     pointer-events: none;
     position: relative;
     z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#sidebarNav button svg {
+    flex-shrink: 0;
 }
 
 #sidebarNav button.active {
