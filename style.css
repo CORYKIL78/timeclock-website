@@ -1716,24 +1716,28 @@ body.dark .notifications {
     border: 1px solid #495057;
 }
 
-/* New Modern Notification Button (Bottom Left Circle) */
+/* New Modern Notification Button (Bottom Right Circle) */
 .notification-btn {
     position: fixed;
     bottom: 24px;
-    left: 24px;
+    right: 24px;
     width: 56px;
     height: 56px;
     border-radius: 50%;
     background: #3b82f6;
     color: white;
     border: none;
-    display: flex;
+    display: none; /* Hidden by default, shown when logged in */
     align-items: center;
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
     transition: all 0.3s ease;
     z-index: 1000;
+}
+
+.notification-btn.visible {
+    display: flex;
 }
 
 .notification-btn:hover {
@@ -1759,11 +1763,11 @@ body.dark .notifications {
     text-align: center;
 }
 
-/* Modern Notifications Panel */
+/* Modern Notifications Panel (Right Side) */
 .notifications-panel {
     position: fixed;
     bottom: 90px;
-    left: 24px;
+    right: 24px;
     width: 360px;
     max-height: 480px;
     background: white;
@@ -1772,7 +1776,7 @@ body.dark .notifications {
     overflow: hidden;
     z-index: 999;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    transform-origin: bottom left;
+    transform-origin: bottom right;
 }
 
 .notifications-panel.hidden {
@@ -1928,6 +1932,47 @@ body.dark .notifications li:hover {
 
 body.dark .notification-item {
     background: #34495e;
+}
+
+/* Mobile Nav Button (inside content area) */
+.mobile-nav-btn {
+    display: none;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 48px;
+    height: 48px;
+    background: #3b82f6;
+    border: none;
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    z-index: 50;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transition: all 0.2s ease;
+}
+
+.mobile-nav-btn:hover {
+    background: #2563eb;
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.mobile-nav-btn:active {
+    transform: scale(0.95);
+}
+
+.mobile-nav-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+@media (max-width: 768px) {
+    .mobile-nav-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 }
 
 .modal {

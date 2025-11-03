@@ -1732,12 +1732,16 @@ function showScreen(screenId) {
         window.location.hash = screenId;
         const sidebar = document.getElementById('sidebar');
         const notificationPanel = document.getElementById('notificationPanel');
+        const notificationBtn = document.getElementById('notificationBtn');
         if (screenId !== 'portalWelcome' && ['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail'].includes(screenId)) {
             sidebar.classList.remove('hidden');
-            notificationPanel.classList.remove('hidden');
+            if (notificationBtn) notificationBtn.classList.remove('hidden');
+            // Update notification badge
+            updateNotificationBadge();
         } else {
             sidebar.classList.add('hidden');
             notificationPanel.classList.add('hidden');
+            if (notificationBtn) notificationBtn.classList.add('hidden');
         }
         // Set profile pic on portal welcome screen
         if (screenId === 'portalWelcome' && currentUser && currentUser.avatar) {
@@ -4233,18 +4237,6 @@ if (notificationBtn) {
     notificationBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         notificationPanel.classList.toggle('hidden');
-        
-        // Update badge count
-        const notificationList = document.getElementById('notificationList');
-        if (notificationList) {
-            const count = notificationList.children.length;
-            if (count > 0) {
-                notificationBadge.textContent = count;
-                notificationBadge.classList.remove('hidden');
-            } else {
-                notificationBadge.classList.add('hidden');
-            }
-        }
     });
 }
 
@@ -4263,6 +4255,21 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// Function to update notification badge
+function updateNotificationBadge() {
+    if (!notificationBadge || !currentUser) return;
+    
+    const emp = getEmployee(currentUser.id);
+    const notificationCount = (emp.notifications || []).length;
+    
+    if (notificationCount > 0) {
+        notificationBadge.textContent = notificationCount;
+        notificationBadge.classList.remove('hidden');
+    } else {
+        notificationBadge.classList.add('hidden');
+    }
+}
+
 const modeToggle = document.getElementById('modeToggle');
 if (modeToggle) {
     modeToggle.addEventListener('change', (e) => {
@@ -4273,6 +4280,17 @@ if (modeToggle) {
         const themeText = document.getElementById('themeText');
         if (themeText) {
             themeText.textContent = e.target.checked ? 'Dark Mode' : 'Light Mode';
+        }
+    });
+}
+
+// Mobile Nav Button Handler
+const mobileNavBtn = document.getElementById('mobileNavBtn');
+if (mobileNavBtn) {
+    mobileNavBtn.addEventListener('click', () => {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('active');
         }
     });
 }

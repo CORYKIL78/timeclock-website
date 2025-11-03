@@ -357,6 +357,15 @@
     </div>
     <div id="mainMenuScreen" class="screen">
         <div class="container">
+            <!-- Mobile Nav Button (visible only on mobile) -->
+            <button id="mobileNavBtn" class="mobile-nav-btn">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            
             <div class="user-header">
                 <img id="mainProfilePic" class="profile-img" src="" alt="Profile">
                 <div>
@@ -474,7 +483,7 @@
     </div>
     <div id="payslipsScreen" class="screen">
         <div style="padding: 40px 20px 30px 220px; height: 100%; display: flex; flex-direction: column;">
-            <div style="width: 100%; height: 100%; display: flex; flex-direction: row;">
+            <div style="width: 100%; height: 100%; display: flex; flex-direction: column;">
                 <div style="margin-bottom: 20px; padding-left: 20px;">
                     <h2 style="margin: 0 0 10px 0;">Payslips</h2>
                     <p style="color: #666; font-size: 14px; margin: 0;">View payslips that have been assigned to you here. Click into them to view more details</p>
