@@ -7,20 +7,136 @@
  * 3. Replace all code with this script
  * 4. Save (Ctrl+S)
  * 5. Click "Run" > "onEdit" to authorize (you'll need to grant permissions)
- * 6. Now the script will automatically trigger when column F is changed to "Submit"
+ * 6. Now the script will automatically trigger when column G is changed to "Submit"
  * 
  * HOW IT WORKS:
- * - When column F (Status) is changed to "Submit" in cirklehrPayslips or cirklehrStrikes sheet
+ * - When column G (Status) is changed to "Submit" in cirklehrPayslips or cirklehrStrikes sheet
  * - The script extracts the Discord ID (column A)
- * - Calls the backend notification endpoint to send a Discord DM
- * - Shows "✅ Success - [timestamp]" in the status column if notification was sent
- * - Shows "❌ Failed - [reason]" if there was an error
- * - Adds timestamp to column G
+ * - Calls the backend /api/payslips/check-pending or /api/disciplinaries/check-pending endpoint
+ * - The backend sends a Discord DM and updates column H with "✅Success" or "❌Failed"
+ * 
+ * IMPORTANT: This script just triggers the backend processing. The backend handles:
+ * - Sending the Discord DM
+ * - Updating column H with success/failure status
  */
 
 const BACKEND_URL = 'https://timeclock-backend.marcusray.workers.dev';
 const PAYSLIPS_SHEET_NAME = 'cirklehrPayslips';
 const STRIKES_SHEET_NAME = 'cirklehrStrikes';
+
+/**
+ * Trigger function that runs automatically when any cell is edited
+ */
+function onEdit(e) {
+  const sheet = e.source.getActiveSheet();
+  const sheetName = sheet.getName();
+  const range = e.range;
+  const row = range.getRow();
+  const column = range.getColumn();
+  
+  // Only process edits to column G (column 7)
+  if (column !== 7) {
+    return;
+  }
+  
+  // Only process rows 3 and onwards (skip headers in rows 1-2)
+  if (row < 3) {
+    return;
+  }
+  
+  // Only process cirklehrPayslips or cirklehrStrikes sheets
+  if (sheetName !== PAYSLIPS_SHEET_NAME && sheetName !== STRIKES_SHEET_NAME) {
+    return;
+  }
+  
+  const newValue = range.getValue();
+  
+  // Only trigger when column G is changed to "Submit" (case-insensitive)
+  if (typeof newValue === 'string' && newValue.toLowerCase().trim() === 'submit') {
+    Logger.log(`[DEBUG] Submit detected in ${sheetName} row ${row}`);
+    
+    // Get the Discord ID (column A)
+    const discordId = sheet.getRange(row, 1).getValue();
+    
+    if (!discordId) {
+      Logger.log(`[ERROR] No Discord ID found in row ${row}`);
+      return;
+    }
+    
+    Logger.log(`[DEBUG] Discord ID: ${discordId}`);
+    
+    // Determine which check-pending endpoint to call
+    const isPayslip = (sheetName === PAYSLIPS_SHEET_NAME);
+    const endpoint = isPayslip ? '/api/payslips/check-pending' : '/api/disciplinaries/check-pending';
+    const type = isPayslip ? 'Payslip' : 'Disciplinary';
+    
+    // Call the backend check-pending endpoint (it will process all pending items and update column H)
+    try {
+      Logger.log(`[DEBUG] Calling ${endpoint}`);
+      
+      const response = UrlFetchApp.fetch(BACKEND_URL + endpoint, {
+        method: 'POST',
+        contentType: 'application/json',
+        payload: JSON.stringify({}),
+        muteHttpExceptions: true
+      });
+      
+      const responseCode = response.getResponseCode();
+      const responseText = response.getContentText();
+      
+      Logger.log(`[DEBUG] Response code: ${responseCode}`);
+      Logger.log(`[DEBUG] Response text: ${responseText}`);
+      
+      if (responseCode === 200) {
+        const result = JSON.parse(responseText);
+        Logger.log(`[SUCCESS] ${type} processing triggered: ${result.message}`);
+      } else {
+        Logger.log(`[ERROR] HTTP ${responseCode}: ${responseText}`);
+      }
+    } catch (error) {
+      Logger.log(`[ERROR] Exception: ${error.toString()}`);
+    }
+  }
+}
+
+/**
+ * Manual test function - you can run this from the Apps Script editor to test
+ * This will process all pending payslips
+ */
+function testPayslipProcessing() {
+  try {
+    const response = UrlFetchApp.fetch(BACKEND_URL + '/api/payslips/check-pending', {
+      method: 'POST',
+      contentType: 'application/json',
+      payload: JSON.stringify({}),
+      muteHttpExceptions: true
+    });
+    
+    Logger.log('Test response code:', response.getResponseCode());
+    Logger.log('Test response text:', response.getContentText());
+  } catch (error) {
+    Logger.log('Test error:', error.toString());
+  }
+}
+
+/**
+ * Manual test function for disciplinaries
+ */
+function testDisciplinaryProcessing() {
+  try {
+    const response = UrlFetchApp.fetch(BACKEND_URL + '/api/disciplinaries/check-pending', {
+      method: 'POST',
+      contentType: 'application/json',
+      payload: JSON.stringify({}),
+      muteHttpExceptions: true
+    });
+    
+    Logger.log('Test response code:', response.getResponseCode());
+    Logger.log('Test response text:', response.getContentText());
+  } catch (error) {
+    Logger.log('Test error:', error.toString());
+  }
+}
 
 /**
  * Trigger function that runs automatically when any cell is edited

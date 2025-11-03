@@ -3683,8 +3683,11 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
             <div class="payslips-list" style="display: flex; flex-direction: column; gap: 12px; padding: 20px;">
                 ${payslips.map((payslip) => {
                     const link = payslip.link || '#';
+                    const date = payslip.dateAssigned || 'N/A';
+                    const assignedBy = payslip.assignedBy || 'Marcus Ray';
+                    
                     return `
-                    <div class="payslip-row" onclick="window.open('${link}', '_blank')" style="
+                    <div class="payslip-row" style="
                         display: flex; 
                         justify-content: space-between; 
                         align-items: center; 
@@ -3697,16 +3700,27 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
                         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
                     " onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.08)'; this.style.transform='translateY(0)'">
                         <div style="flex: 1;">
-                            <span style="font-weight: 600; color: #1976d2; font-size: 16px;">PAYSLIP: ${payslip.dateAssigned || 'N/A'}</span>
+                            <span style="font-weight: 600; color: #1976d2; font-size: 16px;">PAYSLIP: ${date}</span>
                         </div>
                         <div style="flex: 1; text-align: right;">
-                            <span style="color: #888; font-size: 14px;">by ${payslip.assignedBy || 'Marcus Ray'}</span>
+                            <span style="color: #888; font-size: 14px;">by ${assignedBy}</span>
                         </div>
                     </div>
                 `;
                 }).join('')}
             </div>
         `;
+        
+        // Add click handlers to each payslip row to open the link
+        const rows = content.querySelectorAll('.payslip-row');
+        rows.forEach((row, index) => {
+            row.addEventListener('click', () => {
+                const payslip = payslips[index];
+                if (payslip && payslip.link) {
+                    window.open(payslip.link, '_blank');
+                }
+            });
+        });
         
     } catch (e) {
         console.error('Error fetching payslips:', e);
