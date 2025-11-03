@@ -788,12 +788,15 @@ body.dark .profile-stat {
         right: unset;
         border-right: none;
         border-bottom: 1px solid var(--mail-border);
-        display: flex;
+        display: flex !important; /* Force display on mobile */
         flex-direction: row;
         align-items: center;
         z-index: 1002;
         transition: height 0.3s var(--transition-ease), width 0.3s var(--transition-ease);
         background: var(--primary);
+    }
+    .sidebar.hidden {
+        display: flex !important; /* Override hidden class on mobile */
     }
     .sidebar-header {
         padding: 8px 12px;
@@ -812,6 +815,10 @@ body.dark .profile-stat {
         padding: 10px !important;
         min-width: 44px;
         min-height: 44px;
+        display: block !important; /* Always show toggle button on mobile */
+        background: transparent;
+        border: none;
+        color: white;
     }
     #sidebarNav, .sidebar-footer {
         display: none !important;
