@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Check for suspension status
     async function checkSuspensionStatus() {
-        if (!window.currentUser || !window.currentUser.id) return;
+        if (!window.currentUser || !window.currentUser.id) return false;
         
         try {
             const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/user-status', {
@@ -198,15 +198,55 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (response.ok) {
                 const statusData = await response.json();
+                const wasSuspended = localStorage.getItem('wasSuspended') === 'true';
+                
                 if (statusData.status === 'suspended') {
+                    localStorage.setItem('wasSuspended', 'true');
                     showSuspensionModal();
                     return true; // User is suspended
+                } else if (wasSuspended) {
+                    // User was suspended but is now active - show reactivation notification
+                    localStorage.removeItem('wasSuspended');
+                    showReactivationNotification();
                 }
             }
         } catch (error) {
             console.error('Error checking suspension status:', error);
         }
         return false; // User is not suspended
+    }
+    
+    // Show reactivation notification
+    function showReactivationNotification() {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 10000;
+            font-size: 1.1em;
+            animation: slideIn 0.3s ease;
+        `;
+        notification.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.5em;">✅</span>
+                <div>
+                    <strong>Portal Activated!</strong>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9em;">Your portal has been activated again!</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 5000);
     }
     
     // Show suspension modal
@@ -235,26 +275,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     background: white;
                     padding: 3em 2.5em 2em 2.5em;
                     border-radius: 15px;
-                    max-width: 450px;
+                    max-width: 500px;
                     text-align: center;
                     box-shadow: 0 8px 32px rgba(0,0,0,0.3);
                     border: 3px solid #f44336;
                 ">
                     <div style="font-size: 4em; margin-bottom: 0.5em;">⚠️</div>
-                    <h2 style="color: #f44336; margin-bottom: 1em; font-size: 1.5em;">Portal Suspended</h2>
-                    <p style="color: #333; font-size: 1.1em; line-height: 1.6; margin-bottom: 2em;">
-                        Your portal is suspended temporarily. Please contact Marcus Ray if this is a concern.
+                    <h2 style="color: #f44336; margin-bottom: 1em; font-size: 1.8em; font-weight: 700;">Suspended Portal</h2>
+                    <p style="color: #555; font-size: 1.05em; line-height: 1.7; margin-bottom: 2em; text-align: left;">
+                        Your portal has been suspended. This means that you cannot use your portal until your status is changed back to active.
+                        <br><br>
+                        Please contact someone from the director board if you believe this to be a mistake.
+                        <br><br>
+                        Thank you for your understanding.
                     </p>
                     <button id="suspensionLogoutBtn" style="
                         background: #f44336;
                         color: white;
                         border: none;
-                        padding: 12px 30px;
+                        padding: 14px 35px;
                         border-radius: 8px;
                         font-size: 1.1em;
+                        font-weight: 600;
                         cursor: pointer;
-                        transition: background 0.3s;
-                    " onmouseover="this.style.background='#d32f2f'" onmouseout="this.style.background='#f44336'">
+                        transition: all 0.3s;
+                        box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+                    " onmouseover="this.style.background='#d32f2f'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(244, 67, 54, 0.4)'" onmouseout="this.style.background='#f44336'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(244, 67, 54, 0.3)'">
                         Log Out
                     </button>
                 </div>
@@ -3695,15 +3741,27 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
                         padding: 20px 24px; 
                         border-radius: 8px; 
                         background: white; 
-                        cursor: pointer;
                         transition: all 0.2s ease;
                         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
                     " onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.08)'; this.style.transform='translateY(0)'">
-                        <div style="flex: 1;">
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
                             <span style="font-weight: 600; color: #1976d2; font-size: 16px;">PAYSLIP: ${date}</span>
-                        </div>
-                        <div style="flex: 1; text-align: right;">
                             <span style="color: #888; font-size: 14px;">by ${assignedBy}</span>
+                        </div>
+                        <div style="flex: 0 0 auto;">
+                            <button class="view-payslip-btn" data-link="${link}" style="
+                                background: #1976d2;
+                                color: white;
+                                border: none;
+                                padding: 10px 24px;
+                                border-radius: 6px;
+                                font-size: 14px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                transition: all 0.2s ease;
+                            " onmouseover="this.style.background='#1565c0'" onmouseout="this.style.background='#1976d2'">
+                                View Payslip
+                            </button>
                         </div>
                     </div>
                 `;
@@ -3711,13 +3769,16 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
             </div>
         `;
         
-        // Add click handlers to each payslip row to open the link
-        const rows = content.querySelectorAll('.payslip-row');
-        rows.forEach((row, index) => {
-            row.addEventListener('click', () => {
-                const payslip = payslips[index];
-                if (payslip && payslip.link) {
-                    window.open(payslip.link, '_blank');
+        // Add click handlers to view payslip buttons
+        const buttons = content.querySelectorAll('.view-payslip-btn');
+        buttons.forEach((button) => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const link = button.getAttribute('data-link');
+                if (link && link !== '#') {
+                    window.open(link, '_blank');
+                } else {
+                    alert('No payslip link available');
                 }
             });
         });
