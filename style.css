@@ -3517,3 +3517,193 @@ body.dark .request-field textarea {
 .toggle-switch input:checked + .slider:before {
     transform: translateX(26px);
 }
+
+/* Mobile responsiveness for all screens */
+@media (max-width: 700px) {
+    /* Payslips mobile */
+    #payslipsScreen > div {
+        padding: 70px 15px 20px 15px !important;
+    }
+    #payslipsScreen > div > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-left: 0 !important;
+    }
+    #payslipsContent {
+        min-height: 400px !important;
+    }
+    .payslips-list {
+        padding: 15px !important;
+        gap: 10px !important;
+    }
+    .payslip-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        padding: 16px !important;
+    }
+    .payslip-row > div:first-child {
+        text-align: center !important;
+    }
+    .payslip-row button {
+        width: 100% !important;
+        padding: 12px 20px !important;
+    }
+    
+    /* Disciplinaries mobile */
+    #disciplinariesScreen > div {
+        padding: 70px 15px 20px 15px !important;
+    }
+    #disciplinariesScreen > div > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-left: 0 !important;
+    }
+    .disciplinaries-list {
+        padding: 15px !important;
+        gap: 10px !important;
+    }
+    .disciplinary-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+        padding: 16px !important;
+    }
+    .disciplinary-row > div {
+        text-align: center !important;
+    }
+    
+    /* Timeclock mobile */
+    #timeclockScreen > div {
+        padding: 70px 15px 20px 15px !important;
+    }
+    #timeclockScreen > div > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-left: 0 !important;
+    }
+    #timeclockScreen .container {
+        padding: 20px 15px !important;
+    }
+    #clockDisplay {
+        font-size: 32px !important;
+        padding: 20px !important;
+    }
+    #timeclockScreen button {
+        font-size: 16px !important;
+        padding: 15px 25px !important;
+        max-width: 100% !important;
+    }
+    #timeclockScreen > div > div > div > div:nth-child(2) {
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+    
+    /* Tasks mobile */
+    #tasksScreen .container {
+        padding: 70px 15px 20px 15px !important;
+    }
+    .task-tabs {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    .task-tabs button {
+        flex: 1 1 45% !important;
+        min-width: 0 !important;
+        font-size: 14px !important;
+        padding: 12px 8px !important;
+    }
+    .task-item {
+        padding: 15px !important;
+    }
+    
+    /* Absences mobile */
+    #absencesScreen .container {
+        padding: 70px 15px 20px 15px !important;
+    }
+    .absence-tabs {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    .absence-tab-btn {
+        flex: 1 1 30% !important;
+        min-width: 0 !important;
+        font-size: 14px !important;
+        padding: 10px 8px !important;
+    }
+    .absence-item {
+        padding: 15px !important;
+    }
+    
+    /* Mail mobile */
+    #mailScreen .container {
+        padding: 70px 15px 20px 15px !important;
+    }
+    .mail-tabs {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    .mail-tabs .tab-btn {
+        flex: 1 1 30% !important;
+        min-width: 0 !important;
+        font-size: 14px !important;
+        padding: 10px 8px !important;
+    }
+    .mail-item {
+        padding: 15px !important;
+    }
+    #composeMailBtn {
+        right: 15px !important;
+        bottom: 75px !important;
+    }
+    
+    /* Handbooks mobile */
+    #handbooksScreen .container {
+        padding: 70px 15px 20px 15px !important;
+    }
+    .handbook-item {
+        padding: 15px !important;
+    }
+    
+    /* Modal mobile fixes */
+    .modal-content {
+        width: 90% !important;
+        max-width: 90% !important;
+        margin: 20px !important;
+        max-height: 85vh !important;
+        overflow-y: auto !important;
+    }
+    
+    /* Profile config mobile */
+    .profile-config-container {
+        width: 95% !important;
+        padding: 20px 15px !important;
+    }
+    .profile-main-row {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 20px !important;
+    }
+    .profile-actions-row {
+        flex-direction: column !important;
+        gap: 15px !important;
+        align-items: stretch !important;
+    }
+    
+    /* Form elements mobile */
+    input, select, textarea {
+        font-size: 16px !important; /* Prevents zoom on iOS */
+    }
+    
+    /* Button adjustments */
+    button {
+        min-height: 44px !important; /* Touch target size */
+    }
+    
+    /* Suspension modal mobile */
+    #suspensionModal > div {
+        width: 90% !important;
+        max-width: 400px !important;
+        padding: 2em 1.5em !important;
+    }
+}
