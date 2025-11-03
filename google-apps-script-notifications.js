@@ -13,8 +13,9 @@
  * - When column F (Status) is changed to "Submit" in cirklehrPayslips or cirklehrStrikes sheet
  * - The script extracts the Discord ID (column A)
  * - Calls the backend notification endpoint to send a Discord DM
- * - Shows "✅ Success" in the status column if notification was sent
- * - Shows "❌ Failed" if there was an error
+ * - Shows "✅ Success - [timestamp]" in the status column if notification was sent
+ * - Shows "❌ Failed - [reason]" if there was an error
+ * - Adds timestamp to column G
  */
 
 const BACKEND_URL = 'https://timeclock-backend.marcusray.workers.dev';
@@ -71,8 +72,8 @@ function onEdit(e) {
     
     // Prepare notification data
     const payload = {
-      discordId: discordId,
-      staffId: discordId // Using Discord ID as staff ID
+      discordId: String(discordId), // Ensure it's a string
+      staffId: String(discordId) // Using Discord ID as staff ID
     };
     
     // Add additional data depending on type
@@ -109,25 +110,36 @@ function onEdit(e) {
       Logger.log(`[DEBUG] Response code: ${responseCode}`);
       Logger.log(`[DEBUG] Response text: ${responseText}`);
       
+      // Get current timestamp
+      const timestamp = new Date().toLocaleString();
+      
       if (responseCode === 200) {
         const result = JSON.parse(responseText);
         if (result.success) {
-          // Update status to show success
+          // Update status to show success with timestamp
           range.setValue('✅ Success');
+          
+          // Add timestamp to column G
+          sheet.getRange(row, 7).setValue(timestamp);
+          
           SpreadsheetApp.flush();
           Logger.log(`[SUCCESS] ${type} notification sent for Discord ID ${discordId}`);
         } else {
           range.setValue('❌ Failed: ' + (result.message || 'Unknown error'));
+          sheet.getRange(row, 7).setValue(timestamp);
           SpreadsheetApp.flush();
           Logger.log(`[ERROR] Failed to send notification: ${result.message}`);
         }
       } else {
         range.setValue('❌ HTTP ' + responseCode);
+        sheet.getRange(row, 7).setValue(timestamp);
         SpreadsheetApp.flush();
         Logger.log(`[ERROR] HTTP ${responseCode}: ${responseText}`);
       }
     } catch (error) {
+      const timestamp = new Date().toLocaleString();
       range.setValue('❌ Error');
+      sheet.getRange(row, 7).setValue(timestamp);
       SpreadsheetApp.flush();
       Logger.log(`[ERROR] Exception: ${error.toString()}`);
     }
@@ -136,6 +148,7 @@ function onEdit(e) {
 
 /**
  * Manual test function - you can run this from the Apps Script editor to test
+ * Replace the Discord ID with a real one to test
  */
 function testNotification() {
   // Test payslip notification

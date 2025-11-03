@@ -805,19 +805,24 @@ body.dark .profile-stat {
         pointer-events: auto !important;
     }
     .sidebar-toggle {
-        position: static;
+        position: static !important;
         margin-left: auto;
         margin-right: 12px;
-        top: unset;
-        right: unset;
-        z-index: 1003;
+        top: unset !important;
+        right: unset !important;
+        z-index: 1003 !important;
         font-size: 24px !important;
         padding: 10px !important;
-        min-width: 44px;
-        min-height: 44px;
-        display: block !important; /* Always show toggle button on mobile */
-        background: transparent;
-        border: none;
+        min-width: 44px !important;
+        min-height: 44px !important;
+        display: flex !important; /* Force visible on mobile */
+        align-items: center !important;
+        justify-content: center !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        background: transparent !important;
+        border: none !important;
+        color: white !important;
         color: white;
     }
     #sidebarNav, .sidebar-footer {

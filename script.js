@@ -3585,17 +3585,20 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
         const payslips = data.payslips || [];
         
         console.log('[DEBUG] Fetched payslips:', payslips);
+        console.log('[DEBUG] Number of payslips:', payslips.length);
         
-        if (payslips.length === 0) {
+        if (!payslips || payslips.length === 0) {
             content.innerHTML = '<p style="text-align: center; padding: 40px; color: #666;">No payslips found.</p>';
             return;
         }
         
-        // Display payslips in clean row format matching the design
+        // Display payslips in clean row format matching the screenshot
         content.innerHTML = `
             <div class="payslips-list" style="display: flex; flex-direction: column; gap: 12px; padding: 20px;">
-                ${payslips.map((payslip, index) => `
-                    <div class="payslip-row" onclick="showPayslipDetails(${index})" style="
+                ${payslips.map((payslip) => {
+                    const link = payslip.link || '#';
+                    return `
+                    <div class="payslip-row" onclick="window.open('${link}', '_blank')" style="
                         display: flex; 
                         justify-content: space-between; 
                         align-items: center; 
@@ -3608,18 +3611,16 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
                         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
                     " onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.08)'; this.style.transform='translateY(0)'">
                         <div style="flex: 1;">
-                            <span style="font-weight: 600; color: #1976d2; font-size: 16px;">PAYSLIP: ${payslip.dateAssigned}</span>
+                            <span style="font-weight: 600; color: #1976d2; font-size: 16px;">PAYSLIP: ${payslip.dateAssigned || 'N/A'}</span>
                         </div>
                         <div style="flex: 1; text-align: right;">
                             <span style="color: #888; font-size: 14px;">by ${payslip.assignedBy || 'Marcus Ray'}</span>
                         </div>
                     </div>
-                `).join('')}
+                `;
+                }).join('')}
             </div>
         `;
-        
-        // Store payslips data for details modal
-        window.currentPayslips = payslips;
         
     } catch (e) {
         console.error('Error fetching payslips:', e);
