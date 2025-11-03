@@ -3174,33 +3174,6 @@ if (myRolesBtn) {
     });
 }
 
-const tasksBtn = document.getElementById('tasksBtn');
-if (tasksBtn) {
-    tasksBtn.addEventListener('click', () => {
-        showScreen('tasks');
-        loadTasks();
-        closeMobileSidebar();
-    });
-}
-
-const addTaskBtn = document.getElementById('addTaskBtn');
-if (addTaskBtn) {
-    addTaskBtn.addEventListener('click', () => {
-        const taskText = document.getElementById('taskInput').value.trim();
-        if (taskText) {
-            currentTasks.push({ text: taskText, completed: false });
-            saveTasks();
-            renderTasks();
-            document.getElementById('taskInput').value = '';
-            showModal('alert', '<span class="success-tick"></span> Task added successfully!');
-            playSuccessSound();
-            addNotification('task', 'New task added!', 'tasks');
-        } else {
-            showModal('alert', 'Please enter a task');
-        }
-    });
-}
-
 const absencesBtn = document.getElementById('absencesBtn');
 if (absencesBtn) {
     absencesBtn.addEventListener('click', () => {
