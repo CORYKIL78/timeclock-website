@@ -1744,9 +1744,53 @@ function showScreen(screenId) {
             const portalPic = document.getElementById('portalWelcomeProfilePic');
             if (portalPic) portalPic.src = currentUser.avatar;
         }
+        
+        // Update active navigation button
+        updateActiveNavButton(screenId);
     } else {
         console.error('Screen not found:', screenId);
         showScreen('discord');
+    }
+}
+
+// Update active navigation button and slide indicator
+function updateActiveNavButton(screenId) {
+    // Map screen IDs to button IDs
+    const screenToButton = {
+        'mainMenu': 'homeBtn',
+        'myProfile': 'homeBtn', // Profile is accessed via clicking avatar, keep home active
+        'myRoles': 'myRolesBtn',
+        'absences': 'absencesBtn',
+        'payslips': 'payslipsBtn',
+        'disciplinaries': 'disciplinariesBtn',
+        'timeclock': 'timeclockBtn',
+        'mail': 'mailBtn',
+        'handbooks': 'handbooksBtn'
+    };
+    
+    const activeButtonId = screenToButton[screenId];
+    if (!activeButtonId) return;
+    
+    // Remove active class from all nav buttons
+    document.querySelectorAll('#sidebarNav button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Add active class to current button
+    const activeButton = document.getElementById(activeButtonId);
+    if (activeButton) {
+        activeButton.classList.add('active');
+        
+        // Slide the indicator
+        const navContainer = document.getElementById('sidebarNav');
+        const indicator = navContainer.querySelector('::before');
+        const buttons = Array.from(document.querySelectorAll('#sidebarNav button'));
+        const index = buttons.indexOf(activeButton);
+        
+        if (index !== -1) {
+            const offset = index * (activeButton.offsetHeight + 10); // height + gap
+            navContainer.style.setProperty('--indicator-offset', `${offset}px`);
+        }
     }
 }
 
