@@ -1738,10 +1738,16 @@ function showScreen(screenId) {
             if (notificationBtn) notificationBtn.classList.remove('hidden');
             // Update notification badge
             updateNotificationBadge();
+            // Show mobile nav button
+            const mobileNavBtn = document.getElementById('mobileNavBtn');
+            if (mobileNavBtn) mobileNavBtn.style.display = '';
         } else {
             sidebar.classList.add('hidden');
             notificationPanel.classList.add('hidden');
             if (notificationBtn) notificationBtn.classList.add('hidden');
+            // Hide mobile nav button
+            const mobileNavBtn = document.getElementById('mobileNavBtn');
+            if (mobileNavBtn) mobileNavBtn.style.display = 'none';
         }
         // Set profile pic on portal welcome screen
         if (screenId === 'portalWelcome' && currentUser && currentUser.avatar) {
@@ -1993,15 +1999,20 @@ async function addNotification(type, message, link, userId = currentUser.id) {
     const emp = getEmployee(userId);
     emp.notifications = emp.notifications || [];
     const timestamp = new Date().toLocaleString();
-    emp.notifications.push({ type, message, timestamp });
+    emp.notifications.push({ type, message, timestamp, link });
     updateEmployee(emp);
     playNotificationSound();
+    
+    // Update currentNotifications array for immediate UI update
+    currentNotifications = emp.notifications;
     renderNotifications();
+    updateNotificationBadge();
+}
+
 // Listen for new mail and notify
 function notifyNewMail(subject) {
     addNotification('mail', `New mail received: ${subject}`);
     playNotificationSound();
-}
 }
 
 function loadNotifications() {
@@ -2034,13 +2045,30 @@ function renderNotifications() {
     
     currentNotifications.forEach((n, index) => {
         const li = document.createElement('li');
-        li.textContent = `${n.type}: ${n.message}`;
+        li.style.cursor = 'pointer';
+        li.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div style="flex: 1;">
+                    <strong>${n.type}</strong>: ${n.message}
+                    ${n.timestamp ? `<br><small style="color: #888;">${n.timestamp}</small>` : ''}
+                </div>
+            </div>
+        `;
         li.addEventListener('click', () => {
+            // Navigate to the linked page if provided
+            if (n.link) {
+                showScreen(n.link);
+                // Close notification panel
+                const panel = document.getElementById('notificationPanel');
+                if (panel) panel.classList.add('hidden');
+            }
+            // Remove notification
             currentNotifications.splice(index, 1);
             const emp = getEmployee(currentUser.id);
             emp.notifications = currentNotifications;
             updateEmployee(emp);
             renderNotifications();
+            updateNotificationBadge();
         });
         list.appendChild(li);
     });
