@@ -3727,13 +3727,12 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
         // Display payslips in clean row format matching the screenshot
         content.innerHTML = `
             <div class="payslips-list" style="display: flex; flex-direction: column; gap: 12px; padding: 20px;">
-                ${payslips.map((payslip) => {
-                    const link = payslip.link || '#';
+                ${payslips.map((payslip, index) => {
                     const date = payslip.dateAssigned || 'N/A';
                     const assignedBy = payslip.assignedBy || 'Marcus Ray';
                     
                     return `
-                    <div class="payslip-row" style="
+                    <div class="payslip-row" data-index="${index}" style="
                         display: flex; 
                         justify-content: space-between; 
                         align-items: center; 
@@ -3741,27 +3740,15 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
                         padding: 20px 24px; 
                         border-radius: 8px; 
                         background: white; 
+                        cursor: pointer;
                         transition: all 0.2s ease;
                         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
                     " onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.08)'; this.style.transform='translateY(0)'">
-                        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+                        <div style="flex: 1;">
                             <span style="font-weight: 600; color: #1976d2; font-size: 16px;">PAYSLIP: ${date}</span>
-                            <span style="color: #888; font-size: 14px;">by ${assignedBy}</span>
                         </div>
-                        <div style="flex: 0 0 auto;">
-                            <button class="view-payslip-btn" data-link="${link}" style="
-                                background: #1976d2;
-                                color: white;
-                                border: none;
-                                padding: 10px 24px;
-                                border-radius: 6px;
-                                font-size: 14px;
-                                font-weight: 600;
-                                cursor: pointer;
-                                transition: all 0.2s ease;
-                            " onmouseover="this.style.background='#1565c0'" onmouseout="this.style.background='#1976d2'">
-                                View Payslip
-                            </button>
+                        <div style="flex: 1; text-align: right;">
+                            <span style="color: #888; font-size: 14px;">by ${assignedBy}</span>
                         </div>
                     </div>
                 `;
@@ -3769,16 +3756,14 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
             </div>
         `;
         
-        // Add click handlers to view payslip buttons
-        const buttons = content.querySelectorAll('.view-payslip-btn');
-        buttons.forEach((button) => {
-            button.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const link = button.getAttribute('data-link');
-                if (link && link !== '#') {
-                    window.open(link, '_blank');
-                } else {
-                    alert('No payslip link available');
+        // Add click handlers to each payslip row to show details modal
+        const rows = content.querySelectorAll('.payslip-row');
+        rows.forEach((row) => {
+            row.addEventListener('click', () => {
+                const index = parseInt(row.getAttribute('data-index'));
+                const payslip = payslips[index];
+                if (payslip) {
+                    showPayslipDetails(payslip);
                 }
             });
         });
@@ -3789,10 +3774,7 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
     }
 });
 
-function showPayslipDetails(index) {
-    const payslip = window.currentPayslips[index];
-    if (!payslip) return;
-    
+function showPayslipDetails(payslip) {
     const modal = document.createElement('div');
     modal.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -3801,6 +3783,8 @@ function showPayslipDetails(index) {
     `;
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     
+    const link = payslip.link || '#';
+    
     modal.innerHTML = `
         <div style="
             background: white; padding: 30px; border-radius: 8px; 
@@ -3808,7 +3792,7 @@ function showPayslipDetails(index) {
         ">
             <h3 style="margin: 0 0 20px 0; color: #1976d2;">Payslip Details</h3>
             <div style="margin-bottom: 15px;">
-                <strong>Date Assigned:</strong> ${payslip.dateAssigned}
+                <strong>Date Assigned:</strong> ${payslip.dateAssigned || 'N/A'}
             </div>
             <div style="margin-bottom: 15px;">
                 <strong>Assigned By:</strong> ${payslip.assignedBy || 'Unknown'}
@@ -3816,46 +3800,24 @@ function showPayslipDetails(index) {
             <div style="margin-bottom: 20px;">
                 <strong>Comment:</strong> ${payslip.comment || 'No comment provided'}
             </div>
-            <div style="text-align: center;">
-                <button onclick="window.open('${payslip.link}', '_blank')" style="
-                    background: #4caf50; color: white; border: none; 
-                    padding: 12px 24px; border-radius: 4px; cursor: pointer;
-                    font-weight: bold; margin-right: 10px;
-                ">View Payslip</button>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                ${link && link !== '#' ? `
+                <button onclick="window.open('${link}', '_blank')" style="
+                    background: #1976d2; color: white; border: none; 
+                    padding: 12px 24px; border-radius: 6px; cursor: pointer;
+                    font-weight: 600; transition: background 0.2s;
+                " onmouseover="this.style.background='#1565c0'" onmouseout="this.style.background='#1976d2'">View Payslip</button>
+                ` : ''}
                 <button onclick="this.closest('[style*=fixed]').remove()" style="
                     background: #666; color: white; border: none; 
-                    padding: 12px 24px; border-radius: 4px; cursor: pointer;
-                ">Close</button>
+                    padding: 12px 24px; border-radius: 6px; cursor: pointer;
+                    font-weight: 600; transition: background 0.2s;
+                " onmouseover="this.style.background='#555'" onmouseout="this.style.background='#666'">Close</button>
             </div>
         </div>
     `;
     
     document.body.appendChild(modal);
-}
-
-function showPayslipModal(payslip) {
-    const modal = document.getElementById('payslipViewModal');
-    
-    // Populate the modal with payslip data
-    document.getElementById('payslipDate').textContent = payslip.dateAssigned || 'N/A';
-    document.getElementById('payslipComment').textContent = payslip.comment || 'No comment provided';
-    document.getElementById('payslipAssignedBy').textContent = payslip.assignedBy || 'Unknown';
-    
-    const linkElement = document.getElementById('payslipLink');
-    if (payslip.link) {
-        linkElement.href = payslip.link;
-        linkElement.style.display = 'inline';
-        linkElement.textContent = 'View Payslip';
-    } else {
-        linkElement.style.display = 'none';
-    }
-    
-    modal.style.display = 'flex';
-    
-    // Close modal handlers
-    const closeBtn = modal.querySelector('.close');
-    closeBtn.onclick = () => modal.style.display = 'none';
-    window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
 }
 
 document.getElementById('disciplinariesBtn').addEventListener('click', async () => {
