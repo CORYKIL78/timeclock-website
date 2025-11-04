@@ -198,7 +198,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Check for suspension status
     async function checkSuspensionStatus() {
-        if (!window.currentUser || !window.currentUser.id) return false;
+        console.log('[SUSPEND] checkSuspensionStatus called!');
+        console.log('[SUSPEND] window.currentUser:', window.currentUser);
+        
+        if (!window.currentUser || !window.currentUser.id) {
+            console.log('[SUSPEND] No currentUser or ID, returning false');
+            return false;
+        }
         
         console.log('[SUSPEND] Checking suspension status for user:', window.currentUser.id);
         
@@ -2559,9 +2565,11 @@ async function handleOAuthRedirect() {
     updateEmployee(emp);
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
     console.log('User session saved with profile:', currentUser.profile);
+    console.log('[SUSPEND] About to check suspension status for user:', currentUser.id);
     
     // Check suspension status immediately after login
     const isSuspended = await checkSuspensionStatus();
+    console.log('[SUSPEND] Check complete, isSuspended:', isSuspended);
     if (isSuspended) {
         // User is suspended, don't proceed with normal flow
         // But still check periodically in case status changes
