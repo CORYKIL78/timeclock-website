@@ -1823,7 +1823,7 @@ function showScreen(screenId) {
         const sidebar = document.getElementById('sidebar');
         const notificationPanel = document.getElementById('notificationPanel');
         const notificationBtn = document.getElementById('notificationBtn');
-        if (screenId !== 'portalWelcome' && ['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail'].includes(screenId)) {
+        if (screenId !== 'portalWelcome' && ['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'events', 'mail', 'clickup', 'handbooks'].includes(screenId)) {
             sidebar.classList.remove('hidden');
             if (notificationBtn) notificationBtn.classList.remove('hidden');
             // Update notification badge
@@ -1864,7 +1864,9 @@ function updateActiveNavButton(screenId) {
         'payslips': 'payslipsBtn',
         'disciplinaries': 'disciplinariesBtn',
         'timeclock': 'timeclockBtn',
+        'events': 'eventsBtn',
         'mail': 'mailBtn',
+        'clickup': 'clickupBtn',
         'handbooks': 'handbooksBtn'
     };
     
@@ -3713,13 +3715,27 @@ if (confirmResetBtn) {
 
 const myRolesBtn = document.getElementById('myRolesBtn');
 if (myRolesBtn) {
-    myRolesBtn.addEventListener('click', () => {
+    myRolesBtn.addEventListener('click', async () => {
         showScreen('myRoles');
+        
+        // Ensure role names are fetched
+        if (Object.keys(roleNames).length === 0) {
+            await fetchRoleNames();
+        }
+        
         const list = document.getElementById('rolesList');
         list.innerHTML = '';
+        
+        if (!currentUser || !currentUser.roles || currentUser.roles.length === 0) {
+            list.innerHTML = '<li style="color: #999;">No roles assigned</li>';
+            return;
+        }
+        
         currentUser.roles.forEach(roleId => {
             const li = document.createElement('li');
-            li.textContent = `${roleNames[roleId] || 'Unknown Role'} (${roleId})`;
+            const roleName = roleNames[roleId] || 'Unknown Role';
+            li.textContent = roleName;
+            li.style.cssText = 'padding: 12px; background: #f3f4f6; border-radius: 8px; margin-bottom: 8px; font-weight: 500;';
             list.appendChild(li);
         });
         closeMobileSidebar();
