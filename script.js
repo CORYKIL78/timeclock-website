@@ -4549,7 +4549,7 @@ document.getElementById('mailBtn').addEventListener('click', async () => {
 
 // ClickUp Integration
 let clickupToken = localStorage.getItem('clickupToken');
-let clickupWorkspace = null;
+let clickupWorkspace = JSON.parse(localStorage.getItem('clickupWorkspace') || 'null');
 let clickupTasks = [];
 let clickupCurrentFilter = 'all';
 
@@ -4559,6 +4559,12 @@ document.getElementById('clickupBtn').addEventListener('click', () => {
         document.getElementById('clickupDisconnected').style.display = 'none';
         document.getElementById('clickupConnected').style.display = 'block';
         document.getElementById('clickupTasksSection').style.display = 'flex';
+        
+        // Update workspace name if available
+        if (clickupWorkspace && clickupWorkspace.username) {
+            document.getElementById('clickupWorkspaceName').textContent = `Connected as ${clickupWorkspace.username}`;
+        }
+        
         loadClickUpTasks();
     } else {
         document.getElementById('clickupDisconnected').style.display = 'block';
@@ -4595,6 +4601,7 @@ document.getElementById('clickupConnectBtn').addEventListener('click', async () 
         clickupToken = token;
         clickupWorkspace = data.user;
         localStorage.setItem('clickupToken', token);
+        localStorage.setItem('clickupWorkspace', JSON.stringify(data.user));
         
         document.getElementById('clickupDisconnected').style.display = 'none';
         document.getElementById('clickupConnected').style.display = 'block';
@@ -4618,6 +4625,7 @@ document.getElementById('clickupDisconnectBtn').addEventListener('click', () => 
         clickupWorkspace = null;
         clickupTasks = [];
         localStorage.removeItem('clickupToken');
+        localStorage.removeItem('clickupWorkspace');
         
         document.getElementById('clickupDisconnected').style.display = 'block';
         document.getElementById('clickupConnected').style.display = 'none';
