@@ -1774,7 +1774,10 @@ const screens = {
     payslips: document.getElementById('payslipsScreen'),
     disciplinaries: document.getElementById('disciplinariesScreen'),
     timeclock: document.getElementById('timeclockScreen'),
+    events: document.getElementById('eventsScreen'),
     mail: document.getElementById('mailScreen'),
+    clickup: document.getElementById('clickupScreen'),
+    handbooks: document.getElementById('handbooksScreen'),
     goodbye: document.getElementById('goodbyeScreen'),
     suspended: document.getElementById('suspendedScreen')
 };
