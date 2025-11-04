@@ -2845,6 +2845,9 @@ function showEventResponseModal(event) {
     const submitBtn = modal.querySelector('.event-response-submit');
     
     attendBtn.addEventListener('click', async () => {
+        if (attendBtn.disabled) return;
+        attendBtn.disabled = true;
+        
         await submitEventResponse(event, 'attend');
         modal.remove();
         playSuccessSound();
@@ -2853,23 +2856,33 @@ function showEventResponseModal(event) {
     });
     
     cannotBtn.addEventListener('click', () => {
+        if (cannotBtn.disabled) return;
+        cannotBtn.disabled = true;
         reasonSection.style.display = 'block';
         reasonTextarea.placeholder = 'Please provide a reason why you cannot attend...';
         submitBtn.dataset.response = 'cannot';
+        cannotBtn.disabled = false; // Re-enable after showing reason section
     });
     
     unsureBtn.addEventListener('click', () => {
+        if (unsureBtn.disabled) return;
+        unsureBtn.disabled = true;
         reasonSection.style.display = 'block';
         reasonTextarea.placeholder = 'Please provide details and contact the organiser...';
         submitBtn.dataset.response = 'unsure';
+        unsureBtn.disabled = false; // Re-enable after showing reason section
     });
     
     submitBtn.addEventListener('click', async () => {
+        if (submitBtn.disabled) return;
+        submitBtn.disabled = true;
+        
         const response = submitBtn.dataset.response;
         const reason = reasonTextarea.value.trim();
         
         if (!reason) {
             showModal('alert', '⚠️ Please provide a reason');
+            submitBtn.disabled = false;
             return;
         }
         
@@ -3673,21 +3686,21 @@ if (absencesBtn) {
     absencesBtn.addEventListener('click', () => {
         showScreen('absences');
         document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
-        const pendingTabBtn = document.querySelector('.absence-tab-btn[data-tab="pending"]');
-        if (pendingTabBtn) pendingTabBtn.classList.add('active');
+        const approvedTabBtn = document.querySelector('.absence-tab-btn[data-tab="approved"]');
+        if (approvedTabBtn) approvedTabBtn.classList.add('active');
         
         const pendingFolder = document.getElementById('pendingFolder');
         const approvedFolder = document.getElementById('approvedFolder');
         const rejectedFolder = document.getElementById('rejectedFolder');
         const archivedFolder = document.getElementById('archivedFolder');
         
-        if (pendingFolder) pendingFolder.classList.add('active');
-        if (approvedFolder) approvedFolder.classList.remove('active');
+        if (pendingFolder) pendingFolder.classList.remove('active');
+        if (approvedFolder) approvedFolder.classList.add('active');
         if (rejectedFolder) rejectedFolder.classList.remove('active');
         if (archivedFolder) archivedFolder.classList.remove('active');
         
         updateAbsenceTabSlider();
-        renderAbsences('pending');
+        renderAbsences('approved');
         closeMobileSidebar();
     });
 }
@@ -4472,6 +4485,13 @@ document.getElementById('composeMailBtn').addEventListener('click', () => {
 });
 
 document.getElementById('sendMailBtn').addEventListener('click', async () => {
+    const sendBtn = document.getElementById('sendMailBtn');
+    
+    // Prevent double-sending
+    if (window.mailSending || sendBtn.disabled) return;
+    window.mailSending = true;
+    sendBtn.disabled = true;
+    
     const recipientIds = Array.from(document.getElementById('mailRecipients').selectedOptions).map(opt => opt.value);
     const subject = document.getElementById('mailSubject').value.trim();
     const content = document.getElementById('mailContent').value.trim();
@@ -4480,10 +4500,14 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
     if (!recipientIds.length || recipientIds.includes('')) {
         document.getElementById('mailError').classList.remove('hidden');
         setTimeout(() => document.getElementById('mailError').classList.add('hidden'), 2000);
+        window.mailSending = false;
+        sendBtn.disabled = false;
         return;
     }
     if (!content) {
         showModal('alert', 'Please enter a message');
+        window.mailSending = false;
+        sendBtn.disabled = false;
         return;
     }
     
@@ -4554,9 +4578,17 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
         renderMail();
         closeModal('composeMail');
         
+        // Reset sending flag
+        window.mailSending = false;
+        sendBtn.disabled = false;
+        
     } catch (error) {
         console.error('Error sending mail:', error);
         showModal('alert', '❌ Failed to send mail. Please try again.');
+        
+        // Reset sending flag on error
+        window.mailSending = false;
+        sendBtn.disabled = false;
     }
 });
 
