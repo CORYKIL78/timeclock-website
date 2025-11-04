@@ -2658,6 +2658,51 @@ function setSelectValues(selectId, values) {
     });
 }
 
+async function syncMailFromBackend() {
+    if (!currentUser) return;
+    
+    try {
+        console.log('[DEBUG] Syncing mail from backend for user:', currentUser.id);
+        
+        // Fetch inbox from backend
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/mail/inbox', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('[DEBUG] Fetched mail from backend:', result);
+            
+            if (result.success && result.mails) {
+                // Get current mail from localStorage
+                const userMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
+                
+                // Update inbox with backend data
+                userMail.inbox = result.mails.map(mail => ({
+                    id: mail.id,
+                    senderName: mail.fromName || mail.from || 'Unknown',
+                    senderId: mail.fromUserId || mail.senderId,
+                    recipients: [currentUser.id],
+                    subject: mail.subject,
+                    content: mail.content,
+                    timestamp: mail.timestamp,
+                    read: mail.read,
+                    attachments: mail.attachments || []
+                }));
+                
+                // Save to localStorage
+                localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(userMail));
+                
+                console.log('[DEBUG] Updated inbox with', userMail.inbox.length, 'messages');
+            }
+        }
+    } catch (error) {
+        console.error('[DEBUG] Error syncing mail from backend:', error);
+    }
+}
+
 function renderMail() {
     const inboxContent = document.getElementById('inboxContent');
     const sentContent = document.getElementById('sentContent');
@@ -4133,8 +4178,9 @@ document.getElementById('clockOutBtn').addEventListener('click', async () => {
     renderPreviousSessions();
 });
 
-document.getElementById('mailBtn').addEventListener('click', () => {
+document.getElementById('mailBtn').addEventListener('click', async () => {
     showScreen('mail');
+    await syncMailFromBackend(); // Sync mail from backend before rendering
     renderMail();
     document.querySelectorAll('.mail-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelector('.mail-tabs .tab-btn[data-tab="inbox"]').classList.add('active');
@@ -4171,7 +4217,6 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
     }
     
     showModal('alert', 'Sending...');
-    await new Promise(r => setTimeout(r, 1000));
     
     const timestamp = new Date().toISOString();
     const senderName = currentUser.profile?.name || 'Unknown User';
@@ -4185,42 +4230,63 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
         });
     }));
     
-    const mailData = {
-        id: Date.now().toString(),
-        senderName: senderName,
-        senderId: currentUser.id,
-        recipients: recipientIds,
-        subject,
-        content,
-        timestamp,
-        attachments: attachments.length ? attachments : null
-    };
-    
-    // Add to sender's sent mail
-    const senderMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
-    senderMail.sent.push(mailData);
-    localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(senderMail));
-    
-    // Add to each recipient's inbox
-    recipientIds.forEach(recipientId => {
-        const recipientMail = JSON.parse(localStorage.getItem(`mail_${recipientId}`) || '{"inbox": [], "sent": [], "drafts": []}');
-        recipientMail.inbox.push(mailData);
-        localStorage.setItem(`mail_${recipientId}`, JSON.stringify(recipientMail));
-    });
-    
-    // Remove from drafts if this was a draft being sent
-    if ('draftIndex' in document.getElementById('sendMailBtn').dataset) {
-        senderMail.drafts.splice(parseInt(document.getElementById('sendMailBtn').dataset.draftIndex), 1);
+    try {
+        // Send mail via backend API (stores in Google Sheets and sends DMs)
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/mail/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fromUserId: currentUser.id,
+                toUserIds: recipientIds,
+                subject: subject || "(No Subject)",
+                content: content,
+                attachments: attachments.length ? attachments : []
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Failed to send mail');
+        }
+        
+        console.log('[DEBUG] Mail sent successfully:', result);
+        
+        // Store locally for quick access
+        const mailData = {
+            id: result.mail.id || Date.now().toString(),
+            senderName: senderName,
+            senderId: currentUser.id,
+            recipients: recipientIds,
+            subject: subject || "(No Subject)",
+            content,
+            timestamp,
+            attachments: attachments.length ? attachments : null
+        };
+        
+        // Add to sender's sent mail in localStorage
+        const senderMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
+        senderMail.sent.push(mailData);
         localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(senderMail));
-        delete document.getElementById('sendMailBtn').dataset.draftIndex;
+        
+        // Remove from drafts if this was a draft being sent
+        if ('draftIndex' in document.getElementById('sendMailBtn').dataset) {
+            senderMail.drafts.splice(parseInt(document.getElementById('sendMailBtn').dataset.draftIndex), 1);
+            localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(senderMail));
+            delete document.getElementById('sendMailBtn').dataset.draftIndex;
+        }
+        
+        showMailDeliveryAnimation();
+        showModal('alert', '<span class="success-tick"></span> Successfully sent!');
+        playSuccessSound();
+        addNotification('mail', 'Your mail has been sent!', 'mail');
+        renderMail();
+        closeModal('composeMail');
+        
+    } catch (error) {
+        console.error('Error sending mail:', error);
+        showModal('alert', '❌ Failed to send mail. Please try again.');
     }
-    
-    showMailDeliveryAnimation();
-    showModal('alert', '<span class="success-tick"></span> Successfully sent!');
-    playSuccessSound();
-    addNotification('mail', 'Your mail has been sent!', 'mail');
-    renderMail();
-    closeModal('composeMail');
 });
 
 document.getElementById('saveDraftBtn').addEventListener('click', async () => {
