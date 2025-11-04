@@ -1195,6 +1195,49 @@ setInterval(async () => {
     }
 }, 2000); // Poll every 2 seconds for faster notifications
 
+// Polling for acknowledged payslips and disciplinaries
+setInterval(async () => {
+    console.log('[DEBUG] Polling for payslip/disciplinary acknowledgements...');
+    if (!currentUser) {
+        console.log('[DEBUG] No currentUser found for payslip/disciplinary check');
+        return;
+    }
+    
+    try {
+        // Check for payslips that need acknowledgement
+        const payslipRes = await fetch('https://timeclock-backend.marcusray.workers.dev/api/payslips/check-acknowledged', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ discordId: currentUser.id })
+        });
+        
+        if (payslipRes.ok) {
+            const payslipData = await payslipRes.json();
+            if (payslipData.hasNewPayslips) {
+                console.log(`[DEBUG] Acknowledged ${payslipData.count} new payslip(s)`);
+                addNotification('payslips', `💰 ${payslipData.count} new payslip${payslipData.count > 1 ? 's' : ''} available!`, 'payslips');
+            }
+        }
+        
+        // Check for disciplinaries that need acknowledgement
+        const disciplinaryRes = await fetch('https://timeclock-backend.marcusray.workers.dev/api/disciplinaries/check-acknowledged', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ discordId: currentUser.id })
+        });
+        
+        if (disciplinaryRes.ok) {
+            const disciplinaryData = await disciplinaryRes.json();
+            if (disciplinaryData.hasNewDisciplinaries) {
+                console.log(`[DEBUG] Acknowledged ${disciplinaryData.count} new disciplinary action(s)`);
+                addNotification('disciplinaries', `⚠️ ${disciplinaryData.count} new disciplinary action${disciplinaryData.count > 1 ? 's' : ''} received!`, 'disciplinaries');
+            }
+        }
+    } catch (e) {
+        console.error('Error checking payslips/disciplinaries:', e);
+    }
+}, 3000); // Poll every 3 seconds
+
 // Call syncUserProfileOnLogin() after successful login (e.g. after setting currentUser)
 // Polling for absence status updates
 setInterval(async () => {
