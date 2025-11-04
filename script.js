@@ -662,21 +662,35 @@ async function upsertUserProfile() {
 
 async function fetchUserProfile(discordId) {
     try {
-        console.debug('[fetchUserProfile] Fetching profile for discordId: ' + discordId);
-        const res = await fetch(`${BACKEND_URL}/api/user/profile?t=${Date.now()}`, {
+        console.log('[fetchUserProfile] Starting fetch for discordId:', discordId);
+        console.log('[fetchUserProfile] Backend URL:', BACKEND_URL);
+        
+        const url = `${BACKEND_URL}/api/user/profile?t=${Date.now()}`;
+        console.log('[fetchUserProfile] Full URL:', url);
+        
+        const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ discordId })
         });
+        
+        console.log('[fetchUserProfile] Response status:', res.status);
+        
         if (res.status === 404) {
-            console.debug('[fetchUserProfile] User not found (404)');
+            console.log('[fetchUserProfile] User not found (404)');
             return null;
         }
-        if (!res.ok) throw new Error('Failed to fetch user profile: ' + res.status);
+        if (!res.ok) {
+            console.error('[fetchUserProfile] Failed with status:', res.status);
+            const errorText = await res.text();
+            console.error('[fetchUserProfile] Error response:', errorText);
+            throw new Error('Failed to fetch user profile: ' + res.status);
+        }
         const data = await res.json();
-        console.debug('[fetchUserProfile] Response: ' + JSON.stringify(data));
+        console.log('[fetchUserProfile] Success! Data:', JSON.stringify(data));
         return data;
     } catch (e) {
+        console.error('[fetchUserProfile] Exception caught:', e);
         setProfileDebug('fetchUserProfile error: ' + e, true);
         return null;
     }
@@ -2494,13 +2508,22 @@ async function handleOAuthRedirect() {
         return;
     }
 
+    console.log('[LOGIN] Fetching role names...');
     await fetchRoleNames();
+    console.log('[LOGIN] Role names fetched');
+    
+    console.log('[LOGIN] Fetching employees...');
     await fetchEmployees();
+    console.log('[LOGIN] Employees fetched');
 
     // Always fetch user profile from backend after Discord login
+    console.log('[LOGIN] Fetching user profile for user.id:', user.id);
     let backendProfile = await fetchUserProfile(user.id);
+    console.log('[LOGIN] Backend profile result:', backendProfile);
+    
     let isFirstTime = false;
     if (backendProfile && backendProfile.name) {
+        console.log('[LOGIN] Existing user detected, loading profile...');
         // Existing user: use backend profile
         currentUser = {
             id: user.id,
@@ -2523,7 +2546,9 @@ async function handleOAuthRedirect() {
             pendingDeptChange: backendProfile.pendingDeptChange || null,
             lastLogin: backendProfile.lastLogin || null
         };
+        console.log('[LOGIN] Current user populated with backend profile:', currentUser);
     } else {
+        console.log('[LOGIN] First time user or no profile found, creating new profile');
         // First time user: use Discord name as placeholder
         isFirstTime = true;
         const localEmp = getEmployee(user.id);
@@ -2564,6 +2589,9 @@ async function handleOAuthRedirect() {
     const emp = getEmployee(currentUser.id);
     emp.lastLogin = new Date().toLocaleString();
     updateEmployee(emp);
+    
+    // Set window.currentUser BEFORE checking suspension
+    window.currentUser = currentUser;
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
     console.log('User session saved with profile:', currentUser.profile);
     console.log('[SUSPEND] About to check suspension status for user:', currentUser.id);
