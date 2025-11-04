@@ -3009,11 +3009,10 @@ function startEventsPolling() {
         clearInterval(eventsPollInterval);
     }
     
-    // Check pending events every 3 seconds
-    eventsPollInterval = setInterval(checkPendingEvents, 3000);
+    // Don't auto-check pending events - this sends Discord DMs to all users
+    // Only check manually when admin needs to notify users
     
-    // Initial check
-    checkPendingEvents();
+    // Initial fetch of events
     fetchEvents();
 }
 

@@ -395,75 +395,72 @@
         </div>
     </div>
         <div id="myProfileScreen" class="screen">
-        <div style="padding: 40px 0 30px 0; height: 100%; display: flex; flex-direction: column; align-items: center;">
-            <div style="width: 250%; max-width: 250%; height: 100%; display: flex; flex-direction: column;">
-                <div style="margin-bottom: 20px; padding-left: 20px;">
-                    <h2 style="margin: 0 0 10px 0;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>Profile Settings</h2>
-                    <p style="margin: 0; color: #666; font-size: 14px;">Manage your profile information, theme preferences, and request changes to your account settings.</p>
+        <div class="container" style="max-width: 250%; margin: 0 auto;">
+            <div style="display: flex; flex-direction: column; gap: 20px; height: 100%;">
+                <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <h2 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 600;">Profile Settings</h2>
+                    <p style="margin: 0; color: #666; font-size: 15px; line-height: 1.5;">
+                        Manage your profile information, theme preferences, and request changes to your account settings.
+                    </p>
                 </div>
-                <div style="flex: 1; background: white; border-radius: 12px; overflow: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 40px; display: flex; gap: 40px;">
-                    <!-- Left Side - All Settings -->
-                    <div style="flex: 1; display: flex; flex-direction: column; gap: 24px;">
-                        <!-- Profile Picture -->
-                        <div style="text-align: center; padding-bottom: 20px; border-bottom: 1px solid #e0e0e0;">
-                            <img id="profilePic" class="profile-img-streamlined" src="" alt="Profile Picture" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 12px; border: 3px solid #1976d2;">
-                            <div style="font-weight: 600; font-size: 18px; color: #333;" id="profileNameDisplay">Loading...</div>
-                        </div>
+                
+                <div style="flex: 1; background: white; border-radius: 12px; overflow: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 30px;">
+                    <div style="max-width: 800px; display: flex; flex-direction: column; gap: 24px;">
                         
                         <!-- Profile Information Section -->
                         <div style="display: flex; flex-direction: column; gap: 16px;">
-                            <h3 style="margin: 0; font-size: 16px; color: #1976d2; border-bottom: 2px solid #1976d2; padding-bottom: 8px;">Profile Information</h3>
+                            <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #111827; border-bottom: 2px solid #7c3aed; padding-bottom: 8px;">Profile Information</h3>
                             
-                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f5f5f5; border-radius: 8px;">
-                                <span style="font-weight: 600; color: #666;">Name:</span>
-                                <span id="profileName" style="color: #333;">Not set</span>
-                                <button class="pencil-btn" id="editNameBtn" title="Request Name Change" style="background: #1976d2; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">✎ Edit</button>
+                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
+                                <span style="font-weight: 600; color: #6b7280;">Name:</span>
+                                <span id="profileName" style="color: #111827; flex: 1; margin: 0 20px; text-align: right;">Not set</span>
+                                <button class="pencil-btn" id="editNameBtn" title="Request Name Change" style="background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">✎ Edit</button>
                             </div>
                             
-                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f5f5f5; border-radius: 8px;">
-                                <span style="font-weight: 600; color: #666;">Department:</span>
-                                <span id="profileDepartment" style="color: #333;">Not set</span>
-                                <button class="pencil-btn" id="editDeptBtn" title="Request Department Change" style="background: #1976d2; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">✎ Edit</button>
+                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
+                                <span style="font-weight: 600; color: #6b7280;">Department:</span>
+                                <span id="profileDepartment" style="color: #111827; flex: 1; margin: 0 20px; text-align: right;">Not set</span>
+                                <button class="pencil-btn" id="editDeptBtn" title="Request Department Change" style="background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">✎ Edit</button>
                             </div>
                             
-                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f5f5f5; border-radius: 8px;">
-                                <span style="font-weight: 600; color: #666;">Email:</span>
-                                <span id="profileEmail" style="color: #333;">Not set</span>
-                                <button class="pencil-btn" id="editEmailBtn" title="Request Email Change" style="background: #1976d2; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">✎ Edit</button>
+                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
+                                <span style="font-weight: 600; color: #6b7280;">Email:</span>
+                                <span id="profileEmail" style="color: #111827; flex: 1; margin: 0 20px; text-align: right;">Not set</span>
+                                <button class="pencil-btn" id="editEmailBtn" title="Request Email Change" style="background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">✎ Edit</button>
                             </div>
                             
-                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f5f5f5; border-radius: 8px;">
-                                <span style="font-weight: 600; color: #666;">Country:</span>
-                                <span id="profileCountry" style="color: #333;">Not set</span>
-                                <button class="pencil-btn" id="editCountryBtn" title="Request Country Change" style="background: #1976d2; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">✎ Edit</button>
+                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
+                                <span style="font-weight: 600; color: #6b7280;">Country:</span>
+                                <span id="profileCountry" style="color: #111827; flex: 1; margin: 0 20px; text-align: right;">Not set</span>
+                                <button class="pencil-btn" id="editCountryBtn" title="Request Country Change" style="background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">✎ Edit</button>
                             </div>
                             
-                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f5f5f5; border-radius: 8px;">
-                                <span style="font-weight: 600; color: #666;">Timezone:</span>
-                                <span id="profileTimezone" style="color: #333;">Not set</span>
-                                <button class="pencil-btn" id="editTimezoneBtn" title="Request Timezone Change" style="background: #1976d2; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">✎ Edit</button>
+                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
+                                <span style="font-weight: 600; color: #6b7280;">Timezone:</span>
+                                <span id="profileTimezone" style="color: #111827; flex: 1; margin: 0 20px; text-align: right;">Not set</span>
+                                <button class="pencil-btn" id="editTimezoneBtn" title="Request Timezone Change" style="background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">✎ Edit</button>
                             </div>
                         </div>
                         
                         <!-- Theme Section -->
                         <div style="display: flex; flex-direction: column; gap: 16px;">
-                            <h3 style="margin: 0; font-size: 16px; color: #1976d2; border-bottom: 2px solid #1976d2; padding-bottom: 8px;">Appearance</h3>
+                            <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #111827; border-bottom: 2px solid #7c3aed; padding-bottom: 8px;">Appearance</h3>
                             
-                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f5f5f5; border-radius: 8px;">
-                                <span style="font-weight: 600; color: #666;">Theme:</span>
+                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
+                                <span style="font-weight: 600; color: #6b7280;">Theme:</span>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="modeToggle">
                                         <span class="slider">🌙</span>
                                     </label>
-                                    <span id="themeText" style="color: #666;">Light Mode</span>
+                                    <span id="themeText" style="color: #6b7280;">Light Mode</span>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Actions Section -->
-                        <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                            <button id="resetProfileBtn" style="width: 100%; background: #f44336; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#d32f2f'" onmouseout="this.style.background='#f44336'">Reset Profile</button>
+                        <div style="padding-top: 8px;">
+                            <button id="resetProfileBtn" style="width: 100%; background: #ef4444; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">Reset Profile</button>
                         </div>
                     </div>
                 </div>
