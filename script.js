@@ -2609,8 +2609,21 @@ async function handleOAuthRedirect() {
     // Start periodic suspension checks for active users
     setInterval(checkSuspensionStatus, 30000);
 
-    if (isFirstTime || !currentUser.profile.name || currentUser.profile.name === 'Not set') {
-        console.log('No profile name, redirecting to setupWelcome');
+    // CRITICAL: Only go to setup if TRULY a first-time user AND no profile exists
+    console.log('[LOGIN] Checking if setup needed...');
+    console.log('[LOGIN] isFirstTime:', isFirstTime);
+    console.log('[LOGIN] currentUser.profile.name:', currentUser.profile.name);
+    console.log('[LOGIN] backendProfile exists:', backendProfile ? 'YES' : 'NO');
+    
+    // SAFETY: If backend profile exists, ALWAYS skip setup even if name is missing
+    if (backendProfile && backendProfile.department && backendProfile.department !== 'Not set') {
+        console.log('[LOGIN] ✅ Backend profile found with department, going to portalWelcome');
+        const displayName = currentUser.profile.name || currentUser.name || 'User';
+        document.getElementById('portalWelcomeName').textContent = displayName;
+        document.getElementById('portalLastLogin').textContent = emp.lastLogin;
+        showScreen('portalWelcome');
+    } else if (isFirstTime || !currentUser.profile.name || currentUser.profile.name === 'Not set') {
+        console.log('[LOGIN] ⚠️  No profile/department found, going to setupWelcome');
         showScreen('setupWelcome');
         // Profile will be saved to Sheets when user completes department selection
     } else {
