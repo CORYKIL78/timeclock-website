@@ -200,6 +200,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function checkSuspensionStatus() {
         if (!window.currentUser || !window.currentUser.id) return false;
         
+        console.log('[SUSPEND] Checking suspension status for user:', window.currentUser.id);
+        
         try {
             const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/user-status', {
                 method: 'POST',
@@ -207,15 +209,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ userId: window.currentUser.id })
             });
             
+            console.log('[SUSPEND] Response status:', response.status);
+            
             if (response.ok) {
                 const statusData = await response.json();
+                console.log('[SUSPEND] Status data:', statusData);
+                
                 const wasSuspended = localStorage.getItem('wasSuspended') === 'true';
                 
                 if (statusData.status === 'suspended') {
+                    console.log('[SUSPEND] User is suspended! Showing modal...');
                     localStorage.setItem('wasSuspended', 'true');
                     showSuspensionModal();
                     return true; // User is suspended
                 } else if (wasSuspended) {
+                    console.log('[SUSPEND] User was suspended but now active');
                     // User was suspended but is now active - show reactivation notification
                     localStorage.removeItem('wasSuspended');
                     showReactivationNotification();
