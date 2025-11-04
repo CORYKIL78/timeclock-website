@@ -196,156 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     waitForCurrentUserAndSync();
     
-    // Check for suspension status
-    async function checkSuspensionStatus() {
-        console.log('[SUSPEND] checkSuspensionStatus called!');
-        console.log('[SUSPEND] window.currentUser:', window.currentUser);
-        
-        if (!window.currentUser || !window.currentUser.id) {
-            console.log('[SUSPEND] No currentUser or ID, returning false');
-            return false;
-        }
-        
-        console.log('[SUSPEND] Checking suspension status for user:', window.currentUser.id);
-        
-        try {
-            const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/user-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: window.currentUser.id })
-            });
-            
-            console.log('[SUSPEND] Response status:', response.status);
-            
-            if (response.ok) {
-                const statusData = await response.json();
-                console.log('[SUSPEND] Status data:', statusData);
-                
-                const wasSuspended = localStorage.getItem('wasSuspended') === 'true';
-                
-                if (statusData.status === 'suspended') {
-                    console.log('[SUSPEND] User is suspended! Showing modal...');
-                    localStorage.setItem('wasSuspended', 'true');
-                    showSuspensionModal();
-                    return true; // User is suspended
-                } else if (wasSuspended) {
-                    console.log('[SUSPEND] User was suspended but now active');
-                    // User was suspended but is now active - show reactivation notification
-                    localStorage.removeItem('wasSuspended');
-                    showReactivationNotification();
-                }
-            }
-        } catch (error) {
-            console.error('Error checking suspension status:', error);
-        }
-        return false; // User is not suspended
-    }
-    
-    // Show reactivation notification
-    function showReactivationNotification() {
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #4CAF50;
-            color: white;
-            padding: 20px 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            z-index: 10000;
-            font-size: 1.1em;
-            animation: slideIn 0.3s ease;
-        `;
-        notification.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 1.5em;">✅</span>
-                <div>
-                    <strong>Portal Activated!</strong>
-                    <p style="margin: 5px 0 0 0; font-size: 0.9em;">Your portal has been activated again!</p>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => notification.remove(), 300);
-        }, 5000);
-    }
-    
-    // Show suspension modal
-    function showSuspensionModal() {
-        // Create suspension modal if it doesn't exist
-        let suspensionModal = document.getElementById('suspensionModal');
-        if (!suspensionModal) {
-            suspensionModal = document.createElement('div');
-            suspensionModal.id = 'suspensionModal';
-            suspensionModal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                background: rgba(0,0,0,0.8);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 10000;
-                backdrop-filter: blur(5px);
-            `;
-            
-            suspensionModal.innerHTML = `
-                <div style="
-                    background: white;
-                    padding: 3em 2.5em 2em 2.5em;
-                    border-radius: 15px;
-                    max-width: 500px;
-                    text-align: center;
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-                    border: 3px solid #f44336;
-                ">
-                    <div style="font-size: 4em; margin-bottom: 0.5em;">⚠️</div>
-                    <h2 style="color: #f44336; margin-bottom: 1em; font-size: 1.8em; font-weight: 700;">Suspended Portal</h2>
-                    <p style="color: #555; font-size: 1.05em; line-height: 1.7; margin-bottom: 2em; text-align: left;">
-                        Your portal has been suspended. This means that you cannot use your portal until your status is changed back to active.
-                        <br><br>
-                        Please contact someone from the director board if you believe this to be a mistake.
-                        <br><br>
-                        Thank you for your understanding.
-                    </p>
-                    <button id="suspensionLogoutBtn" style="
-                        background: #f44336;
-                        color: white;
-                        border: none;
-                        padding: 14px 35px;
-                        border-radius: 8px;
-                        font-size: 1.1em;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.3s;
-                        box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
-                    " onmouseover="this.style.background='#d32f2f'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(244, 67, 54, 0.4)'" onmouseout="this.style.background='#f44336'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(244, 67, 54, 0.3)'">
-                        Log Out
-                    </button>
-                </div>
-            `;
-            
-            document.body.appendChild(suspensionModal);
-            
-            // Add logout functionality
-            const logoutBtn = document.getElementById('suspensionLogoutBtn');
-            logoutBtn.onclick = () => {
-                localStorage.removeItem('currentUser');
-                localStorage.removeItem('lastProcessedCode');
-                localStorage.removeItem('clockInTime');
-                window.location.reload();
-            };
-        }
-        
-        suspensionModal.style.display = 'flex';
-    }
-    
     // --- Add debug logging for Discord login and role fetch ---
     if (document.getElementById('discordLoginBtn')) {
         document.getElementById('discordLoginBtn').addEventListener('click', function() {
@@ -2353,6 +2203,156 @@ async function fetchEmployees() {
     } catch (e) {
         console.error('Employees fetch error:', e);
     }
+}
+
+// Check for suspension status - MUST BE GLOBAL SCOPE
+async function checkSuspensionStatus() {
+    console.log('[SUSPEND] checkSuspensionStatus called!');
+    console.log('[SUSPEND] window.currentUser:', window.currentUser);
+    
+    if (!window.currentUser || !window.currentUser.id) {
+        console.log('[SUSPEND] No currentUser or ID, returning false');
+        return false;
+    }
+    
+    console.log('[SUSPEND] Checking suspension status for user:', window.currentUser.id);
+    
+    try {
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/user-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: window.currentUser.id })
+        });
+        
+        console.log('[SUSPEND] Response status:', response.status);
+        
+        if (response.ok) {
+            const statusData = await response.json();
+            console.log('[SUSPEND] Status data:', statusData);
+            
+            const wasSuspended = localStorage.getItem('wasSuspended') === 'true';
+            
+            if (statusData.status === 'suspended') {
+                console.log('[SUSPEND] User is suspended! Showing modal...');
+                localStorage.setItem('wasSuspended', 'true');
+                showSuspensionModal();
+                return true; // User is suspended
+            } else if (wasSuspended) {
+                console.log('[SUSPEND] User was suspended but now active');
+                // User was suspended but is now active - show reactivation notification
+                localStorage.removeItem('wasSuspended');
+                showReactivationNotification();
+            }
+        }
+    } catch (error) {
+        console.error('Error checking suspension status:', error);
+    }
+    return false; // User is not suspended
+}
+
+// Show reactivation notification
+function showReactivationNotification() {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 20px 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        font-size: 1.1em;
+        animation: slideIn 0.3s ease;
+    `;
+    notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.5em;">✅</span>
+            <div>
+                <strong>Portal Activated!</strong>
+                <p style="margin: 5px 0 0 0; font-size: 0.9em;">Your portal has been activated again!</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+// Show suspension modal
+function showSuspensionModal() {
+    // Create suspension modal if it doesn't exist
+    let suspensionModal = document.getElementById('suspensionModal');
+    if (!suspensionModal) {
+        suspensionModal = document.createElement('div');
+        suspensionModal.id = 'suspensionModal';
+        suspensionModal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(5px);
+        `;
+        
+        suspensionModal.innerHTML = `
+            <div style="
+                background: white;
+                padding: 3em 2.5em 2em 2.5em;
+                border-radius: 15px;
+                max-width: 500px;
+                text-align: center;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                border: 3px solid #f44336;
+            ">
+                <div style="font-size: 4em; margin-bottom: 0.5em;">⚠️</div>
+                <h2 style="color: #f44336; margin-bottom: 1em; font-size: 1.8em; font-weight: 700;">Suspended Portal</h2>
+                <p style="color: #555; font-size: 1.05em; line-height: 1.7; margin-bottom: 2em; text-align: left;">
+                    Your portal has been suspended. This means that you cannot use your portal until your status is changed back to active.
+                    <br><br>
+                    Please contact someone from the director board if you believe this to be a mistake.
+                    <br><br>
+                    Thank you for your understanding.
+                </p>
+                <button id="suspensionLogoutBtn" style="
+                    background: #f44336;
+                    color: white;
+                    border: none;
+                    padding: 14px 35px;
+                    border-radius: 8px;
+                    font-size: 1.1em;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+                " onmouseover="this.style.background='#d32f2f'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(244, 67, 54, 0.4)'" onmouseout="this.style.background='#f44336'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(244, 67, 54, 0.3)'">
+                    Log Out
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(suspensionModal);
+        
+        // Add logout functionality
+        const logoutBtn = document.getElementById('suspensionLogoutBtn');
+        logoutBtn.onclick = () => {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('lastProcessedCode');
+            localStorage.removeItem('clockInTime');
+            window.location.reload();
+        };
+    }
+    
+    suspensionModal.style.display = 'flex';
 }
 
 async function handleOAuthRedirect() {
