@@ -340,14 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
         suspensionModal.style.display = 'flex';
     }
     
-    // Check suspension status when user loads
-    setTimeout(async () => {
-        if (window.currentUser && window.currentUser.id) {
-            await checkSuspensionStatus();
-            // Always check periodically regardless of initial status
-            setInterval(checkSuspensionStatus, 30000); // Check every 30 seconds
-        }
-    }, 2000);
     // --- Add debug logging for Discord login and role fetch ---
     if (document.getElementById('discordLoginBtn')) {
         document.getElementById('discordLoginBtn').addEventListener('click', function() {
@@ -2567,6 +2559,18 @@ async function handleOAuthRedirect() {
     updateEmployee(emp);
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
     console.log('User session saved with profile:', currentUser.profile);
+    
+    // Check suspension status immediately after login
+    const isSuspended = await checkSuspensionStatus();
+    if (isSuspended) {
+        // User is suspended, don't proceed with normal flow
+        // But still check periodically in case status changes
+        setInterval(checkSuspensionStatus, 30000);
+        return;
+    }
+    
+    // Start periodic suspension checks for active users
+    setInterval(checkSuspensionStatus, 30000);
 
     if (isFirstTime || !currentUser.profile.name || currentUser.profile.name === 'Not set') {
         console.log('No profile name, redirecting to setupWelcome');

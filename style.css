@@ -3371,15 +3371,6 @@ body.dark .suspended-message p {
         padding: 12px 8px;
     }
     
-    .mail-compose h2 {
-        font-size: 1.3em;
-        margin-bottom: 15px;
-    }
-    
-    .mail-compose select[multiple] {
-        min-height: 120px;
-    }
-    
     .mail-actions {
         flex-direction: column;
         gap: 8px;
@@ -3389,73 +3380,6 @@ body.dark .suspended-message p {
         width: 100%;
         padding: 12px;
         font-size: 16px;
-    }
-    
-    /* Absence modal mobile optimization */
-    #absenceRequestModal .modal-content {
-        max-width: 95%;
-        padding: 20px 15px;
-        margin: 10px;
-    }
-    
-    #absenceRequestModal h2 {
-        font-size: 1.3em;
-        margin-bottom: 15px;
-    }
-    
-    #absenceRequestModal select,
-    #absenceRequestModal input,
-    #absenceRequestModal textarea {
-        width: 100%;
-        font-size: 16px; /* Prevent zoom on iOS */
-        padding: 12px 10px;
-        margin-bottom: 12px;
-        border-radius: 6px;
-        border: 1px solid #ddd;
-    }
-    
-    #absenceRequestModal textarea {
-        min-height: 100px;
-        resize: vertical;
-    }
-    
-    #absenceRequestModal button {
-        width: 100%;
-        padding: 14px;
-        font-size: 16px;
-        border-radius: 6px;
-        margin-top: 10px;
-    }
-    
-    #absenceRequestModal #absenceDays {
-        font-size: 14px;
-        margin: 10px 0;
-        padding: 8px;
-        background: #f5f5f5;
-        border-radius: 4px;
-    }
-    
-    body.dark #absenceRequestModal #absenceDays {
-        background: #2c3e50;
-    }
-    
-    /* Compose mail modal mobile optimization */
-    #composeMailModal .modal-content {
-        max-width: 95%;
-        padding: 20px 15px;
-        margin: 10px;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-    
-    #composeMailModal select[multiple] {
-        min-height: 100px;
-        max-height: 150px;
-    }
-    
-    #composeMailModal input[type="file"] {
-        padding: 8px;
-        font-size: 14px;
     }
     
     .mail-header h3 {
