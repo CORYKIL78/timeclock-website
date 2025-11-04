@@ -3014,10 +3014,22 @@ function startEventsPolling() {
         clearInterval(eventsPollInterval);
     }
     
-    // Don't auto-check pending events - this sends Discord DMs to all users
-    // Only check manually when admin needs to notify users
+    // Check for new events every 60 seconds
+    // This will process any events with "Submit" in column G and send DMs to all users
+    eventsPollInterval = setInterval(() => {
+        checkPendingEvents();
+        fetchEvents();
+    }, 60000); // Check every 60 seconds
     
-    // Initial fetch of events
+    // Initial check
+    checkPendingEvents();
+    fetchEvents();
+}
+
+function stopEventsPolling() {
+    if (eventsPollInterval) {
+    fetchEvents();
+}
     fetchEvents();
 }
 
