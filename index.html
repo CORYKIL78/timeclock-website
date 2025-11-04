@@ -644,16 +644,16 @@
                         <p style="margin: 0 0 16px 0; color: #666; font-size: 14px;">
                             Enter your ClickUp Personal API Token to get started. You can find this in your ClickUp account settings under "Apps".
                         </p>
-                        <div style="display: flex; gap: 12px; align-items: flex-start;">
-                            <div style="flex: 1;">
-                                <input type="password" id="clickupTokenInput" placeholder="Enter your Personal API Token" style="width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif;">
-                                <p style="margin: 8px 0 0 0; font-size: 12px; color: #999;">
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <textarea id="clickupTokenInput" placeholder="Paste your Personal API Token here..." style="width: 100%; min-height: 80px; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif; resize: vertical;"></textarea>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <p style="margin: 0; font-size: 12px; color: #999;">
                                     <a href="https://app.clickup.com/settings/apps" target="_blank" style="color: #7c3aed;">Get your API token here</a>
                                 </p>
+                                <button id="clickupConnectBtn" style="padding: 12px 24px; background: #7c3aed; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                    Connect
+                                </button>
                             </div>
-                            <button id="clickupConnectBtn" style="padding: 12px 24px; background: #7c3aed; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;">
-                                Connect
-                            </button>
                         </div>
                     </div>
                     
