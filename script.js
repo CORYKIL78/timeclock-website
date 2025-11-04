@@ -3414,47 +3414,57 @@ if (setupDepartmentContinueBtn) {
         currentUser.profile.department = selectedDept.value;
         console.log('[DEBUG] Department saved, verifying roles...');
         showScreen('setupVerify');
+        
+        // Reduced timeout for mobile responsiveness
         setTimeout(async () => {
-            const deptRole = DEPT_ROLES[currentUser.profile.department];
-            console.log('[DEBUG] Checking department role:', deptRole, 'and base employee role:', REQUIRED_ROLE);
-            console.log('[DEBUG] User roles:', currentUser.roles);
-            
-            // Check if user has both the required employee role AND the department role
-            const hasBaseRole = currentUser.roles && currentUser.roles.includes(REQUIRED_ROLE);
-            const hasDeptRole = currentUser.roles && currentUser.roles.includes(deptRole);
-            
-            if (hasBaseRole && hasDeptRole) {
-                updateEmployee(currentUser);
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                // Save to Google Sheets via backend
-                await upsertUserProfile();
-                console.log('[DEBUG] Profile saved to Google Sheets');
+            try {
+                const deptRole = DEPT_ROLES[currentUser.profile.department];
+                console.log('[DEBUG] Checking department role:', deptRole, 'and base employee role:', REQUIRED_ROLE);
+                console.log('[DEBUG] User roles:', currentUser.roles);
                 
-                // Send welcome DM with credentials
-                const emp = getEmployee(currentUser.id);
-                await sendDiscordDM(currentUser.id, {
-                    title: '🎉 Welcome to Cirkle Development!',
-                    description: `Welcome to the Cirkle Development Staff Portal!\n\nYour profile has been successfully created.`,
-                    fields: [
-                        { name: '👤 Name', value: currentUser.profile.name, inline: true },
-                        { name: '📧 Email', value: currentUser.profile.email, inline: true },
-                        { name: '🏢 Department', value: currentUser.profile.department, inline: false },
-                        { name: '🆔 Staff ID', value: emp.profile?.staffId || 'Pending Assignment', inline: true }
-                    ],
-                    color: 0x2196F3,
-                    footer: { text: 'Cirkle Development HR Portal • portal.cirkledevelopment.co.uk' },
-                    timestamp: new Date().toISOString()
-                });
+                // Check if user has both the required employee role AND the department role
+                const hasBaseRole = currentUser.roles && currentUser.roles.includes(REQUIRED_ROLE);
+                const hasDeptRole = currentUser.roles && currentUser.roles.includes(deptRole);
                 
-                console.log('[DEBUG] Role verification successful, redirecting to confirm');
-                showScreen('confirm');
-                playSuccessSound();
-            } else {
-                console.log('[DEBUG] Role verification failed for department:', currentUser.profile.department);
-                showModal('alert', 'Role not found for selected department. Please ensure you have the correct role in Discord.');
+                if (hasBaseRole && hasDeptRole) {
+                    updateEmployee(currentUser);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    // Save to Google Sheets via backend
+                    console.log('[DEBUG] Saving profile to Google Sheets...');
+                    await upsertUserProfile();
+                    console.log('[DEBUG] Profile saved to Google Sheets');
+                    
+                    // Send welcome DM with credentials
+                    const emp = getEmployee(currentUser.id);
+                    console.log('[DEBUG] Sending welcome DM...');
+                    await sendDiscordDM(currentUser.id, {
+                        title: '🎉 Welcome to Cirkle Development!',
+                        description: `Welcome to the Cirkle Development Staff Portal!\n\nYour profile has been successfully created.`,
+                        fields: [
+                            { name: '👤 Name', value: currentUser.profile.name, inline: true },
+                            { name: '📧 Email', value: currentUser.profile.email, inline: true },
+                            { name: '🏢 Department', value: currentUser.profile.department, inline: false },
+                            { name: '🆔 Staff ID', value: emp.profile?.staffId || 'Pending Assignment', inline: true }
+                        ],
+                        color: 0x2196F3,
+                        footer: { text: 'Cirkle Development HR Portal • portal.cirkledevelopment.co.uk' },
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    console.log('[DEBUG] Role verification successful, redirecting to confirm');
+                    showScreen('confirm');
+                    playSuccessSound();
+                } else {
+                    console.log('[DEBUG] Role verification failed for department:', currentUser.profile.department);
+                    showModal('alert', 'Role not found for selected department. Please ensure you have the correct role in Discord.');
+                    showScreen('setupDepartment');
+                }
+            } catch (error) {
+                console.error('[ERROR] Verification process failed:', error);
+                showModal('alert', 'An error occurred during verification. Please try again.');
                 showScreen('setupDepartment');
             }
-        }, 2000);
+        }, 1000); // Reduced from 2000ms to 1000ms for better mobile experience
     } else {
         showModal('alert', 'Please select a department');
     }

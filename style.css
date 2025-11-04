@@ -3371,6 +3371,15 @@ body.dark .suspended-message p {
         padding: 12px 8px;
     }
     
+    .mail-compose h2 {
+        font-size: 1.2em;
+        margin-bottom: 12px;
+    }
+    
+    .mail-compose select[multiple] {
+        min-height: 100px;
+    }
+    
     .mail-actions {
         flex-direction: column;
         gap: 8px;
@@ -3394,6 +3403,58 @@ body.dark .suspended-message p {
         width: 32px;
         height: 32px;
         font-size: 12px;
+    }
+    
+    /* Mobile-optimized absence modal */
+    #absenceRequestModal .modal-content {
+        padding: 15px;
+        max-width: 95%;
+    }
+    
+    #absenceRequestModal h2 {
+        font-size: 1.2em;
+        margin-bottom: 12px;
+    }
+    
+    #absenceRequestModal select,
+    #absenceRequestModal input[type="date"],
+    #absenceRequestModal textarea {
+        font-size: 16px;
+        padding: 12px 10px;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    #absenceRequestModal textarea {
+        min-height: 80px;
+    }
+    
+    #absenceRequestModal button {
+        width: 100%;
+        padding: 14px;
+        font-size: 16px;
+    }
+    
+    /* Mobile-optimized compose mail modal */
+    #composeMailModal .modal-content {
+        padding: 15px;
+        max-width: 95%;
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+    
+    #composeMailModal h2 {
+        font-size: 1.2em;
+        margin-bottom: 12px;
+    }
+    
+    #composeMailModal select[multiple] {
+        min-height: 100px;
+    }
+    
+    #composeMailModal input[type="file"] {
+        font-size: 14px;
+        padding: 8px 4px;
     }
 }
 
