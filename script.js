@@ -343,11 +343,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check suspension status when user loads
     setTimeout(async () => {
         if (window.currentUser && window.currentUser.id) {
-            const isSuspended = await checkSuspensionStatus();
-            if (!isSuspended) {
-                // Only check periodically if not suspended initially
-                setInterval(checkSuspensionStatus, 30000); // Check every 30 seconds
-            }
+            await checkSuspensionStatus();
+            // Always check periodically regardless of initial status
+            setInterval(checkSuspensionStatus, 30000); // Check every 30 seconds
         }
     }, 2000);
     // --- Add debug logging for Discord login and role fetch ---
