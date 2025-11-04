@@ -2703,6 +2703,268 @@ async function syncMailFromBackend() {
     }
 }
 
+// Events functionality
+let eventsData = [];
+let eventsPollInterval = null;
+
+async function checkPendingEvents() {
+    try {
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/events/check-pending', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            console.error('[Events] Failed to check pending events:', response.statusText);
+            return;
+        }
+        
+        const data = await response.json();
+        console.log('[Events] Check pending response:', data);
+        
+        // Fetch updated events after processing
+        if (data.processed > 0) {
+            await fetchEvents();
+        }
+    } catch (error) {
+        console.error('[Events] Error checking pending events:', error);
+    }
+}
+
+async function fetchEvents() {
+    try {
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/events/fetch');
+        
+        if (!response.ok) {
+            console.error('[Events] Failed to fetch events:', response.statusText);
+            return;
+        }
+        
+        const data = await response.json();
+        eventsData = data.events || [];
+        console.log('[Events] Fetched events:', eventsData);
+        
+        // Check for new events and notify user
+        checkForNewEvents();
+        
+        // Re-render if on events screen
+        if (document.getElementById('eventsScreen').classList.contains('active')) {
+            renderEvents();
+        }
+    } catch (error) {
+        console.error('[Events] Error fetching events:', error);
+    }
+}
+
+function checkForNewEvents() {
+    const previousEvents = JSON.parse(localStorage.getItem(`events_seen_${currentUser.id}`) || '[]');
+    const newEvents = eventsData.filter(event => !previousEvents.includes(event.rowIndex));
+    
+    if (newEvents.length > 0) {
+        newEvents.forEach(event => {
+            addNotification('events', `New Event: ${event.name}`, 'events');
+            showEventResponseModal(event);
+        });
+        
+        // Update seen events
+        const allSeenEvents = [...previousEvents, ...newEvents.map(e => e.rowIndex)];
+        localStorage.setItem(`events_seen_${currentUser.id}`, JSON.stringify(allSeenEvents));
+    }
+}
+
+function renderEvents() {
+    const container = document.getElementById('eventsContainer');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (eventsData.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No active events</p>';
+        return;
+    }
+    
+    eventsData.forEach(event => {
+        const eventCard = document.createElement('div');
+        eventCard.className = 'event-card';
+        eventCard.innerHTML = `
+            <div class="event-header">
+                <h3>${event.name}</h3>
+                <span class="event-arrival-badge ${event.arrivalStatus === 'Mandatory' ? 'mandatory' : 'optional'}">${event.arrivalStatus}</span>
+            </div>
+            <div class="event-dates">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>${event.startDate} - ${event.endDate}</span>
+            </div>
+            <div class="event-details">${event.details}</div>
+            <button class="event-respond-btn" data-event='${JSON.stringify(event)}'>Respond</button>
+        `;
+        
+        container.appendChild(eventCard);
+    });
+    
+    // Add event listeners to respond buttons
+    document.querySelectorAll('.event-respond-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const event = JSON.parse(e.target.dataset.event);
+            showEventResponseModal(event);
+        });
+    });
+}
+
+function showEventResponseModal(event) {
+    const modal = document.createElement('div');
+    modal.className = 'event-response-modal';
+    modal.innerHTML = `
+        <div class="event-response-content">
+            <h3>${event.name}</h3>
+            <div class="event-response-details">
+                <p><strong>Dates:</strong> ${event.startDate} - ${event.endDate}</p>
+                <p><strong>Details:</strong> ${event.details}</p>
+                <p><strong>Arrival:</strong> ${event.arrivalStatus}</p>
+            </div>
+            <div class="event-response-buttons">
+                <button class="event-response-btn attend" data-response="attend">I can attend</button>
+                <button class="event-response-btn cannot" data-response="cannot">I cannot attend</button>
+                <button class="event-response-btn unsure" data-response="unsure">I'm unsure</button>
+            </div>
+            <div class="event-response-reason" style="display: none;">
+                <textarea placeholder="Please provide a reason..." rows="4"></textarea>
+                <button class="event-response-submit">Submit</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Add click handlers
+    const attendBtn = modal.querySelector('.attend');
+    const cannotBtn = modal.querySelector('.cannot');
+    const unsureBtn = modal.querySelector('.unsure');
+    const reasonSection = modal.querySelector('.event-response-reason');
+    const reasonTextarea = modal.querySelector('.event-response-reason textarea');
+    const submitBtn = modal.querySelector('.event-response-submit');
+    
+    attendBtn.addEventListener('click', async () => {
+        await submitEventResponse(event, 'attend');
+        modal.remove();
+        playSuccessSound();
+        showModal('alert', '<span class="success-tick"></span> Response recorded!');
+        addNotification('events', `You are attending: ${event.name}`, 'events');
+    });
+    
+    cannotBtn.addEventListener('click', () => {
+        reasonSection.style.display = 'block';
+        reasonTextarea.placeholder = 'Please provide a reason why you cannot attend...';
+        submitBtn.dataset.response = 'cannot';
+    });
+    
+    unsureBtn.addEventListener('click', () => {
+        reasonSection.style.display = 'block';
+        reasonTextarea.placeholder = 'Please provide details and contact the organiser...';
+        submitBtn.dataset.response = 'unsure';
+    });
+    
+    submitBtn.addEventListener('click', async () => {
+        const response = submitBtn.dataset.response;
+        const reason = reasonTextarea.value.trim();
+        
+        if (!reason) {
+            showModal('alert', '⚠️ Please provide a reason');
+            return;
+        }
+        
+        await submitEventResponse(event, response, reason);
+        modal.remove();
+        playSuccessSound();
+        
+        if (response === 'cannot') {
+            showModal('alert', '<span class="success-tick"></span> Response recorded!');
+            addNotification('events', `You cannot attend: ${event.name}`, 'events');
+        } else {
+            showModal('alert', '<span class="success-tick"></span> Response recorded! Please contact the organiser.');
+            addNotification('events', `You are unsure about: ${event.name}`, 'events');
+        }
+    });
+    
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+async function submitEventResponse(event, response, reason = '') {
+    try {
+        // Get saved webhook URL or prompt for it
+        let webhookUrl = localStorage.getItem('events_webhook_url');
+        
+        if (!webhookUrl) {
+            webhookUrl = prompt('Enter the Discord webhook URL for event notifications:', 'https://discord.com/api/webhooks/');
+            
+            if (!webhookUrl || !webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
+                console.error('[Events] Invalid webhook URL');
+                showModal('alert', '⚠️ Invalid webhook URL');
+                return;
+            }
+            
+            // Save webhook URL for future use
+            localStorage.setItem('events_webhook_url', webhookUrl);
+        }
+        
+        const requestBody = {
+            eventRowIndex: event.rowIndex,
+            discordId: currentUser.discordId,
+            displayName: currentUser.name,
+            response: response,
+            reason: reason,
+            webhookUrl: webhookUrl,
+            organizerDiscordId: event.organizerDiscordId
+        };
+        
+        const apiResponse = await fetch('https://timeclock-backend.marcusray.workers.dev/api/events/respond', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!apiResponse.ok) {
+            console.error('[Events] Failed to submit response:', apiResponse.statusText);
+            showModal('alert', '⚠️ Failed to submit response. Please try again.');
+            return;
+        }
+        
+        const data = await apiResponse.json();
+        console.log('[Events] Response submitted:', data);
+        
+        // Refresh events list
+        await fetchEvents();
+    } catch (error) {
+        console.error('[Events] Error submitting response:', error);
+        showModal('alert', '⚠️ Failed to submit response. Please try again.');
+    }
+}
+
+function startEventsPolling() {
+    if (eventsPollInterval) {
+        clearInterval(eventsPollInterval);
+    }
+    
+    // Check pending events every 3 seconds
+    eventsPollInterval = setInterval(checkPendingEvents, 3000);
+    
+    // Initial check
+    checkPendingEvents();
+    fetchEvents();
+}
+
+function stopEventsPolling() {
+    if (eventsPollInterval) {
+        clearInterval(eventsPollInterval);
+        eventsPollInterval = null;
+    }
+}
+
 function renderMail() {
     const inboxContent = document.getElementById('inboxContent');
     const sentContent = document.getElementById('sentContent');
@@ -3112,6 +3374,9 @@ if (portalLoginBtn) {
         showScreen('mainMenu');
         updateSidebarProfile();
         updateMainScreen();
+        
+        // Start events polling after login
+        startEventsPolling();
     });
 }
 
@@ -4176,6 +4441,12 @@ document.getElementById('clockOutBtn').addEventListener('click', async () => {
     playSuccessSound();
     addNotification('timeclock', 'You have clocked out!', 'timeclock');
     renderPreviousSessions();
+});
+
+document.getElementById('eventsBtn').addEventListener('click', () => {
+    showScreen('events');
+    renderEvents();
+    closeMobileSidebar();
 });
 
 document.getElementById('mailBtn').addEventListener('click', async () => {
