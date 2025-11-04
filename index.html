@@ -24,6 +24,7 @@
             <button id="timeclockBtn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Timeclock</button>
             <button id="eventsBtn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"></path></svg> Events</button>
             <button id="mailBtn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> Mail</button>
+            <button id="clickupBtn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> ClickUp</button>
             <button id="handbooksBtn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Handbooks</button>
         </div>
         <div class="sidebar-footer">
@@ -628,6 +629,81 @@
             </div>
         </div>
     </div>
+    
+    <!-- ClickUp Screen -->
+    <div id="clickupScreen" class="screen">
+        <div class="container" style="max-width: 250%; margin: 0 auto;">
+            <div style="display: flex; flex-direction: column; gap: 20px; height: 100%;">
+                <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <h2 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 600;">ClickUp Tasks</h2>
+                    <p style="margin: 0; color: #666; font-size: 15px; line-height: 1.5;">
+                        Manage your ClickUp tasks directly from the portal. Connect your account to view and update tasks.
+                    </p>
+                </div>
+                
+                <div id="clickupConnectionSection" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <div id="clickupDisconnected">
+                        <h3 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 600;">Connect Your ClickUp Account</h3>
+                        <p style="margin: 0 0 16px 0; color: #666; font-size: 14px;">
+                            Enter your ClickUp Personal API Token to get started. You can find this in your ClickUp account settings under "Apps".
+                        </p>
+                        <div style="display: flex; gap: 12px; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <input type="password" id="clickupTokenInput" placeholder="Enter your Personal API Token" style="width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif;">
+                                <p style="margin: 8px 0 0 0; font-size: 12px; color: #999;">
+                                    <a href="https://app.clickup.com/settings/apps" target="_blank" style="color: #7c3aed;">Get your API token here</a>
+                                </p>
+                            </div>
+                            <button id="clickupConnectBtn" style="padding: 12px 24px; background: #7c3aed; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                Connect
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="clickupConnected" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="margin: 0 0 4px 0; font-size: 18px; font-weight: 600;">✓ Connected to ClickUp</h3>
+                                <p style="margin: 0; color: #666; font-size: 14px;" id="clickupWorkspaceName">Loading workspace...</p>
+                            </div>
+                            <button id="clickupDisconnectBtn" style="padding: 10px 20px; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                                Disconnect
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="clickupTasksSection" style="display: none; flex: 1; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; flex-direction: column;">
+                    <div style="padding: 16px 20px; border-bottom: 1px solid #eee;">
+                        <div class="clickup-tabs" style="display: flex; gap: 8px;">
+                            <button class="clickup-tab-btn active" data-status="all" style="padding: 8px 16px; border: none; background: #f3f4f6; color: #374151; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                                All Tasks
+                            </button>
+                            <button class="clickup-tab-btn" data-status="to do" style="padding: 8px 16px; border: none; background: transparent; color: #6b7280; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                                To Do
+                            </button>
+                            <button class="clickup-tab-btn" data-status="in progress" style="padding: 8px 16px; border: none; background: transparent; color: #6b7280; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                                In Progress
+                            </button>
+                            <button class="clickup-tab-btn" data-status="complete" style="padding: 8px 16px; border: none; background: transparent; color: #6b7280; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                                Complete
+                            </button>
+                            <button id="clickupRefreshBtn" style="margin-left: auto; padding: 8px 16px; border: none; background: transparent; color: #7c3aed; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                                🔄 Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="flex: 1; overflow: auto; padding: 20px;">
+                        <div id="clickupTasksContainer">
+                            <!-- Tasks will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div id="suspendedScreen" class="screen">
         <div class="container suspended-portal">
             <h2>🚫 Portal Suspended</h2>

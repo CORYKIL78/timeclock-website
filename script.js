@@ -4529,6 +4529,219 @@ document.getElementById('mailBtn').addEventListener('click', async () => {
     closeMobileSidebar();
 });
 
+// ClickUp Integration
+let clickupToken = localStorage.getItem('clickupToken');
+let clickupWorkspace = null;
+let clickupTasks = [];
+let clickupCurrentFilter = 'all';
+
+document.getElementById('clickupBtn').addEventListener('click', () => {
+    showScreen('clickup');
+    if (clickupToken) {
+        document.getElementById('clickupDisconnected').style.display = 'none';
+        document.getElementById('clickupConnected').style.display = 'block';
+        document.getElementById('clickupTasksSection').style.display = 'flex';
+        loadClickUpTasks();
+    } else {
+        document.getElementById('clickupDisconnected').style.display = 'block';
+        document.getElementById('clickupConnected').style.display = 'none';
+        document.getElementById('clickupTasksSection').style.display = 'none';
+    }
+    closeMobileSidebar();
+});
+
+document.getElementById('clickupConnectBtn').addEventListener('click', async () => {
+    const token = document.getElementById('clickupTokenInput').value.trim();
+    if (!token) {
+        alert('Please enter your ClickUp API token');
+        return;
+    }
+    
+    const btn = document.getElementById('clickupConnectBtn');
+    btn.disabled = true;
+    btn.textContent = 'Connecting...';
+    
+    try {
+        // Validate token by fetching user info
+        const response = await fetch('https://api.clickup.com/api/v2/user', {
+            headers: {
+                'Authorization': token
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Invalid token');
+        }
+        
+        const data = await response.json();
+        clickupToken = token;
+        clickupWorkspace = data.user;
+        localStorage.setItem('clickupToken', token);
+        
+        document.getElementById('clickupDisconnected').style.display = 'none';
+        document.getElementById('clickupConnected').style.display = 'block';
+        document.getElementById('clickupTasksSection').style.display = 'flex';
+        document.getElementById('clickupWorkspaceName').textContent = `Connected as ${data.user.username}`;
+        document.getElementById('clickupTokenInput').value = '';
+        
+        await loadClickUpTasks();
+    } catch (error) {
+        console.error('ClickUp connection error:', error);
+        alert('Failed to connect to ClickUp. Please check your API token.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Connect';
+    }
+});
+
+document.getElementById('clickupDisconnectBtn').addEventListener('click', () => {
+    if (confirm('Are you sure you want to disconnect from ClickUp?')) {
+        clickupToken = null;
+        clickupWorkspace = null;
+        clickupTasks = [];
+        localStorage.removeItem('clickupToken');
+        
+        document.getElementById('clickupDisconnected').style.display = 'block';
+        document.getElementById('clickupConnected').style.display = 'none';
+        document.getElementById('clickupTasksSection').style.display = 'none';
+        document.getElementById('clickupTasksContainer').innerHTML = '';
+    }
+});
+
+document.getElementById('clickupRefreshBtn').addEventListener('click', () => {
+    loadClickUpTasks();
+});
+
+// ClickUp tab filtering
+document.querySelectorAll('.clickup-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.clickup-tab-btn').forEach(b => {
+            b.classList.remove('active');
+            b.style.background = 'transparent';
+            b.style.color = '#6b7280';
+        });
+        btn.classList.add('active');
+        btn.style.background = '#f3f4f6';
+        btn.style.color = '#374151';
+        
+        clickupCurrentFilter = btn.dataset.status;
+        renderClickUpTasks();
+    });
+});
+
+async function loadClickUpTasks() {
+    if (!clickupToken) return;
+    
+    const btn = document.getElementById('clickupRefreshBtn');
+    btn.textContent = '🔄 Loading...';
+    btn.disabled = true;
+    
+    try {
+        // Get user's teams
+        const teamsResponse = await fetch('https://api.clickup.com/api/v2/team', {
+            headers: {
+                'Authorization': clickupToken
+            }
+        });
+        
+        if (!teamsResponse.ok) throw new Error('Failed to fetch teams');
+        const teamsData = await teamsResponse.json();
+        
+        if (!teamsData.teams || teamsData.teams.length === 0) {
+            document.getElementById('clickupTasksContainer').innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No teams found. Please create a workspace in ClickUp first.</p>';
+            return;
+        }
+        
+        const teamId = teamsData.teams[0].id;
+        
+        // Get all tasks assigned to the user
+        const tasksResponse = await fetch(`https://api.clickup.com/api/v2/team/${teamId}/task?assignees[]=${clickupWorkspace.id}`, {
+            headers: {
+                'Authorization': clickupToken
+            }
+        });
+        
+        if (!tasksResponse.ok) throw new Error('Failed to fetch tasks');
+        const tasksData = await tasksResponse.json();
+        
+        clickupTasks = tasksData.tasks || [];
+        renderClickUpTasks();
+    } catch (error) {
+        console.error('ClickUp load error:', error);
+        document.getElementById('clickupTasksContainer').innerHTML = '<p style="text-align: center; color: #ef4444; padding: 40px;">Failed to load tasks. Please try again.</p>';
+    } finally {
+        btn.textContent = '🔄 Refresh';
+        btn.disabled = false;
+    }
+}
+
+function renderClickUpTasks() {
+    const container = document.getElementById('clickupTasksContainer');
+    
+    let filteredTasks = clickupTasks;
+    if (clickupCurrentFilter !== 'all') {
+        filteredTasks = clickupTasks.filter(task => 
+            task.status.status.toLowerCase() === clickupCurrentFilter
+        );
+    }
+    
+    if (filteredTasks.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No tasks found.</p>';
+        return;
+    }
+    
+    container.innerHTML = filteredTasks.map(task => {
+        const status = task.status.status;
+        const priority = task.priority;
+        const dueDate = task.due_date ? new Date(parseInt(task.due_date)).toLocaleDateString() : 'No due date';
+        
+        let statusColor = '#6b7280';
+        if (status.toLowerCase() === 'complete') statusColor = '#10b981';
+        else if (status.toLowerCase() === 'in progress') statusColor = '#3b82f6';
+        else if (status.toLowerCase() === 'to do') statusColor = '#f59e0b';
+        
+        let priorityText = '';
+        let priorityColor = '';
+        if (priority) {
+            if (priority.priority === 'urgent') {
+                priorityText = '🔴 Urgent';
+                priorityColor = '#ef4444';
+            } else if (priority.priority === 'high') {
+                priorityText = '🟠 High';
+                priorityColor = '#f97316';
+            } else if (priority.priority === 'normal') {
+                priorityText = '🟡 Normal';
+                priorityColor = '#eab308';
+            } else if (priority.priority === 'low') {
+                priorityText = '🟢 Low';
+                priorityColor = '#22c55e';
+            }
+        }
+        
+        return `
+            <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#7c3aed'" onmouseout="this.style.borderColor='#e5e7eb'" onclick="openClickUpTask('${task.id}')">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                    <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: #111827;">${task.name}</h4>
+                    <span style="padding: 4px 12px; background: ${statusColor}; color: white; border-radius: 6px; font-size: 12px; font-weight: 500; white-space: nowrap; margin-left: 12px;">${status}</span>
+                </div>
+                <div style="display: flex; gap: 16px; align-items: center; font-size: 14px; color: #6b7280;">
+                    ${priorityText ? `<span style="color: ${priorityColor}; font-weight: 500;">${priorityText}</span>` : ''}
+                    <span>📅 ${dueDate}</span>
+                    ${task.list ? `<span>📁 ${task.list.name}</span>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function openClickUpTask(taskId) {
+    const task = clickupTasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    // Open task in new tab
+    window.open(task.url, '_blank');
+}
+
 document.getElementById('composeMailBtn').addEventListener('click', () => {
     setSelectValues('mailRecipients', []);
     document.getElementById('mailSubject').value = '';
