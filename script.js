@@ -70,6 +70,17 @@ function updateProfileDisplay() {
         }
     }
     
+    // Update country and timezone selects
+    const profileCountrySelect = document.getElementById('profileCountrySelect');
+    if (profileCountrySelect && currentUser.profile?.country) {
+        profileCountrySelect.value = currentUser.profile.country;
+    }
+    
+    const profileTimezoneSelect = document.getElementById('profileTimezoneSelect');
+    if (profileTimezoneSelect && currentUser.profile?.timezone) {
+        profileTimezoneSelect.value = currentUser.profile.timezone;
+    }
+    
     updateProfilePictures();
 }
 
@@ -2738,7 +2749,10 @@ async function checkPendingEvents() {
 
 async function fetchEvents() {
     try {
-        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/events/fetch');
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/events/fetch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
         
         if (!response.ok) {
             console.error('[Events] Failed to fetch events:', response.statusText);
@@ -3726,6 +3740,49 @@ if (confirmResetBtn) {
     showModal('alert', '<span class="success-tick"></span> Profile reset successfully!');
     playSuccessSound();
 });
+}
+
+// Country and Timezone dropdowns - auto-save on change
+const profileCountrySelect = document.getElementById('profileCountrySelect');
+if (profileCountrySelect) {
+    profileCountrySelect.addEventListener('change', async () => {
+        const country = profileCountrySelect.value;
+        if (country && currentUser) {
+            if (!currentUser.profile) currentUser.profile = {};
+            currentUser.profile.country = country;
+            
+            // Save to backend
+            try {
+                await saveProfile();
+                showModal('alert', '<span class="success-tick"></span> Country updated successfully!');
+                playSuccessSound();
+            } catch (error) {
+                console.error('Failed to update country:', error);
+                showModal('alert', '⚠️ Failed to update country. Please try again.');
+            }
+        }
+    });
+}
+
+const profileTimezoneSelect = document.getElementById('profileTimezoneSelect');
+if (profileTimezoneSelect) {
+    profileTimezoneSelect.addEventListener('change', async () => {
+        const timezone = profileTimezoneSelect.value;
+        if (timezone && currentUser) {
+            if (!currentUser.profile) currentUser.profile = {};
+            currentUser.profile.timezone = timezone;
+            
+            // Save to backend
+            try {
+                await saveProfile();
+                showModal('alert', '<span class="success-tick"></span> Timezone updated successfully!');
+                playSuccessSound();
+            } catch (error) {
+                console.error('Failed to update timezone:', error);
+                showModal('alert', '⚠️ Failed to update timezone. Please try again.');
+            }
+        }
+    });
 }
 
 const myRolesBtn = document.getElementById('myRolesBtn');

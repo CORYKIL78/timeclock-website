@@ -431,14 +431,36 @@
                             
                             <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
                                 <span style="font-weight: 600; color: #6b7280;">Country:</span>
-                                <span id="profileCountry" style="color: #111827; flex: 1; margin: 0 20px; text-align: right;">Not set</span>
-                                <button class="pencil-btn" id="editCountryBtn" title="Request Country Change" style="background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">✎ Edit</button>
+                                <select id="profileCountrySelect" style="flex: 1; margin: 0 20px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #111827; font-size: 14px; cursor: pointer;">
+                                    <option value="">Select Country</option>
+                                    <option value="United Kingdom">🇬🇧 United Kingdom</option>
+                                    <option value="United States">🇺🇸 United States</option>
+                                    <option value="Canada">🇨🇦 Canada</option>
+                                    <option value="Australia">🇦🇺 Australia</option>
+                                    <option value="Germany">🇩🇪 Germany</option>
+                                    <option value="France">🇫🇷 France</option>
+                                    <option value="Spain">🇪🇸 Spain</option>
+                                    <option value="Italy">🇮🇹 Italy</option>
+                                    <option value="Netherlands">🇳🇱 Netherlands</option>
+                                    <option value="Other">🌍 Other</option>
+                                </select>
                             </div>
                             
                             <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
                                 <span style="font-weight: 600; color: #6b7280;">Timezone:</span>
-                                <span id="profileTimezone" style="color: #111827; flex: 1; margin: 0 20px; text-align: right;">Not set</span>
-                                <button class="pencil-btn" id="editTimezoneBtn" title="Request Timezone Change" style="background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">✎ Edit</button>
+                                <select id="profileTimezoneSelect" style="flex: 1; margin: 0 20px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #111827; font-size: 14px; cursor: pointer;">
+                                    <option value="">Select Timezone</option>
+                                    <option value="UTC">UTC (Coordinated Universal Time)</option>
+                                    <option value="Europe/London">GMT/BST (London)</option>
+                                    <option value="Europe/Paris">CET/CEST (Paris, Berlin)</option>
+                                    <option value="America/New_York">EST/EDT (New York)</option>
+                                    <option value="America/Chicago">CST/CDT (Chicago)</option>
+                                    <option value="America/Denver">MST/MDT (Denver)</option>
+                                    <option value="America/Los_Angeles">PST/PDT (Los Angeles)</option>
+                                    <option value="Asia/Dubai">GST (Dubai)</option>
+                                    <option value="Asia/Tokyo">JST (Tokyo)</option>
+                                    <option value="Australia/Sydney">AEDT (Sydney)</option>
+                                </select>
                             </div>
                         </div>
                         
