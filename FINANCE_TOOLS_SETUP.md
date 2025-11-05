@@ -84,9 +84,14 @@ Webhooks allow automatic syncing when you create or update products in Payhip.
 
 1. Make sure you've set up your API key (see Step 2 above)
 2. Click **🔄 Sync Products** button
-3. Products from Payhip will be imported automatically
-4. Price is auto-converted (USD × 80 = approximate Robux)
-5. You can adjust prices after syncing if needed
+3. Products from **shop.cirkledevelopment.co.uk** will be imported automatically
+4. The system will:
+   - Only import published/active marketplace products
+   - Try to extract Robux price from product name (e.g., "100 Robux Package")
+   - Try to extract from description if not in name
+   - Fall back to USD × 80 conversion if no Robux price found
+5. You can manually adjust prices after syncing if needed
+6. Quantities remain at 0 - enter them manually as sales occur
 
 ### Tracking Sales
 
