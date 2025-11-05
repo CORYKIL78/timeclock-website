@@ -4119,15 +4119,11 @@ function renderAbsences(tab) {
     archivedList.innerHTML = '';
     const emp = getEmployee(currentUser.id);
     
-    // Filter absences - exclude rejected ones from being displayed (they shouldn't count or show)
-    const filteredAbsences = emp.absences.filter(a => {
-        const status = (a.status === 'approve' ? 'approved' : a.status === 'reject' ? 'rejected' : a.status);
-        // Don't show rejected absences at all - they shouldn't count toward notifications
-        return status !== 'rejected';
-    });
+    // Get all absences without filtering - we want to show approved and rejected too
+    const allAbsences = emp.absences || [];
     
     // Always render all absences in their respective lists, regardless of active tab
-    filteredAbsences.forEach(a => {
+    allAbsences.forEach(a => {
         // Normalize status values for UI
         let status = a.status;
         if (status === 'approve') status = 'approved';
