@@ -2840,8 +2840,18 @@ async function fetchEvents() {
 }
 
 function checkForNewEvents() {
+    if (!currentUser || !currentUser.id) return;
+    
     const seenEventsKey = `events_seen_${currentUser.id}`;
     const respondedEventsKey = `event_responses_${currentUser.id}`;
+    const sessionPopupKey = `events_popup_shown_session_${currentUser.id}`;
+    
+    // Check if we already showed a popup this session
+    const popupShownThisSession = sessionStorage.getItem(sessionPopupKey);
+    if (popupShownThisSession) {
+        console.log('[Events] Popup already shown this session, skipping');
+        return;
+    }
     
     const previousEvents = JSON.parse(localStorage.getItem(seenEventsKey) || '[]');
     const userResponses = JSON.parse(localStorage.getItem(respondedEventsKey) || '{}');
@@ -2856,6 +2866,9 @@ function checkForNewEvents() {
         const firstNewEvent = newEvents[0];
         addNotification('events', `New Event: ${firstNewEvent.name}`, 'events');
         showEventResponseModal(firstNewEvent);
+        
+        // Mark this session as having shown a popup
+        sessionStorage.setItem(sessionPopupKey, 'true');
         
         // Mark ALL new events as seen so they don't popup again
         const allSeenEvents = [...previousEvents, ...newEvents.map(e => e.rowIndex)];
