@@ -1,3 +1,73 @@
+/* Global Responsive Scaling for All Devices */
+* {
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px; /* Base font size for desktop */
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+    width: 100%;
+    max-width: 100vw;
+}
+
+/* Responsive font scaling */
+@media screen and (max-width: 1920px) {
+    html { font-size: 16px; }
+}
+
+@media screen and (max-width: 1440px) {
+    html { font-size: 15px; }
+}
+
+@media screen and (max-width: 1024px) {
+    html { font-size: 14px; }
+}
+
+@media screen and (max-width: 768px) {
+    html { font-size: 13px; }
+}
+
+@media screen and (max-width: 480px) {
+    html { font-size: 12px; }
+}
+
+/* Ensure all containers scale properly */
+.container,
+.main-content,
+.screen,
+[class*="Screen"],
+[id*="Screen"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden;
+}
+
+/* Make images and media responsive */
+img, video, iframe {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Make tables responsive */
+table {
+    width: 100%;
+    overflow-x: auto;
+    display: block;
+}
+
+@media screen and (max-width: 768px) {
+    table {
+        font-size: 0.9em;
+    }
+}
+
 /* Classic Profile Config Layout */
 .profile-config-container {
     max-width: 900px;
@@ -10,6 +80,7 @@
     background: white;
     border-radius: 16px;
     box-shadow: var(--shadow);
+}
 .profile-main-row {
     display: flex;
     flex-direction: row;
