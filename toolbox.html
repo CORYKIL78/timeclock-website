@@ -310,16 +310,16 @@
         <p class="subtitle">Manage absences, mailboxes, and calendar events</p>
 
         <div class="tools-grid">
-            <div class="tool-card" onclick="clearAbsences()">
+            <div class="tool-card" onclick="showClearAbsencesPrompt()">
                 <div class="tool-icon">🗑️</div>
                 <div class="tool-title">Clear Absences</div>
-                <div class="tool-description">Remove all absence requests from local storage</div>
+                <div class="tool-description">Remove absence requests from local storage for a specific user</div>
             </div>
 
-            <div class="tool-card" onclick="clearMailboxes()">
+            <div class="tool-card" onclick="showClearMailboxPrompt()">
                 <div class="tool-icon">📭</div>
                 <div class="tool-title">Clear Mailboxes</div>
-                <div class="tool-description">Clear all mail (inbox, sent, drafts) from local storage</div>
+                <div class="tool-description">Clear mail (inbox, sent, drafts) from local storage for a specific user</div>
             </div>
 
             <div class="tool-card" onclick="toggleCalendarSection()">
@@ -477,36 +477,80 @@
             document.getElementById('eventType').value = 'meeting';
         }
 
-        // Clear absences from localStorage
-        function clearAbsences() {
-            if (!confirm('Are you sure you want to clear all absence requests from local storage?')) return;
-
-            const keys = Object.keys(localStorage);
-            let count = 0;
-            keys.forEach(key => {
-                if (key.startsWith('absence_')) {
+        // Show prompt for clearing absences with user ID
+        function showClearAbsencesPrompt() {
+            const userId = prompt('Enter the User ID (Discord ID) to clear absences for:\n\nExample: 123456789012345678\n\nLeave blank to clear ALL absences.');
+            
+            if (userId === null) return; // User cancelled
+            
+            if (userId.trim() === '') {
+                // Clear all absences
+                if (!confirm('Are you sure you want to clear ALL absence requests from local storage?')) return;
+                
+                const keys = Object.keys(localStorage);
+                let count = 0;
+                keys.forEach(key => {
+                    if (key.startsWith('absence_')) {
+                        localStorage.removeItem(key);
+                        count++;
+                    }
+                });
+                
+                showMessage(`Cleared ${count} absence record(s) for ALL users!`, 'success');
+            } else {
+                // Clear specific user's absences
+                const key = `absence_${userId.trim()}`;
+                if (localStorage.getItem(key)) {
+                    if (!confirm(`Are you sure you want to clear absences for user ID: ${userId.trim()}?`)) return;
                     localStorage.removeItem(key);
-                    count++;
+                    showMessage(`Cleared absences for user ${userId.trim()}!`, 'success');
+                } else {
+                    showMessage(`No absences found for user ID: ${userId.trim()}`, 'error');
                 }
-            });
-
-            showMessage(`Cleared ${count} absence record(s)!`, 'success');
+            }
         }
 
-        // Clear mailboxes from localStorage
-        function clearMailboxes() {
-            if (!confirm('Are you sure you want to clear all mailboxes (inbox, sent, drafts)?')) return;
-
-            const keys = Object.keys(localStorage);
-            let count = 0;
-            keys.forEach(key => {
-                if (key.startsWith('mail_')) {
+        // Show prompt for clearing mailboxes with user ID
+        function showClearMailboxPrompt() {
+            const userId = prompt('Enter the User ID (Discord ID) to clear mailbox for:\n\nExample: 123456789012345678\n\nLeave blank to clear ALL mailboxes.');
+            
+            if (userId === null) return; // User cancelled
+            
+            if (userId.trim() === '') {
+                // Clear all mailboxes
+                if (!confirm('Are you sure you want to clear ALL mailboxes (inbox, sent, drafts)?')) return;
+                
+                const keys = Object.keys(localStorage);
+                let count = 0;
+                keys.forEach(key => {
+                    if (key.startsWith('mail_')) {
+                        localStorage.removeItem(key);
+                        count++;
+                    }
+                });
+                
+                showMessage(`Cleared ${count} mailbox(es) for ALL users!`, 'success');
+            } else {
+                // Clear specific user's mailbox
+                const key = `mail_${userId.trim()}`;
+                if (localStorage.getItem(key)) {
+                    if (!confirm(`Are you sure you want to clear mailbox for user ID: ${userId.trim()}?`)) return;
                     localStorage.removeItem(key);
-                    count++;
+                    showMessage(`Cleared mailbox for user ${userId.trim()}!`, 'success');
+                } else {
+                    showMessage(`No mailbox found for user ID: ${userId.trim()}`, 'error');
                 }
-            });
+            }
+        }
 
-            showMessage(`Cleared ${count} mailbox(es)!`, 'success');
+        // Clear absences from localStorage (keeping for backward compatibility)
+        function clearAbsences() {
+            showClearAbsencesPrompt();
+        }
+
+        // Clear mailboxes from localStorage (keeping for backward compatibility)
+        function clearMailboxes() {
+            showClearMailboxPrompt();
         }
 
         // Toggle calendar section
