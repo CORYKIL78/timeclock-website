@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Absences</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        button {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #d32f2f;
+        }
+        .success {
+            background: #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+        .info {
+            background: #2196F3;
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ Clear Absences Data</h1>
+        
+        <div class="info">
+            <strong>Discord IDs:</strong><br>
+            Marcus Ray: 1088907566844739624<br>
+            Appler: (enter below if known)
+        </div>
+        
+        <label><strong>Enter Discord ID to clear:</strong></label>
+        <input type="text" id="discordId" placeholder="e.g., 1088907566844739624">
+        
+        <button onclick="clearAbsences()">Clear Absences for User</button>
+        <button onclick="clearMarcusRay()" style="background: #FF9800;">Clear Marcus Ray</button>
+        <button onclick="clearAll()" style="background: #9c27b0;">Clear ALL Absence Data</button>
+        
+        <div class="success" id="success"></div>
+    </div>
+    
+    <script>
+        function clearAbsences() {
+            const discordId = document.getElementById('discordId').value.trim();
+            if (!discordId) {
+                alert('Please enter a Discord ID');
+                return;
+            }
+            
+            // Get all localStorage keys
+            const keys = Object.keys(localStorage);
+            let cleared = 0;
+            
+            keys.forEach(key => {
+                // Clear employee data
+                if (key === 'employees') {
+                    const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+                    const emp = employees.find(e => e.id === discordId);
+                    if (emp) {
+                        emp.absences = [];
+                        localStorage.setItem('employees', JSON.stringify(employees));
+                        cleared++;
+                    }
+                }
+                
+                // Clear current user if it matches
+                if (key === 'currentUser') {
+                    const user = JSON.parse(localStorage.getItem('currentUser'));
+                    if (user && user.id === discordId) {
+                        user.absences = [];
+                        localStorage.setItem('currentUser', JSON.stringify(user));
+                        cleared++;
+                    }
+                }
+            });
+            
+            showSuccess(`Cleared absences for Discord ID: ${discordId} (${cleared} items updated)`);
+        }
+        
+        function clearMarcusRay() {
+            document.getElementById('discordId').value = '1088907566844739624';
+            clearAbsences();
+        }
+        
+        function clearAll() {
+            if (!confirm('Are you sure you want to clear ALL absence data from localStorage? This cannot be undone!')) {
+                return;
+            }
+            
+            // Clear all employees absences
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            employees.forEach(emp => {
+                emp.absences = [];
+            });
+            localStorage.setItem('employees', JSON.stringify(employees));
+            
+            // Clear current user absences
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            if (currentUser) {
+                currentUser.absences = [];
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            }
+            
+            showSuccess('All absence data cleared from localStorage!');
+        }
+        
+        function showSuccess(message) {
+            const success = document.getElementById('success');
+            success.textContent = '✅ ' + message;
+            success.style.display = 'block';
+            setTimeout(() => {
+                success.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
