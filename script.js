@@ -5412,3 +5412,165 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
     }
     await handleOAuthRedirect();
 })();}
+// Calendar functionality
+let currentCalendarDate = new Date();
+
+document.getElementById('calendarBtn').addEventListener('click', () => {
+    openCalendarModal();
+});
+
+function openCalendarModal() {
+    document.getElementById('calendarModal').style.display = 'flex';
+    renderCalendar();
+}
+
+function closeCalendarModal() {
+    document.getElementById('calendarModal').style.display = 'none';
+}
+
+function changeMonth(direction) {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+    renderCalendar();
+}
+
+function renderCalendar() {
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    // Set header
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+    document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
+    
+    // Get calendar events
+    const events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+    
+    // Create calendar grid
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = '';
+    
+    // Add day headers
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+        const header = document.createElement('div');
+        header.className = 'calendar-day-header';
+        header.textContent = day;
+        grid.appendChild(header);
+    });
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    
+    // Today's date for highlighting
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+    
+    // Add previous month's trailing days
+    for (let i = firstDay - 1; i >= 0; i--) {
+        const day = daysInPrevMonth - i;
+        const cell = createDayCell(day, month - 1, year, events, true);
+        grid.appendChild(cell);
+    }
+    
+    // Add current month's days
+    for (let day = 1; day <= daysInMonth; day++) {
+        const isToday = isCurrentMonth && day === today.getDate();
+        const cell = createDayCell(day, month, year, events, false, isToday);
+        grid.appendChild(cell);
+    }
+    
+    // Add next month's leading days
+    const totalCells = grid.children.length - 7; // Subtract headers
+    const remainingCells = 42 - totalCells; // 6 weeks * 7 days
+    for (let day = 1; day <= remainingCells; day++) {
+        const cell = createDayCell(day, month + 1, year, events, true);
+        grid.appendChild(cell);
+    }
+    
+    // Render events list
+    renderCalendarEvents(events, month, year);
+}
+
+function createDayCell(day, month, year, events, isOtherMonth, isToday = false) {
+    const cell = document.createElement('div');
+    cell.className = 'calendar-day';
+    if (isOtherMonth) cell.classList.add('other-month');
+    if (isToday) cell.classList.add('today');
+    
+    // Check if this day has events
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayEvents = events.filter(e => e.date === dateStr);
+    if (dayEvents.length > 0) {
+        cell.classList.add('has-event');
+        cell.title = dayEvents.map(e => e.title).join('\n');
+    }
+    
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'calendar-day-number';
+    dayNumber.textContent = day;
+    cell.appendChild(dayNumber);
+    
+    cell.onclick = () => showDayEvents(dateStr, dayEvents);
+    
+    return cell;
+}
+
+function showDayEvents(date, events) {
+    if (events.length === 0) {
+        alert(`No events on ${formatDateLong(date)}`);
+        return;
+    }
+    
+    const eventsList = events.map(e => 
+        `• ${e.title}${e.time ? ' at ' + e.time : ''}\n  ${e.description || 'No description'}`
+    ).join('\n\n');
+    
+    alert(`Events on ${formatDateLong(date)}:\n\n${eventsList}`);
+}
+
+function formatDateLong(dateString) {
+    const date = new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('en-GB', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+}
+
+function renderCalendarEvents(events, month, year) {
+    const eventsList = document.getElementById('calendarEventsList');
+    
+    // Filter events for current month
+    const monthEvents = events.filter(e => {
+        const eventDate = new Date(e.date);
+        return eventDate.getMonth() === month && eventDate.getFullYear() === year;
+    });
+    
+    if (monthEvents.length === 0) {
+        eventsList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No events this month</p>';
+        return;
+    }
+    
+    // Sort by date
+    monthEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    eventsList.innerHTML = '<h3 style="margin-bottom: 15px; color: #333;">Events This Month</h3>' +
+        monthEvents.map(e => `
+            <div class="calendar-event-item">
+                <h4>${e.title}</h4>
+                <p class="calendar-event-date">${formatDateLong(e.date)}${e.time ? ' at ' + e.time : ''}</p>
+                <p>${e.description || 'No description'}</p>
+                <p style="color: #667eea; font-weight: 500;">Type: ${e.type || 'Other'}</p>
+            </div>
+        `).join('');
+}
+
+// Close modal when clicking outside
+document.getElementById('calendarModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'calendarModal') {
+        closeCalendarModal();
+    }
+});

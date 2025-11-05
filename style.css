@@ -3991,3 +3991,119 @@ body.dark .request-field textarea {
         padding: 2em 1.5em !important;
     }
 }
+
+/* Calendar Styles */
+#calendarGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+}
+
+.calendar-day-header {
+    text-align: center;
+    font-weight: 600;
+    color: #667eea;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.calendar-day:hover {
+    border-color: #667eea;
+    background: #f8f9fa;
+    transform: scale(1.05);
+}
+
+.calendar-day.today {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    border-color: #667eea;
+}
+
+.calendar-day.has-event {
+    background: #e3f2fd;
+    border-color: #667eea;
+}
+
+.calendar-day.has-event::after {
+    content: '•';
+    position: absolute;
+    bottom: 5px;
+    font-size: 20px;
+    color: #667eea;
+}
+
+.calendar-day.today.has-event::after {
+    color: white;
+}
+
+.calendar-day.other-month {
+    color: #ccc;
+    background: #fafafa;
+}
+
+.calendar-day-number {
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+.calendar-event-item {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #667eea;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.calendar-event-item h4 {
+    margin: 0 0 8px 0;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.calendar-event-item p {
+    margin: 4px 0;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.calendar-event-date {
+    color: #667eea;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    #calendarGrid {
+        gap: 5px;
+    }
+    
+    .calendar-day {
+        padding: 5px;
+        font-size: 0.9em;
+    }
+    
+    .calendar-day-number {
+        font-size: 1em;
+    }
+    
+    #calendarModal .modal-content {
+        max-width: 95%;
+        padding: 20px;
+    }
+}

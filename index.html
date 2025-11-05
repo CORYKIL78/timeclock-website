@@ -611,13 +611,19 @@
     </div>
     <div id="eventsScreen" class="screen">
         <div class="container">
-            <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"></path></svg>Events</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"></path></svg>Events</h2>
+                <button id="calendarBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3); transition: all 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    Calendar
+                </button>
+            </div>
             <div id="eventsContainer"></div>
         </div>
     </div>
     <div id="mailScreen" class="screen">
         <div style="padding: 40px 0 30px 0; height: 100%; display: flex; flex-direction: column; align-items: center;">
-            <div style="width: 250%; max-width: 250%; height: 100%; display: flex; flex-direction: column;">
+            <div style="width: 220%; max-width: 220%; height: 100%; display: flex; flex-direction: column;">
                 <div style="margin-bottom: 20px; padding-left: 20px;">
                     <h2 style="margin: 0 0 10px 0;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>Mail</h2>
                     <p style="margin: 0 0 15px 0; color: #666; font-size: 14px;">Compose your mail, view your drafts, check your inbox, and stay connected with your colleagues!</p>
@@ -742,6 +748,24 @@
         </div>
     </div>
     <div id="mailDeliveryAnimation" class="mail-delivery-animation hidden"></div>
+
+    <!-- Calendar Modal -->
+    <div id="calendarModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <span class="close" onclick="closeCalendarModal()">&times;</span>
+            <h2 style="margin-bottom: 20px; color: #667eea;">📅 Monthly Calendar</h2>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <button onclick="changeMonth(-1)" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;">← Previous</button>
+                <h3 id="calendarMonthYear" style="margin: 0; color: #333;"></h3>
+                <button onclick="changeMonth(1)" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;">Next →</button>
+            </div>
+            
+            <div id="calendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 20px;"></div>
+            
+            <div id="calendarEventsList" style="margin-top: 30px;"></div>
+        </div>
+    </div>
 
     <footer>© Cirkle Development 2024</footer>
 
