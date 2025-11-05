@@ -1434,13 +1434,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        name: currentUser.name || emp.profile?.name || 'Unknown User',
-                        discordId: currentUser.id,       // Add Discord ID for reliable matching
-                        startDate,
-                        endDate,
-                        reason: type,                    // Type goes to D: Reason
-                        totalDays: days.toString(),      // Total days to E: Total Days
-                        comment                          // Comment to F: Comment
+                        name: currentUser.name || emp.profile?.name || 'Unknown User',  // A: Name
+                        startDate,           // B: Start Date
+                        endDate,             // C: End Date
+                        reason: type,        // D: Reason
+                        totalDays: days.toString(),  // E: Total Days
+                        comment,             // F: Comment
+                        // G: Approval (empty, filled by managers)
+                        discordId: currentUser.id  // H: Discord ID
                     })
                 });
                 
@@ -1510,6 +1511,9 @@ function updateAbsenceTabSlider() {
 // Removed absence tab slider logic
 // Absence webhook URL for Discord
 const ABSENCE_WEBHOOK_URL = 'https://discord.com/api/webhooks/1422667332144201920/ijjZECto8hc2FxZdO0mPu0OnuhX4fJfRoR_nqq8bs7UEXO4ujugLd4Zc8b4F9BuV7fnw';
+
+// Events webhook URL for Discord (same as absences)
+const EVENTS_WEBHOOK_URL = 'https://discord.com/api/webhooks/1422667332144201920/ijjZECto8hc2FxZdO0mPu0OnuhX4fJfRoR_nqq8bs7UEXO4ujugLd4Zc8b4F9BuV7fnw';
 
 // Utility to send absence to Discord webhook
 async function sendAbsenceWebhook(absence) {
@@ -2836,18 +2840,26 @@ async function fetchEvents() {
 }
 
 function checkForNewEvents() {
-    const previousEvents = JSON.parse(localStorage.getItem(`events_seen_${currentUser.id}`) || '[]');
-    const newEvents = eventsData.filter(event => !previousEvents.includes(event.rowIndex));
+    const seenEventsKey = `events_seen_${currentUser.id}`;
+    const respondedEventsKey = `event_responses_${currentUser.id}`;
+    
+    const previousEvents = JSON.parse(localStorage.getItem(seenEventsKey) || '[]');
+    const userResponses = JSON.parse(localStorage.getItem(respondedEventsKey) || '{}');
+    
+    // Only show popup for events user hasn't seen AND hasn't responded to
+    const newEvents = eventsData.filter(event => 
+        !previousEvents.includes(event.rowIndex) && !userResponses[event.rowIndex]
+    );
     
     if (newEvents.length > 0) {
-        newEvents.forEach(event => {
-            addNotification('events', `New Event: ${event.name}`, 'events');
-            showEventResponseModal(event);
-        });
+        // Show popup for ONLY the first new event
+        const firstNewEvent = newEvents[0];
+        addNotification('events', `New Event: ${firstNewEvent.name}`, 'events');
+        showEventResponseModal(firstNewEvent);
         
-        // Update seen events
+        // Mark ALL new events as seen so they don't popup again
         const allSeenEvents = [...previousEvents, ...newEvents.map(e => e.rowIndex)];
-        localStorage.setItem(`events_seen_${currentUser.id}`, JSON.stringify(allSeenEvents));
+        localStorage.setItem(seenEventsKey, JSON.stringify(allSeenEvents));
     }
 }
 
@@ -2932,91 +2944,142 @@ function renderEvents() {
 }
 
 function showEventResponseModal(event) {
+    // Check if user already responded
+    const userResponses = JSON.parse(localStorage.getItem(`event_responses_${currentUser.id}`) || '{}');
+    const hasResponded = userResponses[event.rowIndex];
+    
     const modal = document.createElement('div');
-    modal.className = 'event-response-modal';
-    modal.innerHTML = `
-        <div class="event-response-content">
-            <h3>${event.name}</h3>
-            <div class="event-response-details">
-                <p><strong>Dates:</strong> ${event.startDate} - ${event.endDate}</p>
-                <p><strong>Details:</strong> ${event.details}</p>
-                <p><strong>Arrival:</strong> ${event.arrivalStatus}</p>
-            </div>
-            <div class="event-response-buttons">
-                <button class="event-response-btn attend" data-response="attend">I can attend</button>
-                <button class="event-response-btn cannot" data-response="cannot">I cannot attend</button>
-                <button class="event-response-btn unsure" data-response="unsure">I'm unsure</button>
-            </div>
-            <div class="event-response-reason" style="display: none;">
-                <textarea placeholder="Please provide a reason..." rows="4"></textarea>
-                <button class="event-response-submit">Submit</button>
+    modal.className = 'modal';
+    modal.style.cssText = 'display: flex; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000;';
+    
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    modalContent.style.cssText = 'background: white; border-radius: 16px; padding: 30px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.3);';
+    
+    modalContent.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #333; margin: 0 0 10px 0; font-size: 1.8em;">📅 ${event.name}</h2>
+            <div style="display: inline-block; background: #2196F3; color: white; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-top: 8px;">
+                EVENT INVITATION
             </div>
         </div>
+        
+        <div style="background: #f5f5f5; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+            <div style="margin-bottom: 12px;">
+                <strong style="color: #666;">📅 Event Dates:</strong>
+                <div style="margin-top: 4px; color: #333;">${event.startDate} - ${event.endDate}</div>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <strong style="color: #666;">📝 Details:</strong>
+                <div style="margin-top: 4px; color: #333;">${event.details}</div>
+            </div>
+            <div>
+                <strong style="color: #666;">🎯 Arrival Status:</strong>
+                <div style="margin-top: 4px; color: #333;">${event.arrivalStatus}</div>
+            </div>
+        </div>
+        
+        ${hasResponded ? `
+            <div style="background: #e8f5e9; border: 2px solid #4CAF50; border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: center;">
+                <strong style="color: #2e7d32;">✓ You have already responded to this event</strong>
+            </div>
+        ` : ''}
+        
+        <div style="margin-bottom: 20px;">
+            <strong style="display: block; margin-bottom: 12px; color: #333;">Please select your response:</strong>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="event-response-btn attend" data-response="attend" style="flex: 1; min-width: 140px; padding: 14px 20px; border: 2px solid #4CAF50; background: #4CAF50; color: white; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;" ${hasResponded ? 'disabled' : ''}>
+                    ✓ I can attend
+                </button>
+                <button class="event-response-btn cannot" data-response="cannot" style="flex: 1; min-width: 140px; padding: 14px 20px; border: 2px solid #f44336; background: white; color: #f44336; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;" ${hasResponded ? 'disabled' : ''}>
+                    ✗ I cannot attend
+                </button>
+                <button class="event-response-btn unsure" data-response="unsure" style="flex: 1; min-width: 140px; padding: 14px 20px; border: 2px solid #FF9800; background: white; color: #FF9800; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;" ${hasResponded ? 'disabled' : ''}>
+                    ? I'm unsure
+                </button>
+            </div>
+        </div>
+        
+        <div class="event-response-reason" style="display: none; margin-top: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Reason:</label>
+            <textarea placeholder="Please provide a reason..." rows="4" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; resize: vertical;"></textarea>
+            <button class="event-response-submit" style="margin-top: 12px; width: 100%; padding: 14px; background: #2196F3; color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer;">
+                Submit Response
+            </button>
+        </div>
+        
+        <button class="close-modal-btn" style="margin-top: 20px; width: 100%; padding: 12px; background: #9e9e9e; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+            Close
+        </button>
     `;
     
+    modal.appendChild(modalContent);
     document.body.appendChild(modal);
     
-    // Add click handlers
-    const attendBtn = modal.querySelector('.attend');
-    const cannotBtn = modal.querySelector('.cannot');
-    const unsureBtn = modal.querySelector('.unsure');
-    const reasonSection = modal.querySelector('.event-response-reason');
-    const reasonTextarea = modal.querySelector('.event-response-reason textarea');
-    const submitBtn = modal.querySelector('.event-response-submit');
-    
-    attendBtn.addEventListener('click', async () => {
-        if (attendBtn.disabled) return;
-        attendBtn.disabled = true;
+    // Add click handlers (only if not already responded)
+    if (!hasResponded) {
+        const attendBtn = modal.querySelector('.attend');
+        const cannotBtn = modal.querySelector('.cannot');
+        const unsureBtn = modal.querySelector('.unsure');
+        const reasonSection = modal.querySelector('.event-response-reason');
+        const reasonTextarea = modal.querySelector('.event-response-reason textarea');
+        const submitBtn = modal.querySelector('.event-response-submit');
         
-        await submitEventResponse(event, 'attend');
+        attendBtn.addEventListener('click', async () => {
+            if (attendBtn.disabled) return;
+            attendBtn.disabled = true;
+            
+            await submitEventResponse(event, 'attend');
+            modal.remove();
+            playSuccessSound();
+            showModal('alert', '<span class="success-tick"></span> Response recorded! You are attending.');
+            addNotification('events', `You are attending: ${event.name}`, 'events');
+            renderEvents(); // Refresh the events display
+        });
+        
+        cannotBtn.addEventListener('click', () => {
+            reasonSection.style.display = 'block';
+            reasonTextarea.placeholder = 'Please provide a reason why you cannot attend...';
+            submitBtn.dataset.response = 'cannot';
+        });
+        
+        unsureBtn.addEventListener('click', () => {
+            reasonSection.style.display = 'block';
+            reasonTextarea.placeholder = 'Please provide details and you may need to contact the organiser...';
+            submitBtn.dataset.response = 'unsure';
+        });
+        
+        submitBtn.addEventListener('click', async () => {
+            if (submitBtn.disabled) return;
+            submitBtn.disabled = true;
+            
+            const response = submitBtn.dataset.response;
+            const reason = reasonTextarea.value.trim();
+            
+            if (!reason) {
+                showModal('alert', '⚠️ Please provide a reason');
+                submitBtn.disabled = false;
+                return;
+            }
+            
+            await submitEventResponse(event, response, reason);
+            modal.remove();
+            playSuccessSound();
+            
+            if (response === 'cannot') {
+                showModal('alert', '<span class="success-tick"></span> Response recorded! You cannot attend.');
+                addNotification('events', `You cannot attend: ${event.name}`, 'events');
+            } else {
+                showModal('alert', '<span class="success-tick"></span> Response recorded! Please contact the organiser if needed.');
+                addNotification('events', `You are unsure about: ${event.name}`, 'events');
+            }
+            renderEvents(); // Refresh the events display
+        });
+    }
+    
+    // Close button
+    modal.querySelector('.close-modal-btn').addEventListener('click', () => {
         modal.remove();
-        playSuccessSound();
-        showModal('alert', '<span class="success-tick"></span> Response recorded!');
-        addNotification('events', `You are attending: ${event.name}`, 'events');
-    });
-    
-    cannotBtn.addEventListener('click', () => {
-        if (cannotBtn.disabled) return;
-        cannotBtn.disabled = true;
-        reasonSection.style.display = 'block';
-        reasonTextarea.placeholder = 'Please provide a reason why you cannot attend...';
-        submitBtn.dataset.response = 'cannot';
-        cannotBtn.disabled = false; // Re-enable after showing reason section
-    });
-    
-    unsureBtn.addEventListener('click', () => {
-        if (unsureBtn.disabled) return;
-        unsureBtn.disabled = true;
-        reasonSection.style.display = 'block';
-        reasonTextarea.placeholder = 'Please provide details and contact the organiser...';
-        submitBtn.dataset.response = 'unsure';
-        unsureBtn.disabled = false; // Re-enable after showing reason section
-    });
-    
-    submitBtn.addEventListener('click', async () => {
-        if (submitBtn.disabled) return;
-        submitBtn.disabled = true;
-        
-        const response = submitBtn.dataset.response;
-        const reason = reasonTextarea.value.trim();
-        
-        if (!reason) {
-            showModal('alert', '⚠️ Please provide a reason');
-            submitBtn.disabled = false;
-            return;
-        }
-        
-        await submitEventResponse(event, response, reason);
-        modal.remove();
-        playSuccessSound();
-        
-        if (response === 'cannot') {
-            showModal('alert', '<span class="success-tick"></span> Response recorded!');
-            addNotification('events', `You cannot attend: ${event.name}`, 'events');
-        } else {
-            showModal('alert', '<span class="success-tick"></span> Response recorded! Please contact the organiser.');
-            addNotification('events', `You are unsure about: ${event.name}`, 'events');
-        }
     });
     
     // Close on outside click
@@ -3029,26 +3092,13 @@ function showEventResponseModal(event) {
 
 async function submitEventResponse(event, response, reason = '') {
     try {
-        // Get saved webhook URL or prompt for it
-        let webhookUrl = localStorage.getItem('events_webhook_url');
-        
-        if (!webhookUrl) {
-            webhookUrl = prompt('Enter the Discord webhook URL for event notifications:', 'https://discord.com/api/webhooks/');
-            
-            if (!webhookUrl || !webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
-                console.error('[Events] Invalid webhook URL');
-                showModal('alert', '⚠️ Invalid webhook URL');
-                return;
-            }
-            
-            // Save webhook URL for future use
-            localStorage.setItem('events_webhook_url', webhookUrl);
-        }
+        // Use hardcoded webhook URL
+        const webhookUrl = EVENTS_WEBHOOK_URL;
         
         const requestBody = {
             eventRowIndex: event.rowIndex,
-            discordId: currentUser.discordId,
-            displayName: currentUser.name,
+            discordId: currentUser.id,
+            displayName: currentUser.name || currentUser.profile?.name || 'Unknown User',
             response: response,
             reason: reason,
             webhookUrl: webhookUrl,
