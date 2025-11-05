@@ -216,50 +216,56 @@ async function syncProductsFromPayhip() {
             method: 'POST'
         });
 
-        if (response.ok) {
-            const result = await response.json();
-            if (result.success) {
-                // Merge synced products with existing ones
-                result.products.forEach(syncedProduct => {
-                    const existingIndex = products.findIndex(p => 
-                        p.payhipId === syncedProduct.payhipId || p.name === syncedProduct.name
-                    );
-                    
-                    if (existingIndex !== -1) {
-                        // Update existing product but preserve quantity
-                        products[existingIndex] = {
-                            ...syncedProduct,
-                            quantity: products[existingIndex].quantity
-                        };
-                    } else {
-                        // Add new product
-                        products.push(syncedProduct);
-                    }
-                });
-
-                await saveProducts();
-                renderProducts();
-                updateStats();
-
-                syncStatus.classList.remove('syncing');
-                syncStatus.classList.add('success');
-                syncText.textContent = `Synced ${result.products.length} products`;
+        const result = await response.json();
+        
+        if (result.success && result.products && result.products.length > 0) {
+            // Merge synced products with existing ones
+            result.products.forEach(syncedProduct => {
+                const existingIndex = products.findIndex(p => 
+                    p.payhipId === syncedProduct.payhipId || p.name === syncedProduct.name
+                );
                 
-                setTimeout(() => {
-                    syncStatus.classList.remove('success');
-                    syncText.textContent = 'Ready';
-                }, 3000);
-            } else {
-                throw new Error(result.error || 'Sync failed');
-            }
+                if (existingIndex !== -1) {
+                    // Update existing product but preserve quantity
+                    products[existingIndex] = {
+                        ...syncedProduct,
+                        quantity: products[existingIndex].quantity
+                    };
+                } else {
+                    // Add new product
+                    products.push(syncedProduct);
+                }
+            });
+
+            await saveProducts();
+            renderProducts();
+            updateStats();
+
+            syncStatus.classList.remove('syncing');
+            syncStatus.classList.add('success');
+            syncText.textContent = `Synced ${result.products.length} products`;
+            
+            setTimeout(() => {
+                syncStatus.classList.remove('success');
+                syncText.textContent = 'Ready';
+            }, 3000);
         } else {
-            throw new Error('Sync request failed');
+            // Handle error or no products
+            syncStatus.classList.remove('syncing');
+            syncText.textContent = 'Sync failed';
+            
+            const errorMsg = result.message || result.error || 'Failed to sync from Payhip';
+            alert(`❌ ${errorMsg}\n\nIf you haven't set up your Payhip API key yet, please follow the setup guide in FINANCE_TOOLS_SETUP.md`);
+            
+            setTimeout(() => {
+                syncText.textContent = 'Ready';
+            }, 3000);
         }
     } catch (error) {
         console.error('Error syncing from Payhip:', error);
         syncStatus.classList.remove('syncing');
         syncText.textContent = 'Sync failed';
-        alert('Failed to sync from Payhip. Please check console for details.');
+        alert('❌ Network error. Please check your connection and try again.');
         
         setTimeout(() => {
             syncText.textContent = 'Ready';
