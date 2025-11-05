@@ -1513,7 +1513,7 @@ function updateAbsenceTabSlider() {
 const ABSENCE_WEBHOOK_URL = 'https://discord.com/api/webhooks/1422667332144201920/ijjZECto8hc2FxZdO0mPu0OnuhX4fJfRoR_nqq8bs7UEXO4ujugLd4Zc8b4F9BuV7fnw';
 
 // Events webhook URL for Discord (same as absences)
-const EVENTS_WEBHOOK_URL = 'https://discord.com/api/webhooks/1422667332144201920/ijjZECto8hc2FxZdO0mPu0OnuhX4fJfRoR_nqq8bs7UEXO4ujugLd4Zc8b4F9BuV7fnw';
+const EVENTS_WEBHOOK_URL = 'https://discord.com/api/webhooks/1435359542312571010/jZDyr35j65JhUoQgFSF4xk-m0ASdHNNjql_X7tLB80kDa8orIxgVisO-iWX1n70zFTz_';
 
 // Utility to send absence to Discord webhook
 async function sendAbsenceWebhook(absence) {
@@ -2893,13 +2893,15 @@ function renderEvents() {
     
     eventsData.forEach(event => {
         const eventCard = document.createElement('div');
-        const eventDate = new Date(event.startDate);
+        const eventEndDate = new Date(event.endDate);
         const today = new Date();
-        const isUpcoming = eventDate >= today;
+        today.setHours(0, 0, 0, 0); // Reset time to start of day for fair comparison
+        eventEndDate.setHours(0, 0, 0, 0);
+        const isUpcoming = eventEndDate >= today;
         
         // Check if user has responded
         const userResponses = JSON.parse(localStorage.getItem(`event_responses_${currentUser.id}`) || '{}');
-        const userResponse = userResponses[event.rowIndex];
+        const userResponse = userResponses[event.id];
         let attendanceStatus = 'Not responded';
         if (userResponse === 'attend') attendanceStatus = '✓ Attending';
         else if (userResponse === 'cannot') attendanceStatus = '✗ Not attending';
@@ -2918,7 +2920,7 @@ function renderEvents() {
         
         eventCard.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                <h3 style="margin: 0; font-size: 1.1em; color: #333;">${event.name}</h3>
+                <h3 style="margin: 0; font-size: 1.1em; color: #333;">${event.eventName || event.name || 'Unnamed Event'}</h3>
                 <span style="background: ${isUpcoming ? '#4CAF50' : '#9e9e9e'}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">${isUpcoming ? 'UPCOMING' : 'FINISHED'}</span>
             </div>
             <div style="color: #666; font-size: 14px; margin-bottom: 8px;">
@@ -2959,7 +2961,7 @@ function renderEvents() {
 function showEventResponseModal(event) {
     // Check if user already responded
     const userResponses = JSON.parse(localStorage.getItem(`event_responses_${currentUser.id}`) || '{}');
-    const hasResponded = userResponses[event.rowIndex];
+    const hasResponded = userResponses[event.id];
     
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -2971,7 +2973,7 @@ function showEventResponseModal(event) {
     
     modalContent.innerHTML = `
         <div style="text-align: center; margin-bottom: 20px;">
-            <h2 style="color: #333; margin: 0 0 10px 0; font-size: 1.8em;">📅 ${event.name}</h2>
+            <h2 style="color: #333; margin: 0 0 10px 0; font-size: 1.8em;">📅 ${event.eventName || event.name || 'Unnamed Event'}</h2>
             <div style="display: inline-block; background: #2196F3; color: white; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-top: 8px;">
                 EVENT INVITATION
             </div>
@@ -3046,7 +3048,7 @@ function showEventResponseModal(event) {
             modal.remove();
             playSuccessSound();
             showModal('alert', '<span class="success-tick"></span> Response recorded! You are attending.');
-            addNotification('events', `You are attending: ${event.name}`, 'events');
+            addNotification('events', `You are attending: ${event.eventName || event.name || 'Unnamed Event'}`, 'events');
             renderEvents(); // Refresh the events display
         });
         
@@ -3081,10 +3083,10 @@ function showEventResponseModal(event) {
             
             if (response === 'cannot') {
                 showModal('alert', '<span class="success-tick"></span> Response recorded! You cannot attend.');
-                addNotification('events', `You cannot attend: ${event.name}`, 'events');
+                addNotification('events', `You cannot attend: ${event.eventName || event.name || 'Unnamed Event'}`, 'events');
             } else {
                 showModal('alert', '<span class="success-tick"></span> Response recorded! Please contact the organiser if needed.');
-                addNotification('events', `You are unsure about: ${event.name}`, 'events');
+                addNotification('events', `You are unsure about: ${event.eventName || event.name || 'Unnamed Event'}`, 'events');
             }
             renderEvents(); // Refresh the events display
         });
@@ -3109,7 +3111,7 @@ async function submitEventResponse(event, response, reason = '') {
         const webhookUrl = EVENTS_WEBHOOK_URL;
         
         const requestBody = {
-            eventRowIndex: event.rowIndex,
+            eventRowIndex: event.id,
             discordId: currentUser.id,
             displayName: currentUser.name || currentUser.profile?.name || 'Unknown User',
             response: response,
@@ -3135,7 +3137,7 @@ async function submitEventResponse(event, response, reason = '') {
         
         // Store user's response locally
         const userResponses = JSON.parse(localStorage.getItem(`event_responses_${currentUser.id}`) || '{}');
-        userResponses[event.rowIndex] = response;
+        userResponses[event.id] = response;
         localStorage.setItem(`event_responses_${currentUser.id}`, JSON.stringify(userResponses));
         
         // Refresh events list to show updated status
