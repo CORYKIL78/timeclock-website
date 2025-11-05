@@ -2744,21 +2744,21 @@ async function syncMailFromBackend() {
     try {
         console.log('[DEBUG] Syncing mail from backend for user:', currentUser.id);
         
+        // Get current mail from localStorage (preserve drafts)
+        const userMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
+        
         // Fetch inbox from backend
-        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/mail/inbox', {
+        const inboxResponse = await fetch('https://timeclock-backend.marcusray.workers.dev/api/mail/inbox', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: currentUser.id })
         });
         
-        if (response.ok) {
-            const result = await response.json();
-            console.log('[DEBUG] Fetched mail from backend:', result);
+        if (inboxResponse.ok) {
+            const result = await inboxResponse.json();
+            console.log('[DEBUG] Fetched inbox from backend:', result);
             
             if (result.success && result.mails) {
-                // Get current mail from localStorage
-                const userMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
-                
                 // Update inbox with backend data
                 userMail.inbox = result.mails.map(mail => ({
                     id: mail.id,
@@ -2772,12 +2772,39 @@ async function syncMailFromBackend() {
                     attachments: mail.attachments || []
                 }));
                 
-                // Save to localStorage
-                localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(userMail));
-                
                 console.log('[DEBUG] Updated inbox with', userMail.inbox.length, 'messages');
             }
         }
+        
+        // Fetch sent mail from backend
+        const sentResponse = await fetch('https://timeclock-backend.marcusray.workers.dev/api/mail/sent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+        
+        if (sentResponse.ok) {
+            const result = await sentResponse.json();
+            console.log('[DEBUG] Fetched sent mail from backend:', result);
+            
+            if (result.success && result.mails) {
+                // Update sent mail with backend data
+                userMail.sent = result.mails.map(mail => ({
+                    id: mail.id,
+                    recipients: mail.recipients || [mail.toName || mail.toUserId || 'Unknown'],
+                    subject: mail.subject,
+                    content: mail.content,
+                    timestamp: mail.timestamp,
+                    attachments: mail.attachments || []
+                }));
+                
+                console.log('[DEBUG] Updated sent mail with', userMail.sent.length, 'messages');
+            }
+        }
+        
+        // Save to localStorage (preserves drafts since we didn't modify them)
+        localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(userMail));
+        
     } catch (error) {
         console.error('[DEBUG] Error syncing mail from backend:', error);
     }
