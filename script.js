@@ -2802,8 +2802,34 @@ async function checkPendingEvents() {
         const data = await response.json();
         console.log('[Events] Check pending response:', data);
         
+        // Add calendar events automatically
+        if (data.hasNew && data.processed && Array.isArray(data.processed)) {
+            const calendarEvents = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+            
+            data.processed.forEach(item => {
+                if (item.calendarEvent) {
+                    // Check if event already exists (avoid duplicates)
+                    const exists = calendarEvents.some(e => 
+                        e.title === item.calendarEvent.title && 
+                        e.date === item.calendarEvent.date
+                    );
+                    
+                    if (!exists) {
+                        calendarEvents.push({
+                            id: Date.now() + Math.random(),
+                            ...item.calendarEvent,
+                            createdAt: new Date().toISOString()
+                        });
+                        console.log('[Events] Added to calendar:', item.calendarEvent.title);
+                    }
+                }
+            });
+            
+            localStorage.setItem('calendarEvents', JSON.stringify(calendarEvents));
+        }
+        
         // Fetch updated events after processing
-        if (data.processed > 0) {
+        if (data.hasNew) {
             await fetchEvents();
         }
     } catch (error) {
@@ -2926,6 +2952,9 @@ function renderEvents() {
             <div style="color: #666; font-size: 14px; margin-bottom: 8px;">
                 <strong>📅 Dates:</strong> ${event.startDate} - ${event.endDate}
             </div>
+            ${event.time ? `<div style="color: #666; font-size: 14px; margin-bottom: 8px;">
+                <strong>🕒 Time:</strong> ${event.time}
+            </div>` : ''}
             <div style="color: #666; font-size: 14px; margin-bottom: 8px;">
                 <strong>📝 Details:</strong> ${event.details}
             </div>
@@ -2984,6 +3013,10 @@ function showEventResponseModal(event) {
                 <strong style="color: #666;">📅 Event Dates:</strong>
                 <div style="margin-top: 4px; color: #333;">${event.startDate} - ${event.endDate}</div>
             </div>
+            ${event.time ? `<div style="margin-bottom: 12px;">
+                <strong style="color: #666;">🕒 Time:</strong>
+                <div style="margin-top: 4px; color: #333;">${event.time}</div>
+            </div>` : ''}
             <div style="margin-bottom: 12px;">
                 <strong style="color: #666;">📝 Details:</strong>
                 <div style="margin-top: 4px; color: #333;">${event.details}</div>
@@ -5526,16 +5559,75 @@ function createDayCell(day, month, year, events, isOtherMonth, isToday = false) 
 }
 
 function showDayEvents(date, events) {
+    // Create modal for showing day events
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.cssText = 'display: flex; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10001;';
+    
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    modalContent.style.cssText = 'background: white; border-radius: 16px; padding: 30px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.3);';
+    
     if (events.length === 0) {
-        alert(`No events on ${formatDateLong(date)}`);
-        return;
+        modalContent.innerHTML = `
+            <div style="text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 15px;">📅</div>
+                <h2 style="color: #333; margin: 0 0 10px 0;">${formatDateLong(date)}</h2>
+                <p style="color: #999; font-size: 16px; margin: 20px 0;">No events scheduled for this day</p>
+                <button onclick="this.closest('.modal').remove()" style="margin-top: 20px; padding: 12px 30px; background: #667eea; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">
+                    Close
+                </button>
+            </div>
+        `;
+    } else {
+        const eventsHTML = events.map(e => `
+            <div style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 15px; border-left: 4px solid #667eea;">
+                <h3 style="margin: 0 0 10px 0; color: #333; font-size: 1.2em;">${e.title}</h3>
+                ${e.time ? `<p style="color: #667eea; font-weight: 600; margin: 8px 0; font-size: 14px;">🕒 ${e.time}</p>` : ''}
+                ${e.description ? `<p style="color: #666; margin: 8px 0; line-height: 1.6;">${e.description}</p>` : '<p style="color: #999; margin: 8px 0; font-style: italic;">No description</p>'}
+                ${e.type ? `<span style="display: inline-block; background: #667eea; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 8px; text-transform: uppercase;">${e.type}</span>` : ''}
+            </div>
+        `).join('');
+        
+        modalContent.innerHTML = `
+            <div style="text-align: center; margin-bottom: 25px;">
+                <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
+                <h2 style="color: #333; margin: 0 0 5px 0; font-size: 1.6em;">${formatDateLong(date)}</h2>
+                <p style="color: #667eea; font-weight: 600; font-size: 14px;">${events.length} Event${events.length !== 1 ? 's' : ''} Scheduled</p>
+            </div>
+            
+            <div style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+                ${eventsHTML}
+            </div>
+            
+            <button onclick="this.closest('.modal').remove()" style="width: 100%; padding: 14px; background: #667eea; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 16px; transition: all 0.3s ease;">
+                Close
+            </button>
+        `;
     }
     
-    const eventsList = events.map(e => 
-        `• ${e.title}${e.time ? ' at ' + e.time : ''}\n  ${e.description || 'No description'}`
-    ).join('\n\n');
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
     
-    alert(`Events on ${formatDateLong(date)}:\n\n${eventsList}`);
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+    
+    // Add hover effect to close button
+    const closeBtn = modalContent.querySelector('button');
+    closeBtn.addEventListener('mouseenter', () => {
+        closeBtn.style.background = '#5568d3';
+        closeBtn.style.transform = 'translateY(-2px)';
+        closeBtn.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+    });
+    closeBtn.addEventListener('mouseleave', () => {
+        closeBtn.style.background = '#667eea';
+        closeBtn.style.transform = 'translateY(0)';
+        closeBtn.style.boxShadow = 'none';
+    });
 }
 
 function formatDateLong(dateString) {
