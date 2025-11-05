@@ -3338,7 +3338,11 @@ function editDraft(index) {
     
     // Mark as editing draft
     document.getElementById('sendMailBtn').dataset.draftIndex = index;
-    showModal('composeMail');
+    
+    // Load recipients before showing modal
+    loadMailRecipients().then(() => {
+        showModal('composeMail');
+    });
 }
 
 function deleteDraft(index) {
@@ -3359,7 +3363,10 @@ function replyToMail(originalMail) {
     // For now, just clear recipients as we don't have a user lookup system
     setSelectValues('mailRecipients', []);
     
-    showModal('composeMail');
+    // Load recipients before showing modal
+    loadMailRecipients().then(() => {
+        showModal('composeMail');
+    });
 }
 
 // Load recipients from cirklehrUsers sheet via backend
@@ -3394,11 +3401,6 @@ async function loadMailRecipients() {
         const recipientSelect = document.getElementById('mailRecipients');
         recipientSelect.innerHTML = '<option value="" disabled>Error loading recipients</option>';
     }
-}
-
-// Load recipients when mail screen is accessed
-if (document.getElementById('mailRecipients')) {
-    loadMailRecipients();
 }
 
 // Initialize sample mail data for testing (remove in production)
@@ -4984,12 +4986,16 @@ function openClickUpTask(taskId) {
     window.open(task.url, '_blank');
 }
 
-document.getElementById('composeMailBtn').addEventListener('click', () => {
+document.getElementById('composeMailBtn').addEventListener('click', async () => {
     setSelectValues('mailRecipients', []);
     document.getElementById('mailSubject').value = '';
     document.getElementById('mailContent').value = '';
     document.getElementById('mailAttachments').value = '';
     delete document.getElementById('sendMailBtn').dataset.draftIndex;
+    
+    // Load recipients when opening compose modal
+    await loadMailRecipients();
+    
     showModal('composeMail');
 });
 
