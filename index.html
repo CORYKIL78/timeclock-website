@@ -371,16 +371,14 @@
             </div>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <h3><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>Total Absences</h3>
-                    <p id="totalAbsences">0</p>
-                    <h3><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>Total Absence Days</h3>
-                    <p id="totalAbsenceDays">0</p>
+                    <h3><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>Absences</h3>
+                    <p><strong>Total Absences:</strong> <span id="totalAbsences">0</span></p>
+                    <p><strong>Total Days:</strong> <span id="totalAbsenceDays">0</span></p>
                 </div>
                 <div class="stat-card">
                     <h3><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>Department</h3>
                     <p id="currentDepartment">Development</p>
-                    <p class="hint">Wish to change? Click the button below to go to your profile settings and request a change.</p>
-                    <button id="changeDepartmentBtn">Change My Department</button>
+                    <button id="changeDepartmentBtn">Change Department</button>
                 </div>
             </div>
         </div>
@@ -602,8 +600,8 @@
     </div>
     <div id="eventsScreen" class="screen">
         <div style="padding: 40px 0 30px 0; height: 100%; display: flex; flex-direction: column; align-items: center;">
-            <div style="width: 250%; max-width: 250%; height: 100%; display: flex; flex-direction: column;">
-                <div style="margin-bottom: 20px; padding-left: 20px;">
+            <div style="width: 100%; max-width: 1200px; height: 100%; display: flex; flex-direction: column;">
+                <div style="margin-bottom: 20px; padding: 0 20px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <h2 style="margin: 0;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"></path></svg>Events</h2>
                         <button id="calendarBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3); transition: all 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
