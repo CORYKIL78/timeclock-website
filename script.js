@@ -2923,18 +2923,32 @@ function checkForNewEvents() {
     const userResponses = JSON.parse(localStorage.getItem(respondedEventsKey) || '{}');
     const shownPopups = JSON.parse(localStorage.getItem(popupShownKey) || '[]');
     
+    console.log('[Events] Checking for new events...');
+    console.log('[Events] Total events:', eventsData.length);
+    console.log('[Events] Previous seen events:', previousEvents);
+    console.log('[Events] User responses:', userResponses);
+    console.log('[Events] Shown popups:', shownPopups);
+    
     // Use event.id consistently for all tracking
     const newEvents = eventsData.filter(event => {
         const eventId = event.id || event.rowIndex;
-        return !previousEvents.includes(eventId) && 
-               !userResponses[eventId] &&
-               !shownPopups.includes(eventId);
+        const isSeen = previousEvents.includes(eventId);
+        const hasResponded = userResponses.hasOwnProperty(eventId);
+        const popupShown = shownPopups.includes(eventId);
+        
+        console.log(`[Events] Event ${eventId}: seen=${isSeen}, responded=${hasResponded}, popup=${popupShown}`);
+        
+        return !isSeen && !hasResponded && !popupShown;
     });
+    
+    console.log('[Events] New events to show:', newEvents.length);
     
     if (newEvents.length > 0) {
         // Show popup for ONLY the first new event
         const firstNewEvent = newEvents[0];
         const eventId = firstNewEvent.id || firstNewEvent.rowIndex;
+        
+        console.log('[Events] Showing popup for event:', eventId);
         
         addNotification('events', `New Event: ${firstNewEvent.name || firstNewEvent.eventName}`, 'events');
         showEventResponseModal(firstNewEvent);
@@ -2946,6 +2960,9 @@ function checkForNewEvents() {
         // Mark ALL new events as seen so they don't popup again
         const allSeenEvents = [...previousEvents, ...newEvents.map(e => e.id || e.rowIndex)];
         localStorage.setItem(seenEventsKey, JSON.stringify(allSeenEvents));
+        
+        console.log('[Events] Updated seen events:', allSeenEvents);
+        console.log('[Events] Updated shown popups:', shownPopups);
     }
 }
 
@@ -2966,11 +2983,13 @@ function renderEvents() {
     
     eventsData.forEach(event => {
         const eventCard = document.createElement('div');
-        const eventEndDate = new Date(event.endDate);
+        
+        // Check if event is upcoming based on START date, not end date
+        const eventStartDate = new Date(event.startDate);
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // Reset time to start of day for fair comparison
-        eventEndDate.setHours(0, 0, 0, 0);
-        const isUpcoming = eventEndDate >= today;
+        today.setHours(0, 0, 0, 0); // Reset time to start of day
+        eventStartDate.setHours(0, 0, 0, 0);
+        const isUpcoming = eventStartDate >= today;
         
         // Check if user has responded
         const userResponses = JSON.parse(localStorage.getItem(`event_responses_${currentUser.id}`) || '{}');
