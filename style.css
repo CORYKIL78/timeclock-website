@@ -1354,6 +1354,51 @@ body.dark #addTaskBtn:hover {
     gap: 20px;
 }
 
+/* Rectangular user header card for dashboard */
+.user-header-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px 30px;
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.user-header-card .profile-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 3px solid var(--primary);
+}
+
+.user-header-card .user-info {
+    flex: 1;
+}
+
+.user-header-card .user-info h2 {
+    margin: 0 0 5px 0;
+    font-size: 1.8em;
+    color: #1a202c;
+}
+
+.user-header-card .user-info p {
+    margin: 0;
+    color: #718096;
+    font-size: 0.95em;
+}
+
+.user-header-card .datetime-display {
+    margin-left: auto;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--primary);
+    white-space: nowrap;
+}
+
 .loading-screen h2 {
     font-size: 18px;
     opacity: 0;
