@@ -2396,14 +2396,32 @@ async function handleOAuthRedirect() {
             try {
                 currentUser = JSON.parse(savedUser);
                 if (currentUser.id) {
-                    console.log('Found valid session, redirecting to portalWelcome');
-                    const emp = getEmployee(currentUser.id);
-                    document.getElementById('portalWelcomeName').textContent = emp.profile.name;
-                    document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
-                    showScreen('portalWelcome');
-                    updateSidebarProfile();
-                    await fetchEmployees();
-                    return;
+                    console.log('Found valid session, checking backend for profile...');
+                    
+                    // Re-fetch from backend to ensure we have latest data
+                    const backendProfile = await fetchUserProfile(currentUser.id);
+                    if (backendProfile && (backendProfile.name || backendProfile.department)) {
+                        console.log('Backend profile confirmed, user exists - going to portalWelcome');
+                        currentUser.profile = {
+                            name: backendProfile.name || currentUser.name,
+                            email: backendProfile.email || 'Not set',
+                            department: backendProfile.department || 'Not set',
+                            discordTag: backendProfile.discordTag || currentUser.name,
+                            staffId: backendProfile.staffId
+                        };
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        
+                        const emp = getEmployee(currentUser.id);
+                        document.getElementById('portalWelcomeName').textContent = currentUser.profile.name;
+                        document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
+                        showScreen('portalWelcome');
+                        updateSidebarProfile();
+                        await fetchEmployees();
+                        return;
+                    } else {
+                        console.log('No backend profile found, clearing session');
+                        localStorage.removeItem('currentUser');
+                    }
                 } else {
                     console.log('Invalid saved user data, clearing');
                     localStorage.removeItem('currentUser');
@@ -2619,13 +2637,14 @@ async function handleOAuthRedirect() {
     console.log('[LOGIN] isFirstTime:', isFirstTime);
     console.log('[LOGIN] currentUser.profile.name:', currentUser.profile.name);
     console.log('[LOGIN] backendProfile exists:', backendProfile ? 'YES' : 'NO');
+    console.log('[LOGIN] backendProfile data:', backendProfile);
     
-    // SAFETY: If backend profile exists, ALWAYS skip setup even if name is missing
-    if (backendProfile && backendProfile.department && backendProfile.department !== 'Not set') {
-        console.log('[LOGIN] ✅ Backend profile found with department, going to portalWelcome');
+    // SAFETY: If backend profile exists with ANY data, ALWAYS skip setup
+    if (backendProfile && (backendProfile.name || backendProfile.department || backendProfile.email)) {
+        console.log('[LOGIN] ✅ Backend profile found, user exists - going to portalWelcome');
         const displayName = currentUser.profile.name || currentUser.name || 'User';
         document.getElementById('portalWelcomeName').textContent = displayName;
-        document.getElementById('portalLastLogin').textContent = emp.lastLogin;
+        document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
         showScreen('portalWelcome');
     } else if (isFirstTime || !currentUser.profile.name || currentUser.profile.name === 'Not set') {
         console.log('[LOGIN] ⚠️  No profile/department found, going to setupWelcome');
