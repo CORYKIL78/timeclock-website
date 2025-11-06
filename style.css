@@ -4828,3 +4828,129 @@ body.dark #profileDateFormatSelect option {
     color: #e6edf3 !important;
 }
 
+/* ===== CRITICAL MOBILE FIXES - OVERRIDE INLINE STYLES ===== */
+@media (max-width: 768px) {
+    /* Force all containers to be mobile-friendly */
+    #eventsScreen .container[style*="max-width"],
+    #eventsScreen > div[style*="max-width"] {
+        max-width: 95% !important;
+        padding: 20px 10px !important;
+    }
+    
+    #myProfileScreen div[style*="max-width"],
+    .container[style*="max-width"] {
+        max-width: 95% !important;
+    }
+    
+    /* Force buttons to stack */
+    #clockInBtn[style],
+    #clockOutBtn[style] {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 15px 20px !important;
+        font-size: 16px !important;
+    }
+    
+    /* Fix content containers */
+    #eventsContainer[style],
+    #payslipsContent[style],
+    div[style*="min-height: 600px"] {
+        min-height: 400px !important;
+        width: 100% !important;
+    }
+}
+
+/* ===== FORCE MOBILE RESPONSIVE ON ALL DEVICES ===== */
+@media screen and (max-width: 768px) {
+    /* Override ALL inline max-width styles */
+    *[style*="max-width"] {
+        max-width: 100% !important;
+    }
+    
+    /* Specific container fixes */
+    .screen,
+    .screen > div,
+    .screen .container,
+    .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+    
+    /* Main content areas */
+    #mainMenuScreen,
+    #myProfileScreen,
+    #absencesScreen,
+    #payslipsScreen,
+    #disciplinariesScreen,
+    #timeclockScreen,
+    #eventsScreen,
+    #mailScreen,
+    #tasksScreen,
+    #handbooksScreen {
+        padding: 10px !important;
+    }
+    
+    /* Fix stats grid */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+    
+    /* Fix user header card */
+    .user-header-card {
+        flex-direction: column !important;
+        text-align: center !important;
+        padding: 20px 15px !important;
+    }
+    
+    .user-header-card img {
+        margin: 0 auto !important;
+    }
+    
+    .datetime-display {
+        width: 100% !important;
+        text-align: center !important;
+    }
+    
+    /* Tables must scroll */
+    table {
+        display: block !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        white-space: nowrap !important;
+    }
+    
+    /* Font size adjustments */
+    h1 { font-size: 1.8em !important; }
+    h2 { font-size: 1.5em !important; }
+    h3 { font-size: 1.2em !important; }
+    
+    /* Button adjustments */
+    button {
+        font-size: 14px !important;
+        padding: 12px 20px !important;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    /* Extra small devices */
+    .screen,
+    .container {
+        padding: 5px !important;
+    }
+    
+    h1 { font-size: 1.5em !important; }
+    h2 { font-size: 1.3em !important; }
+    h3 { font-size: 1.1em !important; }
+    
+    button {
+        font-size: 13px !important;
+        padding: 10px 15px !important;
+    }
+    
+    .stat-card {
+        padding: 12px !important;
+    }
+}
