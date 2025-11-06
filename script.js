@@ -3194,12 +3194,30 @@ function showEventResponseModal(event) {
     
     // Close button
     modal.querySelector('.close-modal-btn').addEventListener('click', () => {
+        console.log('[Events] Modal closed without response, marking as seen');
+        // Mark as seen even if closed without responding
+        const eventId = event.id || event.rowIndex;
+        const seenEventsKey = `events_seen_${currentUser.id}`;
+        const previousEvents = JSON.parse(localStorage.getItem(seenEventsKey) || '[]');
+        if (!previousEvents.includes(eventId)) {
+            previousEvents.push(eventId);
+            localStorage.setItem(seenEventsKey, JSON.stringify(previousEvents));
+        }
         modal.remove();
     });
     
     // Close on outside click
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
+            console.log('[Events] Modal closed by outside click, marking as seen');
+            // Mark as seen even if closed without responding
+            const eventId = event.id || event.rowIndex;
+            const seenEventsKey = `events_seen_${currentUser.id}`;
+            const previousEvents = JSON.parse(localStorage.getItem(seenEventsKey) || '[]');
+            if (!previousEvents.includes(eventId)) {
+                previousEvents.push(eventId);
+                localStorage.setItem(seenEventsKey, JSON.stringify(previousEvents));
+            }
             modal.remove();
         }
     });
