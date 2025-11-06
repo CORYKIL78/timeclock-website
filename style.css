@@ -626,6 +626,26 @@ body.dark .profile-stat {
 
 /* Responsive design */
 @media (max-width: 768px) {
+    /* Base screen and container adjustments */
+    .screen {
+        padding: 10px !important;
+    }
+    
+    .container {
+        max-width: 95% !important;
+        width: 95% !important;
+        padding: 20px 15px !important;
+        margin: 0 auto !important;
+    }
+    
+    #mainMenuScreen .container {
+        max-width: 95% !important;
+        width: 95% !important;
+        padding: 20px 15px !important;
+        padding-left: 15px !important;
+        transform: none !important;
+    }
+    
     .profile-container {
         padding: 16px;
         gap: 16px;
@@ -4238,6 +4258,154 @@ body.dark .request-field textarea {
     
     .calendar-day-number {
         font-size: 0.9em;
+    }
+}
+
+/* ===== HOME SCREEN RECTANGULAR LAYOUT ===== */
+.home-profile-card {
+    background: white;
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 40px;
+    margin-bottom: 30px;
+    align-items: center;
+}
+
+.home-profile-left {
+    flex-shrink: 0;
+}
+
+.home-profile-img {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.home-profile-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.home-profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.home-greeting {
+    font-size: 2.5em;
+    font-weight: 700;
+    margin: 0;
+    color: #1a202c;
+}
+
+.home-last-login {
+    font-size: 1.1em;
+    color: #718096;
+    margin: 0;
+}
+
+.home-stats-row {
+    display: flex;
+    gap: 40px;
+    flex-wrap: wrap;
+}
+
+.home-stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.home-stat-label {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.home-stat-value {
+    font-size: 2em;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.home-datetime {
+    text-align: center;
+    background: linear-gradient(135deg, var(--primary) 0%, #667eea 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.home-datetime p {
+    margin: 0;
+    font-size: 1.3em;
+    font-weight: 600;
+}
+
+/* Login button in sidebar */
+.login-btn {
+    background: var(--success) !important;
+}
+
+.login-btn:hover {
+    background: #218838 !important;
+}
+
+/* Mobile responsive for home screen */
+@media (max-width: 768px) {
+    .home-profile-card {
+        flex-direction: column;
+        padding: 25px;
+        gap: 25px;
+        text-align: center;
+    }
+    
+    .home-profile-img {
+        width: 140px;
+        height: 140px;
+    }
+    
+    .home-greeting {
+        font-size: 1.8em;
+    }
+    
+    .home-stats-row {
+        justify-content: center;
+        gap: 30px;
+    }
+    
+    .home-stat-item {
+        align-items: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .home-profile-img {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .home-greeting {
+        font-size: 1.5em;
+    }
+    
+    .home-stat-value {
+        font-size: 1.6em;
+    }
+    
+    .home-stats-row {
+        gap: 20px;
     }
 }
 
