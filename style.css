@@ -1,52 +1,12 @@
-/* Global Responsive Scaling for All Devices */
+/* Global Responsive Fixes */
 * {
     box-sizing: border-box;
-}
-
-html {
-    font-size: 16px; /* Base font size for desktop */
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
 }
 
 body {
     margin: 0;
     padding: 0;
     overflow-x: hidden; /* Prevent horizontal scroll */
-    width: 100%;
-    max-width: 100vw;
-}
-
-/* Responsive font scaling */
-@media screen and (max-width: 1920px) {
-    html { font-size: 16px; }
-}
-
-@media screen and (max-width: 1440px) {
-    html { font-size: 15px; }
-}
-
-@media screen and (max-width: 1024px) {
-    html { font-size: 14px; }
-}
-
-@media screen and (max-width: 768px) {
-    html { font-size: 13px; }
-}
-
-@media screen and (max-width: 480px) {
-    html { font-size: 12px; }
-}
-
-/* Ensure all containers scale properly */
-.container,
-.main-content,
-.screen,
-[class*="Screen"],
-[id*="Screen"] {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: hidden;
 }
 
 /* Make images and media responsive */
@@ -55,17 +15,13 @@ img, video, iframe {
     height: auto;
 }
 
-/* Make tables responsive */
-table {
-    width: 100%;
-    overflow-x: auto;
-    display: block;
-}
-
-@media screen and (max-width: 768px) {
-    table {
-        font-size: 0.9em;
-    }
+/* HIDE MAIL SYSTEM - NOT FUNCTIONAL */
+#mailBtn,
+#mailScreen,
+#composeMailModal,
+#viewMailModal,
+#replyMailModal {
+    display: none !important;
 }
 
 /* Classic Profile Config Layout */
@@ -4142,6 +4098,7 @@ body.dark .request-field textarea {
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 
+
 .calendar-event-item h4 {
     margin: 0 0 8px 0;
     color: #333;
@@ -4159,7 +4116,11 @@ body.dark .request-field textarea {
     font-weight: 600;
 }
 
+/* ===== MOBILE RESPONSIVE STYLES - TARGETED ONLY ===== */
+/* Applied ONLY to specific screens: absences, events, calendar */
+
 @media (max-width: 768px) {
+    /* Calendar Screen Mobile */
     #calendarGrid {
         gap: 5px;
     }
@@ -4177,4 +4138,107 @@ body.dark .request-field textarea {
         max-width: 95%;
         padding: 20px;
     }
+    
+    /* Absences Screen Mobile */
+    #absencesScreen .container {
+        max-width: 100% !important;
+        padding: 15px;
+    }
+    
+    #absencesScreen .absence-stats {
+        grid-template-columns: 1fr !important;
+        gap: 15px;
+    }
+    
+    #absencesScreen .stat-card {
+        padding: 15px;
+    }
+    
+    #absencesScreen table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    #absencesScreen th,
+    #absencesScreen td {
+        padding: 10px 8px;
+        font-size: 0.85em;
+    }
+    
+    #absencesScreen .filter-section {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    #absencesScreen .action-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    #absencesScreen .action-buttons button {
+        width: 100%;
+    }
+    
+    /* Events Screen Mobile */
+    #eventsScreen .container {
+        max-width: 100% !important;
+        padding: 15px;
+    }
+    
+    #eventsScreen .screen {
+        padding: 20px 15px;
+    }
+    
+    #calendarScreen .container {
+        max-width: 100% !important;
+        padding: 15px;
+    }
+    
+    /* Modal adjustments for mobile */
+    #absenceModal .modal-content,
+    #calendarModal .modal-content {
+        max-width: 95%;
+        padding: 20px 15px;
+        margin: 10px;
+    }
+    
+    #absenceModal form,
+    #calendarModal form {
+        gap: 12px;
+    }
+    
+    #absenceModal input,
+    #absenceModal select,
+    #absenceModal textarea,
+    #calendarModal input,
+    #calendarModal select,
+    #calendarModal textarea {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
 }
+
+@media (max-width: 480px) {
+    /* Extra small screens */
+    #absencesScreen .stat-card h3 {
+        font-size: 1.2em;
+    }
+    
+    #absencesScreen .stat-value {
+        font-size: 1.8em;
+    }
+    
+    #calendarGrid {
+        gap: 3px;
+    }
+    
+    .calendar-day {
+        padding: 3px;
+        font-size: 0.8em;
+    }
+    
+    .calendar-day-number {
+        font-size: 0.9em;
+    }
+}
+
