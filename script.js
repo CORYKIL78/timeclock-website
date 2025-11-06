@@ -2904,25 +2904,28 @@ function checkForNewEvents() {
     const userResponses = JSON.parse(localStorage.getItem(respondedEventsKey) || '{}');
     const shownPopups = JSON.parse(localStorage.getItem(popupShownKey) || '[]');
     
-    // Only show popup for events user hasn't seen AND hasn't responded to AND hasn't been shown popup
-    const newEvents = eventsData.filter(event => 
-        !previousEvents.includes(event.rowIndex) && 
-        !userResponses[event.rowIndex] &&
-        !shownPopups.includes(event.rowIndex)
-    );
+    // Use event.id consistently for all tracking
+    const newEvents = eventsData.filter(event => {
+        const eventId = event.id || event.rowIndex;
+        return !previousEvents.includes(eventId) && 
+               !userResponses[eventId] &&
+               !shownPopups.includes(eventId);
+    });
     
     if (newEvents.length > 0) {
         // Show popup for ONLY the first new event
         const firstNewEvent = newEvents[0];
-        addNotification('events', `New Event: ${firstNewEvent.name}`, 'events');
+        const eventId = firstNewEvent.id || firstNewEvent.rowIndex;
+        
+        addNotification('events', `New Event: ${firstNewEvent.name || firstNewEvent.eventName}`, 'events');
         showEventResponseModal(firstNewEvent);
         
         // Mark this event popup as shown (permanently)
-        shownPopups.push(firstNewEvent.rowIndex);
+        shownPopups.push(eventId);
         localStorage.setItem(popupShownKey, JSON.stringify(shownPopups));
         
         // Mark ALL new events as seen so they don't popup again
-        const allSeenEvents = [...previousEvents, ...newEvents.map(e => e.rowIndex)];
+        const allSeenEvents = [...previousEvents, ...newEvents.map(e => e.id || e.rowIndex)];
         localStorage.setItem(seenEventsKey, JSON.stringify(allSeenEvents));
     }
 }
@@ -2952,7 +2955,8 @@ function renderEvents() {
         
         // Check if user has responded
         const userResponses = JSON.parse(localStorage.getItem(`event_responses_${currentUser.id}`) || '{}');
-        const userResponse = userResponses[event.id];
+        const eventId = event.id || event.rowIndex;
+        const userResponse = userResponses[eventId];
         let attendanceStatus = 'Not responded';
         if (userResponse === 'attend') attendanceStatus = '✓ Attending';
         else if (userResponse === 'cannot') attendanceStatus = '✗ Not attending';
@@ -3168,8 +3172,10 @@ async function submitEventResponse(event, response, reason = '') {
         // Use hardcoded webhook URL
         const webhookUrl = EVENTS_WEBHOOK_URL;
         
+        const eventId = event.id || event.rowIndex;
+        
         const requestBody = {
-            eventId: event.id,
+            eventId: eventId,
             userDiscordId: currentUser.id,
             displayName: currentUser.name || currentUser.profile?.name || 'Unknown User',
             response: response,
@@ -3187,7 +3193,8 @@ async function submitEventResponse(event, response, reason = '') {
         });
         
         if (!apiResponse.ok) {
-            console.error('[Events] Failed to submit response:', apiResponse.statusText);
+            const errorText = await apiResponse.text();
+            console.error('[Events] Failed to submit response:', apiResponse.statusText, errorText);
             showModal('alert', '⚠️ Failed to submit response. Please try again.');
             return;
         }
@@ -3195,9 +3202,9 @@ async function submitEventResponse(event, response, reason = '') {
         const data = await apiResponse.json();
         console.log('[Events] Response submitted successfully:', data);
         
-        // Store user's response locally
+        // Store user's response locally using consistent ID
         const userResponses = JSON.parse(localStorage.getItem(`event_responses_${currentUser.id}`) || '{}');
-        userResponses[event.id] = response;
+        userResponses[eventId] = response;
         localStorage.setItem(`event_responses_${currentUser.id}`, JSON.stringify(userResponses));
         
         // Refresh events list to show updated status
