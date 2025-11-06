@@ -893,9 +893,6 @@ body.dark .profile-stat {
         font-size: 18px !important;
         text-align: left !important;
         border-radius: 12px !important;
-    }
-    }
-    .sidebar.extended #sidebarNav button {
         font-size: 18px !important;
         padding: 15px 20px !important;
         min-height: 50px;
@@ -903,6 +900,7 @@ body.dark .profile-stat {
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     .sidebar.extended .sidebar-footer {
+
         display: flex !important;
         width: 100vw;
         padding: 15px;
@@ -942,6 +940,7 @@ body.dark .profile-stat {
     --bg-color: #f8f9fa;
     --text-color: #212529;
     --primary: #007bff;
+
     --secondary: #6c757d;
     --success: #28a745;
     --danger: #dc3545;
