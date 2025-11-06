@@ -48,6 +48,7 @@
     <div id="notificationPanel" class="notifications-panel hidden">
         <div class="notifications-header">
             <h3>Notifications</h3>
+            <button id="clearAllNotifications" class="clear-all-notifications-btn">Clear All</button>
             <button id="closeNotifications" class="close-notifications-btn">&times;</button>
         </div>
         <ul id="notificationList"></ul>
@@ -601,20 +602,18 @@
         </div>
     </div>
     <div id="eventsScreen" class="screen">
-        <div style="padding: 40px 0 30px 0; height: 100%; display: flex; flex-direction: column; align-items: center;">
-            <div style="width: 100%; max-width: 1200px; height: 100%; display: flex; flex-direction: column;">
-                <div style="margin-bottom: 20px; padding: 0 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h2 style="margin: 0;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"></path></svg>Events</h2>
-                        <button id="calendarBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3); transition: all 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                            Calendar
-                        </button>
-                    </div>
-                    <p style="color: #666; font-size: 14px; margin: 0;">View and respond to company events. Click on any event to indicate your attendance.</p>
+        <div class="container" style="max-width: 1400px; padding: 40px 20px;">
+            <div style="margin-bottom: 30px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h2 style="margin: 0;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"></path></svg>Events</h2>
+                    <button id="calendarBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3); transition: all 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        Calendar
+                    </button>
                 </div>
-                <div id="eventsContainer" style="width: 100%; flex: 1; min-height: 600px; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); overflow-y: auto; padding: 0;"></div>
+                <p style="color: #666; font-size: 14px; margin: 0;">View and respond to company events. Click on any event to indicate your attendance.</p>
             </div>
+            <div id="eventsContainer" style="width: 100%; min-height: 600px; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); overflow-y: auto; padding: 0;"></div>
         </div>
     </div>
     <div id="mailScreen" class="screen">

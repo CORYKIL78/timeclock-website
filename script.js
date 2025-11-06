@@ -2897,21 +2897,17 @@ function checkForNewEvents() {
     
     const seenEventsKey = `events_seen_${currentUser.id}`;
     const respondedEventsKey = `event_responses_${currentUser.id}`;
-    const sessionPopupKey = `events_popup_shown_session_${currentUser.id}`;
-    
-    // Check if we already showed a popup this session
-    const popupShownThisSession = sessionStorage.getItem(sessionPopupKey);
-    if (popupShownThisSession) {
-        console.log('[Events] Popup already shown this session, skipping');
-        return;
-    }
+    const popupShownKey = `events_popup_shown_${currentUser.id}`;
     
     const previousEvents = JSON.parse(localStorage.getItem(seenEventsKey) || '[]');
     const userResponses = JSON.parse(localStorage.getItem(respondedEventsKey) || '{}');
+    const shownPopups = JSON.parse(localStorage.getItem(popupShownKey) || '[]');
     
-    // Only show popup for events user hasn't seen AND hasn't responded to
+    // Only show popup for events user hasn't seen AND hasn't responded to AND hasn't been shown popup
     const newEvents = eventsData.filter(event => 
-        !previousEvents.includes(event.rowIndex) && !userResponses[event.rowIndex]
+        !previousEvents.includes(event.rowIndex) && 
+        !userResponses[event.rowIndex] &&
+        !shownPopups.includes(event.rowIndex)
     );
     
     if (newEvents.length > 0) {
@@ -2920,8 +2916,9 @@ function checkForNewEvents() {
         addNotification('events', `New Event: ${firstNewEvent.name}`, 'events');
         showEventResponseModal(firstNewEvent);
         
-        // Mark this session as having shown a popup
-        sessionStorage.setItem(sessionPopupKey, 'true');
+        // Mark this event popup as shown (permanently)
+        shownPopups.push(firstNewEvent.rowIndex);
+        localStorage.setItem(popupShownKey, JSON.stringify(shownPopups));
         
         // Mark ALL new events as seen so they don't popup again
         const allSeenEvents = [...previousEvents, ...newEvents.map(e => e.rowIndex)];
@@ -3171,14 +3168,16 @@ async function submitEventResponse(event, response, reason = '') {
         const webhookUrl = EVENTS_WEBHOOK_URL;
         
         const requestBody = {
-            eventRowIndex: event.id,
-            discordId: currentUser.id,
+            eventId: event.id,
+            userDiscordId: currentUser.id,
             displayName: currentUser.name || currentUser.profile?.name || 'Unknown User',
             response: response,
             reason: reason,
             webhookUrl: webhookUrl,
             organizerDiscordId: event.organizerDiscordId
         };
+        
+        console.log('[Events] Submitting response:', requestBody);
         
         const apiResponse = await fetch('https://timeclock-backend.marcusray.workers.dev/api/events/respond', {
             method: 'POST',
@@ -3193,7 +3192,7 @@ async function submitEventResponse(event, response, reason = '') {
         }
         
         const data = await apiResponse.json();
-        console.log('[Events] Response submitted:', data);
+        console.log('[Events] Response submitted successfully:', data);
         
         // Store user's response locally
         const userResponses = JSON.parse(localStorage.getItem(`event_responses_${currentUser.id}`) || '{}');
@@ -5327,6 +5326,7 @@ if (sidebarToggle) {
 const notificationBtn = document.getElementById('notificationBtn');
 const notificationPanel = document.getElementById('notificationPanel');
 const closeNotifications = document.getElementById('closeNotifications');
+const clearAllNotifications = document.getElementById('clearAllNotifications');
 const notificationBadge = document.getElementById('notificationBadge');
 
 if (notificationBtn) {
@@ -5339,6 +5339,21 @@ if (notificationBtn) {
 if (closeNotifications) {
     closeNotifications.addEventListener('click', () => {
         notificationPanel.classList.add('hidden');
+    });
+}
+
+if (clearAllNotifications) {
+    clearAllNotifications.addEventListener('click', () => {
+        if (currentUser) {
+            const emp = getEmployee(currentUser.id);
+            if (emp) {
+                emp.notifications = [];
+                localStorage.setItem('employees', JSON.stringify(employees));
+                renderNotifications();
+                updateNotificationBadge();
+                playSuccessSound();
+            }
+        }
     });
 }
 
