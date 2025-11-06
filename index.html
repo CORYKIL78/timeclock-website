@@ -360,37 +360,28 @@
     </div>
     
     <div id="mainMenuScreen" class="screen">
-        <div class="container" style="max-width: 1200px; padding: 40px 20px;">
-            <!-- Profile Card - Rectangular Layout -->
-            <div class="home-profile-card">
-                <div class="home-profile-left">
-                    <img id="mainProfilePic" class="home-profile-img" src="" alt="Profile">
+        <div class="container">
+            <div class="user-header">
+                <img id="mainProfilePic" class="profile-img" src="" alt="Profile">
+                <div>
+                    <h2 id="greeting"></h2>
+                    <p id="lastLogin"></p>
                 </div>
-                <div class="home-profile-right">
-                    <div class="home-profile-info">
-                        <h2 id="greeting" class="home-greeting"></h2>
-                        <p id="lastLogin" class="home-last-login"></p>
-                    </div>
-                    <div class="home-stats-row">
-                        <div class="home-stat-item">
-                            <span class="home-stat-label">Total Absences</span>
-                            <span id="totalAbsences" class="home-stat-value">0</span>
-                        </div>
-                        <div class="home-stat-item">
-                            <span class="home-stat-label">Absence Days</span>
-                            <span id="totalAbsenceDays" class="home-stat-value">0</span>
-                        </div>
-                        <div class="home-stat-item">
-                            <span class="home-stat-label">Department</span>
-                            <span id="currentDepartment" class="home-stat-value">Development</span>
-                        </div>
-                    </div>
-                </div>
+                <p id="dateTime" style="margin-left: auto;"></p>
             </div>
-            
-            <!-- Date/Time Display -->
-            <div class="home-datetime">
-                <p id="dateTime"></p>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>Total Absences</h3>
+                    <p id="totalAbsences">0</p>
+                    <h3><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>Total Absence Days</h3>
+                    <p id="totalAbsenceDays">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>Department</h3>
+                    <p id="currentDepartment">Development</p>
+                    <p class="hint">Wish to change? Click the button below to go to your profile settings and request a change.</p>
+                    <button id="changeDepartmentBtn">Change My Department</button>
+                </div>
             </div>
         </div>
     </div>
