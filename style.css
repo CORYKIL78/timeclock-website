@@ -4135,10 +4135,16 @@ body.dark .request-field textarea {
     font-weight: 600;
 }
 
-/* ===== MOBILE RESPONSIVE STYLES - TARGETED ONLY ===== */
-/* Applied ONLY to specific screens: absences, events, calendar */
+/* ===== MOBILE RESPONSIVE STYLES - ALL SCREENS ===== */
 
 @media (max-width: 768px) {
+    /* All screen containers */
+    .screen .container {
+        max-width: 95% !important;
+        width: 95% !important;
+        padding: 20px 15px !important;
+    }
+    
     /* Calendar Screen Mobile */
     #calendarGrid {
         gap: 5px;
@@ -4161,7 +4167,8 @@ body.dark .request-field textarea {
     /* Absences Screen Mobile */
     #absencesScreen .container {
         max-width: 100% !important;
-        padding: 15px;
+        width: 100% !important;
+        padding: 15px !important;
     }
     
     #absencesScreen .absence-stats {
@@ -4177,12 +4184,14 @@ body.dark .request-field textarea {
         display: block;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        font-size: 0.85em;
     }
     
     #absencesScreen th,
     #absencesScreen td {
         padding: 10px 8px;
         font-size: 0.85em;
+        white-space: nowrap;
     }
     
     #absencesScreen .filter-section {
@@ -4199,10 +4208,133 @@ body.dark .request-field textarea {
         width: 100%;
     }
     
+    /* Payslips Screen Mobile */
+    #payslipsScreen .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 15px !important;
+    }
+    
+    #payslipsScreen table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        font-size: 0.85em;
+    }
+    
+    #payslipsScreen th,
+    #payslipsScreen td {
+        padding: 10px 8px;
+        font-size: 0.85em;
+        white-space: nowrap;
+    }
+    
+    /* Disciplinaries Screen Mobile */
+    #disciplinariesScreen .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 15px !important;
+    }
+    
+    #disciplinariesScreen table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        font-size: 0.85em;
+    }
+    
+    #disciplinariesScreen th,
+    #disciplinariesScreen td {
+        padding: 10px 8px;
+        font-size: 0.85em;
+        white-space: nowrap;
+    }
+    
+    /* My Roles Screen Mobile */
+    #myRolesScreen .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 15px !important;
+    }
+    
+    .roles-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px;
+    }
+    
+    /* Timeclock Screen Mobile */
+    #timeclockScreen .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 15px !important;
+    }
+    
+    #timeclockScreen table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        font-size: 0.85em;
+    }
+    
+    #timeclockScreen th,
+    #timeclockScreen td {
+        padding: 10px 8px;
+        font-size: 0.85em;
+    }
+    
+    /* ClickUp Screen Mobile */
+    #clickupScreen .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 15px !important;
+    }
+    
+    #clickupScreen table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        font-size: 0.85em;
+    }
+    
+    /* Handbooks Screen Mobile */
+    #handbooksScreen .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 15px !important;
+    }
+    
+    .handbooks-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px;
+    }
+    
+    /* Profile Screen Mobile */
+    #myProfileScreen .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 15px !important;
+    }
+    
+    .profile-info-row {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 10px;
+    }
+    
+    .profile-info-row span {
+        text-align: left !important;
+        margin: 0 !important;
+    }
+    
+    .profile-info-row button {
+        width: 100%;
+    }
+    
     /* Events Screen Mobile */
     #eventsScreen .container {
         max-width: 100% !important;
-        padding: 15px;
+        width: 100% !important;
+        padding: 15px !important;
     }
     
     #eventsScreen .screen {
@@ -4214,9 +4346,18 @@ body.dark .request-field textarea {
         padding: 15px;
     }
     
-    /* Modal adjustments for mobile */
+    /* All Modals Mobile */
+    .modal-content {
+        max-width: 95% !important;
+        width: 95% !important;
+        padding: 20px 15px !important;
+        margin: 10px !important;
+    }
+    
     #absenceModal .modal-content,
-    #calendarModal .modal-content {
+    #calendarModal .modal-content,
+    #disciplinaryModal .modal-content,
+    #payslipModal .modal-content {
         max-width: 95%;
         padding: 20px 15px;
         margin: 10px;
@@ -4232,8 +4373,109 @@ body.dark .request-field textarea {
     #absenceModal textarea,
     #calendarModal input,
     #calendarModal select,
-    #calendarModal textarea {
-        font-size: 16px; /* Prevents zoom on iOS */
+    #calendarModal textarea,
+    .modal input,
+    .modal select,
+    .modal textarea {
+        font-size: 16px !important; /* Prevents zoom on iOS */
+        padding: 12px;
+    }
+    
+    /* Stats grids on mobile */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px;
+    }
+    
+    .stat-card {
+        padding: 20px 15px;
+    }
+    
+    /* Tables - horizontal scroll for all */
+    table {
+        font-size: 0.85em;
+    }
+    
+    th, td {
+        padding: 10px 8px;
+        font-size: 0.85em;
+    }
+    
+    /* Buttons stack on mobile */
+    .action-buttons,
+    .button-group {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .action-buttons button,
+    .button-group button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Extra small screens - phones */
+    .screen {
+        padding: 5px !important;
+    }
+    
+    .container {
+        padding: 15px 10px !important;
+    }
+    
+    /* Smaller text on phones */
+    h2 {
+        font-size: 1.5em;
+    }
+    
+    h3 {
+        font-size: 1.2em;
+    }
+    
+    /* Extra small stats */
+    #absencesScreen .stat-card h3 {
+        font-size: 1.2em;
+    }
+    
+    #absencesScreen .stat-value {
+        font-size: 1.8em;
+    }
+    
+    /* Calendar extra tight */
+    #calendarGrid {
+        gap: 3px;
+    }
+    
+    .calendar-day {
+        padding: 3px;
+        font-size: 0.8em;
+    }
+    
+    .calendar-day-number {
+        font-size: 0.9em;
+    }
+    
+    /* Tables even smaller */
+    table {
+        font-size: 0.75em;
+    }
+    
+    th, td {
+        padding: 8px 6px;
+        font-size: 0.75em;
+    }
+    
+    /* Modal takes full width */
+    .modal-content {
+        max-width: 98% !important;
+        padding: 15px 10px !important;
+    }
+    
+    /* Buttons */
+    button {
+        padding: 12px 15px;
+        font-size: 14px;
     }
 }
 
