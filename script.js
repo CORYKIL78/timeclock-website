@@ -1753,6 +1753,7 @@ function updateActiveNavButton(screenId) {
         'timeclock': 'timeclockBtn',
         'events': 'eventsBtn',
         'mail': 'mailBtn',
+        'tasks': 'clickupBtn',
         'clickup': 'clickupBtn',
         'handbooks': 'handbooksBtn'
     };
@@ -5348,6 +5349,7 @@ if (clearAllNotifications) {
             const emp = getEmployee(currentUser.id);
             if (emp) {
                 emp.notifications = [];
+                currentNotifications = [];
                 localStorage.setItem('employees', JSON.stringify(employees));
                 renderNotifications();
                 updateNotificationBadge();

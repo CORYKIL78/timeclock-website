@@ -1366,6 +1366,11 @@ body.dark #addTaskBtn:hover {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
+body.dark .user-header-card {
+    background: #1a2332;
+    border: 1px solid #2d3748;
+}
+
 .user-header-card .profile-img {
     width: 80px;
     height: 80px;
@@ -1876,34 +1881,14 @@ body.dark .notifications {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
     overflow: hidden;
     z-index: 999;
-    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    transition: opacity 0.2s ease, transform 0.2s ease;
     transform-origin: bottom right;
-    animation: notificationSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-@keyframes notificationSlideIn {
-    0% {
-        opacity: 0;
-        transform: scale(0) translateY(40px);
-        border-radius: 50%;
-    }
-    50% {
-        opacity: 0.5;
-        transform: scale(0.5) translateY(20px);
-        border-radius: 30%;
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-        border-radius: 16px;
-    }
 }
 
 .notifications-panel.hidden {
     opacity: 0;
-    transform: scale(0) translateY(40px);
+    transform: scale(0.95);
     pointer-events: none;
-    border-radius: 50%;
 }
 
 body.dark .notifications-panel {
@@ -4811,5 +4796,35 @@ body.dark .request-field textarea {
     .home-stats-row {
         gap: 20px;
     }
+}
+
+/* ===== COMPREHENSIVE DARK MODE FIXES ===== */
+body.dark #eventsContainer,
+body.dark #payslipsContent,
+body.dark #myProfileScreen > div > div:nth-child(2),
+body.dark #myProfileScreen > div > div:nth-child(1),
+body.dark #absencesScreen > div > div,
+body.dark #disciplinariesScreen > div > div,
+body.dark #timeclockScreen > div > div > div,
+body.dark #mailScreen > div > div,
+body.dark #handbooksScreen > div > div,
+body.dark #clickupConnectionSection {
+    background: #1a2332 !important;
+    color: #e6edf3 !important;
+}
+
+body.dark #profileCountrySelect,
+body.dark #profileTimezoneSelect,
+body.dark #profileDateFormatSelect {
+    background: #0d1117 !important;
+    color: #e6edf3 !important;
+    border-color: #2d3748 !important;
+}
+
+body.dark #profileCountrySelect option,
+body.dark #profileTimezoneSelect option,
+body.dark #profileDateFormatSelect option {
+    background: #0d1117 !important;
+    color: #e6edf3 !important;
 }
 
