@@ -3194,30 +3194,48 @@ function showEventResponseModal(event) {
     
     // Close button
     modal.querySelector('.close-modal-btn').addEventListener('click', () => {
-        console.log('[Events] Modal closed without response, marking as seen');
-        // Mark as seen even if closed without responding
+        console.log('[Events] Modal closed without response, marking as seen and popup shown');
+        // Mark as seen and popup shown even if closed without responding
         const eventId = event.id || event.rowIndex;
         const seenEventsKey = `events_seen_${currentUser.id}`;
+        const popupShownKey = `events_popup_shown_${currentUser.id}`;
+        
         const previousEvents = JSON.parse(localStorage.getItem(seenEventsKey) || '[]');
         if (!previousEvents.includes(eventId)) {
             previousEvents.push(eventId);
             localStorage.setItem(seenEventsKey, JSON.stringify(previousEvents));
         }
+        
+        const shownPopups = JSON.parse(localStorage.getItem(popupShownKey) || '[]');
+        if (!shownPopups.includes(eventId)) {
+            shownPopups.push(eventId);
+            localStorage.setItem(popupShownKey, JSON.stringify(shownPopups));
+        }
+        
         modal.remove();
     });
     
     // Close on outside click
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
-            console.log('[Events] Modal closed by outside click, marking as seen');
-            // Mark as seen even if closed without responding
+            console.log('[Events] Modal closed by outside click, marking as seen and popup shown');
+            // Mark as seen and popup shown even if closed without responding
             const eventId = event.id || event.rowIndex;
             const seenEventsKey = `events_seen_${currentUser.id}`;
+            const popupShownKey = `events_popup_shown_${currentUser.id}`;
+            
             const previousEvents = JSON.parse(localStorage.getItem(seenEventsKey) || '[]');
             if (!previousEvents.includes(eventId)) {
                 previousEvents.push(eventId);
                 localStorage.setItem(seenEventsKey, JSON.stringify(previousEvents));
             }
+            
+            const shownPopups = JSON.parse(localStorage.getItem(popupShownKey) || '[]');
+            if (!shownPopups.includes(eventId)) {
+                shownPopups.push(eventId);
+                localStorage.setItem(popupShownKey, JSON.stringify(shownPopups));
+            }
+            
             modal.remove();
         }
     });
@@ -3262,6 +3280,22 @@ async function submitEventResponse(event, response, reason = '') {
         const userResponses = JSON.parse(localStorage.getItem(`event_responses_${currentUser.id}`) || '{}');
         userResponses[eventId] = response;
         localStorage.setItem(`event_responses_${currentUser.id}`, JSON.stringify(userResponses));
+        
+        // Also mark as popup shown to prevent re-showing
+        const popupShownKey = `events_popup_shown_${currentUser.id}`;
+        const shownPopups = JSON.parse(localStorage.getItem(popupShownKey) || '[]');
+        if (!shownPopups.includes(eventId)) {
+            shownPopups.push(eventId);
+            localStorage.setItem(popupShownKey, JSON.stringify(shownPopups));
+        }
+        
+        // Also mark as seen
+        const seenEventsKey = `events_seen_${currentUser.id}`;
+        const seenEvents = JSON.parse(localStorage.getItem(seenEventsKey) || '[]');
+        if (!seenEvents.includes(eventId)) {
+            seenEvents.push(eventId);
+            localStorage.setItem(seenEventsKey, JSON.stringify(seenEvents));
+        }
         
         // Refresh events list to show updated status
         await fetchEvents();
