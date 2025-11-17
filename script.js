@@ -2833,6 +2833,8 @@ async function syncMailFromBackend() {
 // Events functionality
 let eventsData = [];
 let eventsPollInterval = null;
+let isShowingEventModal = false; // Prevent multiple modals at once
+let lastEventCheckTime = 0; // Debounce event checks
 
 async function checkPendingEvents() {
     try {
@@ -2910,10 +2912,22 @@ async function fetchEvents() {
     } catch (error) {
         console.error('[Events] Error fetching events:', error);
     }
-}
-
 function checkForNewEvents() {
     if (!currentUser || !currentUser.id) return;
+    
+    // Debounce: Don't check more than once per 10 seconds
+    const now = Date.now();
+    if (now - lastEventCheckTime < 10000) {
+        console.log('[Events] Debounced - checked recently');
+        return;
+    }
+    lastEventCheckTime = now;
+    
+    // Don't show modal if one is already showing
+    if (isShowingEventModal) {
+        console.log('[Events] Modal already showing, skipping');
+        return;
+    }
     
     const seenEventsKey = `events_seen_${currentUser.id}`;
     const respondedEventsKey = `event_responses_${currentUser.id}`;
@@ -2949,6 +2963,8 @@ function checkForNewEvents() {
         const eventId = firstNewEvent.id || firstNewEvent.rowIndex;
         
         console.log('[Events] Showing popup for event:', eventId);
+        
+        isShowingEventModal = true; // Set flag
         
         addNotification('events', `New Event: ${firstNewEvent.name || firstNewEvent.eventName}`, 'events');
         showEventResponseModal(firstNewEvent);
@@ -3178,24 +3194,18 @@ function showEventResponseModal(event) {
             }
             
             await submitEventResponse(event, response, reason);
+            isShowingEventModal = false;
             modal.remove();
             playSuccessSound();
-            
-            if (response === 'cannot') {
-                showModal('alert', '<span class="success-tick"></span> Response recorded! You cannot attend.');
-                addNotification('events', `You cannot attend: ${event.eventName || event.name || 'Unnamed Event'}`, 'events');
-            } else {
-                showModal('alert', '<span class="success-tick"></span> Response recorded! Please contact the organiser if needed.');
-                addNotification('events', `You are unsure about: ${event.eventName || event.name || 'Unnamed Event'}`, 'events');
-            }
-            renderEvents(); // Refresh the events display
+            showModal('alert', '<span class="success-tick"></span> Response recorded!');
+            addNotification('events', `Event response submitted: ${event.eventName || event.name || 'Unnamed Event'}`, 'events');
+            renderEvents();
         });
     }
     
-    // Close button
+    // Close button handler
     modal.querySelector('.close-modal-btn').addEventListener('click', () => {
         console.log('[Events] Modal closed without response, marking as seen and popup shown');
-        // Mark as seen and popup shown even if closed without responding
         const eventId = event.id || event.rowIndex;
         const seenEventsKey = `events_seen_${currentUser.id}`;
         const popupShownKey = `events_popup_shown_${currentUser.id}`;
@@ -3212,6 +3222,7 @@ function showEventResponseModal(event) {
             localStorage.setItem(popupShownKey, JSON.stringify(shownPopups));
         }
         
+        isShowingEventModal = false;
         modal.remove();
     });
     
@@ -3219,7 +3230,6 @@ function showEventResponseModal(event) {
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             console.log('[Events] Modal closed by outside click, marking as seen and popup shown');
-            // Mark as seen and popup shown even if closed without responding
             const eventId = event.id || event.rowIndex;
             const seenEventsKey = `events_seen_${currentUser.id}`;
             const popupShownKey = `events_popup_shown_${currentUser.id}`;
@@ -3236,6 +3246,7 @@ function showEventResponseModal(event) {
                 localStorage.setItem(popupShownKey, JSON.stringify(shownPopups));
             }
             
+            isShowingEventModal = false;
             modal.remove();
         }
     });
@@ -3319,13 +3330,6 @@ function startEventsPolling() {
     
     // Initial check
     checkPendingEvents();
-    fetchEvents();
-}
-
-function stopEventsPolling() {
-    if (eventsPollInterval) {
-    fetchEvents();
-}
     fetchEvents();
 }
 
@@ -5593,7 +5597,8 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
         }
     }
     await handleOAuthRedirect();
-})();}
+})();
+
 // Calendar functionality
 let currentCalendarDate = new Date();
 
@@ -5809,9 +5814,11 @@ function renderCalendarEvents(events, month, year) {
         `).join('');
 }
 
-// Close modal when clicking outside
+// Close modal when clicking outside - this is at top level, outside DOMContentLoaded
 document.getElementById('calendarModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'calendarModal') {
         closeCalendarModal();
     }
 });
+}
+}
