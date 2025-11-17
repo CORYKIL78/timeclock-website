@@ -394,19 +394,49 @@
 
         // Clear absences for specific user
         function clearAbsencesForUser() {
-            const userId = prompt('Enter Discord User ID to clear absences for:');
+            // First, show all users with absences
+            const usersWithAbsences = [];
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('employee_')) {
+                    const empData = JSON.parse(localStorage.getItem(key));
+                    if (empData.absences && empData.absences.length > 0) {
+                        usersWithAbsences.push({
+                            id: empData.id,
+                            name: empData.name || empData.profile?.name || 'Unknown',
+                            count: empData.absences.length
+                        });
+                    }
+                }
+            }
+            
+            if (usersWithAbsences.length === 0) {
+                alert('No users with absences found in localStorage');
+                return;
+            }
+            
+            // Show list of users
+            const userList = usersWithAbsences.map(u => `${u.name} (ID: ${u.id}) - ${u.count} absence(s)`).join('\n');
+            const userId = prompt(`Users with absences:\n\n${userList}\n\nEnter Discord User ID to clear absences for:`);
+            
             if (!userId) return;
             
             const empKey = `employee_${userId}`;
             const empData = localStorage.getItem(empKey);
             
             if (!empData) {
-                alert(`No employee found with ID: ${userId}`);
+                alert(`No employee found with ID: ${userId}\n\nMake sure the user has logged in at least once.`);
                 return;
             }
             
             const employee = JSON.parse(empData);
             const absenceCount = employee.absences?.length || 0;
+            
+            if (absenceCount === 0) {
+                alert(`${employee.name || 'Unknown'} has no absences to clear.`);
+                return;
+            }
             
             if (!confirm(`Clear ${absenceCount} absence(s) for ${employee.name || 'Unknown'}?`)) {
                 return;

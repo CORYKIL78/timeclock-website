@@ -314,7 +314,8 @@
 
     <script>
         const ADMIN_PIN = '11122024';
-        const STORAGE_KEY = 'backup_admin_data';
+        const BACKEND_URL = 'https://timeclock-backend.marcusray.workers.dev';
+        let refreshInterval = null;
         
         // Check if already logged in
         if (sessionStorage.getItem('admin_logged_in') === 'true') {
@@ -335,6 +336,10 @@
         }
 
         function logout() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
             sessionStorage.removeItem('admin_logged_in');
             document.getElementById('loginScreen').style.display = 'flex';
             document.getElementById('adminPanel').style.display = 'none';
@@ -344,6 +349,11 @@
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'block';
             loadData();
+            // Auto-refresh every 30 seconds
+            refreshInterval = setInterval(() => {
+                console.log('[AUTO-REFRESH] Fetching latest data...');
+                loadData();
+            }, 30000);
         }
 
         function switchTab(tab) {
@@ -362,124 +372,106 @@
             else if (tab === 'stats') renderStats();
         }
 
-        function getBackupData() {
-            const data = localStorage.getItem(STORAGE_KEY);
-            return data ? JSON.parse(data) : {
-                absences: [],
-                requests: [],
-                users: []
-            };
-        }
-
-        function saveBackupData(data) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        }
-
-        function loadData() {
-            // Load from localStorage (all employee data)
-            syncFromLocalStorage();
-            renderAbsences();
-        }
-
-        function syncFromLocalStorage() {
-            const backupData = getBackupData();
-            const absences = [];
-            const users = [];
-            
-            // Scan localStorage for employee data
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith('employee_')) {
-                    const empData = JSON.parse(localStorage.getItem(key));
-                    
-                    // Add user
-                    users.push({
-                        id: empData.id,
-                        name: empData.name || empData.profile?.name || 'Unknown',
-                        email: empData.profile?.email || 'Not set',
-                        department: empData.profile?.department || 'Not set',
-                        status: empData.profile?.status || 'Active'
-                    });
-                    
-                    // Add absences
-                    if (empData.absences && empData.absences.length > 0) {
-                        empData.absences.forEach(absence => {
-                            absences.push({
-                                id: absence.id,
-                                userId: empData.id,
-                                userName: empData.name || empData.profile?.name || 'Unknown',
-                                type: absence.type,
-                                startDate: absence.startDate,
-                                endDate: absence.endDate,
-                                comment: absence.comment,
-                                status: absence.status || 'pending',
-                                submittedAt: new Date(parseInt(absence.id)).toISOString()
-                            });
-                        });
-                    }
-                }
+        async function loadData() {
+            try {
+                console.log('[FETCH] Loading data from backend...');
+                await Promise.all([
+                    fetchAbsences(),
+                    fetchUsers()
+                ]);
+                renderAbsences(); // Default tab
+                console.log('[FETCH] Data loaded successfully');
+            } catch (error) {
+                console.error('[ERROR] Failed to load data:', error);
+                alert('Failed to load data from backend. Check console for details.');
             }
-            
-            backupData.absences = absences;
-            backupData.users = users;
-            saveBackupData(backupData);
+        }
+
+        async function fetchAbsences() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/admin/absences`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                localStorage.setItem('admin_absences', JSON.stringify(data.absences || []));
+                return data.absences || [];
+            } catch (error) {
+                console.error('[ERROR] Failed to fetch absences:', error);
+                throw error;
+            }
+        }
+
+        async function fetchUsers() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/admin/users`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                localStorage.setItem('admin_users', JSON.stringify(data.users || []));
+                return data.users || [];
+            } catch (error) {
+                console.error('[ERROR] Failed to fetch users:', error);
+                throw error;
+            }
         }
 
         function renderAbsences() {
-            const data = getBackupData();
+            const absences = JSON.parse(localStorage.getItem('admin_absences') || '[]');
             const container = document.getElementById('absencesContent');
             
             // Update stats
             document.getElementById('absencesPending').textContent = 
-                data.absences.filter(a => a.status === 'pending').length;
+                absences.filter(a => a.status === 'pending').length;
             document.getElementById('absencesApproved').textContent = 
-                data.absences.filter(a => a.status === 'approved').length;
+                absences.filter(a => a.status === 'approved').length;
             document.getElementById('absencesRejected').textContent = 
-                data.absences.filter(a => a.status === 'rejected').length;
+                absences.filter(a => a.status === 'rejected').length;
             
-            if (data.absences.length === 0) {
+            if (absences.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">📅</div>
                         <p>No absence requests found</p>
+                        <button class="action-btn approve-btn" onclick="loadInitialData()" style="margin-top: 15px;">🔄 Refresh</button>
                     </div>
                 `;
                 return;
             }
             
-            // Sort by date (newest first)
-            data.absences.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+            // Sort by row index (newest/highest row first)
+            absences.sort((a, b) => b.rowIndex - a.rowIndex);
             
             container.innerHTML = `
+                <div style="margin-bottom: 15px; text-align: right;">
+                    <button class="action-btn approve-btn" onclick="loadInitialData()">🔄 Refresh Data</button>
+                </div>
                 <table>
                     <thead>
                         <tr>
                             <th>Name</th>
-                            <th>Type</th>
                             <th>Start Date</th>
                             <th>End Date</th>
                             <th>Days</th>
+                            <th>Reason</th>
                             <th>Comment</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${data.absences.map(absence => {
-                            const days = Math.ceil((new Date(absence.endDate) - new Date(absence.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+                        ${absences.map(absence => {
+                            const days = absence.totalDays || 0;
                             return `
                                 <tr>
-                                    <td><strong>${absence.userName}</strong></td>
-                                    <td>${absence.type}</td>
+                                    <td><strong>${absence.name}</strong></td>
                                     <td>${absence.startDate}</td>
                                     <td>${absence.endDate}</td>
                                     <td>${days}</td>
+                                    <td>${absence.reason}</td>
                                     <td>${absence.comment}</td>
                                     <td><span class="status-badge status-${absence.status}">${absence.status}</span></td>
                                     <td>
                                         ${absence.status === 'pending' ? `
-                                            <button class="action-btn approve-btn" onclick="approveAbsence('${absence.id}', '${absence.userId}')">✓ Approve</button>
-                                            <button class="action-btn reject-btn" onclick="rejectAbsence('${absence.id}', '${absence.userId}')">✗ Reject</button>
+                                            <button class="action-btn approve-btn" onclick="approveAbsence(${absence.rowIndex})">✓ Approve</button>
+                                            <button class="action-btn reject-btn" onclick="rejectAbsence(${absence.rowIndex})">✗ Reject</button>
                                         ` : '<em>Processed</em>'}
                                     </td>
                                 </tr>
@@ -490,40 +482,45 @@
             `;
         }
 
-        function approveAbsence(absenceId, userId) {
+        async function approveAbsence(rowIndex) {
             if (!confirm('Approve this absence request?')) return;
             
-            updateAbsenceStatus(absenceId, userId, 'approved');
-            renderAbsences();
-            alert('✅ Absence approved!');
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/admin/absence/update-status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rowIndex, status: 'Approved' })
+                });
+                
+                if (!response.ok) throw new Error('Failed to update');
+                
+                alert('✅ Absence approved!');
+                await fetchAbsences();
+                renderAbsences();
+            } catch (error) {
+                console.error('[ERROR] Failed to approve:', error);
+                alert('Failed to approve absence. Check console.');
+            }
         }
 
-        function rejectAbsence(absenceId, userId) {
+        async function rejectAbsence(rowIndex) {
             if (!confirm('Reject this absence request?')) return;
             
-            updateAbsenceStatus(absenceId, userId, 'rejected');
-            renderAbsences();
-            alert('❌ Absence rejected!');
-        }
-
-        function updateAbsenceStatus(absenceId, userId, status) {
-            // Update in backup data
-            const backupData = getBackupData();
-            const absence = backupData.absences.find(a => a.id === absenceId);
-            if (absence) {
-                absence.status = status;
-                saveBackupData(backupData);
-            }
-            
-            // Update in employee localStorage
-            const empKey = `employee_${userId}`;
-            const empData = JSON.parse(localStorage.getItem(empKey));
-            if (empData && empData.absences) {
-                const empAbsence = empData.absences.find(a => a.id === absenceId);
-                if (empAbsence) {
-                    empAbsence.status = status;
-                    localStorage.setItem(empKey, JSON.stringify(empData));
-                }
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/admin/absence/update-status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rowIndex, status: 'Rejected' })
+                });
+                
+                if (!response.ok) throw new Error('Failed to update');
+                
+                alert('❌ Absence rejected!');
+                await fetchAbsences();
+                renderAbsences();
+            } catch (error) {
+                console.error('[ERROR] Failed to reject:', error);
+                alert('Failed to reject absence. Check console.');
             }
         }
 
@@ -539,20 +536,24 @@
         }
 
         function renderUsers() {
-            const data = getBackupData();
+            const users = JSON.parse(localStorage.getItem('admin_users') || '[]');
             const container = document.getElementById('usersContent');
             
-            if (data.users.length === 0) {
+            if (users.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">👥</div>
                         <p>No users found</p>
+                        <button class="action-btn approve-btn" onclick="loadInitialData()" style="margin-top: 15px;">🔄 Refresh</button>
                     </div>
                 `;
                 return;
             }
             
             container.innerHTML = `
+                <div style="margin-bottom: 15px; text-align: right;">
+                    <button class="action-btn approve-btn" onclick="loadInitialData()">🔄 Refresh Data</button>
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -560,16 +561,18 @@
                             <th>Email</th>
                             <th>Department</th>
                             <th>Discord ID</th>
+                            <th>Signup Date</th>
                             <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${data.users.map(user => `
+                        ${users.map(user => `
                             <tr>
                                 <td><strong>${user.name}</strong></td>
                                 <td>${user.email}</td>
                                 <td>${user.department}</td>
                                 <td><code>${user.id}</code></td>
+                                <td>${user.signupDate}</td>
                                 <td><span class="status-badge status-approved">${user.status}</span></td>
                             </tr>
                         `).join('')}
@@ -579,14 +582,18 @@
         }
 
         function renderStats() {
-            const data = getBackupData();
+            const absences = JSON.parse(localStorage.getItem('admin_absences') || '[]');
+            const users = JSON.parse(localStorage.getItem('admin_users') || '[]');
             const container = document.getElementById('statsContent');
             
-            const totalAbsences = data.absences.length;
-            const totalUsers = data.users.length;
-            const pendingAbsences = data.absences.filter(a => a.status === 'pending').length;
+            const totalAbsences = absences.length;
+            const totalUsers = users.length;
+            const pendingAbsences = absences.filter(a => a.status === 'pending').length;
             
             container.innerHTML = `
+                <div style="margin-bottom: 15px; text-align: right;">
+                    <button class="action-btn approve-btn" onclick="loadInitialData()">🔄 Refresh Data</button>
+                </div>
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-number">${totalUsers}</div>
@@ -605,15 +612,19 @@
                 <table>
                     <tr>
                         <td><strong>Last Sync:</strong></td>
-                        <td>${new Date().toLocaleString()}</td>
+                        <td>${new Date().toLocaleString()} <em>(auto-refreshes every 30s)</em></td>
                     </tr>
                     <tr>
                         <td><strong>Data Source:</strong></td>
-                        <td>LocalStorage (Browser-based)</td>
+                        <td>Google Sheets via Backend API</td>
                     </tr>
                     <tr>
                         <td><strong>Backend Status:</strong></td>
                         <td><span class="status-badge status-approved">Online</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Backend URL:</strong></td>
+                        <td><code>${BACKEND_URL}</code></td>
                     </tr>
                 </table>
             `;
