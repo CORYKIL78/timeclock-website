@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Recovery Tool - Cirkle HR Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        .data-item {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .data-item h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        .data-item pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        .employee-list {
+            display: grid;
+            gap: 15px;
+        }
+        .employee-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .employee-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-top: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        .btn-success {
+            background: #4CAF50;
+        }
+        .btn-success:hover {
+            background: #45a049;
+        }
+        .empty {
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+            text-align: center;
+        }
+        .highlight {
+            background: #fff9c4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .status-pending {
+            background: #fff9c4;
+            color: #f57f17;
+        }
+        .status-approved {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        .status-rejected {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Data Recovery Tool</h1>
+        <p class="subtitle">This page shows all data stored locally and helps recover failed submissions</p>
+        
+        <div class="section">
+            <h2>👤 Current User</h2>
+            <div id="currentUserData"></div>
+        </div>
+        
+        <div class="section">
+            <h2>👥 All Employees (LocalStorage)</h2>
+            <div id="employeesData"></div>
+        </div>
+        
+        <div class="section">
+            <h2>📅 Absences</h2>
+            <div id="absencesData"></div>
+            <button class="btn btn-success" onclick="exportAbsences()">📥 Export Absences to CSV</button>
+        </div>
+        
+        <div class="section">
+            <h2>📝 Change Requests</h2>
+            <div id="requestsData"></div>
+            <button class="btn btn-success" onclick="exportRequests()">📥 Export Requests to CSV</button>
+        </div>
+        
+        <div class="section">
+            <h2>📧 Event Responses</h2>
+            <div id="eventsData"></div>
+        </div>
+        
+        <div class="section">
+            <h2>🔧 Raw LocalStorage Keys</h2>
+            <div id="rawKeys"></div>
+            <button class="btn" onclick="downloadAllData()">📥 Download All Data (JSON)</button>
+        </div>
+    </div>
+
+    <script>
+        // Load current user
+        function loadCurrentUser() {
+            const container = document.getElementById('currentUserData');
+            const currentUser = localStorage.getItem('currentUser');
+            
+            if (currentUser) {
+                const user = JSON.parse(currentUser);
+                container.innerHTML = `
+                    <div class="data-item">
+                        <h3>${user.name || 'Unknown User'}</h3>
+                        <pre>${JSON.stringify(user, null, 2)}</pre>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '<p class="empty">No user logged in</p>';
+            }
+        }
+
+        // Load all employees
+        function loadEmployees() {
+            const container = document.getElementById('employeesData');
+            const employees = [];
+            
+            // Get all employee keys
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('employee_')) {
+                    const empData = JSON.parse(localStorage.getItem(key));
+                    employees.push(empData);
+                }
+            }
+            
+            if (employees.length === 0) {
+                container.innerHTML = '<p class="empty">No employees found</p>';
+                return;
+            }
+            
+            container.innerHTML = '<div class="employee-list">' + employees.map(emp => `
+                <div class="employee-card">
+                    <h4>${emp.name || 'Unknown'} <span class="highlight">ID: ${emp.id}</span></h4>
+                    <p><strong>Department:</strong> ${emp.profile?.department || 'Not set'}</p>
+                    <p><strong>Email:</strong> ${emp.profile?.email || 'Not set'}</p>
+                    <p><strong>Absences:</strong> ${emp.absences?.length || 0}</p>
+                    <p><strong>Last Login:</strong> ${emp.lastLogin || 'Never'}</p>
+                </div>
+            `).join('') + '</div>';
+        }
+
+        // Load absences
+        function loadAbsences() {
+            const container = document.getElementById('absencesData');
+            const allAbsences = [];
+            
+            // Get absences from all employees
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('employee_')) {
+                    const empData = JSON.parse(localStorage.getItem(key));
+                    if (empData.absences && empData.absences.length > 0) {
+                        empData.absences.forEach(absence => {
+                            allAbsences.push({
+                                userName: empData.name || empData.profile?.name || 'Unknown',
+                                userId: empData.id,
+                                ...absence
+                            });
+                        });
+                    }
+                }
+            }
+            
+            if (allAbsences.length === 0) {
+                container.innerHTML = '<p class="empty">No absences found</p>';
+                return;
+            }
+            
+            // Sort by date (newest first)
+            allAbsences.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+            
+            container.innerHTML = allAbsences.map(absence => `
+                <div class="data-item">
+                    <h3>
+                        ${absence.userName} 
+                        <span class="status status-${absence.status}">${absence.status}</span>
+                    </h3>
+                    <p><strong>Type:</strong> ${absence.type}</p>
+                    <p><strong>Dates:</strong> ${absence.startDate} to ${absence.endDate}</p>
+                    <p><strong>Comment:</strong> ${absence.comment}</p>
+                    <p><strong>Discord ID:</strong> <span class="highlight">${absence.userId}</span></p>
+                    <p><strong>Submitted:</strong> ${new Date(parseInt(absence.id)).toLocaleString()}</p>
+                </div>
+            `).join('');
+        }
+
+        // Load event responses
+        function loadEventResponses() {
+            const container = document.getElementById('eventsData');
+            const responses = [];
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('event_responses_')) {
+                    const userId = key.replace('event_responses_', '');
+                    const data = JSON.parse(localStorage.getItem(key));
+                    responses.push({ userId, data });
+                }
+            }
+            
+            if (responses.length === 0) {
+                container.innerHTML = '<p class="empty">No event responses found</p>';
+                return;
+            }
+            
+            container.innerHTML = responses.map(r => `
+                <div class="data-item">
+                    <h3>User: ${r.userId}</h3>
+                    <pre>${JSON.stringify(r.data, null, 2)}</pre>
+                </div>
+            `).join('');
+        }
+
+        // Show raw localStorage keys
+        function loadRawKeys() {
+            const container = document.getElementById('rawKeys');
+            const keys = [];
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                keys.push(localStorage.key(i));
+            }
+            
+            keys.sort();
+            
+            container.innerHTML = `
+                <div class="data-item">
+                    <h3>All LocalStorage Keys (${keys.length})</h3>
+                    <pre>${keys.join('\n')}</pre>
+                </div>
+            `;
+        }
+
+        // Export absences to CSV
+        function exportAbsences() {
+            const allAbsences = [];
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('employee_')) {
+                    const empData = JSON.parse(localStorage.getItem(key));
+                    if (empData.absences && empData.absences.length > 0) {
+                        empData.absences.forEach(absence => {
+                            const days = Math.ceil((new Date(absence.endDate) - new Date(absence.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+                            allAbsences.push({
+                                Name: empData.name || empData.profile?.name || 'Unknown',
+                                'Start Date': absence.startDate,
+                                'End Date': absence.endDate,
+                                Reason: absence.type,
+                                'Total Days': days,
+                                Comment: absence.comment,
+                                Approval: absence.status === 'approved' ? 'Approved' : absence.status === 'rejected' ? 'Rejected' : '',
+                                'Discord ID': empData.id
+                            });
+                        });
+                    }
+                }
+            }
+            
+            if (allAbsences.length === 0) {
+                alert('No absences to export');
+                return;
+            }
+            
+            // Convert to CSV
+            const headers = Object.keys(allAbsences[0]);
+            const csv = [
+                headers.join(','),
+                ...allAbsences.map(row => headers.map(h => JSON.stringify(row[h] || '')).join(','))
+            ].join('\n');
+            
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `absences_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        // Export requests (placeholder - similar to absences)
+        function exportRequests() {
+            alert('Change requests are not stored locally - they go directly to Google Sheets');
+        }
+
+        // Download all data as JSON
+        function downloadAllData() {
+            const allData = {};
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                try {
+                    allData[key] = JSON.parse(localStorage.getItem(key));
+                } catch {
+                    allData[key] = localStorage.getItem(key);
+                }
+            }
+            
+            const json = JSON.stringify(allData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `portal_data_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        // Initialize
+        loadCurrentUser();
+        loadEmployees();
+        loadAbsences();
+        loadEventResponses();
+        loadRawKeys();
+    </script>
+</body>
+</html>

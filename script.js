@@ -5814,11 +5814,10 @@ function renderCalendarEvents(events, month, year) {
         `).join('');
 }
 
-// Close modal when clicking outside - this is at top level, outside DOMContentLoaded
+// Close modal when clicking outside
 document.getElementById('calendarModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'calendarModal') {
         closeCalendarModal();
     }
 });
-}
-}
+}}
