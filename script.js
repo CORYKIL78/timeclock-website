@@ -2912,8 +2912,26 @@ async function fetchEvents() {
     }
 }
 
+// Event modal state tracking
+let isShowingEventModal = false;
+let lastEventCheckTime = 0;
+
 function checkForNewEvents() {
     if (!currentUser || !currentUser.id) return;
+    
+    // Debounce: Don't check more than once per 10 seconds
+    const now = Date.now();
+    if (now - lastEventCheckTime < 10000) {
+        console.log('[Events] Debounced - checked recently');
+        return;
+    }
+    lastEventCheckTime = now;
+    
+    // Don't show modal if one is already showing
+    if (isShowingEventModal) {
+        console.log('[Events] Modal already showing, skipping');
+        return;
+    }
     
     const seenEventsKey = `events_seen_${currentUser.id}`;
     const respondedEventsKey = `event_responses_${currentUser.id}`;
@@ -2949,6 +2967,8 @@ function checkForNewEvents() {
         const eventId = firstNewEvent.id || firstNewEvent.rowIndex;
         
         console.log('[Events] Showing popup for event:', eventId);
+        
+        isShowingEventModal = true; // Set flag
         
         addNotification('events', `New Event: ${firstNewEvent.name || firstNewEvent.eventName}`, 'events');
         showEventResponseModal(firstNewEvent);
@@ -3145,6 +3165,7 @@ function showEventResponseModal(event) {
             attendBtn.disabled = true;
             
             await submitEventResponse(event, 'attend');
+            isShowingEventModal = false;
             modal.remove();
             playSuccessSound();
             showModal('alert', '<span class="success-tick"></span> Response recorded! You are attending.');
@@ -3178,6 +3199,7 @@ function showEventResponseModal(event) {
             }
             
             await submitEventResponse(event, response, reason);
+            isShowingEventModal = false;
             modal.remove();
             playSuccessSound();
             
@@ -3212,6 +3234,7 @@ function showEventResponseModal(event) {
             localStorage.setItem(popupShownKey, JSON.stringify(shownPopups));
         }
         
+        isShowingEventModal = false;
         modal.remove();
     });
     
@@ -3236,6 +3259,7 @@ function showEventResponseModal(event) {
                 localStorage.setItem(popupShownKey, JSON.stringify(shownPopups));
             }
             
+            isShowingEventModal = false;
             modal.remove();
         }
     });

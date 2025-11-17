@@ -157,6 +157,7 @@
             <h2>📅 Absences</h2>
             <div id="absencesData"></div>
             <button class="btn btn-success" onclick="exportAbsences()">📥 Export Absences to CSV</button>
+            <button class="btn" onclick="clearAbsencesForUser()" style="background: #f44336;">🗑️ Clear Absences for User ID</button>
         </div>
         
         <div class="section">
@@ -389,6 +390,33 @@
             a.href = url;
             a.download = `portal_data_${new Date().toISOString().split('T')[0]}.json`;
             a.click();
+        }
+
+        // Clear absences for specific user
+        function clearAbsencesForUser() {
+            const userId = prompt('Enter Discord User ID to clear absences for:');
+            if (!userId) return;
+            
+            const empKey = `employee_${userId}`;
+            const empData = localStorage.getItem(empKey);
+            
+            if (!empData) {
+                alert(`No employee found with ID: ${userId}`);
+                return;
+            }
+            
+            const employee = JSON.parse(empData);
+            const absenceCount = employee.absences?.length || 0;
+            
+            if (!confirm(`Clear ${absenceCount} absence(s) for ${employee.name || 'Unknown'}?`)) {
+                return;
+            }
+            
+            employee.absences = [];
+            localStorage.setItem(empKey, JSON.stringify(employee));
+            
+            alert(`✅ Cleared ${absenceCount} absence(s) for ${employee.name || 'Unknown'}`);
+            loadAbsences(); // Refresh display
         }
 
         // Initialize
