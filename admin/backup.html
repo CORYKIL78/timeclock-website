@@ -606,20 +606,27 @@
             if (!confirm('Approve this absence request?')) return;
             
             try {
+                console.log('[APPROVE] Sending request for row:', rowIndex);
                 const response = await fetch(`${BACKEND_URL}/api/admin/absence/update-status`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ rowIndex, status: 'Approved' })
                 });
                 
-                if (!response.ok) throw new Error('Failed to update');
+                console.log('[APPROVE] Response status:', response.status);
+                const result = await response.json();
+                console.log('[APPROVE] Response data:', result);
                 
-                alert('✅ Absence approved!');
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to update');
+                }
+                
+                alert('✅ Absence approved successfully!');
                 await fetchAbsences();
                 renderAbsences();
             } catch (error) {
-                console.error('[ERROR] Failed to approve:', error);
-                alert('Failed to approve absence. Check console.');
+                console.error('[ERROR] Failed to approve absence:', error);
+                alert(`Failed to approve absence: ${error.message}\nCheck browser console for details.`);
             }
         }
 
@@ -627,20 +634,27 @@
             if (!confirm('Reject this absence request?')) return;
             
             try {
+                console.log('[REJECT] Sending request for row:', rowIndex);
                 const response = await fetch(`${BACKEND_URL}/api/admin/absence/update-status`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ rowIndex, status: 'Rejected' })
                 });
                 
-                if (!response.ok) throw new Error('Failed to update');
+                console.log('[REJECT] Response status:', response.status);
+                const result = await response.json();
+                console.log('[REJECT] Response data:', result);
                 
-                alert('❌ Absence rejected!');
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to update');
+                }
+                
+                alert('❌ Absence rejected successfully!');
                 await fetchAbsences();
                 renderAbsences();
             } catch (error) {
-                console.error('[ERROR] Failed to reject:', error);
-                alert('Failed to reject absence. Check console.');
+                console.error('[ERROR] Failed to reject absence:', error);
+                alert(`Failed to reject absence: ${error.message}\nCheck browser console for details.`);
             }
         }
 
