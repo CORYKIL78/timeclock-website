@@ -253,6 +253,8 @@
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('absences')">Absences</button>
             <button class="tab-btn" onclick="switchTab('requests')">Change Requests</button>
+            <button class="tab-btn" onclick="switchTab('payslips')">Payslips</button>
+            <button class="tab-btn" onclick="switchTab('strikes')">Strikes</button>
             <button class="tab-btn" onclick="switchTab('users')">Users</button>
             <button class="tab-btn" onclick="switchTab('stats')">Statistics</button>
         </div>
@@ -298,6 +300,20 @@
                 <div id="requestsContent"></div>
             </div>
 
+            <!-- Payslips Tab -->
+            <div class="tab-content" id="payslipsTab">
+                <h2>💰 Payslip Management</h2>
+                <button class="action-btn approve-btn" onclick="showAddPayslipModal()" style="margin-bottom: 20px;">+ Add Payslip</button>
+                <div id="payslipsContent"></div>
+            </div>
+
+            <!-- Strikes Tab -->
+            <div class="tab-content" id="strikesTab">
+                <h2>⚠️ Disciplinary Strikes</h2>
+                <button class="action-btn reject-btn" onclick="showAddStrikeModal()" style="margin-bottom: 20px;">+ Add Strike</button>
+                <div id="strikesContent"></div>
+            </div>
+
             <!-- Users Tab -->
             <div class="tab-content" id="usersTab">
                 <h2>👥 User Management</h2>
@@ -309,6 +325,68 @@
                 <h2>📊 System Statistics</h2>
                 <div id="statsContent"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- Add Payslip Modal -->
+    <div id="payslipModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%;">
+            <h2>💰 Add Payslip</h2>
+            <form id="payslipForm" onsubmit="submitPayslip(event)">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Employee Discord ID:</label>
+                    <input type="text" id="payslipUserId" required style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Period (e.g., "January 2025"):</label>
+                    <input type="text" id="payslipPeriod" required style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Amount:</label>
+                    <input type="text" id="payslipAmount" required style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px;" placeholder="e.g., $2,500.00">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">PDF URL:</label>
+                    <input type="url" id="payslipPdfUrl" required style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px;" placeholder="https://...">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="action-btn approve-btn" style="flex: 1;">Add Payslip</button>
+                    <button type="button" class="action-btn reject-btn" onclick="closePayslipModal()" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Strike Modal -->
+    <div id="strikeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%;">
+            <h2>⚠️ Add Disciplinary Strike</h2>
+            <form id="strikeForm" onsubmit="submitStrike(event)">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Employee Discord ID:</label>
+                    <input type="text" id="strikeUserId" required style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Reason:</label>
+                    <input type="text" id="strikeReason" required style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Severity:</label>
+                    <select id="strikeSeverity" required style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px;">
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Details:</label>
+                    <textarea id="strikeDetails" rows="4" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px;"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="action-btn reject-btn" style="flex: 1;">Add Strike</button>
+                    <button type="button" class="action-btn approve-btn" onclick="closeStrikeModal()" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -368,6 +446,8 @@
             // Reload data for the tab
             if (tab === 'absences') renderAbsences();
             else if (tab === 'requests') renderRequests();
+            else if (tab === 'payslips') { fetchPayslips().then(renderPayslips); }
+            else if (tab === 'strikes') { fetchStrikes().then(renderStrikes); }
             else if (tab === 'users') renderUsers();
             else if (tab === 'stats') renderStats();
         }
@@ -377,7 +457,8 @@
                 console.log('[FETCH] Loading data from backend...');
                 await Promise.all([
                     fetchAbsences(),
-                    fetchUsers()
+                    fetchUsers(),
+                    fetchRequests()
                 ]);
                 renderAbsences(); // Default tab
                 console.log('[FETCH] Data loaded successfully');
@@ -409,6 +490,45 @@
                 return data.users || [];
             } catch (error) {
                 console.error('[ERROR] Failed to fetch users:', error);
+                throw error;
+            }
+        }
+
+        async function fetchRequests() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/admin/requests`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                localStorage.setItem('admin_requests', JSON.stringify(data.requests || []));
+                return data.requests || [];
+            } catch (error) {
+                console.error('[ERROR] Failed to fetch requests:', error);
+                throw error;
+            }
+        }
+
+        async function fetchPayslips() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/admin/payslips`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                localStorage.setItem('admin_payslips', JSON.stringify(data.payslips || []));
+                return data.payslips || [];
+            } catch (error) {
+                console.error('[ERROR] Failed to fetch payslips:', error);
+                throw error;
+            }
+        }
+
+        async function fetchStrikes() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/admin/strikes`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                localStorage.setItem('admin_strikes', JSON.stringify(data.strikes || []));
+                return data.strikes || [];
+            } catch (error) {
+                console.error('[ERROR] Failed to fetch strikes:', error);
                 throw error;
             }
         }
@@ -525,14 +645,263 @@
         }
 
         function renderRequests() {
+            const requests = JSON.parse(localStorage.getItem('admin_requests') || '[]');
             const container = document.getElementById('requestsContent');
+            
+            // Update stats
+            document.getElementById('requestsPending').textContent = 
+                requests.filter(r => r.status === 'pending').length;
+            document.getElementById('requestsApproved').textContent = 
+                requests.filter(r => r.status === 'approved').length;
+            document.getElementById('requestsRejected').textContent = 
+                requests.filter(r => r.status === 'rejected').length;
+            
+            if (requests.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <p>No change requests found</p>
+                        <button class="action-btn approve-btn" onclick="loadData()" style="margin-top: 15px;">🔄 Refresh</button>
+                    </div>
+                `;
+                return;
+            }
+            
             container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">📝</div>
-                    <p>Change requests are submitted directly to Google Sheets</p>
-                    <p style="margin-top: 10px; color: #666; font-size: 0.9em;">This backup system tracks locally stored data only</p>
+                <div style="margin-bottom: 15px; text-align: right;">
+                    <button class="action-btn approve-btn" onclick="fetchRequests().then(renderRequests)">🔄 Refresh Data</button>
                 </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Current Value</th>
+                            <th>New Value</th>
+                            <th>Submitted</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${requests.map(req => `
+                            <tr>
+                                <td><strong>${req.name}</strong></td>
+                                <td>${req.changeType}</td>
+                                <td>${req.currentValue}</td>
+                                <td>${req.newValue}</td>
+                                <td>${req.submittedAt || 'Unknown'}</td>
+                                <td><span class="status-badge status-${req.status}">${req.status}</span></td>
+                                <td>
+                                    ${req.status === 'pending' ? `
+                                        <button class="action-btn approve-btn" onclick="approveRequest(${req.rowIndex})">✓ Approve</button>
+                                        <button class="action-btn reject-btn" onclick="rejectRequest(${req.rowIndex})">✗ Reject</button>
+                                    ` : '<em>Processed</em>'}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
             `;
+        }
+
+        async function approveRequest(rowIndex) {
+            if (!confirm('Approve this change request?')) return;
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/admin/request/update-status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rowIndex, status: 'Approved' })
+                });
+                
+                if (!response.ok) throw new Error('Failed to update');
+                
+                alert('✅ Request approved!');
+                await fetchRequests();
+                renderRequests();
+            } catch (error) {
+                console.error('[ERROR] Failed to approve:', error);
+                alert('Failed to approve request. Check console.');
+            }
+        }
+
+        async function rejectRequest(rowIndex) {
+            if (!confirm('Reject this change request?')) return;
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/admin/request/update-status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rowIndex, status: 'Rejected' })
+                });
+                
+                if (!response.ok) throw new Error('Failed to update');
+                
+                alert('❌ Request rejected!');
+                await fetchRequests();
+                renderRequests();
+            } catch (error) {
+                console.error('[ERROR] Failed to reject:', error);
+                alert('Failed to reject request. Check console.');
+            }
+        }
+
+        function renderPayslips() {
+            const payslips = JSON.parse(localStorage.getItem('admin_payslips') || '[]');
+            const container = document.getElementById('payslipsContent');
+            
+            if (payslips.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💰</div>
+                        <p>No payslips found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Period</th>
+                            <th>Amount</th>
+                            <th>Uploaded</th>
+                            <th>PDF</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${payslips.map(ps => `
+                            <tr>
+                                <td><strong>${ps.name}</strong></td>
+                                <td>${ps.period}</td>
+                                <td>${ps.amount}</td>
+                                <td>${ps.uploadDate || 'Unknown'}</td>
+                                <td><a href="${ps.pdfUrl}" target="_blank" class="action-btn approve-btn" style="display: inline-block; padding: 5px 10px; font-size: 0.9em;">View PDF</a></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderStrikes() {
+            const strikes = JSON.parse(localStorage.getItem('admin_strikes') || '[]');
+            const container = document.getElementById('strikesContent');
+            
+            if (strikes.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <p>No disciplinary strikes found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Reason</th>
+                            <th>Severity</th>
+                            <th>Details</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${strikes.map(strike => `
+                            <tr>
+                                <td><strong>${strike.name}</strong></td>
+                                <td>${strike.reason}</td>
+                                <td><span class="status-badge status-${strike.severity === 'High' ? 'rejected' : strike.severity === 'Medium' ? 'pending' : 'approved'}">${strike.severity}</span></td>
+                                <td>${strike.details || 'None'}</td>
+                                <td>${strike.date || 'Unknown'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Modal functions
+        function showAddPayslipModal() {
+            document.getElementById('payslipModal').style.display = 'block';
+        }
+
+        function closePayslipModal() {
+            document.getElementById('payslipModal').style.display = 'none';
+            document.getElementById('payslipForm').reset();
+        }
+
+        function showAddStrikeModal() {
+            document.getElementById('strikeModal').style.display = 'block';
+        }
+
+        function closeStrikeModal() {
+            document.getElementById('strikeModal').style.display = 'none';
+            document.getElementById('strikeForm').reset();
+        }
+
+        async function submitPayslip(event) {
+            event.preventDefault();
+            
+            const data = {
+                discordId: document.getElementById('payslipUserId').value,
+                period: document.getElementById('payslipPeriod').value,
+                amount: document.getElementById('payslipAmount').value,
+                pdfUrl: document.getElementById('payslipPdfUrl').value
+            };
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/admin/payslip/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) throw new Error('Failed to add payslip');
+                
+                alert('✅ Payslip added successfully!');
+                closePayslipModal();
+                await fetchPayslips();
+                renderPayslips();
+            } catch (error) {
+                console.error('[ERROR] Failed to add payslip:', error);
+                alert('Failed to add payslip. Check console.');
+            }
+        }
+
+        async function submitStrike(event) {
+            event.preventDefault();
+            
+            const data = {
+                discordId: document.getElementById('strikeUserId').value,
+                reason: document.getElementById('strikeReason').value,
+                severity: document.getElementById('strikeSeverity').value,
+                details: document.getElementById('strikeDetails').value
+            };
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/admin/strike/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) throw new Error('Failed to add strike');
+                
+                alert('⚠️ Strike added successfully!');
+                closeStrikeModal();
+                await fetchStrikes();
+                renderStrikes();
+            } catch (error) {
+                console.error('[ERROR] Failed to add strike:', error);
+                alert('Failed to add strike. Check console.');
+            }
         }
 
         function renderUsers() {
