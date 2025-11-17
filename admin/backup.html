@@ -470,10 +470,14 @@
 
         async function fetchAbsences() {
             try {
+                console.log('[FETCH] Fetching absences from backend...');
                 const response = await fetch(`${BACKEND_URL}/api/admin/absences`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                localStorage.setItem('admin_absences', JSON.stringify(data.absences || []));
+                console.log('[FETCH] Received absences:', data.absences?.length || 0);
+                // Store in memory, not localStorage - always fresh from API
+                window.adminData = window.adminData || {};
+                window.adminData.absences = data.absences || [];
                 return data.absences || [];
             } catch (error) {
                 console.error('[ERROR] Failed to fetch absences:', error);
@@ -483,10 +487,13 @@
 
         async function fetchUsers() {
             try {
+                console.log('[FETCH] Fetching users from backend...');
                 const response = await fetch(`${BACKEND_URL}/api/admin/users`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                localStorage.setItem('admin_users', JSON.stringify(data.users || []));
+                console.log('[FETCH] Received users:', data.users?.length || 0);
+                window.adminData = window.adminData || {};
+                window.adminData.users = data.users || [];
                 return data.users || [];
             } catch (error) {
                 console.error('[ERROR] Failed to fetch users:', error);
@@ -496,10 +503,13 @@
 
         async function fetchRequests() {
             try {
+                console.log('[FETCH] Fetching requests from backend...');
                 const response = await fetch(`${BACKEND_URL}/api/admin/requests`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                localStorage.setItem('admin_requests', JSON.stringify(data.requests || []));
+                console.log('[FETCH] Received requests:', data.requests?.length || 0);
+                window.adminData = window.adminData || {};
+                window.adminData.requests = data.requests || [];
                 return data.requests || [];
             } catch (error) {
                 console.error('[ERROR] Failed to fetch requests:', error);
@@ -509,10 +519,13 @@
 
         async function fetchPayslips() {
             try {
+                console.log('[FETCH] Fetching payslips from backend...');
                 const response = await fetch(`${BACKEND_URL}/api/admin/payslips`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                localStorage.setItem('admin_payslips', JSON.stringify(data.payslips || []));
+                console.log('[FETCH] Received payslips:', data.payslips?.length || 0);
+                window.adminData = window.adminData || {};
+                window.adminData.payslips = data.payslips || [];
                 return data.payslips || [];
             } catch (error) {
                 console.error('[ERROR] Failed to fetch payslips:', error);
@@ -522,10 +535,13 @@
 
         async function fetchStrikes() {
             try {
+                console.log('[FETCH] Fetching strikes from backend...');
                 const response = await fetch(`${BACKEND_URL}/api/admin/strikes`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                localStorage.setItem('admin_strikes', JSON.stringify(data.strikes || []));
+                console.log('[FETCH] Received strikes:', data.strikes?.length || 0);
+                window.adminData = window.adminData || {};
+                window.adminData.strikes = data.strikes || [];
                 return data.strikes || [];
             } catch (error) {
                 console.error('[ERROR] Failed to fetch strikes:', error);
@@ -534,7 +550,7 @@
         }
 
         function renderAbsences() {
-            const absences = JSON.parse(localStorage.getItem('admin_absences') || '[]');
+            const absences = (window.adminData && window.adminData.absences) || [];
             const container = document.getElementById('absencesContent');
             
             // Update stats
@@ -550,7 +566,7 @@
                     <div class="empty-state">
                         <div class="empty-state-icon">📅</div>
                         <p>No absence requests found</p>
-                        <button class="action-btn approve-btn" onclick="loadInitialData()" style="margin-top: 15px;">🔄 Refresh</button>
+                        <button class="action-btn approve-btn" onclick="fetchAbsences().then(renderAbsences)" style="margin-top: 15px;">🔄 Refresh</button>
                     </div>
                 `;
                 return;
@@ -561,7 +577,7 @@
             
             container.innerHTML = `
                 <div style="margin-bottom: 15px; text-align: right;">
-                    <button class="action-btn approve-btn" onclick="loadInitialData()">🔄 Refresh Data</button>
+                    <button class="action-btn approve-btn" onclick="fetchAbsences().then(renderAbsences)">🔄 Refresh Data</button>
                 </div>
                 <table>
                     <thead>
@@ -659,7 +675,7 @@
         }
 
         function renderRequests() {
-            const requests = JSON.parse(localStorage.getItem('admin_requests') || '[]');
+            const requests = (window.adminData && window.adminData.requests) || [];
             const container = document.getElementById('requestsContent');
             
             // Update stats
@@ -675,7 +691,7 @@
                     <div class="empty-state">
                         <div class="empty-state-icon">📝</div>
                         <p>No change requests found</p>
-                        <button class="action-btn approve-btn" onclick="loadData()" style="margin-top: 15px;">🔄 Refresh</button>
+                        <button class="action-btn approve-btn" onclick="fetchRequests().then(renderRequests)" style="margin-top: 15px;">🔄 Refresh</button>
                     </div>
                 `;
                 return;
@@ -762,7 +778,7 @@
         }
 
         function renderPayslips() {
-            const payslips = JSON.parse(localStorage.getItem('admin_payslips') || '[]');
+            const payslips = (window.adminData && window.adminData.payslips) || [];
             const container = document.getElementById('payslipsContent');
             
             if (payslips.length === 0) {
@@ -802,7 +818,7 @@
         }
 
         function renderStrikes() {
-            const strikes = JSON.parse(localStorage.getItem('admin_strikes') || '[]');
+            const strikes = (window.adminData && window.adminData.strikes) || [];
             const container = document.getElementById('strikesContent');
             
             if (strikes.length === 0) {
@@ -919,7 +935,7 @@
         }
 
         function renderUsers() {
-            const users = JSON.parse(localStorage.getItem('admin_users') || '[]');
+            const users = (window.adminData && window.adminData.users) || [];
             const container = document.getElementById('usersContent');
             
             if (users.length === 0) {
@@ -927,7 +943,7 @@
                     <div class="empty-state">
                         <div class="empty-state-icon">👥</div>
                         <p>No users found</p>
-                        <button class="action-btn approve-btn" onclick="loadInitialData()" style="margin-top: 15px;">🔄 Refresh</button>
+                        <button class="action-btn approve-btn" onclick="fetchUsers().then(renderUsers)" style="margin-top: 15px;">🔄 Refresh</button>
                     </div>
                 `;
                 return;
@@ -935,7 +951,7 @@
             
             container.innerHTML = `
                 <div style="margin-bottom: 15px; text-align: right;">
-                    <button class="action-btn approve-btn" onclick="loadInitialData()">🔄 Refresh Data</button>
+                    <button class="action-btn approve-btn" onclick="fetchUsers().then(renderUsers)">🔄 Refresh Data</button>
                 </div>
                 <table>
                     <thead>
@@ -965,8 +981,8 @@
         }
 
         function renderStats() {
-            const absences = JSON.parse(localStorage.getItem('admin_absences') || '[]');
-            const users = JSON.parse(localStorage.getItem('admin_users') || '[]');
+            const absences = (window.adminData && window.adminData.absences) || [];
+            const users = (window.adminData && window.adminData.users) || [];
             const container = document.getElementById('statsContent');
             
             const totalAbsences = absences.length;
@@ -975,7 +991,7 @@
             
             container.innerHTML = `
                 <div style="margin-bottom: 15px; text-align: right;">
-                    <button class="action-btn approve-btn" onclick="loadInitialData()">🔄 Refresh Data</button>
+                    <button class="action-btn approve-btn" onclick="loadData()">🔄 Refresh Data</button>
                 </div>
                 <div class="stats-grid">
                     <div class="stat-card">
