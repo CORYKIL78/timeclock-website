@@ -402,11 +402,9 @@
     <script>
         const USERNAME = 'cirkledevelopment.co.uk';
         const PIN = '061025';
-        const MAILERSEND_TOKEN = 'mlsn.fe7903a1eb16b303bcd64d8192c666f32ab8214a481e6f220c689b4332b7aed1';
         const BACKEND_URL = 'https://timeclock-backend.marcusray.workers.dev';
 
         let emailData = {
-            inbox: [],
             sent: [],
             drafts: [],
             deleted: []
@@ -529,51 +527,40 @@
                 return;
             }
 
-            // Parse recipients
-            const recipients = to.split(',').map(email => ({
-                email: email.trim(),
-                name: email.trim().split('@')[0]
-            }));
-
             const emailHTML = getEmailTemplate(body);
             
             try {
-                const response = await fetch('https://api.mailersend.com/v1/email', {
+                const response = await fetch(`${BACKEND_URL}/api/webmail/send`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${MAILERSEND_TOKEN}`
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        from: {
-                            email: 'noreply@cirkledevelopment.co.uk',
-                            name: 'Cirkle Development'
-                        },
-                        to: recipients,
+                        to: to,
                         subject: subject,
                         html: emailHTML
                     })
                 });
 
                 if (response.ok) {
-                    // Save to sent
-                    const sentEmail = {
-                        id: Date.now(),
-                        to: to,
-                        subject: subject,
-                        body: body,
-                        date: new Date().toISOString(),
-                        selected: false
-                    };
-                    emailData.sent.unshift(sentEmail);
-                    saveEmails();
+                    // Save to sent in Google Sheets
+                    await fetch(`${BACKEND_URL}/api/webmail/save`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            folder: 'sent',
+                            to: to,
+                            subject: subject,
+                            body: body,
+                            date: new Date().toISOString()
+                        })
+                    });
                     
                     alert('✅ Email sent successfully!');
                     clearCompose();
+                    await loadEmails();
                     switchView('sent');
                 } else {
                     const error = await response.json();
-                    alert('Failed to send email: ' + (error.message || 'Unknown error'));
+                    alert('Failed to send email: ' + (error.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Send error:', error);
@@ -581,24 +568,31 @@
             }
         }
 
-        function saveDraft() {
+        async function saveDraft() {
             const to = document.getElementById('emailTo').value;
             const subject = document.getElementById('emailSubject').value;
             const body = document.getElementById('emailBody').innerHTML;
             
-            const draft = {
-                id: Date.now(),
-                to: to,
-                subject: subject || '(No Subject)',
-                body: body,
-                date: new Date().toISOString(),
-                selected: false
-            };
-            
-            emailData.drafts.unshift(draft);
-            saveEmails();
-            alert('💾 Draft saved!');
-            clearCompose();
+            try {
+                await fetch(`${BACKEND_URL}/api/webmail/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        folder: 'drafts',
+                        to: to,
+                        subject: subject || '(No Subject)',
+                        body: body,
+                        date: new Date().toISOString()
+                    })
+                });
+                
+                alert('💾 Draft saved!');
+                clearCompose();
+                await loadEmails();
+            } catch (error) {
+                console.error('Save draft error:', error);
+                alert('Failed to save draft');
+            }
         }
 
         function clearCompose() {
@@ -607,16 +601,19 @@
             document.getElementById('emailBody').innerHTML = '';
         }
 
-        function loadEmails() {
-            const stored = localStorage.getItem('webmail_data');
-            if (stored) {
-                emailData = JSON.parse(stored);
+        async function loadEmails() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/webmail/list`);
+                if (response.ok) {
+                    const data = await response.json();
+                    emailData.sent = (data.sent || []).map(e => ({...e, selected: false}));
+                    emailData.drafts = (data.drafts || []).map(e => ({...e, selected: false}));
+                    emailData.deleted = (data.deleted || []).map(e => ({...e, selected: false}));
+                    renderEmails('sent');
+                }
+            } catch (error) {
+                console.error('Load emails error:', error);
             }
-            renderEmails('inbox');
-        }
-
-        function saveEmails() {
-            localStorage.setItem('webmail_data', JSON.stringify(emailData));
         }
 
         function renderEmails(folder) {
@@ -650,18 +647,16 @@
             const email = emailData[folder].find(e => e.id === id);
             if (email) {
                 email.selected = !email.selected;
-                saveEmails();
             }
         }
 
         function selectAll(folder) {
             const allSelected = emailData[folder].every(e => e.selected);
             emailData[folder].forEach(e => e.selected = !allSelected);
-            saveEmails();
             renderEmails(folder);
         }
 
-        function deleteSelected(folder) {
+        async function deleteSelected(folder) {
             const selected = emailData[folder].filter(e => e.selected);
             if (selected.length === 0) {
                 alert('No emails selected');
@@ -670,14 +665,25 @@
             
             if (!confirm(`Delete ${selected.length} email(s)?`)) return;
             
-            // Move to deleted
-            emailData.deleted.unshift(...selected);
-            emailData[folder] = emailData[folder].filter(e => !e.selected);
-            saveEmails();
-            renderEmails(folder);
+            try {
+                // Move each to deleted folder in backend
+                for (const email of selected) {
+                    await fetch(`${BACKEND_URL}/api/webmail/delete`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ rowIndex: email.id, permanent: false })
+                    });
+                }
+                
+                await loadEmails();
+                renderEmails(folder);
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('Failed to delete emails');
+            }
         }
 
-        function permanentlyDelete() {
+        async function permanentlyDelete() {
             const selected = emailData.deleted.filter(e => e.selected);
             if (selected.length === 0) {
                 alert('No emails selected');
@@ -686,9 +692,21 @@
             
             if (!confirm(`Permanently delete ${selected.length} email(s)? This cannot be undone!`)) return;
             
-            emailData.deleted = emailData.deleted.filter(e => !e.selected);
-            saveEmails();
-            renderEmails('deleted');
+            try {
+                for (const email of selected) {
+                    await fetch(`${BACKEND_URL}/api/webmail/delete`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ rowIndex: email.id, permanent: true })
+                    });
+                }
+                
+                await loadEmails();
+                renderEmails('deleted');
+            } catch (error) {
+                console.error('Permanent delete error:', error);
+                alert('Failed to delete emails');
+            }
         }
 
         function viewEmail(folder, id) {
@@ -711,7 +729,7 @@
             document.getElementById(folder + 'List').innerHTML = html;
         }
 
-        function editDraft(id) {
+        async function editDraft(id) {
             const draft = emailData.drafts.find(d => d.id === id);
             if (!draft) return;
             
@@ -719,9 +737,18 @@
             document.getElementById('emailSubject').value = draft.subject;
             document.getElementById('emailBody').innerHTML = draft.body;
             
-            // Remove from drafts
-            emailData.drafts = emailData.drafts.filter(d => d.id !== id);
-            saveEmails();
+            // Remove from drafts in backend
+            try {
+                await fetch(`${BACKEND_URL}/api/webmail/delete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rowIndex: draft.id, permanent: true })
+                });
+                
+                await loadEmails();
+            } catch (error) {
+                console.error('Delete draft error:', error);
+            }
             
             showCompose();
         }
