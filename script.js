@@ -2834,6 +2834,33 @@ async function syncMailFromBackend() {
 let eventsData = [];
 let eventsPollInterval = null;
 
+async function fetchAttendanceCount() {
+    if (!currentUser || !currentUser.id) return;
+    
+    try {
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/attendance/get', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userDiscordId: currentUser.id })
+        });
+        
+        if (!response.ok) {
+            console.error('[Attendance] Failed to fetch count:', response.statusText);
+            return;
+        }
+        
+        const data = await response.json();
+        console.log('[Attendance] Fetched count:', data);
+        
+        const countElement = document.getElementById('attendanceCount');
+        if (countElement) {
+            countElement.textContent = data.count || 0;
+        }
+    } catch (error) {
+        console.error('[Attendance] Error fetching count:', error);
+    }
+}
+
 async function checkPendingEvents() {
     try {
         const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/events/check-pending', {
@@ -4929,6 +4956,7 @@ document.getElementById('clockOutBtn').addEventListener('click', async () => {
 
 document.getElementById('eventsBtn').addEventListener('click', () => {
     showScreen('events');
+    fetchAttendanceCount(); // Fetch attendance count
     renderEvents();
     closeMobileSidebar();
 });
