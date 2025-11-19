@@ -1695,6 +1695,12 @@ let currentNotifications = [];
 
 function showScreen(screenId) {
     console.log('Showing screen:', screenId);
+    
+    // Stop attendance polling when leaving events screen
+    if (screenId !== 'events') {
+        stopAttendanceCountPolling();
+    }
+    
     Object.values(screens).forEach(s => {
         if (s) {
             s.classList.remove('active');
@@ -2833,6 +2839,7 @@ async function syncMailFromBackend() {
 // Events functionality
 let eventsData = [];
 let eventsPollInterval = null;
+let attendanceCountPollInterval = null;
 
 async function fetchAttendanceCount() {
     if (!currentUser || !currentUser.id) return;
@@ -2858,6 +2865,26 @@ async function fetchAttendanceCount() {
         }
     } catch (error) {
         console.error('[Attendance] Error fetching count:', error);
+    }
+}
+
+function startAttendanceCountPolling() {
+    // Clear any existing interval
+    if (attendanceCountPollInterval) {
+        clearInterval(attendanceCountPollInterval);
+    }
+    
+    // Fetch immediately
+    fetchAttendanceCount();
+    
+    // Then poll every 10 seconds
+    attendanceCountPollInterval = setInterval(fetchAttendanceCount, 10000);
+}
+
+function stopAttendanceCountPolling() {
+    if (attendanceCountPollInterval) {
+        clearInterval(attendanceCountPollInterval);
+        attendanceCountPollInterval = null;
     }
 }
 
@@ -4956,7 +4983,7 @@ document.getElementById('clockOutBtn').addEventListener('click', async () => {
 
 document.getElementById('eventsBtn').addEventListener('click', () => {
     showScreen('events');
-    fetchAttendanceCount(); // Fetch attendance count
+    startAttendanceCountPolling(); // Start polling for attendance count updates
     renderEvents();
     closeMobileSidebar();
 });
