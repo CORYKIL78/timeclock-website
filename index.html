@@ -8,6 +8,20 @@
     <link rel="apple-touch-icon" href="https://media.discordapp.net/attachments/1419317839269073016/1434615119182172170/cirkledevlogopng1.png">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- EMERGENCY MAINTENANCE CHECK -->
+    <script>
+        (async function() {
+            try {
+                const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/status');
+                const data = await response.json();
+                if (data.offline) {
+                    window.location.href = '/maintenance.html';
+                }
+            } catch (e) {
+                window.location.href = '/maintenance.html';
+            }
+        })();
+    </script>
 </head>
 <body>
     <!-- Sidebar (desktop) / Topbar (mobile) -->
