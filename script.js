@@ -5158,7 +5158,7 @@ function showRequestDetails(request) {
 
 // Submit Request button handler
 document.getElementById('submitRequestBtn').addEventListener('click', () => {
-    document.getElementById('submitRequestModal').classList.add('active');
+    showModal('submitRequest');
     document.getElementById('requestTypeSelect').value = '';
     document.getElementById('requestDetailsTextarea').value = '';
 });
@@ -5208,7 +5208,7 @@ document.getElementById('submitRequestFormBtn').addEventListener('click', async 
         console.log('[DEBUG] Request submitted:', data);
         
         // Close modal
-        document.getElementById('submitRequestModal').classList.remove('active');
+        closeModal('submitRequest');
         
         // Show success message
         showModal('alert', '<span class="success-tick"></span> Your request has been submitted successfully! You will be notified when it is reviewed.');
@@ -5227,7 +5227,7 @@ document.getElementById('submitRequestFormBtn').addEventListener('click', async 
 
 // Cancel Request form handler
 document.getElementById('cancelRequestFormBtn').addEventListener('click', () => {
-    document.getElementById('submitRequestModal').classList.remove('active');
+    closeModal('submitRequest');
 });
 
 document.getElementById('eventsBtn').addEventListener('click', () => {
