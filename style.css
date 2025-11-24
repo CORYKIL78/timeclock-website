@@ -4954,3 +4954,91 @@ body.dark #profileDateFormatSelect option {
         padding: 12px !important;
     }
 }
+
+/* ========== MOBILE OPTIMIZATIONS FOR REDESIGNED HOME LAYOUT ========== */
+@media (max-width: 768px) {
+    /* Stack the side-by-side cards vertically on mobile */
+    #mainMenuScreen .container > div:last-child {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Adjust greeting card for mobile */
+    #mainMenuScreen .user-header-card {
+        padding: 20px !important;
+    }
+    
+    #mainMenuScreen .user-header-card > div {
+        flex-direction: column !important;
+        text-align: center !important;
+        gap: 12px !important;
+    }
+    
+    #mainMenuScreen .user-header-card img {
+        width: 60px !important;
+        height: 60px !important;
+    }
+    
+    #mainMenuScreen #greeting {
+        font-size: 24px !important;
+    }
+    
+    #mainMenuScreen #dateTime {
+        font-size: 16px !important;
+    }
+    
+    /* Adjust stat cards for mobile */
+    #mainMenuScreen .stat-card {
+        padding: 20px !important;
+    }
+    
+    #mainMenuScreen .stat-card h3 {
+        font-size: 16px !important;
+    }
+    
+    #mainMenuScreen #totalAbsences,
+    #mainMenuScreen #currentDepartment {
+        font-size: 32px !important;
+    }
+    
+    #mainMenuScreen #totalAbsenceDays {
+        font-size: 24px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Extra small devices - further size reductions */
+    #mainMenuScreen #greeting {
+        font-size: 20px !important;
+    }
+    
+    #mainMenuScreen #totalAbsences,
+    #mainMenuScreen #currentDepartment {
+        font-size: 28px !important;
+    }
+    
+    #mainMenuScreen #totalAbsenceDays {
+        font-size: 20px !important;
+    }
+    
+    #mainMenuScreen .stat-card {
+        padding: 16px !important;
+    }
+}
+
+/* Mobile touch optimization - larger tap targets */
+@media (hover: none) and (pointer: coarse) {
+    button,
+    .nav-button,
+    .stat-card button {
+        min-height: 44px !important;
+        min-width: 44px !important;
+    }
+    
+    /* Easier to tap list items */
+    .disciplinary-row,
+    .request-row,
+    .payslip-row {
+        padding: 20px !important;
+    }
+}
+

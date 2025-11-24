@@ -1658,6 +1658,7 @@ const screens = {
     payslips: document.getElementById('payslipsScreen'),
     disciplinaries: document.getElementById('disciplinariesScreen'),
     timeclock: document.getElementById('timeclockScreen'),
+    requests: document.getElementById('requestsScreen'),
     events: document.getElementById('eventsScreen'),
     mail: document.getElementById('mailScreen'),
     clickup: document.getElementById('clickupScreen'),
@@ -1675,7 +1676,8 @@ const modals = {
     viewMail: document.getElementById('viewMailModal'),
     replyMail: document.getElementById('replyMailModal'),
     absenceDetail: document.getElementById('absenceDetailModal'),
-    confirmCancelAbsence: document.getElementById('confirmCancelAbsenceModal')
+    confirmCancelAbsence: document.getElementById('confirmCancelAbsenceModal'),
+    submitRequest: document.getElementById('submitRequestModal')
 };
 
 let currentUser = null;
@@ -1756,6 +1758,7 @@ function updateActiveNavButton(screenId) {
         'absences': 'absencesBtn',
         'payslips': 'payslipsBtn',
         'disciplinaries': 'disciplinariesBtn',
+        'requests': 'requestsBtn',
         'timeclock': 'timeclockBtn',
         'events': 'eventsBtn',
         'mail': 'mailBtn',
@@ -4979,6 +4982,252 @@ document.getElementById('clockOutBtn').addEventListener('click', async () => {
     playSuccessSound();
     addNotification('timeclock', 'You have clocked out!', 'timeclock');
     renderPreviousSessions();
+});
+
+// ========== REQUESTS FUNCTIONALITY ==========
+let requestsData = [];
+
+document.getElementById('requestsBtn').addEventListener('click', async () => {
+    showScreen('requests');
+    
+    // Show loading state
+    const loadingEl = document.getElementById('requestsLoading');
+    const emptyEl = document.getElementById('requestsEmpty');
+    const listEl = document.getElementById('requestsList');
+    
+    loadingEl.classList.remove('hidden');
+    emptyEl.classList.add('hidden');
+    listEl.innerHTML = '';
+    
+    const userId = currentUser?.id;
+    
+    console.log('[DEBUG] Requests - Using Discord ID:', userId);
+    
+    closeMobileSidebar();
+    
+    if (!userId) {
+        loadingEl.classList.add('hidden');
+        emptyEl.innerHTML = '<p>Please log in first.</p>';
+        emptyEl.classList.remove('hidden');
+        console.error('[DEBUG] No currentUser found - user not logged in');
+        return;
+    }
+    
+    try {
+        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/requests/fetch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        });
+        
+        if (!res.ok) {
+            throw new Error('Failed to fetch requests');
+        }
+        
+        const data = await res.json();
+        requestsData = data.requests || [];
+        
+        console.log('[DEBUG] Fetched requests:', requestsData);
+        
+        loadingEl.classList.add('hidden');
+        
+        if (requestsData.length === 0) {
+            emptyEl.classList.remove('hidden');
+            return;
+        }
+        
+        // Generate clean row-based list matching disciplinaries design
+        listEl.style.cssText = 'display: flex; flex-direction: column; gap: 12px; padding: 20px;';
+        
+        requestsData.forEach((req, index) => {
+            const item = document.createElement('div');
+            item.className = 'request-row';
+            
+            const date = req.timestamp || new Date().toLocaleDateString();
+            
+            // Color-coded based on status
+            let statusColor, statusBg, statusIcon;
+            if (req.status === 'Pending') {
+                statusColor = '#f57c00';
+                statusBg = '#fff3e0';
+                statusIcon = '⚠️';
+            } else if (req.status === 'Approved') {
+                statusColor = '#4CAF50';
+                statusBg = '#e8f5e9';
+                statusIcon = '✅';
+            } else if (req.status === 'Denied') {
+                statusColor = '#f44336';
+                statusBg = '#ffebee';
+                statusIcon = '❌';
+            }
+            
+            item.style.cssText = `
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                border: 2px solid ${statusColor}; 
+                padding: 20px 24px; 
+                border-radius: 8px; 
+                background: ${statusBg}; 
+                cursor: pointer;
+                transition: all 0.2s ease;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            `;
+            
+            item.onmouseover = () => {
+                item.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)';
+                item.style.transform = 'translateY(-2px)';
+            };
+            
+            item.onmouseout = () => {
+                item.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
+                item.style.transform = 'translateY(0)';
+            };
+            
+            item.innerHTML = `
+                <div style="flex: 1;">
+                    <span style="font-weight: 600; color: ${statusColor}; font-size: 16px;">${statusIcon} ${req.type}: ${date}</span>
+                </div>
+                <div style="flex: 1; text-align: right;">
+                    <span style="color: ${statusColor}; font-size: 14px; font-weight: 600;">${req.status}</span>
+                </div>
+            `;
+            
+            item.onclick = () => showRequestDetails(req);
+            
+            listEl.appendChild(item);
+        });
+        
+    } catch (error) {
+        console.error('Error fetching requests:', error);
+        loadingEl.classList.add('hidden');
+        emptyEl.innerHTML = '<p>Error loading requests. Please try again.</p>';
+        emptyEl.classList.remove('hidden');
+    }
+});
+
+function showRequestDetails(request) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.5); display: flex; align-items: center; 
+        justify-content: center; z-index: 10000;
+    `;
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    
+    let statusColor, statusBg, statusIcon;
+    if (request.status === 'Pending') {
+        statusColor = '#f57c00';
+        statusBg = '#fff3e0';
+        statusIcon = '⚠️';
+    } else if (request.status === 'Approved') {
+        statusColor = '#4CAF50';
+        statusBg = '#e8f5e9';
+        statusIcon = '✅';
+    } else if (request.status === 'Denied') {
+        statusColor = '#f44336';
+        statusBg = '#ffebee';
+        statusIcon = '❌';
+    }
+    
+    modal.innerHTML = `
+        <div style="background: white; border-radius: 12px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <h2 style="margin-top: 0; color: ${statusColor};">${statusIcon} ${request.type} Request</h2>
+            <div style="background: ${statusBg}; padding: 15px; border-radius: 8px; border: 2px solid ${statusColor}; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: 600; color: ${statusColor};">Status: ${request.status}</p>
+            </div>
+            <p><strong>Submitted:</strong> ${request.timestamp || 'Unknown'}</p>
+            <p><strong>Details:</strong></p>
+            <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; white-space: pre-wrap; margin-bottom: 20px;">
+                ${request.comment || 'No details provided'}
+            </div>
+            ${request.response ? `
+                <p><strong>Response:</strong></p>
+                <div style="background: ${statusBg}; padding: 15px; border-radius: 8px; border: 1px solid ${statusColor};">
+                    ${request.response}
+                </div>
+            ` : ''}
+            <button onclick="this.closest('div').parentElement.remove()" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px;">
+                Close
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Submit Request button handler
+document.getElementById('submitRequestBtn').addEventListener('click', () => {
+    document.getElementById('submitRequestModal').classList.add('active');
+    document.getElementById('requestTypeSelect').value = '';
+    document.getElementById('requestDetailsTextarea').value = '';
+});
+
+// Submit Request form handler
+document.getElementById('submitRequestFormBtn').addEventListener('click', async () => {
+    const type = document.getElementById('requestTypeSelect').value;
+    const details = document.getElementById('requestDetailsTextarea').value;
+    
+    if (!type) {
+        alert('Please select a request type');
+        return;
+    }
+    
+    if (!details.trim()) {
+        alert('Please provide details for your request');
+        return;
+    }
+    
+    const userId = currentUser?.id;
+    if (!userId) {
+        alert('Please log in first');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = document.getElementById('submitRequestFormBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+    
+    try {
+        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/requests/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId,
+                type,
+                comment: details
+            })
+        });
+        
+        if (!res.ok) {
+            throw new Error('Failed to submit request');
+        }
+        
+        const data = await res.json();
+        console.log('[DEBUG] Request submitted:', data);
+        
+        // Close modal
+        document.getElementById('submitRequestModal').classList.remove('active');
+        
+        // Show success message
+        showModal('alert', '<span class="success-tick"></span> Your request has been submitted successfully! You will be notified when it is reviewed.');
+        
+        // Refresh the requests list
+        document.getElementById('requestsBtn').click();
+        
+    } catch (error) {
+        console.error('Error submitting request:', error);
+        alert('Failed to submit request. Please try again.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Request';
+    }
+});
+
+// Cancel Request form handler
+document.getElementById('cancelRequestFormBtn').addEventListener('click', () => {
+    document.getElementById('submitRequestModal').classList.remove('active');
 });
 
 document.getElementById('eventsBtn').addEventListener('click', () => {
