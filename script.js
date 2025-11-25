@@ -1075,6 +1075,48 @@ setInterval(async () => {
     }
 }, 2000); // Poll every 2 seconds for faster notifications
 
+// Polling for general request status updates (resignation, disputes, etc.)
+let lastRequestCheck = localStorage.getItem('lastRequestCheck') ? JSON.parse(localStorage.getItem('lastRequestCheck')) : {};
+setInterval(async () => {
+    console.log('[DEBUG] Polling for request status updates...');
+    if (!currentUser) {
+        console.log('[DEBUG] No currentUser found for requests');
+        return;
+    }
+    
+    try {
+        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/requests/check-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            if (data.hasUpdates && data.updatedRequests) {
+                console.log(`[DEBUG] Found ${data.updatedRequests.length} updated request(s)`);
+                
+                for (const request of data.updatedRequests) {
+                    const statusEmoji = request.status === 'Approved' ? '✅' : '❌';
+                    const statusText = request.status === 'Approved' ? 'approved' : 'denied';
+                    addNotification('requests', `${statusEmoji} Your ${request.type} request was ${statusText}!`, 'requests');
+                    
+                    // Play notification sound
+                    playNotificationSound();
+                }
+                
+                // Refresh requests list if on requests screen
+                if (document.getElementById('requestsScreen').classList.contains('active')) {
+                    const event = new Event('DOMContentLoaded');
+                    document.dispatchEvent(event);
+                }
+            }
+        }
+    } catch (e) {
+        console.error('[DEBUG] Error checking request status:', e);
+    }
+}, 5000); // Poll every 5 seconds for request updates
+
 // Polling for acknowledged payslips and disciplinaries
 setInterval(async () => {
     console.log('[DEBUG] Polling for payslip/disciplinary acknowledgements...');
