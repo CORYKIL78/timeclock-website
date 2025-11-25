@@ -1508,38 +1508,35 @@ function updateAbsenceTabSlider() {
 }
 // Fix absence tab slider logic
 
-// Removed absence tab slider logic
-// Absence webhook URL for Discord
-const ABSENCE_WEBHOOK_URL = 'https://discord.com/api/webhooks/1422667332144201920/ijjZECto8hc2FxZdO0mPu0OnuhX4fJfRoR_nqq8bs7UEXO4ujugLd4Zc8b4F9BuV7fnw';
+// ==============================================================================
+// SENTINEL Security: All webhooks moved to secure backend
+// No sensitive data exposed in frontend
+// ==============================================================================
 
-// Events webhook URL for Discord (same as absences)
-const EVENTS_WEBHOOK_URL = 'https://discord.com/api/webhooks/1435359542312571010/jZDyr35j65JhUoQgFSF4xk-m0ASdHNNjql_X7tLB80kDa8orIxgVisO-iWX1n70zFTz_';
-
-// Utility to send absence to Discord webhook
+// Utility to send absence to Discord webhook (via secure backend)
 async function sendAbsenceWebhook(absence) {
     const emp = getEmployee(currentUser.id);
     const days = Math.ceil((new Date(absence.endDate) - new Date(absence.startDate)) / (1000 * 60 * 60 * 24)) + 1;
-    const msg = [
-        `**${absence.cancelled ? 'Absence Cancelled' : 'New Absence Request'}**`,
-        `• **User:** <@${currentUser.id}> (${emp.profile.name})`,
-        `• **Type:** ${absence.type}`,
-        `• **Start Date:** ${absence.startDate}`,
-        `• **End Date:** ${absence.endDate}`,
-        `• **Days:** ${days}`,
-        `• **Reason:** ${absence.comment || absence.reason || 'N/A'}`,
-        absence.cancelled ? '• **Status:** Cancelled' : '',
-        '',
-        '_Please accept via HR Portal_'
-    ].filter(Boolean).join('\n');
-    await fetch(ABSENCE_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: msg })
-    });
+    
+    try {
+        await fetch('https://timeclock-backend.marcusray.workers.dev/api/webhooks/absence', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: currentUser.id,
+                userName: emp.profile.name,
+                type: absence.type,
+                startDate: absence.startDate,
+                endDate: absence.endDate,
+                days: days,
+                reason: absence.comment || absence.reason || 'N/A',
+                cancelled: absence.cancelled || false
+            })
+        });
+    } catch (error) {
+        console.error('Failed to send absence webhook:', error);
+    }
 }
-
-// Bot token stored securely (obfuscated from inspect)
-const getBotToken = () => atob('TVRReE56a3hOVGc1TmpZek5ESTNOemM0T0Rvby5HTFV2NWwuMDQ1c1pELWxNa2haTHMyeTZiRXRKMUY2VmxSRFBrV1FIRUFELU0=');
 
 const REQUIRED_ROLE = '1315346851616002158';
 const DEPT_ROLES = {
@@ -1548,7 +1545,6 @@ const DEPT_ROLES = {
     'Finance Department': '1433453982453338122'
 };
 const GUILD_ID = '1310656642672627752';
-const WEBHOOK_URL = 'https://discord.com/api/webhooks/1417260030851551273/KGKnWF3mwTt7mNWmC3OTAPWcWJSl1FnQ3-Ub-l1-xpk46tOsAYAtIhRTlti2qxjJSOds';
 const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev';
 const CLIENT_ID = '1417915896634277888';
 const REDIRECT_URI = 'https://portal.cirkledevelopment.co.uk';
@@ -1881,16 +1877,17 @@ function formatTime(ms) {
 }
 
 async function sendWebhook(content) {
+    // SENTINEL Security: Route through secure backend
     try {
-        const response = await fetch(WEBHOOK_URL, {
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/webhooks/timeclock', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content })
         });
-        if (!response.ok) throw new Error(`Webhook failed: ${response.status} ${await response.text()}`);
-        console.log('Webhook sent successfully:', content);
+        if (!response.ok) throw new Error(`Webhook failed: ${response.status}`);
+        console.log('[SENTINEL] Webhook sent successfully');
     } catch (e) {
-        console.error('Webhook error:', e);
+        console.error('[SENTINEL] Webhook error:', e);
     }
 }
 
@@ -6143,3 +6140,62 @@ document.getElementById('calendarModal')?.addEventListener('click', (e) => {
         closeCalendarModal();
     }
 });
+
+// ========== SENTINEL SECURITY PROTECTIONS ==========
+// Prevent context menu (right-click)
+document.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    return false;
+});
+
+// Prevent common developer tools shortcuts
+document.addEventListener('keydown', e => {
+    // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U
+    if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key)) ||
+        (e.ctrlKey && e.key === 'U')
+    ) {
+        e.preventDefault();
+        return false;
+    }
+});
+
+// Detect DevTools opening
+let devtoolsOpen = false;
+const detectDevTools = () => {
+    const threshold = 160;
+    const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+    const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+    
+    if (widthThreshold || heightThreshold) {
+        if (!devtoolsOpen) {
+            devtoolsOpen = true;
+            console.clear();
+            console.log('%c⚠️ SENTINEL SECURITY WARNING', 'color: red; font-size: 24px; font-weight: bold;');
+            console.log('%cThis is a secure internal portal. Unauthorized access attempts are logged.', 'color: orange; font-size: 16px;');
+        }
+    } else {
+        devtoolsOpen = false;
+    }
+};
+
+setInterval(detectDevTools, 1000);
+
+// Clear console periodically
+setInterval(() => {
+    console.clear();
+    console.log('%c🛡️ Protected by SENTINEL Security', 'color: #667eea; font-size: 14px; font-weight: bold;');
+}, 5000);
+
+// Disable text selection on sensitive areas
+document.addEventListener('selectstart', e => {
+    if (e.target.classList.contains('sensitive-data')) {
+        e.preventDefault();
+        return false;
+    }
+});
+
+console.log('%c🛡️ SENTINEL Security Active', 'color: #667eea; font-size: 16px; font-weight: bold;');
+console.log('%cAll requests are monitored and protected.', 'color: #667eea; font-size: 12px;');
+

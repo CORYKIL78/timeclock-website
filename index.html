@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Staff Portal</title>
+    
+    <!-- SENTINEL Security Meta Tags -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://timeclock-backend.marcusray.workers.dev https://portal.cirkledevelopment.co.uk https://cdn.jsdelivr.net https://media.discordapp.net; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; connect-src 'self' https://timeclock-backend.marcusray.workers.dev https://discord.com;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="robots" content="noindex, nofollow">
+    
     <link rel="icon" type="image/png" href="https://media.discordapp.net/attachments/1419317839269073016/1434615119182172170/cirkledevlogopng1.png">
     <link rel="apple-touch-icon" href="https://media.discordapp.net/attachments/1419317839269073016/1434615119182172170/cirkledevlogopng1.png">
     <link rel="stylesheet" href="style.css">
@@ -406,6 +414,15 @@
     
     <div id="mainMenuScreen" class="screen">
         <div class="container">
+            <!-- SENTINEL Security Badge -->
+            <div style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; background: rgba(255,255,255,0.95); padding: 12px 20px; border-radius: 50px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; backdrop-filter: blur(10px); border: 2px solid #667eea;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L3 6V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V6L12 2Z" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="#e6eeff"/>
+                    <path d="M9 12L11 14L15 10" stroke="#667eea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span style="font-weight: 600; color: #667eea; font-size: 14px;">Protected by SENTINEL</span>
+            </div>
+            
             <!-- Enlarged greeting section (full width rectangle) -->
             <div class="user-header-card" style="padding: 30px; margin-bottom: 24px;">
                 <div style="display: flex; align-items: center; gap: 20px;">
