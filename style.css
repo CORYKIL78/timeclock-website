@@ -5042,3 +5042,75 @@ body.dark #profileDateFormatSelect option {
     }
 }
 
+/* Enhanced mobile responsiveness for all screen sizes */
+@media (max-width: 1024px) {
+    .screen > div[style*="width: 250%"],
+    .screen > div[style*="width: 220%"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 20px 10px !important;
+    }
+    
+    .sidebar {
+        width: 220px;
+    }
+    
+    .main-content {
+        margin-left: 220px;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Force all content to be mobile-friendly */
+    .screen > div > div[style*="width"] {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .container {
+        max-width: 100% !important;
+        padding: 15px !important;
+    }
+    
+    /* Stack cards vertically on mobile */
+    .user-header-card,
+    .stat-grid,
+    .department-cards {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    .stat-card,
+    .department-card {
+        width: 100% !important;
+        margin-bottom: 15px !important;
+    }
+}
+
+/* Tablet optimization */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .screen > div[style*="250%"] {
+        width: 200% !important;
+    }
+}
+
+/* Ensure requests page follows same pattern as other pages */
+#requestsScreen > div {
+    padding: 40px 0 30px 0 !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+#requestsScreen > div > div {
+    width: 250% !important;
+    max-width: 250% !important;
+}
+
+@media (max-width: 1024px) {
+    #requestsScreen > div > div {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
