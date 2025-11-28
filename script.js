@@ -1107,8 +1107,12 @@ setInterval(async () => {
                 
                 // Refresh requests list if on requests screen
                 if (document.getElementById('requestsScreen').classList.contains('active')) {
-                    const event = new Event('DOMContentLoaded');
-                    document.dispatchEvent(event);
+                    console.log('[DEBUG] Reloading requests list after status update');
+                    try {
+                        await reloadRequests();
+                    } catch (e) {
+                        console.error('[DEBUG] Error calling reloadRequests:', e);
+                    }
                 }
             }
         }
@@ -5026,33 +5030,29 @@ document.getElementById('clockOutBtn').addEventListener('click', async () => {
 // ========== REQUESTS FUNCTIONALITY ==========
 let requestsData = [];
 
-document.getElementById('requestsBtn').addEventListener('click', async () => {
-    showScreen('requests');
+// Function to reload requests list
+async function reloadRequests() {
+    console.log('[DEBUG] reloadRequests() called');
     
-    // Show loading state
     const loadingEl = document.getElementById('requestsLoading');
     const emptyEl = document.getElementById('requestsEmpty');
     const listEl = document.getElementById('requestsList');
     
-    loadingEl.classList.remove('hidden');
-    emptyEl.classList.add('hidden');
-    listEl.innerHTML = '';
+    if (!loadingEl || !emptyEl || !listEl) {
+        console.error('[DEBUG] Request elements not found');
+        return;
+    }
     
     const userId = currentUser?.id;
     
-    console.log('[DEBUG] Requests - Using Discord ID:', userId);
-    
-    closeMobileSidebar();
-    
     if (!userId) {
-        loadingEl.classList.add('hidden');
-        emptyEl.innerHTML = '<p>Please log in first.</p>';
-        emptyEl.classList.remove('hidden');
-        console.error('[DEBUG] No currentUser found - user not logged in');
+        console.error('[DEBUG] No currentUser found');
         return;
     }
     
     try {
+        console.log('[DEBUG] Fetching requests for user:', userId);
+        
         const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/requests/fetch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -5064,40 +5064,57 @@ document.getElementById('requestsBtn').addEventListener('click', async () => {
         }
         
         const data = await res.json();
-        requestsData = data.requests || [];
+        const requests = data.requests || [];
         
-        console.log('[DEBUG] Fetched requests:', requestsData);
+        console.log('[DEBUG] Fetched', requests.length, 'requests:', requests);
         
-        loadingEl.classList.add('hidden');
+        // CLEAR EXISTING LIST FIRST
+        listEl.innerHTML = '';
         
-        if (requestsData.length === 0) {
+        if (requests.length === 0) {
+            loadingEl.classList.add('hidden');
             emptyEl.classList.remove('hidden');
             return;
         }
         
-        // Generate clean row-based list matching disciplinaries design
+        loadingEl.classList.add('hidden');
+        emptyEl.classList.add('hidden');
+        
+        // Generate clean row-based list
         listEl.style.cssText = 'display: flex; flex-direction: column; gap: 12px; padding: 20px;';
         
-        requestsData.forEach((req, index) => {
+        requests.forEach((req) => {
             const item = document.createElement('div');
             item.className = 'request-row';
             
+            // Ensure all fields have defaults to prevent "undefined"
+            const type = req.type || 'Request';
+            const status = req.status || 'Pending';
             const date = req.timestamp || new Date().toLocaleDateString();
+            const comment = req.comment || 'No comment';
+            const approverName = req.approverName || '';
+            
+            console.log('[DEBUG] Rendering request:', { type, status, date });
             
             // Color-coded based on status
             let statusColor, statusBg, statusIcon;
-            if (req.status === 'Pending') {
+            if (status === 'Pending') {
                 statusColor = '#f57c00';
                 statusBg = '#fff3e0';
                 statusIcon = '⚠️';
-            } else if (req.status === 'Approved') {
+            } else if (status === 'Approved') {
                 statusColor = '#4CAF50';
                 statusBg = '#e8f5e9';
                 statusIcon = '✅';
-            } else if (req.status === 'Denied') {
+            } else if (status === 'Denied') {
                 statusColor = '#f44336';
                 statusBg = '#ffebee';
                 statusIcon = '❌';
+            } else {
+                // Unknown status
+                statusColor = '#666';
+                statusBg = '#f5f5f5';
+                statusIcon = '❓';
             }
             
             item.style.cssText = `
@@ -5125,10 +5142,10 @@ document.getElementById('requestsBtn').addEventListener('click', async () => {
             
             item.innerHTML = `
                 <div style="flex: 1;">
-                    <span style="font-weight: 600; color: ${statusColor}; font-size: 16px;">${statusIcon} ${req.type}: ${date}</span>
+                    <span style="font-weight: 600; color: ${statusColor}; font-size: 16px;">${statusIcon} ${type}: ${date}</span>
                 </div>
                 <div style="flex: 1; text-align: right;">
-                    <span style="color: ${statusColor}; font-size: 14px; font-weight: 600;">${req.status}</span>
+                    <span style="color: ${statusColor}; font-size: 14px; font-weight: 600;">${status}</span>
                 </div>
             `;
             
@@ -5138,11 +5155,37 @@ document.getElementById('requestsBtn').addEventListener('click', async () => {
         });
         
     } catch (error) {
-        console.error('Error fetching requests:', error);
-        loadingEl.classList.add('hidden');
-        emptyEl.innerHTML = '<p>Error loading requests. Please try again.</p>';
-        emptyEl.classList.remove('hidden');
+        console.error('[DEBUG] Error in reloadRequests:', error);
     }
+}
+
+document.getElementById('requestsBtn').addEventListener('click', async () => {
+    showScreen('requests');
+    closeMobileSidebar();
+    
+    // Show loading state
+    const loadingEl = document.getElementById('requestsLoading');
+    const emptyEl = document.getElementById('requestsEmpty');
+    const listEl = document.getElementById('requestsList');
+    
+    loadingEl.classList.remove('hidden');
+    emptyEl.classList.add('hidden');
+    listEl.innerHTML = '';
+    
+    const userId = currentUser?.id;
+    
+    console.log('[DEBUG] Requests button clicked - User ID:', userId);
+    
+    if (!userId) {
+        loadingEl.classList.add('hidden');
+        emptyEl.innerHTML = '<p>Please log in first.</p>';
+        emptyEl.classList.remove('hidden');
+        console.error('[DEBUG] No currentUser found - user not logged in');
+        return;
+    }
+    
+    // Use the reload function
+    await reloadRequests();
 });
 
 function showRequestDetails(request) {
@@ -5252,12 +5295,17 @@ document.getElementById('submitRequestFormBtn').addEventListener('click', async 
         // Show success message
         showModal('alert', '<span class="success-tick"></span> Your request has been submitted successfully! You will be notified when it is reviewed.');
         
-        // Refresh the requests list by triggering the load event
-        setTimeout(() => {
+        // Refresh the requests list
+        setTimeout(async () => {
             if (document.getElementById('requestsScreen').classList.contains('active')) {
-                document.dispatchEvent(new Event('DOMContentLoaded'));
+                console.log('[DEBUG] Reloading requests after submission');
+                try {
+                    await reloadRequests();
+                } catch (e) {
+                    console.error('[DEBUG] Error reloading requests:', e);
+                }
             }
-        }, 500);
+        }, 1000);
         
     } catch (error) {
         console.error('Error submitting request:', error);
@@ -6229,10 +6277,13 @@ const detectDevTools = () => {
 setInterval(detectDevTools, 1000);
 
 // Clear console periodically
+// TEMPORARILY DISABLED FOR DEBUGGING
+/*
 setInterval(() => {
     console.clear();
     console.log('%c🛡️ Protected by SENTINEL Security', 'color: #667eea; font-size: 14px; font-weight: bold;');
 }, 5000);
+*/
 
 // Disable text selection on sensitive areas
 document.addEventListener('selectstart', e => {
