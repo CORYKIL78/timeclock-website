@@ -1108,8 +1108,9 @@ setInterval(async () => {
                 console.log(`[DEBUG] Found ${data.updatedRequests.length} updated request(s)`);
                 
                 for (const request of data.updatedRequests) {
-                    const statusEmoji = request.status === 'Approved' ? '✅' : '❌';
-                    const statusText = request.status === 'Approved' ? 'approved' : 'denied';
+                    const isApproved = request.status === 'Approve' || request.status === 'Approved';
+                    const statusEmoji = isApproved ? '✅' : '❌';
+                    const statusText = isApproved ? 'approved' : 'denied';
                     addNotification('requests', `${statusEmoji} Your ${request.type} request was ${statusText}!`, 'requests');
                     
                     // Play notification sound
@@ -5114,11 +5115,11 @@ async function reloadRequests() {
                 statusColor = '#f57c00';
                 statusBg = '#fff3e0';
                 statusIcon = '⚠️';
-            } else if (status === 'Approved') {
+            } else if (status === 'Approve' || status === 'Approved') {
                 statusColor = '#4CAF50';
                 statusBg = '#e8f5e9';
                 statusIcon = '✅';
-            } else if (status === 'Denied') {
+            } else if (status === 'Deny' || status === 'Denied') {
                 statusColor = '#f44336';
                 statusBg = '#ffebee';
                 statusIcon = '❌';
@@ -5154,10 +5155,14 @@ async function reloadRequests() {
             
             // Build status text with approver name if available
             let statusText = status;
-            if (status === 'Approved' && approverName) {
+            if ((status === 'Approve' || status === 'Approved') && approverName) {
                 statusText = `Approved by: ${approverName}`;
-            } else if (status === 'Denied' && approverName) {
+            } else if ((status === 'Deny' || status === 'Denied') && approverName) {
                 statusText = `Denied by: ${approverName}`;
+            } else if (status === 'Approve') {
+                statusText = 'Approved';
+            } else if (status === 'Deny') {
+                statusText = 'Denied';
             }
             
             item.innerHTML = `
@@ -5218,18 +5223,23 @@ function showRequestDetails(request) {
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     
     let statusColor, statusBg, statusIcon;
-    if (request.status === 'Pending') {
+    const normalizedStatus = (request.status || '').trim();
+    if (normalizedStatus === 'Pending') {
         statusColor = '#f57c00';
         statusBg = '#fff3e0';
         statusIcon = '⚠️';
-    } else if (request.status === 'Approved') {
+    } else if (normalizedStatus === 'Approve' || normalizedStatus === 'Approved') {
         statusColor = '#4CAF50';
         statusBg = '#e8f5e9';
         statusIcon = '✅';
-    } else if (request.status === 'Denied') {
+    } else if (normalizedStatus === 'Deny' || normalizedStatus === 'Denied') {
         statusColor = '#f44336';
         statusBg = '#ffebee';
         statusIcon = '❌';
+    } else {
+        statusColor = '#666';
+        statusBg = '#f5f5f5';
+        statusIcon = '❓';
     }
     
     modal.innerHTML = `
