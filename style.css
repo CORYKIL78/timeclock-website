@@ -5105,8 +5105,8 @@ body.dark #profileDateFormatSelect option {
 }
 
 #requestsScreen > div > div {
-    width: 200% !important;
-    max-width: 200% !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 @media (max-width: 1024px) {
