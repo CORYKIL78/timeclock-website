@@ -1756,7 +1756,7 @@ function showScreen(screenId) {
         const sidebar = document.getElementById('sidebar');
         const notificationPanel = document.getElementById('notificationPanel');
         const notificationBtn = document.getElementById('notificationBtn');
-        if (screenId !== 'portalWelcome' && ['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'events', 'mail', 'clickup', 'handbooks'].includes(screenId)) {
+        if (screenId !== 'portalWelcome' && ['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'events', 'mail', 'clickup', 'handbooks', 'requests'].includes(screenId)) {
             sidebar.classList.remove('hidden');
             if (notificationBtn) notificationBtn.classList.remove('hidden');
             // Update notification badge

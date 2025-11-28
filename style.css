@@ -1035,6 +1035,7 @@ body {
     transition: opacity 0.5s var(--transition-ease);
     z-index: 1;
     padding: 20px;
+    padding-left: 80px;
 }
 
 .screen.active {
@@ -5104,8 +5105,8 @@ body.dark #profileDateFormatSelect option {
 }
 
 #requestsScreen > div > div {
-    width: 250% !important;
-    max-width: 250% !important;
+    width: 200% !important;
+    max-width: 200% !important;
 }
 
 @media (max-width: 1024px) {
