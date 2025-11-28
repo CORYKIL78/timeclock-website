@@ -5252,8 +5252,12 @@ document.getElementById('submitRequestFormBtn').addEventListener('click', async 
         // Show success message
         showModal('alert', '<span class="success-tick"></span> Your request has been submitted successfully! You will be notified when it is reviewed.');
         
-        // Refresh the requests list
-        document.getElementById('requestsBtn').click();
+        // Refresh the requests list by triggering the load event
+        setTimeout(() => {
+            if (document.getElementById('requestsScreen').classList.contains('active')) {
+                document.dispatchEvent(new Event('DOMContentLoaded'));
+            }
+        }, 500);
         
     } catch (error) {
         console.error('Error submitting request:', error);
