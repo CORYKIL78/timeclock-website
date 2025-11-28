@@ -6184,6 +6184,8 @@ document.getElementById('calendarModal')?.addEventListener('click', (e) => {
 });
 
 // ========== SENTINEL SECURITY PROTECTIONS ==========
+// TEMPORARILY DISABLED FOR DEBUGGING - RE-ENABLE AFTER FIXING ERRORS
+/*
 // Prevent context menu (right-click)
 document.addEventListener('contextmenu', e => {
     e.preventDefault();
@@ -6237,7 +6239,8 @@ document.addEventListener('selectstart', e => {
         return false;
     }
 });
+*/
 
-console.log('%c🛡️ SENTINEL Security Active', 'color: #667eea; font-size: 16px; font-weight: bold;');
-console.log('%cAll requests are monitored and protected.', 'color: #667eea; font-size: 12px;');
+console.log('%c🛡️ SENTINEL Security DISABLED for debugging', 'color: orange; font-size: 16px; font-weight: bold;');
+console.log('%c⚠️ Console is now accessible - Check for errors above', 'color: red; font-size: 14px; font-weight: bold;');
 
