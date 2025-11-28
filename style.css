@@ -4301,6 +4301,11 @@ body.dark .request-field textarea {
     }
     
     /* Absences Screen Mobile */
+    #absencesScreen {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
     #absencesScreen .container {
         max-width: 95% !important;
         width: 95% !important;

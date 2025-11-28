@@ -86,6 +86,17 @@ function updateProfileDisplay() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('[DEBUG] DOMContentLoaded fired');
+    
+    // If requests screen is active, reload the requests
+    setTimeout(() => {
+        if (document.getElementById('requestsScreen')?.classList.contains('active')) {
+            console.log('[DEBUG] Requests screen active on load, reloading...');
+            if (typeof reloadRequests === 'function') {
+                reloadRequests();
+            }
+        }
+    }, 500);
 
     async function syncProfileFromSheets() {
         if (!currentUser) {
@@ -5089,12 +5100,13 @@ async function reloadRequests() {
             
             // Ensure all fields have defaults to prevent "undefined"
             const type = req.type || 'Request';
-            const status = req.status || 'Pending';
+            // Trim and normalize status to handle whitespace/case issues
+            const status = (req.status || 'Pending').trim();
             const date = req.timestamp || new Date().toLocaleDateString();
             const comment = req.comment || 'No comment';
-            const approverName = req.approverName || '';
+            const approverName = (req.approverName || '').trim();
             
-            console.log('[DEBUG] Rendering request:', { type, status, date });
+            console.log('[DEBUG] Rendering request:', { type, status, date, approverName, rawStatus: req.status });
             
             // Color-coded based on status
             let statusColor, statusBg, statusIcon;
@@ -5140,12 +5152,20 @@ async function reloadRequests() {
                 item.style.transform = 'translateY(0)';
             };
             
+            // Build status text with approver name if available
+            let statusText = status;
+            if (status === 'Approved' && approverName) {
+                statusText = `Approved by: ${approverName}`;
+            } else if (status === 'Denied' && approverName) {
+                statusText = `Denied by: ${approverName}`;
+            }
+            
             item.innerHTML = `
                 <div style="flex: 1;">
                     <span style="font-weight: 600; color: ${statusColor}; font-size: 16px;">${statusIcon} ${type}: ${date}</span>
                 </div>
                 <div style="flex: 1; text-align: right;">
-                    <span style="color: ${statusColor}; font-size: 14px; font-weight: 600;">${status}</span>
+                    <span style="color: ${statusColor}; font-size: 14px; font-weight: 600;">${statusText}</span>
                 </div>
             `;
             
