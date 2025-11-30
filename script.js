@@ -116,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUser.profile.email = profile.email;
             currentUser.profile.department = profile.department;
             currentUser.profile.staffId = profile.staffId;
+            currentUser.profile.baseLevel = profile.baseLevel;
             
             console.debug('[syncProfileFromSheets] Updated currentUser.profile: ' + JSON.stringify(currentUser.profile));
             
@@ -186,8 +187,20 @@ document.addEventListener('DOMContentLoaded', () => {
             console.debug('[AUTH] Discord user loaded:', window.currentUser);
             setAuthDebug('Discord user loaded: ' + window.currentUser.id + ' (' + (window.currentUser.username || window.currentUser.name || '') + ')', false);
             setProfileDebug('User loaded. Updating profile display...', false);
-            updateProfileDisplay();
-            setInterval(updateProfileDisplay, 15000);
+            
+            // Initial sync
+            syncProfileFromSheets().then(() => {
+                updateProfileDisplay();
+                updateMainScreen();
+            });
+            
+            // Periodic sync from backend (every 15 seconds)
+            setInterval(async () => {
+                await syncProfileFromSheets();
+                updateProfileDisplay();
+                updateMainScreen();
+            }, 15000);
+            
             // Check for approved change requests periodically
             setInterval(() => {
                 if (window.currentUser && window.currentUser.id) {
