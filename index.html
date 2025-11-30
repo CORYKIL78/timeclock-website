@@ -113,7 +113,7 @@
         </div>
     </div>
     <div id="absenceRequestModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Request Absence</h2>
             <select id="absenceType">
@@ -124,15 +124,7 @@
                 <option value="No Device/Wifi">No Device/Wifi</option>
                 <option value="Other">Other (specify in comment)</option>
             </select>
-            
-            <!-- Calendar Widget -->
-            <div id="holidayCalendarWidget" style="background: #f9f9f9; padding: 20px; border-radius: 12px; margin: 20px 0;">
-                <h3 style="margin: 0 0 15px 0; color: #333; font-size: 1.1em;">📅 Calendar (Blue dots = Holidays)</h3>
-                <div id="calendarContainer" style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"></div>
-                <p style="margin: 10px 0 0 0; color: #666; font-size: 0.85em;">Click on dates to select your absence period</p>
-            </div>
-            
-            <input type="date" id="absenceStartDate" style="margin-top: 10px;">
+            <input type="date" id="absenceStartDate">
             <input type="date" id="absenceEndDate">
             <textarea id="absenceComment" placeholder="Comment"></textarea>
             <p id="absenceDays">Total Days: 0</p>

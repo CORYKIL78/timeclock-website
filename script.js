@@ -4769,10 +4769,8 @@ if (absencesBtn) {
 
 const requestAbsenceBtn = document.getElementById('requestAbsenceBtn');
 if (requestAbsenceBtn) {
-    requestAbsenceBtn.addEventListener('click', async () => {
+    requestAbsenceBtn.addEventListener('click', () => {
         showModal('absenceRequest');
-        // Render calendar with holidays
-        await renderHolidayCalendar();
     });
 }
 
