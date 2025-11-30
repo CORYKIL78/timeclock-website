@@ -4769,10 +4769,140 @@ if (absencesBtn) {
 
 const requestAbsenceBtn = document.getElementById('requestAbsenceBtn');
 if (requestAbsenceBtn) {
-    requestAbsenceBtn.addEventListener('click', () => {
+    requestAbsenceBtn.addEventListener('click', async () => {
         showModal('absenceRequest');
+        // Render calendar with holidays
+        await renderHolidayCalendar();
     });
 }
+
+// Render calendar widget with holiday indicators
+async function renderHolidayCalendar() {
+    const container = document.getElementById('calendarContainer');
+    if (!container) return;
+    
+    // Fetch holidays
+    let holidays = [];
+    try {
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/calendar/holiday/list');
+        if (response.ok) {
+            const data = await response.json();
+            holidays = data.holidays || [];
+        }
+    } catch (error) {
+        console.error('Error fetching holidays for calendar:', error);
+    }
+    
+    // Convert holidays to date strings for quick lookup
+    const holidayDates = new Set(holidays.map(h => h.date));
+    
+    // Get current month (use stored values if available)
+    const currentMonth = window.calendarMonth !== undefined ? window.calendarMonth : new Date().getMonth();
+    const currentYear = window.calendarYear !== undefined ? window.calendarYear : new Date().getFullYear();
+    const now = new Date();
+    
+    // Calendar header
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    let html = `
+        <div style="text-align: center; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+            <button onclick="changeCalendarMonth(-1)" style="background: #667eea; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600;">← Prev</button>
+            <h3 style="margin: 0; color: #333; font-size: 1.2em;">${monthNames[currentMonth]} ${currentYear}</h3>
+            <button onclick="changeCalendarMonth(1)" style="background: #667eea; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600;">Next →</button>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center;">
+            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Sun</div>
+            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Mon</div>
+            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Tue</div>
+            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Wed</div>
+            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Thu</div>
+            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Fri</div>
+            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Sat</div>
+    `;
+    
+    // Get first day of month
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+    // Empty cells before first day
+    for (let i = 0; i < firstDay; i++) {
+        html += '<div></div>';
+    }
+    
+    // Days of month
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const hasHoliday = holidayDates.has(dateStr);
+        const isToday = day === now.getDate() && currentMonth === now.getMonth() && currentYear === now.getFullYear();
+        
+        html += `
+            <div onclick="selectCalendarDate('${dateStr}')" style="
+                position: relative;
+                padding: 12px 8px;
+                border-radius: 8px;
+                cursor: pointer;
+                background: ${isToday ? '#e3f2fd' : '#fafafa'};
+                border: 2px solid ${isToday ? '#2196F3' : '#e0e0e0'};
+                transition: all 0.2s ease;
+                font-weight: ${isToday ? 'bold' : 'normal'};
+            " onmouseover="this.style.background='#f5f5f5'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='${isToday ? '#e3f2fd' : '#fafafa'}'; this.style.transform='scale(1)';">
+                ${day}
+                ${hasHoliday ? '<div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 6px; height: 6px; background: #2196F3; border-radius: 50%;"></div>' : ''}
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Store current calendar month
+window.calendarMonth = new Date().getMonth();
+window.calendarYear = new Date().getFullYear();
+
+// Change calendar month
+window.changeCalendarMonth = async function(delta) {
+    window.calendarMonth += delta;
+    if (window.calendarMonth > 11) {
+        window.calendarMonth = 0;
+        window.calendarYear++;
+    } else if (window.calendarMonth < 0) {
+        window.calendarMonth = 11;
+        window.calendarYear--;
+    }
+    await renderHolidayCalendar();
+};
+
+// Select date from calendar
+window.selectCalendarDate = function(dateStr) {
+    const startInput = document.getElementById('absenceStartDate');
+    const endInput = document.getElementById('absenceEndDate');
+    
+    if (!startInput.value || (startInput.value && endInput.value)) {
+        // Set as start date
+        startInput.value = dateStr;
+        endInput.value = '';
+        startInput.dispatchEvent(new Event('change'));
+    } else if (startInput.value && !endInput.value) {
+        // Set as end date
+        const start = new Date(startInput.value);
+        const selected = new Date(dateStr);
+        
+        if (selected >= start) {
+            endInput.value = dateStr;
+            endInput.dispatchEvent(new Event('change'));
+        } else {
+            // If selected is before start, swap them
+            endInput.value = startInput.value;
+            startInput.value = dateStr;
+            startInput.dispatchEvent(new Event('change'));
+            endInput.dispatchEvent(new Event('change'));
+        }
+    }
+    
+    calculateAbsenceDays();
+};
 
 const absenceStartDate = document.getElementById('absenceStartDate');
 const absenceEndDate = document.getElementById('absenceEndDate');
@@ -6749,14 +6879,37 @@ document.getElementById('calendarModal')?.addEventListener('click', (e) => {
 });
 
 // ========== SENTINEL SECURITY PROTECTIONS ==========
-// Prevent context menu (right-click)
+// Developer mode toggle (Ctrl+Shift+D)
+let developerMode = false;
+window.toggleDeveloperMode = () => {
+    developerMode = !developerMode;
+    console.log(`%c🔧 Developer Mode: ${developerMode ? 'ENABLED' : 'DISABLED'}`, 'color: cyan; font-size: 16px; font-weight: bold;');
+    if (developerMode) {
+        console.log('%c✓ Right-click enabled', 'color: green;');
+        console.log('%c✓ DevTools shortcuts enabled', 'color: green;');
+        console.log('%c✓ Console clearing disabled', 'color: green;');
+    }
+};
+
+// Prevent context menu (right-click) - unless developer mode
 document.addEventListener('contextmenu', e => {
+    if (developerMode) return true;
     e.preventDefault();
     return false;
 });
 
 // Prevent common developer tools shortcuts
 document.addEventListener('keydown', e => {
+    // Ctrl+Shift+D to toggle developer mode
+    if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        window.toggleDeveloperMode();
+        return false;
+    }
+    
+    // Don't block shortcuts in developer mode
+    if (developerMode) return true;
+    
     // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U
     if (
         e.key === 'F12' ||
