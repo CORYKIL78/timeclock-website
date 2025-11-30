@@ -3491,86 +3491,182 @@ function renderEvents() {
     
     container.innerHTML = '';
     
+    // Create section for events
+    const eventsSection = document.createElement('div');
+    eventsSection.style.cssText = 'padding: 20px; border-bottom: 2px solid #e0e0e0;';
+    
+    const eventsTitle = document.createElement('h3');
+    eventsTitle.textContent = '📅 Company Events';
+    eventsTitle.style.cssText = 'margin: 0 0 20px 0; color: #333; font-size: 1.3em;';
+    eventsSection.appendChild(eventsTitle);
+    
     if (eventsData.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No active events</p>';
-        return;
+        eventsSection.innerHTML += '<p style="text-align: center; color: #999; padding: 20px;">No active events</p>';
+    } else {
+        // Create grid container for events
+        const gridContainer = document.createElement('div');
+        gridContainer.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;';
+        
+        eventsData.forEach(event => {
+            const eventCard = document.createElement('div');
+            
+            // Check if event is upcoming based on START date, not end date
+            const eventStartDate = new Date(event.startDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Reset time to start of day
+            eventStartDate.setHours(0, 0, 0, 0);
+            const isUpcoming = eventStartDate >= today;
+            
+            // Check if user has responded
+            const userResponses = JSON.parse(localStorage.getItem(`event_responses_${currentUser.id}`) || '{}');
+            const eventId = event.id || event.rowIndex;
+            const userResponse = userResponses[eventId];
+            let attendanceStatus = 'Not responded';
+            if (userResponse === 'attend') attendanceStatus = '✓ Attending';
+            else if (userResponse === 'cannot') attendanceStatus = '✗ Not attending';
+            else if (userResponse === 'unsure') attendanceStatus = '? Unsure';
+            
+            eventCard.className = 'event-card-grid';
+            eventCard.style.cssText = `
+                background: ${isUpcoming ? '#e8f5e9' : '#f5f5f5'};
+                border: 2px solid ${isUpcoming ? '#4CAF50' : '#9e9e9e'};
+                border-radius: 12px;
+                padding: 20px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            `;
+            
+            eventCard.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <h3 style="margin: 0; font-size: 1.1em; color: #333;">${event.eventName || event.name || 'Unnamed Event'}</h3>
+                    <span style="background: ${isUpcoming ? '#4CAF50' : '#9e9e9e'}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">${isUpcoming ? 'UPCOMING' : 'FINISHED'}</span>
+                </div>
+                <div style="color: #666; font-size: 14px; margin-bottom: 8px;">
+                    <strong>📅 Dates:</strong> ${event.startDate} - ${event.endDate}
+                </div>
+                ${event.time ? `<div style="color: #666; font-size: 14px; margin-bottom: 8px;">
+                    <strong>🕒 Time:</strong> ${event.time}
+                </div>` : ''}
+                <div style="color: #666; font-size: 14px; margin-bottom: 8px;">
+                    <strong>📝 Details:</strong> ${event.details}
+                </div>
+                <div style="color: #666; font-size: 14px; margin-bottom: 8px;">
+                    <strong>🎯 Arrival:</strong> ${event.arrivalStatus}
+                </div>
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.1);">
+                    <strong style="font-size: 13px; color: #333;">Your Status:</strong>
+                    <span style="margin-left: 8px; font-size: 13px; ${userResponse ? 'font-weight: 600;' : 'color: #999;'}">${attendanceStatus}</span>
+                </div>
+            `;
+            
+            eventCard.addEventListener('click', () => {
+                showEventResponseModal(event);
+            });
+            
+            eventCard.addEventListener('mouseenter', () => {
+                eventCard.style.transform = 'translateY(-4px)';
+                eventCard.style.boxShadow = '0 6px 16px rgba(0,0,0,0.15)';
+            });
+            
+            eventCard.addEventListener('mouseleave', () => {
+                eventCard.style.transform = 'translateY(0)';
+                eventCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            });
+            
+            gridContainer.appendChild(eventCard);
+        });
+        
+        eventsSection.appendChild(gridContainer);
     }
     
-    // Create grid container
-    const gridContainer = document.createElement('div');
-    gridContainer.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 20px;';
+    container.appendChild(eventsSection);
     
-    eventsData.forEach(event => {
-        const eventCard = document.createElement('div');
-        
-        // Check if event is upcoming based on START date, not end date
-        const eventStartDate = new Date(event.startDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Reset time to start of day
-        eventStartDate.setHours(0, 0, 0, 0);
-        const isUpcoming = eventStartDate >= today;
-        
-        // Check if user has responded
-        const userResponses = JSON.parse(localStorage.getItem(`event_responses_${currentUser.id}`) || '{}');
-        const eventId = event.id || event.rowIndex;
-        const userResponse = userResponses[eventId];
-        let attendanceStatus = 'Not responded';
-        if (userResponse === 'attend') attendanceStatus = '✓ Attending';
-        else if (userResponse === 'cannot') attendanceStatus = '✗ Not attending';
-        else if (userResponse === 'unsure') attendanceStatus = '? Unsure';
-        
-        eventCard.className = 'event-card-grid';
-        eventCard.style.cssText = `
-            background: ${isUpcoming ? '#e8f5e9' : '#f5f5f5'};
-            border: 2px solid ${isUpcoming ? '#4CAF50' : '#9e9e9e'};
-            border-radius: 12px;
-            padding: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        `;
-        
-        eventCard.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                <h3 style="margin: 0; font-size: 1.1em; color: #333;">${event.eventName || event.name || 'Unnamed Event'}</h3>
-                <span style="background: ${isUpcoming ? '#4CAF50' : '#9e9e9e'}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">${isUpcoming ? 'UPCOMING' : 'FINISHED'}</span>
-            </div>
-            <div style="color: #666; font-size: 14px; margin-bottom: 8px;">
-                <strong>📅 Dates:</strong> ${event.startDate} - ${event.endDate}
-            </div>
-            ${event.time ? `<div style="color: #666; font-size: 14px; margin-bottom: 8px;">
-                <strong>🕒 Time:</strong> ${event.time}
-            </div>` : ''}
-            <div style="color: #666; font-size: 14px; margin-bottom: 8px;">
-                <strong>📝 Details:</strong> ${event.details}
-            </div>
-            <div style="color: #666; font-size: 14px; margin-bottom: 8px;">
-                <strong>🎯 Arrival:</strong> ${event.arrivalStatus}
-            </div>
-            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.1);">
-                <strong style="font-size: 13px; color: #333;">Your Status:</strong>
-                <span style="margin-left: 8px; font-size: 13px; ${userResponse ? 'font-weight: 600;' : 'color: #999;'}">${attendanceStatus}</span>
-            </div>
-        `;
-        
-        eventCard.addEventListener('click', () => {
-            showEventResponseModal(event);
+    // Now fetch and display holidays
+    fetchAndDisplayHolidays(container);
+}
+
+// Fetch and display holidays from Google Sheets
+async function fetchAndDisplayHolidays(container) {
+    try {
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/calendar/holiday/list', {
+            method: 'GET'
         });
         
-        eventCard.addEventListener('mouseenter', () => {
-            eventCard.style.transform = 'translateY(-4px)';
-            eventCard.style.boxShadow = '0 6px 16px rgba(0,0,0,0.15)';
-        });
-        
-        eventCard.addEventListener('mouseleave', () => {
-            eventCard.style.transform = 'translateY(0)';
-            eventCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-        });
-        
-        gridContainer.appendChild(eventCard);
-    });
-    
-    container.appendChild(gridContainer);
+        if (response.ok) {
+            const data = await response.json();
+            const holidays = data.holidays || [];
+            
+            // Create holidays section
+            const holidaysSection = document.createElement('div');
+            holidaysSection.style.cssText = 'padding: 20px;';
+            
+            const holidaysTitle = document.createElement('h3');
+            holidaysTitle.textContent = '🗓️ Holidays & Special Dates';
+            holidaysTitle.style.cssText = 'margin: 0 0 20px 0; color: #333; font-size: 1.3em;';
+            holidaysSection.appendChild(holidaysTitle);
+            
+            if (holidays.length === 0) {
+                holidaysSection.innerHTML += '<p style="text-align: center; color: #999; padding: 20px;">No holidays scheduled</p>';
+            } else {
+                // Sort holidays by date
+                holidays.sort((a, b) => new Date(a.date) - new Date(b.date));
+                
+                // Create grid container for holidays
+                const holidayGrid = document.createElement('div');
+                holidayGrid.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;';
+                
+                holidays.forEach(holiday => {
+                    const holidayDate = new Date(holiday.date);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    holidayDate.setHours(0, 0, 0, 0);
+                    const isPast = holidayDate < today;
+                    
+                    const holidayCard = document.createElement('div');
+                    holidayCard.style.cssText = `
+                        background: ${isPast ? '#f5f5f5' : '#fff3e0'};
+                        border: 2px solid ${isPast ? '#9e9e9e' : '#FF9800'};
+                        border-radius: 12px;
+                        padding: 20px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                        transition: all 0.3s ease;
+                    `;
+                    
+                    holidayCard.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <h3 style="margin: 0; font-size: 1.1em; color: #333;">${holiday.description}</h3>
+                            <span style="background: ${isPast ? '#9e9e9e' : '#FF9800'}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">${isPast ? 'PAST' : 'UPCOMING'}</span>
+                        </div>
+                        <div style="color: #666; font-size: 14px; margin-bottom: 8px;">
+                            <strong>📅 Date:</strong> ${holiday.date}
+                        </div>
+                        <div style="color: #666; font-size: 14px;">
+                            <strong>🏷️ Type:</strong> ${holiday.type || 'Holiday'}
+                        </div>
+                    `;
+                    
+                    holidayCard.addEventListener('mouseenter', () => {
+                        holidayCard.style.transform = 'translateY(-4px)';
+                        holidayCard.style.boxShadow = '0 6px 16px rgba(0,0,0,0.15)';
+                    });
+                    
+                    holidayCard.addEventListener('mouseleave', () => {
+                        holidayCard.style.transform = 'translateY(0)';
+                        holidayCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    });
+                    
+                    holidayGrid.appendChild(holidayCard);
+                });
+                
+                holidaysSection.appendChild(holidayGrid);
+            }
+            
+            container.appendChild(holidaysSection);
+        }
+    } catch (error) {
+        console.error('Error fetching holidays:', error);
+    }
 }
 
 function showEventResponseModal(event) {

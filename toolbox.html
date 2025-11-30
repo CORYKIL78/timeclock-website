@@ -407,6 +407,13 @@
                     <button type="button" class="btn-secondary" onclick="clearHolidayForm()">Clear Form</button>
                 </div>
             </div>
+            
+            <div id="holidaysList" style="margin-top: 30px;">
+                <h3>Existing Holidays</h3>
+                <div id="holidaysListContent">
+                    <p style="text-align: center; color: #666; padding: 20px;">Loading holidays...</p>
+                </div>
+            </div>
         </div>
 
         <a href="index.html" class="back-link">← Back to Portal</a>
@@ -587,6 +594,50 @@
             showClearMailboxPrompt();
         }
 
+        // Load holidays from Google Sheets
+        async function loadHolidays() {
+            try {
+                const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/calendar/holiday/list', {
+                    method: 'GET'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.holidays || [];
+                } else {
+                    console.error('Failed to load holidays:', await response.text());
+                    return [];
+                }
+            } catch (error) {
+                console.error('Error loading holidays:', error);
+                return [];
+            }
+        }
+        
+        // Display holidays list
+        async function displayHolidays() {
+            const holidays = await loadHolidays();
+            const listContent = document.getElementById('holidaysListContent');
+            
+            if (holidays.length === 0) {
+                listContent.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No holidays added yet</p>';
+                return;
+            }
+            
+            // Sort holidays by date
+            holidays.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            listContent.innerHTML = holidays.map(holiday => `
+                <div class="event-item">
+                    <div class="event-info">
+                        <h3>${holiday.description}</h3>
+                        <p class="event-date">${formatDate(holiday.date)}</p>
+                        <p style="color: #667eea; font-weight: 500;">Type: ${holiday.type || 'Holiday'}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
         // Toggle calendar sections
         function toggleCalendarSections() {
             const eventSection = document.getElementById('calendarSection');
@@ -596,6 +647,7 @@
                 eventSection.style.display = 'block';
                 holidaySection.style.display = 'block';
                 displayEvents();
+                displayHolidays();
             } else {
                 eventSection.style.display = 'none';
                 holidaySection.style.display = 'none';
@@ -614,7 +666,7 @@
             const type = document.getElementById('holidayType').value;
 
             if (!date || !description) {
-                showMessage('Please fill in the date and description', 'error');
+                alert('Please fill in the date and description');
                 return;
             }
 
@@ -633,15 +685,17 @@
 
                 const result = await response.json();
                 
-                if (result.success) {
+                if (response.ok && result.success) {
                     clearHolidayForm();
-                    showMessage('Holiday date added successfully to calendar sheet!', 'success');
+                    alert('✅ Holiday date added successfully to calendar!');
+                    // Refresh the holidays list
+                    await displayHolidays();
                 } else {
-                    showMessage('Failed to add holiday: ' + (result.error || 'Unknown error'), 'error');
+                    alert('❌ Failed to add holiday: ' + (result.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error adding holiday:', error);
-                showMessage('Error adding holiday: ' + error.message, 'error');
+                alert('❌ Error adding holiday: ' + error.message);
             }
         }
 
