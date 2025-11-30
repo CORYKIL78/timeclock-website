@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <select id="deptSelect" style="width:100%;margin:1em 0 1.5em 0;font-size:1.1em">
                     <option value="Customer Relations Department">Customer Relations</option>
                     <option value="Development Department">Development</option>
-                    <option value="Careers Department">Careers</option>
+                    <option value="Finance Department">Finance</option>
                 </select>
                 <button id="deptRequestBtn" style="width:100%;font-size:1.1em">Request Change</button>
                 <button id="deptCancelBtn" style="width:100%;margin-top:0.5em;background:#eee;color:#333">Cancel</button>
