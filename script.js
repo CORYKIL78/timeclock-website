@@ -2216,6 +2216,19 @@ function updateMainScreen() {
     const userName = currentUser.profile?.name || currentUser.name || 'User';
     const userDept = currentUser.profile?.department || emp.profile?.department || 'N/A';
     
+    // Base Level mapping
+    const baseLevelMap = {
+        '1': 'Director Board',
+        '2': 'Director Board',
+        '3': 'Development',
+        '4': 'Finance',
+        '5': 'Customer Relations',
+        '6': 'Senior Roles',
+        '7': 'General Roles'
+    };
+    const baseLevelValue = currentUser.profile?.baseLevel || '';
+    const baseLevelDisplay = baseLevelValue ? (baseLevelMap[baseLevelValue] || 'Not Set') : 'Not Set';
+    
     document.getElementById('greeting').textContent = `Good ${getGreeting()}, ${userName}!`;
     document.getElementById('lastLogin').textContent = `Last Log In: ${emp.lastLogin || 'Never'}`;
     document.getElementById('mainProfilePic').src = currentUser.avatar || 'https://via.placeholder.com/100';
@@ -2230,6 +2243,7 @@ function updateMainScreen() {
     });
     document.getElementById('totalAbsenceDays').textContent = totalDays;
     document.getElementById('currentDepartment').textContent = userDept;
+    document.getElementById('baseLevel').textContent = baseLevelDisplay;
     if (emp.onLOA) {
         showModal('alert', 'You are currently on a Leave of Absence');
         document.getElementById('clockInBtn').disabled = true;
@@ -2735,79 +2749,421 @@ function startTutorial() {
     // Initialize sample mail data for new users
     initializeSampleMail();
 
+    let currentStep = 0;
+    let tutorialClickHandler = null;
+
     const steps = [
+        // Step 1: Side menu button
         {
-            element: document.querySelector('.sidebar-toggle'),
-            text: 'This is the side menu. Click to expand and access different pages.',
-            action: () => document.querySelector('.sidebar-toggle').click()
+            element: () => document.querySelector('.sidebar-toggle'),
+            text: 'Welcome! This is the side menu button. Click it to expand and access different pages.',
+            waitForClick: true
         },
+        // Step 2: Profile button in sidebar
         {
-            element: document.getElementById('sidebarNav'),
-            text: 'These are all of your pages. You can submit LOAs, view disciplinaries, payslips, etc!',
-            action: () => setTimeout(() => {
-                document.getElementById('mailBtn').click();
-            }, 6000)
-        },
-        {
-            element: document.getElementById('composeMailBtn'),
-            text: 'Click this icon to compose a new mail!',
-            action: () => document.getElementById('composeMailBtn').click()
-        },
-        {
-            element: document.getElementById('mailContent'),
-            text: 'Tutorial complete! Check your mail for a welcome message.',
+            element: () => document.getElementById('homeBtn'),
+            text: 'Great! Now click on "Home" to see your main dashboard.',
+            waitForClick: true,
             action: () => {
-                const emp = getEmployee(currentUser.id);
-                emp.mail = emp.mail || [];
-                emp.mail.push({
-                    id: Date.now().toString(),
-                    from: 'Cirkle Development',
-                    subject: 'Welcome to Staff Portal',
-                    content: `Dear ${emp.profile.name}, Welcome to your new Staff Portal. You are now finished with this tutorial. Please have a look around and get familiar with everything. We hope you like it! Kind Regards, Cirkle Development.`,
-                    timestamp: new Date().toLocaleString(),
-                    senderId: 'system'
-                });
-                updateEmployee(emp);
-                addNotification('welcome', 'Welcome to your Staff Portal!', 'mail');
-                renderMail();
+                setTimeout(() => showNextStep(), 500);
+            }
+        },
+        // Step 3: Navigate to profile via sidebar
+        {
+            element: () => document.getElementById('myRolesBtn'),
+            text: 'Now let\'s explore your profile. Click "My Roles" to see your assigned roles.',
+            waitForClick: true,
+            action: () => {
+                setTimeout(() => showNextStep(), 500);
+            }
+        },
+        // Step 4: Absences
+        {
+            element: () => document.getElementById('absencesBtn'),
+            text: 'Click "Absences" to see where you can request time off.',
+            waitForClick: true,
+            action: () => {
+                setTimeout(() => showNextStep(), 500);
+            }
+        },
+        // Step 5: Payslips
+        {
+            element: () => document.getElementById('payslipsBtn'),
+            text: 'Click "Payslips" to view your payment history.',
+            waitForClick: true,
+            action: () => {
+                setTimeout(() => showNextStep(), 500);
+            }
+        },
+        // Step 6: Disciplinaries
+        {
+            element: () => document.getElementById('disciplinariesBtn'),
+            text: 'Click "Disciplinaries" to see any warnings or strikes.',
+            waitForClick: true,
+            action: () => {
+                setTimeout(() => showNextStep(), 500);
+            }
+        },
+        // Step 7: Requests
+        {
+            element: () => document.getElementById('requestsBtn'),
+            text: 'Click "Requests" to submit department changes or other requests.',
+            waitForClick: true,
+            action: () => {
+                setTimeout(() => showNextStep(), 500);
+            }
+        },
+        // Step 8: Timeclock
+        {
+            element: () => document.getElementById('timeclockBtn'),
+            text: 'Click "Timeclock" to clock in and out of your shifts.',
+            waitForClick: true,
+            action: () => {
+                setTimeout(() => showNextStep(), 500);
+            }
+        },
+        // Step 9: Events
+        {
+            element: () => document.getElementById('eventsBtn'),
+            text: 'Click "Events" to see company events and meetings.',
+            waitForClick: true,
+            action: () => {
+                setTimeout(() => showNextStep(), 500);
+            }
+        },
+        // Step 10: ClickUp
+        {
+            element: () => document.getElementById('clickupBtn'),
+            text: 'Finally, click "ClickUp" to see your task management.',
+            waitForClick: true,
+            action: () => {
+                setTimeout(() => showNextStep(), 500);
+            }
+        },
+        // Step 11: Back to home and ClickUp connection prompt
+        {
+            element: null,
+            text: '',
+            action: () => {
+                showScreen('mainMenu');
+                showClickUpConnectionModal();
             }
         }
     ];
 
-    let currentStep = 0;
+    function showClickUpConnectionModal() {
+        cleanupTutorial();
+        
+        const modal = document.createElement('div');
+        modal.id = 'tutorialClickUpModal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        `;
+        
+        modal.innerHTML = `
+            <div style="background: white; padding: 40px; border-radius: 16px; max-width: 500px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                <h2 style="margin: 0 0 20px 0; color: #667eea; font-size: 28px;">🎉 Tutorial Complete!</h2>
+                <p style="margin: 0 0 30px 0; color: #666; font-size: 16px; line-height: 1.6;">
+                    Thank you for completing the tutorial!<br>
+                    Would you like to connect ClickUp now?
+                </p>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button id="tutorialClickUpYes" style="padding: 14px 32px; font-size: 16px; font-weight: 600; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+                        Yes!
+                    </button>
+                    <button id="tutorialClickUpLater" style="padding: 14px 32px; font-size: 16px; font-weight: 600; background: #e0e0e0; color: #666; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+                        Later!
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        document.getElementById('tutorialClickUpYes').addEventListener('click', () => {
+            modal.remove();
+            startClickUpSetup();
+        });
+        
+        document.getElementById('tutorialClickUpLater').addEventListener('click', () => {
+            modal.remove();
+            finalizeTutorial();
+        });
+    }
+
+    function startClickUpSetup() {
+        // Navigate to ClickUp page
+        showScreen('clickup');
+        
+        setTimeout(() => {
+            // Show instruction overlay
+            const overlay = document.createElement('div');
+            overlay.id = 'clickupTutorialOverlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                z-index: 9999;
+            `;
+            document.body.appendChild(overlay);
+            
+            // Show instructions
+            const instructions = document.createElement('div');
+            instructions.className = 'tutorial-text';
+            instructions.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.95);
+                color: white;
+                padding: 30px;
+                border-radius: 12px;
+                font-size: 16px;
+                z-index: 10000;
+                max-width: 500px;
+                text-align: center;
+                line-height: 1.8;
+            `;
+            instructions.innerHTML = `
+                <h3 style="margin: 0 0 20px 0; color: #667eea; font-size: 22px;">📋 ClickUp Setup</h3>
+                <p style="margin: 0 0 15px 0;">Follow these steps:</p>
+                <ol style="text-align: left; margin: 0 0 25px 0; padding-left: 20px;">
+                    <li>Go to ClickUp website</li>
+                    <li>Click your profile icon</li>
+                    <li>Find "ClickUp API"</li>
+                    <li>Click "Generate/Regenerate Token"</li>
+                    <li>Copy your token</li>
+                    <li>Paste it in the highlighted box below</li>
+                </ol>
+                <button id="gotItBtn" style="padding: 12px 30px; font-size: 15px; font-weight: 600; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    Got it!
+                </button>
+            `;
+            document.body.appendChild(instructions);
+            
+            document.getElementById('gotItBtn').addEventListener('click', () => {
+                instructions.remove();
+                highlightClickUpTokenInput();
+            });
+        }, 500);
+    }
+
+    function highlightClickUpTokenInput() {
+        const tokenInput = document.getElementById('clickupToken');
+        
+        if (tokenInput) {
+            // Add highlight ring around input
+            const rect = tokenInput.getBoundingClientRect();
+            const ring = document.createElement('div');
+            ring.id = 'clickupTokenRing';
+            ring.style.cssText = `
+                position: absolute;
+                left: ${rect.left - 10}px;
+                top: ${rect.top - 10}px;
+                width: ${rect.width + 20}px;
+                height: ${rect.height + 20}px;
+                border: 3px solid #667eea;
+                border-radius: 8px;
+                pointer-events: none;
+                animation: pulse 1.5s infinite;
+                z-index: 9998;
+            `;
+            document.body.appendChild(ring);
+            
+            // Show text instruction
+            const text = document.createElement('div');
+            text.className = 'tutorial-text';
+            text.textContent = 'Paste your ClickUp token here';
+            text.style.zIndex = '10000';
+            document.body.appendChild(text);
+            
+            // Watch for input
+            tokenInput.addEventListener('input', function handler() {
+                if (tokenInput.value.trim().length > 0) {
+                    tokenInput.removeEventListener('input', handler);
+                    ring.remove();
+                    
+                    // Update text
+                    text.textContent = 'Awesome! Now click the Connect button';
+                    
+                    // Highlight connect button
+                    const connectBtn = document.getElementById('connectClickupBtn');
+                    if (connectBtn) {
+                        const btnRect = connectBtn.getBoundingClientRect();
+                        ring.style.cssText = `
+                            position: absolute;
+                            left: ${btnRect.left - 10}px;
+                            top: ${btnRect.top - 10}px;
+                            width: ${btnRect.width + 20}px;
+                            height: ${btnRect.height + 20}px;
+                            border: 3px solid #667eea;
+                            border-radius: 8px;
+                            pointer-events: none;
+                            animation: pulse 1.5s infinite;
+                            z-index: 9998;
+                        `;
+                        document.body.appendChild(ring);
+                        
+                        // Watch for successful connection
+                        const originalConnect = window.connectClickup || function() {};
+                        window.connectClickup = async function() {
+                            await originalConnect();
+                            // Wait a bit for connection to complete
+                            setTimeout(() => {
+                                ring.remove();
+                                text.remove();
+                                document.getElementById('clickupTutorialOverlay')?.remove();
+                                showFinalMessage();
+                            }, 1000);
+                        };
+                    }
+                }
+            });
+        }
+    }
+
+    function showFinalMessage() {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        `;
+        
+        modal.innerHTML = `
+            <div style="background: white; padding: 50px; border-radius: 16px; max-width: 500px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                <div style="font-size: 60px; margin-bottom: 20px;">🎉</div>
+                <h2 style="margin: 0 0 20px 0; color: #667eea; font-size: 32px;">Congratulations!</h2>
+                <p style="margin: 0 0 30px 0; color: #666; font-size: 18px; line-height: 1.6;">
+                    You have completed the entire tutorial!<br>
+                    <strong>Enjoy using your Staff Portal!</strong>
+                </p>
+                <button id="finishTutorialBtn" style="padding: 16px 40px; font-size: 18px; font-weight: 600; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+                    Let's Go! 🚀
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        document.getElementById('finishTutorialBtn').addEventListener('click', () => {
+            modal.remove();
+            finalizeTutorial();
+        });
+    }
+
+    function finalizeTutorial() {
+        cleanupTutorial();
+        
+        // Send welcome email
+        const emp = getEmployee(currentUser.id);
+        emp.mail = emp.mail || [];
+        emp.mail.push({
+            id: Date.now().toString(),
+            from: 'Cirkle Development',
+            subject: 'Welcome to Staff Portal',
+            content: `Dear ${emp.profile.name}, Welcome to your new Staff Portal. You have completed the tutorial and are ready to start! Please explore all the features and get familiar with everything. We hope you enjoy using the portal! Kind Regards, Cirkle Development.`,
+            timestamp: new Date().toLocaleString(),
+            senderId: 'system'
+        });
+        updateEmployee(emp);
+        addNotification('welcome', 'Welcome to your Staff Portal!', 'mail');
+        
+        showScreen('mainMenu');
+    }
+
+    function cleanupTutorial() {
+        document.querySelectorAll('.tutorial-ring, .tutorial-text').forEach(el => el.remove());
+        document.getElementById('clickupTokenRing')?.remove();
+        document.getElementById('clickupTutorialOverlay')?.remove();
+        document.getElementById('tutorialClickUpModal')?.remove();
+        if (tutorialClickHandler) {
+            document.removeEventListener('click', tutorialClickHandler);
+            tutorialClickHandler = null;
+        }
+    }
+
+    function showNextStep() {
+        currentStep++;
+        showStep();
+    }
 
     function showStep() {
         if (currentStep >= steps.length) {
-            document.querySelectorAll('.tutorial-ring, .tutorial-text').forEach(el => el.remove());
+            cleanupTutorial();
             return;
         }
 
         const step = steps[currentStep];
-        document.querySelectorAll('.tutorial-ring, .tutorial-text').forEach(el => el.remove());
+        cleanupTutorial();
 
-        if (step.element) {
-            const rect = step.element.getBoundingClientRect();
-            const ring = document.createElement('div');
-            ring.className = 'tutorial-ring';
-            ring.style.width = `${rect.width + 20}px`;
-            ring.style.height = `${rect.height + 20}px`;
-            ring.style.left = `${rect.left - 10}px`;
-            ring.style.top = `${rect.top - 10}px`;
-            document.body.appendChild(ring);
+        // If no element, just execute action
+        if (!step.element && step.action) {
+            step.action();
+            return;
+        }
 
-            const text = document.createElement('div');
-            text.className = 'tutorial-text';
-            text.textContent = step.text;
-            document.body.appendChild(text);
-
-            step.element.addEventListener('click', () => {
-                currentStep++;
-                step.action();
-                showStep();
-            }, { once: true });
-        } else {
+        const element = typeof step.element === 'function' ? step.element() : step.element;
+        
+        if (!element) {
+            console.warn('Tutorial step element not found, skipping to next step');
             currentStep++;
-            showStep();
+            setTimeout(() => showStep(), 100);
+            return;
+        }
+
+        // Create highlight ring
+        const rect = element.getBoundingClientRect();
+        const ring = document.createElement('div');
+        ring.className = 'tutorial-ring';
+        ring.style.width = `${rect.width + 20}px`;
+        ring.style.height = `${rect.height + 20}px`;
+        ring.style.left = `${rect.left - 10}px`;
+        ring.style.top = `${rect.top - 10}px`;
+        document.body.appendChild(ring);
+
+        // Create text instruction
+        const text = document.createElement('div');
+        text.className = 'tutorial-text';
+        text.textContent = step.text;
+        document.body.appendChild(text);
+
+        if (step.waitForClick) {
+            tutorialClickHandler = function(e) {
+                if (element.contains(e.target) || e.target === element) {
+                    document.removeEventListener('click', tutorialClickHandler);
+                    tutorialClickHandler = null;
+                    
+                    if (step.action) {
+                        step.action();
+                    } else {
+                        showNextStep();
+                    }
+                }
+            };
+            document.addEventListener('click', tutorialClickHandler);
+        } else if (step.action) {
+            step.action();
         }
     }
 

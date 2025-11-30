@@ -322,10 +322,10 @@
                 <div class="tool-description">Clear mail (inbox, sent, drafts) from local storage for a specific user</div>
             </div>
 
-            <div class="tool-card" onclick="toggleCalendarSection()">
+            <div class="tool-card" onclick="toggleCalendarSections()">
                 <div class="tool-icon">📅</div>
                 <div class="tool-title">Manage Calendar</div>
-                <div class="tool-description">Add, edit, or remove calendar events</div>
+                <div class="tool-description">Add events or manage holiday dates</div>
             </div>
         </div>
 
@@ -333,6 +333,7 @@
 
         <div class="calendar-section" id="calendarSection" style="display: none;">
             <h2>📅 Calendar Event Management</h2>
+            <p style="color: #666; margin-bottom: 20px; font-size: 0.9em;">Create events for local calendar display (stored in browser only)</p>
             
             <div class="calendar-form">
                 <div class="form-group">
@@ -373,6 +374,39 @@
             </div>
 
             <div id="eventsList" class="events-list"></div>
+        </div>
+
+        <!-- Holiday Date Management Section -->
+        <div class="calendar-section" id="holidaySection" style="display: none; margin-top: 30px;">
+            <h2>🗓️ Holiday Date Management</h2>
+            <p style="color: #666; margin-bottom: 20px; font-size: 0.9em;">Add official holidays and special dates (stored in Google Sheets)</p>
+            
+            <div class="calendar-form">
+                <div class="form-group">
+                    <label for="holidayDate">Date *</label>
+                    <input type="date" id="holidayDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="holidayDescription">Description *</label>
+                    <input type="text" id="holidayDescription" placeholder="e.g., Christmas Day" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="holidayType">Type</label>
+                    <select id="holidayType">
+                        <option value="Public Holiday">Public Holiday</option>
+                        <option value="Company Holiday">Company Holiday</option>
+                        <option value="Day Off">Day Off</option>
+                        <option value="Special Date">Special Date</option>
+                    </select>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn-primary" onclick="addHoliday()">Add Holiday Date</button>
+                    <button type="button" class="btn-secondary" onclick="clearHolidayForm()">Clear Form</button>
+                </div>
+            </div>
         </div>
 
         <a href="index.html" class="back-link">← Back to Portal</a>
@@ -553,15 +587,69 @@
             showClearMailboxPrompt();
         }
 
-        // Toggle calendar section
-        function toggleCalendarSection() {
-            const section = document.getElementById('calendarSection');
-            if (section.style.display === 'none') {
-                section.style.display = 'block';
+        // Toggle calendar sections
+        function toggleCalendarSections() {
+            const eventSection = document.getElementById('calendarSection');
+            const holidaySection = document.getElementById('holidaySection');
+            
+            if (eventSection.style.display === 'none') {
+                eventSection.style.display = 'block';
+                holidaySection.style.display = 'block';
                 displayEvents();
             } else {
-                section.style.display = 'none';
+                eventSection.style.display = 'none';
+                holidaySection.style.display = 'none';
             }
+        }
+
+        // Legacy function for backward compatibility
+        function toggleCalendarSection() {
+            toggleCalendarSections();
+        }
+
+        // Add holiday to Google Sheets
+        async function addHoliday() {
+            const date = document.getElementById('holidayDate').value;
+            const description = document.getElementById('holidayDescription').value.trim();
+            const type = document.getElementById('holidayType').value;
+
+            if (!date || !description) {
+                showMessage('Please fill in the date and description', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/calendar/holiday/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        date,
+                        description,
+                        type
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    clearHolidayForm();
+                    showMessage('Holiday date added successfully to calendar sheet!', 'success');
+                } else {
+                    showMessage('Failed to add holiday: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error adding holiday:', error);
+                showMessage('Error adding holiday: ' + error.message, 'error');
+            }
+        }
+
+        // Clear holiday form
+        function clearHolidayForm() {
+            document.getElementById('holidayDate').value = '';
+            document.getElementById('holidayDescription').value = '';
+            document.getElementById('holidayType').value = 'Public Holiday';
         }
 
         // Show message
