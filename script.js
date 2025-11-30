@@ -118,6 +118,19 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUser.profile.staffId = profile.staffId;
             currentUser.profile.baseLevel = profile.baseLevel;
             
+            // Save to localStorage immediately
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // Update employee record
+            const emp = getEmployee(currentUser.id);
+            emp.profile = emp.profile || {};
+            emp.profile.name = profile.name;
+            emp.profile.email = profile.email;
+            emp.profile.department = profile.department;
+            emp.profile.staffId = profile.staffId;
+            emp.profile.baseLevel = profile.baseLevel;
+            updateEmployee(emp);
+            
             console.debug('[syncProfileFromSheets] Updated currentUser.profile: ' + JSON.stringify(currentUser.profile));
             
             // Update UI fields with latest data from Sheets
@@ -2229,7 +2242,7 @@ function updateMainScreen() {
     const userName = currentUser.profile?.name || currentUser.name || 'User';
     const userDept = currentUser.profile?.department || emp.profile?.department || 'N/A';
     
-    // Base Level mapping
+    // Base Level mapping - fetch from currentUser.profile which is synced from Sheets
     const baseLevelMap = {
         '1': 'Director Board',
         '2': 'Director Board',
@@ -2239,8 +2252,13 @@ function updateMainScreen() {
         '6': 'Senior Roles',
         '7': 'General Roles'
     };
-    const baseLevelValue = currentUser.profile?.baseLevel || '';
+    
+    // Get base level from profile, trim whitespace
+    const baseLevelValue = (currentUser.profile?.baseLevel || '').toString().trim();
+    console.log('[updateMainScreen] Raw baseLevel value from profile:', baseLevelValue);
+    
     const baseLevelDisplay = baseLevelValue ? (baseLevelMap[baseLevelValue] || 'Not Set') : 'Not Set';
+    console.log('[updateMainScreen] Base Level display:', baseLevelDisplay);
     
     document.getElementById('greeting').textContent = `Good ${getGreeting()}, ${userName}!`;
     document.getElementById('lastLogin').textContent = `Last Log In: ${emp.lastLogin || 'Never'}`;
