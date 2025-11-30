@@ -3599,7 +3599,7 @@ async function fetchAndDisplayHolidays(container) {
             
             // Create holidays section
             const holidaysSection = document.createElement('div');
-            holidaysSection.style.cssText = 'padding: 20px;';
+            holidaysSection.style.cssText = 'padding: 20px; max-width: 100%; overflow: hidden;';
             
             const holidaysTitle = document.createElement('h3');
             holidaysTitle.textContent = '🗓️ Holidays & Special Dates';
@@ -3612,9 +3612,9 @@ async function fetchAndDisplayHolidays(container) {
                 // Sort holidays by date
                 holidays.sort((a, b) => new Date(a.date) - new Date(b.date));
                 
-                // Create grid container for holidays
+                // Create grid container for holidays with constrained width
                 const holidayGrid = document.createElement('div');
-                holidayGrid.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;';
+                holidayGrid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; max-width: 100%;';
                 
                 holidays.forEach(holiday => {
                     const holidayDate = new Date(holiday.date);
