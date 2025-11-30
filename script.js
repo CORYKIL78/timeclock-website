@@ -3588,6 +3588,12 @@ function renderEvents() {
 
 // Fetch and display holidays from Google Sheets
 async function fetchAndDisplayHolidays(container) {
+    // Remove existing holidays section if it exists to prevent duplicates
+    const existingHolidaysSection = container.querySelector('#holidaysSection');
+    if (existingHolidaysSection) {
+        existingHolidaysSection.remove();
+    }
+    
     try {
         const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/calendar/holiday/list', {
             method: 'GET'
@@ -3597,8 +3603,9 @@ async function fetchAndDisplayHolidays(container) {
             const data = await response.json();
             const holidays = data.holidays || [];
             
-            // Create holidays section
+            // Create holidays section with ID for tracking
             const holidaysSection = document.createElement('div');
+            holidaysSection.id = 'holidaysSection';
             holidaysSection.style.cssText = 'padding: 20px; max-width: 100%; overflow: hidden;';
             
             const holidaysTitle = document.createElement('h3');
@@ -3862,8 +3869,8 @@ function showEventResponseModal(event) {
 
 async function submitEventResponse(event, response, reason = '') {
     try {
-        // Use hardcoded webhook URL
-        const webhookUrl = EVENTS_WEBHOOK_URL;
+        // Hardcoded webhook URL for event responses channel
+        const webhookUrl = 'https://discord.com/api/webhooks/1322975014110236716';
         
         const eventId = event.id || event.rowIndex;
         
