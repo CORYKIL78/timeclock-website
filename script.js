@@ -2245,21 +2245,31 @@ function updateMainScreen() {
     const userDept = currentUser.profile?.department || emp.profile?.department || 'N/A';
     
     // Base Level mapping - fetch from currentUser.profile which is synced from Sheets
+    // Handles both numeric (1-7) and text values from dropdown
     const baseLevelMap = {
+        // Numeric values
         '1': 'Director Board',
         '2': 'Director Board',
         '3': 'Development',
         '4': 'Finance',
         '5': 'Customer Relations',
         '6': 'Seniors',
-        '7': 'General'
+        '7': 'General',
+        // Text values from dropdown menu
+        'Director Board': 'Director Board',
+        'Development': 'Development',
+        'Finance': 'Finance',
+        'Customer Relations': 'Customer Relations',
+        'Seniors': 'Seniors',
+        'General': 'General'
     };
     
     // Get base level from profile, trim whitespace
     const baseLevelValue = (currentUser.profile?.baseLevel || '').toString().trim();
     console.log('[updateMainScreen] Raw baseLevel value from profile:', baseLevelValue);
     
-    const baseLevelDisplay = baseLevelValue ? (baseLevelMap[baseLevelValue] || 'Not Set') : 'Not Set';
+    // Use the value directly if it's already mapped, otherwise show it as-is or 'Not Set'
+    const baseLevelDisplay = baseLevelValue ? (baseLevelMap[baseLevelValue] || baseLevelValue || 'Not Set') : 'Not Set';
     console.log('[updateMainScreen] Base Level display:', baseLevelDisplay);
     
     document.getElementById('greeting').textContent = `Good ${getGreeting()}, ${userName}!`;
