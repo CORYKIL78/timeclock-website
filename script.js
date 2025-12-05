@@ -3540,7 +3540,10 @@ function renderEvents() {
     const container = document.getElementById('eventsContainer');
     if (!container) return;
     
+    // Clear and ensure clean state
     container.innerHTML = '';
+    container.style.width = '100%';
+    container.style.maxWidth = '100%';
     
     // Create section for events
     const eventsSection = document.createElement('div');
@@ -3556,7 +3559,7 @@ function renderEvents() {
     } else {
         // Create grid container for events
         const gridContainer = document.createElement('div');
-        gridContainer.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;';
+        gridContainer.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 100%;';
         
         eventsData.forEach(event => {
             const eventCard = document.createElement('div');
