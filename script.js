@@ -2245,7 +2245,7 @@ function updateMainScreen() {
     const userDept = currentUser.profile?.department || emp.profile?.department || 'N/A';
     
     // Base Level mapping - fetch from currentUser.profile which is synced from Sheets
-    // Handles both numeric (1-7) and text values from dropdown
+    // Handles both numeric (1-7), text values, and pipe-separated format "1 | Director Board"
     const baseLevelMap = {
         // Numeric values
         '1': 'Director Board',
@@ -2265,11 +2265,22 @@ function updateMainScreen() {
     };
     
     // Get base level from profile, trim whitespace
-    const baseLevelValue = (currentUser.profile?.baseLevel || '').toString().trim();
+    let baseLevelValue = (currentUser.profile?.baseLevel || '').toString().trim();
     console.log('[updateMainScreen] Raw baseLevel value from profile:', baseLevelValue);
     
-    // Use the value directly if it's already mapped, otherwise show it as-is or 'Not Set'
-    const baseLevelDisplay = baseLevelValue ? (baseLevelMap[baseLevelValue] || baseLevelValue || 'Not Set') : 'Not Set';
+    // Check if value contains pipe separator (e.g., "1 | Director Board")
+    let baseLevelDisplay = 'Not Set';
+    if (baseLevelValue) {
+        if (baseLevelValue.includes('|')) {
+            // Extract the part after the pipe and trim
+            const parts = baseLevelValue.split('|');
+            baseLevelDisplay = parts[1] ? parts[1].trim() : parts[0].trim();
+            console.log('[updateMainScreen] Parsed from pipe format:', baseLevelDisplay);
+        } else {
+            // Use mapping or the value itself
+            baseLevelDisplay = baseLevelMap[baseLevelValue] || baseLevelValue;
+        }
+    }
     console.log('[updateMainScreen] Base Level display:', baseLevelDisplay);
     
     document.getElementById('greeting').textContent = `Good ${getGreeting()}, ${userName}!`;
