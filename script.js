@@ -2740,6 +2740,57 @@ async function handleOAuthRedirect() {
     
     // Start periodic suspension checks for active users
     setInterval(checkSuspensionStatus, 30000);
+    
+    // Start periodic profile sync to check for baseLevel and other changes
+    setInterval(async () => {
+        console.log('[PROFILE_SYNC] Running periodic profile sync...');
+        if (!window.currentUser || !window.currentUser.id) {
+            console.log('[PROFILE_SYNC] No currentUser, skipping');
+            return;
+        }
+        
+        try {
+            const profile = await fetchUserProfile(window.currentUser.id);
+            if (profile && profile.baseLevel) {
+                const oldBaseLevel = window.currentUser.profile?.baseLevel;
+                const newBaseLevel = profile.baseLevel;
+                
+                // Update profile with latest data
+                if (!window.currentUser.profile) window.currentUser.profile = {};
+                window.currentUser.profile.baseLevel = newBaseLevel;
+                window.currentUser.profile.name = profile.name;
+                window.currentUser.profile.email = profile.email;
+                window.currentUser.profile.department = profile.department;
+                window.currentUser.profile.status = profile.status;
+                
+                // Save to localStorage
+                localStorage.setItem('currentUser', JSON.stringify(window.currentUser));
+                
+                // Update employee record
+                const emp = getEmployee(window.currentUser.id);
+                if (emp.profile) {
+                    emp.profile.baseLevel = newBaseLevel;
+                    emp.profile.name = profile.name;
+                    emp.profile.email = profile.email;
+                    emp.profile.department = profile.department;
+                    updateEmployee(emp);
+                }
+                
+                // If baseLevel changed and we're on main screen, update the display
+                if (oldBaseLevel !== newBaseLevel) {
+                    console.log(`[PROFILE_SYNC] Base Level changed from ${oldBaseLevel} to ${newBaseLevel}`);
+                    const mainScreen = document.getElementById('mainScreen');
+                    if (mainScreen && mainScreen.classList.contains('active')) {
+                        updateMainScreen();
+                    }
+                }
+                
+                console.log('[PROFILE_SYNC] Profile updated successfully');
+            }
+        } catch (error) {
+            console.error('[PROFILE_SYNC] Error syncing profile:', error);
+        }
+    }, 30000); // Check every 30 seconds
 
     // CRITICAL: Only go to setup if TRULY a first-time user AND no profile exists
     console.log('[LOGIN] Checking if setup needed...');
