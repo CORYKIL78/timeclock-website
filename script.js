@@ -117,9 +117,11 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUser.profile.department = profile.department;
             currentUser.profile.staffId = profile.staffId;
             currentUser.profile.baseLevel = profile.baseLevel;
+            console.log('[syncProfileFromSheets] Set baseLevel to:', profile.baseLevel);
             
             // Save to localStorage immediately
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            console.log('[syncProfileFromSheets] Saved to localStorage');
             
             // Update employee record
             const emp = getEmployee(currentUser.id);
@@ -2249,8 +2251,8 @@ function updateMainScreen() {
         '3': 'Development',
         '4': 'Finance',
         '5': 'Customer Relations',
-        '6': 'Senior Roles',
-        '7': 'General Roles'
+        '6': 'Seniors',
+        '7': 'General'
     };
     
     // Get base level from profile, trim whitespace
@@ -2778,11 +2780,14 @@ async function handleOAuthRedirect() {
                 
                 // If baseLevel changed and we're on main screen, update the display
                 if (oldBaseLevel !== newBaseLevel) {
-                    console.log(`[PROFILE_SYNC] Base Level changed from ${oldBaseLevel} to ${newBaseLevel}`);
+                    console.log(`[PROFILE_SYNC] Base Level changed from "${oldBaseLevel}" to "${newBaseLevel}"`);
                     const mainScreen = document.getElementById('mainScreen');
                     if (mainScreen && mainScreen.classList.contains('active')) {
+                        console.log('[PROFILE_SYNC] Updating main screen with new base level');
                         updateMainScreen();
                     }
+                } else {
+                    console.log(`[PROFILE_SYNC] Base Level unchanged: "${newBaseLevel}"`);
                 }
                 
                 console.log('[PROFILE_SYNC] Profile updated successfully');
@@ -4586,9 +4591,22 @@ if (mainProfilePic) {
 
 const homeBtn = document.getElementById('homeBtn');
 if (homeBtn) {
-    homeBtn.addEventListener('click', () => {
+    homeBtn.addEventListener('click', async () => {
         console.log('Home button clicked');
         showScreen('mainMenu');
+        
+        // Sync profile to get latest baseLevel before updating screen
+        if (currentUser && currentUser.id) {
+            console.log('[HOME] Syncing profile before showing main screen');
+            const profile = await fetchUserProfile(currentUser.id);
+            if (profile && profile.baseLevel !== undefined) {
+                if (!currentUser.profile) currentUser.profile = {};
+                currentUser.profile.baseLevel = profile.baseLevel;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                console.log('[HOME] Updated baseLevel to:', profile.baseLevel);
+            }
+        }
+        
         updateMainScreen();
         // Close mobile sidebar after navigation
         closeMobileSidebar();
