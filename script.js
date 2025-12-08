@@ -5035,6 +5035,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!startDate || !endDate || !comment) {
                 showModal('alert', 'Please fill all fields');
                 window.absenceSubmitting = false;
+                submitBtn.disabled = false;
                 return;
             }
             const emp = getEmployee(currentUser.id);
@@ -5049,24 +5050,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 status: 'pending',
                 messageId: null
             };
-            emp.absences.push(absence);
-            updateEmployee(emp);
-            await sendAbsenceWebhook(absence);
-            closeModal('absenceRequest');
-            // Only show one success message: forcibly close any open alert modal
-            const alertModal = document.getElementById('alertModal');
-            if (alertModal && alertModal.style.display === 'flex') {
-                alertModal.style.display = 'none';
+            
+            try {
+                // Save to Google Sheets via backend
+                const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: emp.profile.name,
+                        startDate: startDate,
+                        endDate: endDate,
+                        reason: type,
+                        totalDays: days.toString(),
+                        comment: comment,
+                        discordId: currentUser.id
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save absence to sheets');
+                }
+                
+                // Save locally and send webhook
+                emp.absences.push(absence);
+                updateEmployee(emp);
+                await sendAbsenceWebhook(absence);
+                
+                closeModal('absenceRequest');
+                // Only show one success message: forcibly close any open alert modal
+                const alertModal = document.getElementById('alertModal');
+                if (alertModal && alertModal.style.display === 'flex') {
+                    alertModal.style.display = 'none';
+                }
+                setTimeout(() => {
+                    showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
+                }, 100);
+                addNotification('absence', 'Absence request submitted!', 'absences');
+                // Ensure pending tab is active and render
+                document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
+                document.getElementById('pendingFolder').classList.add('active');
+                document.getElementById('approvedFolder').classList.remove('active');
+            } catch (error) {
+                console.error('Error submitting absence:', error);
+                showModal('alert', '❌ Failed to submit absence. Please try again.');
+            } finally {
+                window.absenceSubmitting = false;
+                submitBtn.disabled = false;
             }
-            setTimeout(() => {
-                showModal('alert', '<span class="success-tick"></span> Successfully submitted and sent!');
-            }, 100);
-            addNotification('absence', 'Absence request submitted!', 'absences');
-            // Ensure pending tab is active and render
-            document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
-            document.getElementById('pendingFolder').classList.add('active');
-            document.getElementById('approvedFolder').classList.remove('active');
         });
     }
 });

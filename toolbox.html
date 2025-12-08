@@ -526,28 +526,44 @@
             
             if (userId.trim() === '') {
                 // Clear all absences
-                if (!confirm('Are you sure you want to clear ALL absence requests from local storage?')) return;
+                if (!confirm('Are you sure you want to clear ALL absence requests from Google Sheets?')) return;
                 
-                const keys = Object.keys(localStorage);
-                let count = 0;
-                keys.forEach(key => {
-                    if (key.startsWith('absence_')) {
-                        localStorage.removeItem(key);
-                        count++;
+                fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clearAll: true })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage(`Cleared ${data.clearedCount} absence record(s) for ALL users!`, 'success');
+                    } else {
+                        showMessage('Error: ' + (data.error || 'Failed to clear absences'), 'error');
                     }
+                })
+                .catch(err => {
+                    showMessage('Error: ' + err.message, 'error');
                 });
-                
-                showMessage(`Cleared ${count} absence record(s) for ALL users!`, 'success');
             } else {
                 // Clear specific user's absences
-                const key = `absence_${userId.trim()}`;
-                if (localStorage.getItem(key)) {
-                    if (!confirm(`Are you sure you want to clear absences for user ID: ${userId.trim()}?`)) return;
-                    localStorage.removeItem(key);
-                    showMessage(`Cleared absences for user ${userId.trim()}!`, 'success');
-                } else {
-                    showMessage(`No absences found for user ID: ${userId.trim()}`, 'error');
-                }
+                if (!confirm(`Are you sure you want to clear absences for user ID: ${userId.trim()}?`)) return;
+                
+                fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ discordId: userId.trim() })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage(`Cleared ${data.clearedCount} absence(s) for user ${userId.trim()}!`, 'success');
+                    } else {
+                        showMessage('Error: ' + (data.error || 'Failed to clear absences'), 'error');
+                    }
+                })
+                .catch(err => {
+                    showMessage('Error: ' + err.message, 'error');
+                });
             }
         }
 
