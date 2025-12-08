@@ -526,23 +526,38 @@
             
             if (userId.trim() === '') {
                 // Clear all absences
-                if (!confirm('Are you sure you want to clear ALL absence requests from Google Sheets?')) return;
+                if (!confirm('Are you sure you want to clear ALL absence requests?')) return;
                 
                 fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/clear', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ clearAll: true })
                 })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error('Backend endpoint not available. Clearing localStorage only.');
+                    }
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) {
-                        showMessage(`Cleared ${data.clearedCount} absence record(s) for ALL users!`, 'success');
+                        showMessage(`✅ Cleared ${data.clearedCount} absence record(s) from Google Sheets!`, 'success');
                     } else {
-                        showMessage('Error: ' + (data.error || 'Failed to clear absences'), 'error');
+                        showMessage('❌ Error: ' + (data.error || 'Failed to clear absences'), 'error');
                     }
                 })
                 .catch(err => {
-                    showMessage('Error: ' + err.message, 'error');
+                    console.warn('Backend unavailable, clearing localStorage:', err);
+                    // Fallback to localStorage
+                    const keys = Object.keys(localStorage);
+                    let count = 0;
+                    keys.forEach(key => {
+                        if (key.startsWith('absence_')) {
+                            localStorage.removeItem(key);
+                            count++;
+                        }
+                    });
+                    showMessage(`⚠️ Backend unavailable. Cleared ${count} absence(s) from localStorage only.\n\nNote: Deploy backend to clear from Google Sheets.`, 'error');
                 });
             } else {
                 // Clear specific user's absences
@@ -553,16 +568,29 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ discordId: userId.trim() })
                 })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error('Backend endpoint not available. Clearing localStorage only.');
+                    }
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) {
-                        showMessage(`Cleared ${data.clearedCount} absence(s) for user ${userId.trim()}!`, 'success');
+                        showMessage(`✅ Cleared ${data.clearedCount} absence(s) for user ${userId.trim()} from Google Sheets!`, 'success');
                     } else {
-                        showMessage('Error: ' + (data.error || 'Failed to clear absences'), 'error');
+                        showMessage('❌ Error: ' + (data.error || 'Failed to clear absences'), 'error');
                     }
                 })
                 .catch(err => {
-                    showMessage('Error: ' + err.message, 'error');
+                    console.warn('Backend unavailable, clearing localStorage:', err);
+                    // Fallback to localStorage
+                    const key = `absence_${userId.trim()}`;
+                    if (localStorage.getItem(key)) {
+                        localStorage.removeItem(key);
+                        showMessage(`⚠️ Backend unavailable. Cleared absences for user ${userId.trim()} from localStorage only.\n\nNote: Deploy backend to clear from Google Sheets.`, 'error');
+                    } else {
+                        showMessage(`⚠️ Backend unavailable. No absences found in localStorage for user ID: ${userId.trim()}`, 'error');
+                    }
                 });
             }
         }
