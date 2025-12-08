@@ -520,14 +520,15 @@
 
         // Show prompt for clearing absences with user ID
         function showClearAbsencesPrompt() {
-            const userId = prompt('Enter the User ID (Discord ID) to clear absences for:\n\nExample: 123456789012345678\n\nLeave blank to clear ALL absences.');
+            const userId = prompt('Enter the User ID (Discord ID) to clear absences for:\n\nExample: 123456789012345678\n\nLeave blank to clear ALL absences.\n\nThis will clear from:\n- Google Sheets (backend)\n- Portal localStorage (pending/approved/rejected)');
             
             if (userId === null) return; // User cancelled
             
             if (userId.trim() === '') {
                 // Clear all absences
-                if (!confirm('Are you sure you want to clear ALL absence requests?')) return;
+                if (!confirm('⚠️ WARNING: This will clear ALL absences from:\n\n1. Google Sheets (backend)\n2. Portal localStorage (all users)\n\nAre you sure?')) return;
                 
+                // Clear Google Sheets via backend
                 fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/clear', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -535,34 +536,55 @@
                 })
                 .then(res => {
                     if (!res.ok) {
-                        throw new Error('Backend endpoint not available. Clearing localStorage only.');
+                        throw new Error('Backend endpoint not available');
                     }
                     return res.json();
                 })
                 .then(data => {
                     if (data.success) {
-                        showMessage(`✅ Cleared ${data.clearedCount} absence record(s) from Google Sheets!`, 'success');
+                        // Also clear from portal localStorage
+                        const keys = Object.keys(localStorage);
+                        const employeesKey = keys.find(k => k.startsWith('employees_') || k === 'employees');
+                        if (employeesKey) {
+                            const employees = JSON.parse(localStorage.getItem(employeesKey) || '[]');
+                            employees.forEach(emp => {
+                                if (emp.absences) {
+                                    emp.absences = [];
+                                }
+                            });
+                            localStorage.setItem(employeesKey, JSON.stringify(employees));
+                        }
+                        
+                        showMessage(`✅ Successfully cleared:\n- ${data.clearedCount} absence(s) from Google Sheets\n- All absences from portal localStorage`, 'success');
                     } else {
                         showMessage('❌ Error: ' + (data.error || 'Failed to clear absences'), 'error');
                     }
                 })
                 .catch(err => {
-                    console.warn('Backend unavailable, clearing localStorage:', err);
-                    // Fallback to localStorage
+                    console.warn('Backend unavailable:', err);
+                    // Fallback: clear portal localStorage only
                     const keys = Object.keys(localStorage);
-                    let count = 0;
-                    keys.forEach(key => {
-                        if (key.startsWith('absence_')) {
-                            localStorage.removeItem(key);
-                            count++;
-                        }
-                    });
-                    showMessage(`⚠️ Backend unavailable. Cleared ${count} absence(s) from localStorage only.\n\nNote: Deploy backend to clear from Google Sheets.`, 'error');
+                    const employeesKey = keys.find(k => k.startsWith('employees_') || k === 'employees');
+                    let clearedCount = 0;
+                    
+                    if (employeesKey) {
+                        const employees = JSON.parse(localStorage.getItem(employeesKey) || '[]');
+                        employees.forEach(emp => {
+                            if (emp.absences && emp.absences.length > 0) {
+                                clearedCount += emp.absences.length;
+                                emp.absences = [];
+                            }
+                        });
+                        localStorage.setItem(employeesKey, JSON.stringify(employees));
+                    }
+                    
+                    showMessage(`⚠️ Backend unavailable.\n\nCleared ${clearedCount} absence(s) from portal localStorage only.\n\nNote: Deploy backend to clear from Google Sheets.`, 'error');
                 });
             } else {
                 // Clear specific user's absences
-                if (!confirm(`Are you sure you want to clear absences for user ID: ${userId.trim()}?`)) return;
+                if (!confirm(`⚠️ Clear absences for user ${userId.trim()} from:\n\n1. Google Sheets (backend)\n2. Portal localStorage\n\nAre you sure?`)) return;
                 
+                // Clear Google Sheets via backend
                 fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/clear', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -570,26 +592,53 @@
                 })
                 .then(res => {
                     if (!res.ok) {
-                        throw new Error('Backend endpoint not available. Clearing localStorage only.');
+                        throw new Error('Backend endpoint not available');
                     }
                     return res.json();
                 })
                 .then(data => {
                     if (data.success) {
-                        showMessage(`✅ Cleared ${data.clearedCount} absence(s) for user ${userId.trim()} from Google Sheets!`, 'success');
+                        // Also clear from portal localStorage for this user
+                        const keys = Object.keys(localStorage);
+                        const employeesKey = keys.find(k => k.startsWith('employees_') || k === 'employees');
+                        let localCleared = 0;
+                        
+                        if (employeesKey) {
+                            const employees = JSON.parse(localStorage.getItem(employeesKey) || '[]');
+                            const employee = employees.find(e => e.id === userId.trim());
+                            if (employee && employee.absences) {
+                                localCleared = employee.absences.length;
+                                employee.absences = [];
+                                localStorage.setItem(employeesKey, JSON.stringify(employees));
+                            }
+                        }
+                        
+                        showMessage(`✅ Successfully cleared:\n- ${data.clearedCount} absence(s) from Google Sheets\n- ${localCleared} absence(s) from portal localStorage`, 'success');
                     } else {
                         showMessage('❌ Error: ' + (data.error || 'Failed to clear absences'), 'error');
                     }
                 })
                 .catch(err => {
-                    console.warn('Backend unavailable, clearing localStorage:', err);
-                    // Fallback to localStorage
-                    const key = `absence_${userId.trim()}`;
-                    if (localStorage.getItem(key)) {
-                        localStorage.removeItem(key);
-                        showMessage(`⚠️ Backend unavailable. Cleared absences for user ${userId.trim()} from localStorage only.\n\nNote: Deploy backend to clear from Google Sheets.`, 'error');
+                    console.warn('Backend unavailable:', err);
+                    // Fallback: clear portal localStorage only for this user
+                    const keys = Object.keys(localStorage);
+                    const employeesKey = keys.find(k => k.startsWith('employees_') || k === 'employees');
+                    let localCleared = 0;
+                    
+                    if (employeesKey) {
+                        const employees = JSON.parse(localStorage.getItem(employeesKey) || '[]');
+                        const employee = employees.find(e => e.id === userId.trim());
+                        if (employee && employee.absences) {
+                            localCleared = employee.absences.length;
+                            employee.absences = [];
+                            localStorage.setItem(employeesKey, JSON.stringify(employees));
+                        }
+                    }
+                    
+                    if (localCleared > 0) {
+                        showMessage(`⚠️ Backend unavailable.\n\nCleared ${localCleared} absence(s) from portal localStorage only.\n\nNote: Deploy backend to clear from Google Sheets.`, 'error');
                     } else {
-                        showMessage(`⚠️ Backend unavailable. No absences found in localStorage for user ID: ${userId.trim()}`, 'error');
+                        showMessage(`⚠️ Backend unavailable. No absences found in portal localStorage for user ID: ${userId.trim()}`, 'error');
                     }
                 });
             }
