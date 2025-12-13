@@ -98,6 +98,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 500);
 
+    async function syncAbsencesFromSheets() {
+        if (!currentUser) {
+            console.debug('[syncAbsencesFromSheets] No currentUser');
+            return;
+        }
+        console.debug('[syncAbsencesFromSheets] Starting sync for user:', currentUser.id);
+        
+        try {
+            const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/user/absences/${currentUser.id}`);
+            if (!response.ok) {
+                console.error('[syncAbsencesFromSheets] Failed to fetch:', response.status);
+                return;
+            }
+            
+            const data = await response.json();
+            console.debug('[syncAbsencesFromSheets] Fetched', data.absences?.length || 0, 'absences');
+            
+            if (data.absences && Array.isArray(data.absences)) {
+                // Update the employee's absences in localStorage
+                const emp = getEmployee(currentUser.id);
+                if (emp) {
+                    emp.absences = data.absences;
+                    localStorage.setItem('employees', JSON.stringify(getEmployees()));
+                    console.debug('[syncAbsencesFromSheets] Updated localStorage with', data.absences.length, 'absences');
+                    
+                    // Update dashboard if on absence tab
+                    if (typeof updateAbsenceDashboard === 'function') {
+                        updateAbsenceDashboard();
+                    }
+                    
+                    // Re-render absence lists if visible
+                    if (document.getElementById('absenceTab')?.classList.contains('active')) {
+                        if (typeof renderAbsences === 'function') {
+                            renderAbsences();
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('[syncAbsencesFromSheets] Error:', err);
+        }
+    }
+
     async function syncProfileFromSheets() {
         if (!currentUser) {
             console.debug('[syncProfileFromSheets] No currentUser');
@@ -209,12 +252,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateMainScreen();
             });
             
+            // Initial absence sync
+            syncAbsencesFromSheets();
+            
             // Periodic sync from backend (every 15 seconds)
             setInterval(async () => {
                 await syncProfileFromSheets();
                 updateProfileDisplay();
                 updateMainScreen();
             }, 15000);
+            
+            // Periodic absence sync (every 20 seconds)
+            setInterval(async () => {
+                await syncAbsencesFromSheets();
+            }, 20000);
             
             // Check for approved change requests periodically
             setInterval(() => {
@@ -2650,7 +2701,7 @@ async function handleOAuthRedirect() {
         });
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Member fetch failed: ${response.status} ${await response.text()}`);
+            throw new Error(`Member fetch failed: ${response.status} ${errorText}`);
         }
         member = await response.json();
         console.log('Member data received:', member);
