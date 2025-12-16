@@ -1682,7 +1682,7 @@ const DEPT_ROLES = {
     'Finance Department': '1433453982453338122'
 };
 const GUILD_ID = '1310656642672627752';
-const WORKER_URL = 'https://timeclock-proxy.marcusray.workers.dev';
+const WORKER_URL = 'https://timeclock-backend.marcusray.workers.dev';
 const CLIENT_ID = '1417915896634277888';
 const REDIRECT_URI = 'https://portal.cirkledevelopment.co.uk';
 
@@ -1690,7 +1690,7 @@ const REDIRECT_URI = 'https://portal.cirkledevelopment.co.uk';
 async function sendDiscordDM(userId, embed) {
     try {
         // Use the new POST endpoint with native Discord embeds
-        const response = await fetch(`https://timeclock-proxy.marcusray.workers.dev/sendDM`, {
+        const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/sendDM`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
