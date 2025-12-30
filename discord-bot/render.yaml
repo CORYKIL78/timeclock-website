@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: cirkle-commission-bot
+    env: node
+    region: frankfurt
+    plan: free
+    rootDir: discord-bot
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_GUILD_ID
+        sync: false
