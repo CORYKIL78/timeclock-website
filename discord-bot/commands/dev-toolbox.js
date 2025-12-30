@@ -1,55 +1,37 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
+const db = require('../database');
 
-// Persistent storage
-const QUOTES_FILE = path.join(__dirname, 'quotes.json');
+// In-memory cache (with MongoDB fallback)
 const quotes = new Map();
 let quoteCounter = 1;
+let dbConnected = false;
 
-// Load quotes from file on startup
-function loadQuotes() {
+// Initialize - load from database if available
+async function initializeQuotes() {
     try {
-        if (fs.existsSync(QUOTES_FILE)) {
-            const data = fs.readFileSync(QUOTES_FILE, 'utf8');
-            const parsed = JSON.parse(data);
-            
-            // Load quotes into Map
-            if (parsed.quotes) {
-                Object.entries(parsed.quotes).forEach(([id, quote]) => {
-                    quotes.set(id, quote);
-                });
-            }
-            
-            // Restore counter
-            if (parsed.counter) {
-                quoteCounter = parsed.counter;
-            }
-            
-            console.log(`[DEV-TOOLBOX] Loaded ${quotes.size} quotes from disk`);
-        }
+        const allQuotes = await db.getAllQuotes();
+        allQuotes.forEach(quote => {
+            quotes.set(quote.id, quote);
+        });
+        quoteCounter = await db.getQuoteCounter();
+        dbConnected = true;
+        console.log(`[DEV-TOOLBOX] Loaded ${quotes.size} quotes from MongoDB`);
     } catch (error) {
-        console.error('[DEV-TOOLBOX] Error loading quotes:', error);
+        console.log('[DEV-TOOLBOX] Using in-memory storage only');
+        dbConnected = false;
     }
 }
 
-// Save quotes to file
-function saveQuotes() {
-    try {
-        const data = {
-            quotes: Object.fromEntries(quotes),
-            counter: quoteCounter,
-            lastSaved: new Date().toISOString()
-        };
-        fs.writeFileSync(QUOTES_FILE, JSON.stringify(data, null, 2));
-        console.log(`[DEV-TOOLBOX] Saved ${quotes.size} quotes to disk`);
-    } catch (error) {
-        console.error('[DEV-TOOLBOX] Error saving quotes:', error);
+// Save quote (to both cache and database)
+async function saveQuote(quote) {
+    quotes.set(quote.id, quote);
+    if (dbConnected) {
+        await db.saveQuote(quote);
     }
 }
 
-// Load quotes on module load
-loadQuotes();
+// Initialize on module load
+initializeQuotes().catch(console.error);
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -263,7 +245,7 @@ async function handleSendQuoteModal(interaction) {
         };
         
         quotes.set(quoteId, quoteData);
-        saveQuotes(); // Persist to disk
+        await saveQuote(quote); // Persist to disk
 
         const quoteEmbed = new EmbedBuilder()
             .setTitle(`📋 Commission Quote #${quoteNumber}`)
@@ -441,7 +423,7 @@ async function handleAcceptQuote(interaction, quoteId) {
     quote.status = 'accepted';
     quote.acceptedBy = interaction.user.id;
     quote.acceptedAt = new Date().toISOString();
-    saveQuotes(); // Persist to disk
+    await saveQuote(quote); // Persist to disk
     
     const embed = new EmbedBuilder()
         .setTitle(`📋 Commission Quote #${quote.quoteNumber}`)
@@ -468,7 +450,7 @@ async function handleRejectQuote(interaction, quoteId) {
     quote.status = 'rejected';
     quote.rejectedBy = interaction.user.id;
     quote.rejectedAt = new Date().toISOString();
-    saveQuotes(); // Persist to disk
+    await saveQuote(quote); // Persist to disk
     
     const embed = new EmbedBuilder()
         .setTitle(`📋 Commission Quote #${quote.quoteNumber}`)
@@ -494,7 +476,7 @@ async function handleClaimQuote(interaction, quoteId) {
     
     quote.claimedBy = interaction.user.id;
     quote.claimedAt = new Date().toISOString();
-    saveQuotes(); // Persist to disk
+    await saveQuote(quote); // Persist to disk
     
     const embed = new EmbedBuilder()
         .setTitle(`📋 Quote #${quote.quoteNumber}`)
@@ -572,7 +554,7 @@ async function handleRevolutPayment(interaction, quoteId) {
     const quote = quotes.get(quoteId);
     if (quote) {
         quote.paymentMethod = 'Revolut';
-        saveQuotes(); // Persist to disk
+        await saveQuote(quote); // Persist to disk
     }
 
     const embed = new EmbedBuilder()
@@ -612,7 +594,7 @@ async function handlePayPalPayment(interaction, quoteId) {
     const quote = quotes.get(quoteId);
     if (quote) {
         quote.paymentMethod = 'PayPal';
-        saveQuotes(); // Persist to disk
+        await saveQuote(quote); // Persist to disk
     }
 
     const embed = new EmbedBuilder()
@@ -652,7 +634,7 @@ async function handleRobuxPayment(interaction, quoteId) {
     const quote = quotes.get(quoteId);
     if (quote) {
         quote.paymentMethod = 'Robux';
-        saveQuotes(); // Persist to disk
+        await saveQuote(quote); // Persist to disk
     }
 
     const robuxAmount = Math.ceil(quote.price * 350); // 1 EUR = ~350 Robux
@@ -691,7 +673,7 @@ async function handlePaymentPaid(interaction, quoteId) {
     quote.paidAt = new Date().toISOString();
     quote.paidBy = interaction.user.id;
     quote.status = 'processing';
-    saveQuotes(); // Persist to disk
+    await saveQuote(quote); // Persist to disk
 
     const embed = new EmbedBuilder()
         .setTitle('✅ Payment Received')
@@ -734,7 +716,7 @@ async function markAsComplete(interaction, quoteId) {
     quote.status = 'completed';
     quote.completedAt = new Date().toISOString();
     quote.completedBy = interaction.user.id;
-    saveQuotes(); // Persist to disk
+    await saveQuote(quote); // Persist to disk
 
     const embed = new EmbedBuilder()
         .setTitle('✅ Quote Completed')
@@ -799,7 +781,7 @@ async function handleInvoiceSubmit(interaction) {
         quote.invoiceLink = invoiceLink;
         quote.invoiceSentBy = interaction.user.id;
         quote.invoiceSentAt = new Date().toISOString();
-        saveQuotes(); // Persist to disk
+        await saveQuote(quote); // Persist to disk
 
         // Send DM to customer
         const customer = await interaction.client.users.fetch(quote.userId).catch(() => null);

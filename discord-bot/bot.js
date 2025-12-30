@@ -13,6 +13,7 @@ const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
+const db = require('./database');
 
 // Validate configuration
 try {
@@ -51,9 +52,13 @@ for (const file of commandFiles) {
 }
 
 // Bot ready event
-client.once('ready', () => {
+client.once('ready', async () => {
     console.log(`✅ Bot logged in as ${client.user.tag}`);
     console.log(`📋 Registered commands: ${client.commands.size}`);
+    
+    // Initialize database connection
+    await db.connectDatabase();
+    
     console.log(`🚀 Dev Toolbox Commission System is ready!`);
 });
 
@@ -115,6 +120,19 @@ client.on('interactionCreate', async interaction => {
 // Error handling
 client.on('error', error => {
     console.error('Discord client error:', error);
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+    console.log('\n🛑 Shutting down...');
+    await db.closeDatabase();
+    process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+    console.log('\n🛑 Shutting down...');
+    await db.closeDatabase();
+    process.exit(0);
 });
 
 process.on('unhandledRejection', error => {
