@@ -23,8 +23,8 @@ module.exports = {
     
     // Validate required config
     validate() {
-        const required = ['DISCORD_BOT_TOKEN', 'CLIENT_ID', 'GUILD_ID', 'ADMIN_ROLE_ID'];
-        const missing = required.filter(key => !this[key]);
+        const required = ['DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID', 'DISCORD_ADMIN_ROLE_ID'];
+        const missing = required.filter(key => !process.env[key]);
         
         if (missing.length > 0) {
             throw new Error(`Missing required environment variables: ${missing.join(', ')}\nPlease check your .env file.`);
