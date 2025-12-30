@@ -2,8 +2,9 @@
 node_modules/
 package-lock.json
 
-# Environment variables
+# Environment variables (but allow .env.example)
 .env
+!.env.example
 
 # Data files (quotes storage)
 quotes.json
