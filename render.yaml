@@ -4,9 +4,8 @@ services:
     env: node
     region: frankfurt
     plan: free
-    rootDir: discord-bot
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: cd discord-bot && npm install
+    startCommand: cd discord-bot && npm start
     envVars:
       - key: NODE_ENV
         value: production
