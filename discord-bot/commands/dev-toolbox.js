@@ -245,7 +245,7 @@ async function handleSendQuoteModal(interaction) {
         };
         
         quotes.set(quoteId, quoteData);
-        await saveQuote(quote); // Persist to disk
+        await saveQuote(quoteData); // Persist to database
 
         const quoteEmbed = new EmbedBuilder()
             .setTitle(`📋 Commission Quote #${quoteNumber}`)
@@ -423,7 +423,7 @@ async function handleAcceptQuote(interaction, quoteId) {
     quote.status = 'accepted';
     quote.acceptedBy = interaction.user.id;
     quote.acceptedAt = new Date().toISOString();
-    await saveQuote(quote); // Persist to disk
+    saveQuotes(); // Persist to disk
     
     const embed = new EmbedBuilder()
         .setTitle(`📋 Commission Quote #${quote.quoteNumber}`)
@@ -450,7 +450,7 @@ async function handleRejectQuote(interaction, quoteId) {
     quote.status = 'rejected';
     quote.rejectedBy = interaction.user.id;
     quote.rejectedAt = new Date().toISOString();
-    await saveQuote(quote); // Persist to disk
+    saveQuotes(); // Persist to disk
     
     const embed = new EmbedBuilder()
         .setTitle(`📋 Commission Quote #${quote.quoteNumber}`)
@@ -476,7 +476,7 @@ async function handleClaimQuote(interaction, quoteId) {
     
     quote.claimedBy = interaction.user.id;
     quote.claimedAt = new Date().toISOString();
-    await saveQuote(quote); // Persist to disk
+    saveQuotes(); // Persist to disk
     
     const embed = new EmbedBuilder()
         .setTitle(`📋 Quote #${quote.quoteNumber}`)
@@ -554,7 +554,7 @@ async function handleRevolutPayment(interaction, quoteId) {
     const quote = quotes.get(quoteId);
     if (quote) {
         quote.paymentMethod = 'Revolut';
-        await saveQuote(quote); // Persist to disk
+        saveQuotes(); // Persist to disk
     }
 
     const embed = new EmbedBuilder()
@@ -594,7 +594,7 @@ async function handlePayPalPayment(interaction, quoteId) {
     const quote = quotes.get(quoteId);
     if (quote) {
         quote.paymentMethod = 'PayPal';
-        await saveQuote(quote); // Persist to disk
+        saveQuotes(); // Persist to disk
     }
 
     const embed = new EmbedBuilder()
@@ -634,7 +634,7 @@ async function handleRobuxPayment(interaction, quoteId) {
     const quote = quotes.get(quoteId);
     if (quote) {
         quote.paymentMethod = 'Robux';
-        await saveQuote(quote); // Persist to disk
+        saveQuotes(); // Persist to disk
     }
 
     const robuxAmount = Math.ceil(quote.price * 350); // 1 EUR = ~350 Robux
@@ -673,7 +673,7 @@ async function handlePaymentPaid(interaction, quoteId) {
     quote.paidAt = new Date().toISOString();
     quote.paidBy = interaction.user.id;
     quote.status = 'processing';
-    await saveQuote(quote); // Persist to disk
+    saveQuotes(); // Persist to disk
 
     const embed = new EmbedBuilder()
         .setTitle('✅ Payment Received')
@@ -716,7 +716,7 @@ async function markAsComplete(interaction, quoteId) {
     quote.status = 'completed';
     quote.completedAt = new Date().toISOString();
     quote.completedBy = interaction.user.id;
-    await saveQuote(quote); // Persist to disk
+    saveQuotes(); // Persist to disk
 
     const embed = new EmbedBuilder()
         .setTitle('✅ Quote Completed')
@@ -781,7 +781,7 @@ async function handleInvoiceSubmit(interaction) {
         quote.invoiceLink = invoiceLink;
         quote.invoiceSentBy = interaction.user.id;
         quote.invoiceSentAt = new Date().toISOString();
-        await saveQuote(quote); // Persist to disk
+        saveQuotes(); // Persist to disk
 
         // Send DM to customer
         const customer = await interaction.client.users.fetch(quote.userId).catch(() => null);
