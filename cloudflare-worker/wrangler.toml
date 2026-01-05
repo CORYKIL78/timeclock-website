@@ -1,0 +1,6 @@
+name = "timeclock-backend"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+
+[triggers]
+crons = ["* * * * *"]
