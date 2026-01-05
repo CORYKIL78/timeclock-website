@@ -502,6 +502,13 @@
                 <div style="flex: 1; background: white; border-radius: 12px; overflow: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 30px;">
                     <div style="max-width: 100%; display: flex; flex-direction: column; gap: 24px;">
                         
+                        <!-- Profile Debug/Error Panel -->
+                        <div id="profileDebugPanel" style="display: none; padding: 12px 16px; background: #fee; border: 1px solid #fcc; border-radius: 8px; color: #c00;">
+                            <strong>⚠️ Profile Loading Issue:</strong>
+                            <div id="profileDebug" style="margin-top: 4px; font-size: 14px;"></div>
+                            <button id="retryProfileBtn" style="margin-top: 10px; background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">🔄 Retry</button>
+                        </div>
+                        
                         <!-- Profile Information Section -->
                         <div style="display: flex; flex-direction: column; gap: 16px;">
                             <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #111827; border-bottom: 2px solid #7c3aed; padding-bottom: 8px;">Profile Information</h3>
@@ -587,7 +594,6 @@
                     </div>
                 </div>
                 
-                <div id="profileDebug" style="margin-top:16px;color:#b71c1c;font-size:0.95em;"></div>
                 <div id="authDebug" style="margin-top:8px;color:#1976d2;font-size:0.95em;"></div>
             </div>
         </div>
@@ -668,10 +674,51 @@
         <div style="padding: 40px 0 30px 0; height: 100%; display: flex; flex-direction: column; align-items: center;">
             <div style="width: 170%; max-width: 170%; height: 100%; display: flex; flex-direction: column;">
                 <div style="margin-bottom: 20px; padding-left: 20px;">
-                    <h2 style="margin: 0 0 10px 0;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Disciplinaries</h2>
-                    <p style="color: #666; font-size: 14px; margin: 0;">View your strikes and disciplinaries here. To appeal these, please contact your Department Head or the OP who assigned this to you</p>
+                    <h2 style="margin: 0 0 10px 0;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Disciplinaries & Reports</h2>
+                    <p style="color: #666; font-size: 14px; margin: 0 0 15px 0;">View your strikes, disciplinaries, and employee reports here. To appeal, contact your Department Head or the OP who assigned them.</p>
+                    
+                    <!-- Staff Points Speedometer -->
+                    <div style="display: inline-flex; align-items: center; gap: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 30px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);">
+                        <div style="position: relative; width: 120px; height: 80px;">
+                            <svg width="120" height="80" viewBox="0 0 120 80" style="overflow: visible;">
+                                <!-- Background arc -->
+                                <path d="M 10 70 A 50 50 0 0 1 110 70" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="12" stroke-linecap="round"/>
+                                <!-- Colored segments -->
+                                <path d="M 10 70 A 50 50 0 0 1 35 32" fill="none" stroke="#ef4444" stroke-width="12" stroke-linecap="round"/>
+                                <path d="M 35 32 A 50 50 0 0 1 60 20" fill="none" stroke="#f59e0b" stroke-width="12" stroke-linecap="round"/>
+                                <path d="M 60 20 A 50 50 0 0 1 85 32" fill="none" stroke="#10b981" stroke-width="12" stroke-linecap="round"/>
+                                <!-- Needle -->
+                                <g id="staffPointsNeedle" transform="rotate(0 60 70)" style="transition: transform 0.5s ease-out;">
+                                    <line x1="60" y1="70" x2="60" y2="30" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                                    <circle cx="60" cy="70" r="6" fill="white"/>
+                                </g>
+                                <!-- Center point labels -->
+                                <text x="10" y="78" fill="white" font-size="10" font-weight="bold">-10</text>
+                                <text x="52" y="15" fill="white" font-size="10" font-weight="bold">0</text>
+                                <text x="105" y="78" fill="white" font-size="10" font-weight="bold">+10</text>
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 14px; opacity: 0.9; margin-bottom: 4px;">Staff Points</div>
+                            <div id="staffPointsCounter" style="font-weight: 700; font-size: 32px; line-height: 1;">0</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabs for Disciplinaries and Reports -->
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button id="disciplinariesTabBtn" class="section-tab-btn active" data-section="disciplinaries" style="padding: 10px 20px; border: none; background: #7c3aed; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+                            Disciplinaries
+                        </button>
+                        <button id="reportsTabBtn" class="section-tab-btn" data-section="reports" style="padding: 10px 20px; border: none; background: #e0e0e0; color: #666; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                            My Reports
+                        </button>
+                    </div>
                 </div>
-                <div style="width: 100%; flex: 1; min-height: 600px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow-y: auto;">
+                
+                <!-- Disciplinaries Section -->
+                <div id="disciplinariesSection" class="content-section active" style="width: 100%; flex: 1; min-height: 600px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow-y: auto;">
                     <div id="disciplinariesContent" style="height: 100%;">
                         <div id="disciplinariesList" class="disciplinaries-list">
                             <!-- Dynamic content will be inserted here -->
@@ -681,6 +728,21 @@
                         </div>
                         <div id="disciplinariesLoading" class="loading-state">
                             <p>Loading disciplinaries...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Reports Section -->
+                <div id="reportsSection" class="content-section" style="display: none; width: 100%; flex: 1; min-height: 600px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow-y: auto;">
+                    <div id="reportsContent" style="height: 100%; padding: 20px;">
+                        <div id="reportsList" class="reports-list">
+                            <!-- Dynamic content will be inserted here -->
+                        </div>
+                        <div id="reportsEmpty" class="empty-state hidden">
+                            <p>No reports found.</p>
+                        </div>
+                        <div id="reportsLoading" class="loading-state">
+                            <p>Loading reports...</p>
                         </div>
                     </div>
                 </div>

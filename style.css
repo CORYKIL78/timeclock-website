@@ -3349,7 +3349,7 @@ body.dark .stat-card {
     margin-top: 20px;
 }
 
-.disciplinary-item, .payslip-item {
+.disciplinary-item, .payslip-item, .report-item {
     background: white;
     border: 1px solid var(--mail-border);
     border-radius: 8px;
@@ -3358,9 +3358,33 @@ body.dark .stat-card {
 }
 
 body.dark .disciplinary-item, 
-body.dark .payslip-item {
+body.dark .payslip-item,
+body.dark .report-item {
     background: #34495e;
     border-color: #576574;
+}
+
+/* Section tab buttons for disciplinaries/reports */
+.section-tab-btn {
+    transition: all 0.2s ease;
+}
+
+.section-tab-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.section-tab-btn.active {
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+}
+
+/* Content sections */
+.content-section {
+    transition: opacity 0.3s ease;
+}
+
+.content-section.active {
+    display: block !important;
 }
 
 .disciplinary-header {
@@ -5745,5 +5769,99 @@ input:checked + .toggle-slider:before {
     }
     100% {
         background-position: 0 50%;
+    }
+}
+/* Mobile responsiveness for staff points speedometer */
+@media (max-width: 768px) {
+    /* Make speedometer smaller on mobile */
+    #disciplinariesScreen .speedometer-container {
+        transform: scale(0.8);
+        transform-origin: left center;
+    }
+    
+    /* Stack tabs vertically on small screens */
+    .section-tab-btn {
+        font-size: 14px;
+        padding: 8px 16px !important;
+    }
+    
+    /* Adjust disciplinaries screen width */
+    #disciplinariesScreen > div > div {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Make report cards more compact */
+    .report-item {
+        flex-direction: column !important;
+        gap: 12px;
+    }
+    
+    .report-item > div {
+        text-align: left !important;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Further reduce speedometer on very small screens */
+    #disciplinariesScreen .speedometer-container {
+        transform: scale(0.7);
+    }
+    
+    /* Full width tabs */
+    .section-tab-btn {
+        flex: 1;
+        font-size: 13px;
+    }
+    
+    /* Smaller text in speedometer */
+    #staffPointsCounter {
+        font-size: 24px !important;
+    }
+}
+
+/* Ensure all screens are mobile-friendly */
+@media (max-width: 768px) {
+    .screen {
+        padding: 20px 10px !important;
+    }
+    
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 15px !important;
+    }
+    
+    /* Fix oversized containers */
+    #payslipsScreen > div > div,
+    #requestsScreen > div > div,
+    #absencesScreen > div > div {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    h2 {
+        font-size: 20px !important;
+    }
+    
+    /* Make modals full screen on mobile */
+    .modal-content {
+        width: 95% !important;
+        max-width: 95% !important;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+}
+
+/* Fix viewport on all devices */
+@media screen and (max-width: 1024px) {
+    body {
+        font-size: 14px;
+    }
+    
+    /* Ensure sidebar behaves properly */
+    #sidebar {
+        width: 100%;
+        max-width: 280px;
     }
 }

@@ -5,15 +5,29 @@ let profileDebug = null;
 let authDebug = null;
 function setProfileDebug(msg, isError) {
     if (!profileDebug) profileDebug = document.getElementById('profileDebug');
-    if (isError) {
+    const profileDebugPanel = document.getElementById('profileDebugPanel');
+    
+    if (isError && msg) {
+        // Show error message
         if (profileDebug) {
             profileDebug.textContent = msg;
             profileDebug.style.color = '#b71c1c';
         }
-        console.error(msg);
+        if (profileDebugPanel) {
+            profileDebugPanel.style.display = 'block';
+        }
+        console.error('[PROFILE ERROR]', msg);
+    } else if (!msg || msg === '') {
+        // Clear/hide error message
+        if (profileDebug) {
+            profileDebug.textContent = '';
+        }
+        if (profileDebugPanel) {
+            profileDebugPanel.style.display = 'none';
+        }
     } else {
-        // Only log to console for non-errors, don't show in UI
-        console.debug(msg);
+        // Non-error message - just log to console
+        console.debug('[PROFILE]', msg);
     }
 }
 function setAuthDebug(msg, isError) {
@@ -147,6 +161,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         console.debug('[syncProfileFromSheets] Starting sync for user:', currentUser.id);
+        console.debug('[syncProfileFromSheets] Current window.location:', window.location.href);
+        console.debug('[syncProfileFromSheets] Backend URL:', BACKEND_URL);
         const profile = await fetchUserProfile(currentUser.id);
         console.debug('[syncProfileFromSheets] fetched profile: ' + JSON.stringify(profile));
         
@@ -287,6 +303,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     waitForCurrentUserAndSync();
     
+    // Add retry button handler
+    const retryProfileBtn = document.getElementById('retryProfileBtn');
+    if (retryProfileBtn) {
+        retryProfileBtn.addEventListener('click', async () => {
+            console.log('[PROFILE] Manual retry requested');
+            setProfileDebug('Retrying...', false);
+            const profileDebugPanel = document.getElementById('profileDebugPanel');
+            if (profileDebugPanel) profileDebugPanel.style.display = 'block';
+            
+            if (window.currentUser && window.currentUser.id) {
+                await syncProfileFromSheets();
+                updateProfileDisplay();
+            } else {
+                setProfileDebug('Not logged in. Please refresh and login again.', true);
+            }
+        });
+    }
+    
     // --- Add debug logging for Discord login and role fetch ---
     if (document.getElementById('discordLoginBtn')) {
         document.getElementById('discordLoginBtn').addEventListener('click', function() {
@@ -384,23 +418,41 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to update profile pictures with fallback to initials
     function updateProfilePictures() {
-        const profilePics = document.querySelectorAll('#profilePic, #sidebarProfilePic, #mainProfilePic');
+        const profilePics = document.querySelectorAll('#profilePic, #sidebarProfilePic, #mainProfilePic, #portalWelcomeProfilePic');
         
         profilePics.forEach(pic => {
             if (window.currentUser) {
-                if (window.currentUser.avatar) {
+                if (window.currentUser.avatar && window.currentUser.avatar !== '') {
                     // Use Discord avatar if available
                     pic.src = window.currentUser.avatar;
+                    console.log('[PROFILE PIC] Setting Discord avatar:', window.currentUser.avatar);
+                    
+                    // Add error handler in case avatar fails to load
+                    pic.onerror = () => {
+                        console.warn('[PROFILE PIC] Failed to load Discord avatar, using initials');
+                        const name = window.currentUser.profile?.name || window.currentUser.name || window.currentUser.username || 'User';
+                        pic.src = generateInitialsAvatar(name);
+                        pic.onerror = null; // Remove error handler after fallback
+                    };
                 } else if (window.currentUser.profile && window.currentUser.profile.name) {
                     // Generate initials avatar if name is available
+                    console.log('[PROFILE PIC] No Discord avatar, using initials for:', window.currentUser.profile.name);
                     pic.src = generateInitialsAvatar(window.currentUser.profile.name);
+                } else if (window.currentUser.name) {
+                    // Fallback to currentUser.name
+                    console.log('[PROFILE PIC] Using currentUser.name for initials:', window.currentUser.name);
+                    pic.src = generateInitialsAvatar(window.currentUser.name);
                 } else if (window.currentUser.username) {
                     // Fallback to username initials
+                    console.log('[PROFILE PIC] Using username for initials:', window.currentUser.username);
                     pic.src = generateInitialsAvatar(window.currentUser.username);
                 } else {
                     // Ultimate fallback
+                    console.log('[PROFILE PIC] Using default User initials');
                     pic.src = generateInitialsAvatar('User');
                 }
+            } else {
+                console.log('[PROFILE PIC] No currentUser available');
             }
         });
     }
@@ -754,6 +806,7 @@ async function fetchUserProfile(discordId) {
     try {
         console.log('[fetchUserProfile] Starting fetch for discordId:', discordId);
         console.log('[fetchUserProfile] Backend URL:', BACKEND_URL);
+        console.log('[fetchUserProfile] Current origin:', window.location.origin);
         
         const url = `${BACKEND_URL}/api/user/profile?t=${Date.now()}`;
         console.log('[fetchUserProfile] Full URL:', url);
@@ -761,27 +814,46 @@ async function fetchUserProfile(discordId) {
         const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ discordId })
+            body: JSON.stringify({ discordId }),
+            credentials: 'include'
         });
         
         console.log('[fetchUserProfile] Response status:', res.status);
+        console.log('[fetchUserProfile] Response headers:', Object.fromEntries(res.headers.entries()));
         
         if (res.status === 404) {
-            console.log('[fetchUserProfile] User not found (404)');
+            console.log('[fetchUserProfile] User not found (404) - User may need to be added to backend database');
+            setProfileDebug('Profile not found in database. Contact admin if this persists.', true);
             return null;
         }
         if (!res.ok) {
             console.error('[fetchUserProfile] Failed with status:', res.status);
             const errorText = await res.text();
             console.error('[fetchUserProfile] Error response:', errorText);
-            throw new Error('Failed to fetch user profile: ' + res.status);
+            const errorMsg = `Failed to fetch profile: ${res.status} ${errorText}`;
+            setProfileDebug(errorMsg, true);
+            throw new Error(errorMsg);
         }
         const data = await res.json();
         console.log('[fetchUserProfile] Success! Data:', JSON.stringify(data));
+        setProfileDebug('', false); // Clear any previous errors
         return data;
     } catch (e) {
         console.error('[fetchUserProfile] Exception caught:', e);
-        setProfileDebug('fetchUserProfile error: ' + e, true);
+        console.error('[fetchUserProfile] Exception details:', {
+            name: e.name,
+            message: e.message,
+            stack: e.stack
+        });
+        
+        // Check if this might be a CORS error
+        if (e.message.includes('Failed to fetch') || e.name === 'TypeError') {
+            const corsMsg = 'Network error - possible CORS issue. Ensure you are accessing from: https://portal.cirkledevelopment.co.uk';
+            console.error('[fetchUserProfile]', corsMsg);
+            setProfileDebug(corsMsg, true);
+        } else {
+            setProfileDebug('Error loading profile: ' + e.message, true);
+        }
         return null;
     }
 }
@@ -941,6 +1013,388 @@ function showDisciplinaryDetails(disciplinary) {
     
     document.body.appendChild(modal);
 }
+
+// ===== EMPLOYEE REPORTS SYSTEM =====
+
+// Fetch employee reports from backend
+async function fetchEmployeeReports(userId) {
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/reports/fetch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        });
+        if (!res.ok) throw new Error('Failed to fetch employee reports');
+        const data = await res.json();
+        return data.reports || [];
+    } catch (e) {
+        console.error('fetchEmployeeReports error:', e);
+        return [];
+    }
+}
+
+// Calculate staff points from reports
+function calculateStaffPoints(reports) {
+    let points = 0;
+    reports.forEach(report => {
+        const reportType = report.reportType?.toLowerCase();
+        if (reportType === 'commendation') {
+            points += 1;
+        } else if (reportType === 'disruptive' || reportType === 'negative behaviour') {
+            points -= 1;
+        }
+        // Monthly Report doesn't affect points
+    });
+    return points;
+}
+
+// Update staff points counter display
+function updateStaffPointsCounter(points) {
+    const counter = document.getElementById('staffPointsCounter');
+    const needle = document.getElementById('staffPointsNeedle');
+    
+    if (counter) {
+        counter.textContent = points;
+        // Color code the points
+        if (points > 0) {
+            counter.style.color = '#4ade80'; // Green for positive
+        } else if (points < 0) {
+            counter.style.color = '#f87171'; // Red for negative
+        } else {
+            counter.style.color = 'white'; // White for zero
+        }
+    }
+    
+    // Animate speedometer needle
+    if (needle) {
+        // Map points (-10 to +10) to rotation (-90deg to +90deg)
+        // Clamp points between -10 and 10
+        const clampedPoints = Math.max(-10, Math.min(10, points));
+        const rotation = (clampedPoints / 10) * 90; // -90 to +90 degrees
+        needle.style.transform = `rotate(${rotation}deg)`;
+        needle.style.transformOrigin = '60px 70px';
+    }
+}
+
+// Render employee reports
+function renderReports(reports) {
+    const content = document.getElementById('reportsList');
+    const loading = document.getElementById('reportsLoading');
+    const empty = document.getElementById('reportsEmpty');
+    
+    if (loading) loading.style.display = 'none';
+    
+    if (!reports || reports.length === 0) {
+        content.innerHTML = '';
+        if (empty) empty.classList.remove('hidden');
+        updateStaffPointsCounter(0);
+        return;
+    }
+    
+    if (empty) empty.classList.add('hidden');
+    content.innerHTML = '';
+    
+    // Calculate and update staff points
+    const staffPoints = calculateStaffPoints(reports);
+    updateStaffPointsCounter(staffPoints);
+    
+    // Sort reports by timestamp (newest first)
+    const sortedReports = [...reports].sort((a, b) => {
+        return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+    });
+    
+    sortedReports.forEach((report, index) => {
+        const div = document.createElement('div');
+        div.className = 'report-item';
+        
+        // Determine color based on report type
+        let bgColor = '#f9f9f9';
+        let borderColor = '#ddd';
+        let iconColor = '#666';
+        let icon = '📄';
+        
+        const reportType = report.reportType?.toLowerCase();
+        if (reportType === 'commendation') {
+            bgColor = '#f0fdf4';
+            borderColor = '#86efac';
+            iconColor = '#16a34a';
+            icon = '⭐';
+        } else if (reportType === 'disruptive') {
+            bgColor = '#fef2f2';
+            borderColor = '#fca5a5';
+            iconColor = '#dc2626';
+            icon = '⚠️';
+        } else if (reportType === 'negative behaviour') {
+            bgColor = '#fef2f2';
+            borderColor = '#fca5a5';
+            iconColor = '#b91c1c';
+            icon = '❌';
+        } else if (reportType === 'monthly report') {
+            bgColor = '#eff6ff';
+            borderColor = '#93c5fd';
+            iconColor = '#2563eb';
+            icon = '📊';
+        }
+        
+        div.style.cssText = `
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border: 2px solid ${borderColor}; 
+            padding: 18px; 
+            margin: 12px 0; 
+            border-radius: 10px; 
+            background: ${bgColor}; 
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        `;
+        
+        div.onmouseover = () => {
+            div.style.transform = 'translateX(4px)';
+            div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        };
+        div.onmouseout = () => {
+            div.style.transform = 'translateX(0)';
+            div.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        };
+        
+        div.onclick = () => showReportDetails(report);
+        
+        const timestamp = report.timestamp ? new Date(report.timestamp).toLocaleDateString() : 'N/A';
+        
+        div.innerHTML = `
+            <div style="flex: 1; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 24px;">${icon}</span>
+                <div>
+                    <div style="font-weight: 700; color: ${iconColor}; font-size: 16px; margin-bottom: 4px;">
+                        ${report.reportType || 'Report'}
+                    </div>
+                    <div style="color: #666; font-size: 13px;">
+                        ${timestamp}
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="color: #666; font-size: 14px; margin-bottom: 4px;">Published by</div>
+                <div style="font-weight: 600; color: #333;">${report.publishedBy || 'Unknown'}</div>
+            </div>
+        `;
+        
+        content.appendChild(div);
+    });
+}
+
+// Show detailed report modal
+function showReportDetails(report) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.6); display: flex; align-items: center; 
+        justify-content: center; z-index: 10000; backdrop-filter: blur(2px);
+    `;
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    
+    // Determine styling based on report type
+    let headerColor = '#667eea';
+    let headerGradient = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    let icon = '📄';
+    
+    const reportType = report.reportType?.toLowerCase();
+    if (reportType === 'commendation') {
+        headerGradient = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+        icon = '⭐';
+    } else if (reportType === 'disruptive') {
+        headerGradient = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+        icon = '⚠️';
+    } else if (reportType === 'negative behaviour') {
+        headerGradient = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+        icon = '❌';
+    } else if (reportType === 'monthly report') {
+        headerGradient = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
+        icon = '📊';
+    }
+    
+    const timestamp = report.timestamp ? new Date(report.timestamp).toLocaleString() : 'N/A';
+    
+    modal.innerHTML = `
+        <div style="
+            background: white; padding: 0; border-radius: 12px; 
+            max-width: 600px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        ">
+            <div style="
+                background: ${headerGradient};
+                color: white; padding: 24px; 
+                display: flex; align-items: center; gap: 12px;
+            ">
+                <span style="font-size: 32px;">${icon}</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 24px; font-weight: 700;">Employee Report</h3>
+                    <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 14px;">${report.reportType || 'Report'}</p>
+                </div>
+            </div>
+            
+            <div style="padding: 30px;">
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Timestamp</div>
+                    <div style="font-weight: 600; color: #333; font-size: 16px;">${timestamp}</div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Report Type</div>
+                    <div style="font-weight: 600; color: #333; font-size: 16px;">${report.reportType || 'N/A'}</div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Published By</div>
+                    <div style="font-weight: 600; color: #333; font-size: 16px;">${report.publishedBy || 'Unknown'}</div>
+                </div>
+                
+                ${report.selectScale ? `
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Scale</div>
+                    <div style="font-weight: 600; color: #333; font-size: 16px;">${report.selectScale}</div>
+                </div>
+                ` : ''}
+                
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Comment</div>
+                    <div style="
+                        background: #f9fafb; 
+                        padding: 16px; 
+                        border-radius: 8px; 
+                        border-left: 4px solid #667eea;
+                        color: #333;
+                        line-height: 1.6;
+                        font-size: 15px;
+                    ">${report.comment || 'No comment provided'}</div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <button onclick="this.closest('[style*=fixed]').remove()" style="
+                        background: #667eea; color: white; border: none; 
+                        padding: 12px 32px; border-radius: 8px; cursor: pointer;
+                        font-weight: 600; font-size: 15px;
+                        transition: all 0.2s;
+                    " onmouseover="this.style.background='#5568d3'" onmouseout="this.style.background='#667eea'">Close</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Load and display employee reports
+async function loadEmployeeReports() {
+    if (!currentUser || !currentUser.id) {
+        console.log('[REPORTS] No current user');
+        return;
+    }
+    
+    console.log('[REPORTS] Loading reports for user:', currentUser.id);
+    const reports = await fetchEmployeeReports(currentUser.id);
+    console.log('[REPORTS] Fetched reports:', reports);
+    renderReports(reports);
+}
+
+// Toggle between disciplinaries and reports sections
+function setupDisciplinariesTabs() {
+    const disciplinariesBtn = document.getElementById('disciplinariesTabBtn');
+    const reportsBtn = document.getElementById('reportsTabBtn');
+    const disciplinariesSection = document.getElementById('disciplinariesSection');
+    const reportsSection = document.getElementById('reportsSection');
+    
+    if (!disciplinariesBtn || !reportsBtn) return;
+    
+    disciplinariesBtn.addEventListener('click', () => {
+        disciplinariesBtn.classList.add('active');
+        disciplinariesBtn.style.background = '#7c3aed';
+        disciplinariesBtn.style.color = 'white';
+        reportsBtn.classList.remove('active');
+        reportsBtn.style.background = '#e0e0e0';
+        reportsBtn.style.color = '#666';
+        
+        if (disciplinariesSection) disciplinariesSection.style.display = 'block';
+        if (reportsSection) reportsSection.style.display = 'none';
+    });
+    
+    reportsBtn.addEventListener('click', () => {
+        reportsBtn.classList.add('active');
+        reportsBtn.style.background = '#7c3aed';
+        reportsBtn.style.color = 'white';
+        disciplinariesBtn.classList.remove('active');
+        disciplinariesBtn.style.background = '#e0e0e0';
+        disciplinariesBtn.style.color = '#666';
+        
+        if (reportsSection) reportsSection.style.display = 'block';
+        if (disciplinariesSection) disciplinariesSection.style.display = 'none';
+        
+        // Load reports when tab is clicked
+        loadEmployeeReports();
+    });
+}
+
+// Polling for new employee reports
+let lastReportCheck = localStorage.getItem('lastReportCheck') ? JSON.parse(localStorage.getItem('lastReportCheck')) : {};
+setInterval(async () => {
+    if (!window.currentUser) return;
+    
+    try {
+        const reports = await fetchEmployeeReports(window.currentUser.id);
+        
+        // Check if there are new reports
+        const userKey = window.currentUser.id;
+        const lastCount = lastReportCheck[userKey] || 0;
+        
+        if (reports.length > lastCount) {
+            // New report(s) detected
+            const newCount = reports.length - lastCount;
+            const latestReport = reports[reports.length - 1];
+            
+            // Send backend notification to trigger Discord DM
+            try {
+                console.log('[DEBUG] Sending report DM notification for user:', window.currentUser.id);
+                const dmResponse = await fetch(`${BACKEND_URL}/api/notifications/report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        discordId: window.currentUser.id,
+                        reportData: {
+                            type: latestReport?.reportType || 'N/A',
+                            date: latestReport?.timestamp ? new Date(latestReport.timestamp).toLocaleDateString() : 'N/A'
+                        }
+                    })
+                });
+                
+                if (dmResponse.ok) {
+                    const dmResult = await dmResponse.json();
+                    console.log('[DEBUG] Report DM notification result:', dmResult);
+                } else {
+                    console.error('[DEBUG] Report DM notification failed:', dmResponse.status, await dmResponse.text());
+                }
+            } catch (e) {
+                console.error('Failed to send report notification:', e);
+            }
+            
+            // Add portal notification with sound
+            addNotification('report', `📄 ${newCount} new report${newCount > 1 ? 's' : ''} available!`, 'disciplinaries');
+            
+            // Update last check count
+            lastReportCheck[userKey] = reports.length;
+            localStorage.setItem('lastReportCheck', JSON.stringify(lastReportCheck));
+            
+            // If on reports tab, refresh the display
+            const reportsSection = document.getElementById('reportsSection');
+            if (reportsSection && reportsSection.style.display !== 'none') {
+                renderReports(reports);
+            }
+        }
+    } catch (e) {
+        // Ignore errors
+    }
+}, 5000); // Poll every 5 seconds for near-instant notifications
 
 function showAppealModal(strikeIndex) {
     let modal = document.getElementById('appealStrikeModal');
@@ -4652,9 +5106,16 @@ if (mainProfilePic) {
         const profileEmailEl2 = document.getElementById('profileEmail');
         const profileDepartmentEl2 = document.getElementById('profileDepartment');
         
-        if (profileNameEl2) profileNameEl2.textContent = emp.profile.name || 'Not set';
-        if (profileEmailEl2) profileEmailEl2.textContent = emp.profile.email || 'Not set';
-        if (profileDepartmentEl2) profileDepartmentEl2.textContent = emp.profile.department || 'Not set';
+        // Use currentUser.profile as primary source, emp.profile as fallback
+        const displayName = currentUser.profile?.name || emp.profile?.name || currentUser.name || 'Not set';
+        const displayEmail = currentUser.profile?.email || emp.profile?.email || 'Not set';
+        const displayDept = currentUser.profile?.department || emp.profile?.department || 'Not set';
+        
+        if (profileNameEl2) profileNameEl2.textContent = displayName;
+        if (profileEmailEl2) profileEmailEl2.textContent = displayEmail;
+        if (profileDepartmentEl2) profileDepartmentEl2.textContent = displayDept;
+        
+        console.log('[PROFILE] Displaying:', { displayName, displayEmail, displayDept });
         
         // Update profile pictures
         updateProfilePictures();
@@ -5073,6 +5534,9 @@ if (absenceEndDate) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize disciplinaries and reports tabs
+    setupDisciplinariesTabs();
+    
     const submitBtn = document.getElementById('submitAbsenceBtn');
     if (submitBtn) {
         submitBtn.addEventListener('click', async () => {
