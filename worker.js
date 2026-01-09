@@ -24,6 +24,133 @@ export default {
     };
 
     try {
+      // User/Profile endpoints
+      if (url.pathname === '/api/user/profile' && request.method === 'POST') {
+        const { discordId } = await request.json();
+        const data = await getSheetsData(env, 'cirklehrEmployees!A:Z');
+        const userRow = data.find(row => row[0] === discordId);
+        
+        if (userRow) {
+          return new Response(JSON.stringify({
+            success: true,
+            profile: {
+              discordId: userRow[0],
+              name: userRow[1],
+              email: userRow[2],
+              department: userRow[3],
+              role: userRow[4],
+              country: userRow[5],
+              timezone: userRow[6],
+              avatar: userRow[7]
+            }
+          }), { headers: corsHeaders });
+        }
+        
+        // User not found - return empty profile (frontend will handle Discord data)
+        return new Response(JSON.stringify({ 
+          success: true, 
+          profile: null,
+          message: 'User not in database, using Discord profile'
+        }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/user/upsert' && request.method === 'POST') {
+        const user = await request.json();
+        const data = await getSheetsData(env, 'cirklehrEmployees!A:Z');
+        const existingIndex = data.findIndex(row => row[0] === user.discordId);
+        
+        if (existingIndex >= 0) {
+          // Update existing user
+          await updateSheets(env, `cirklehrEmployees!A${existingIndex + 1}:H${existingIndex + 1}`, [[
+            user.discordId,
+            user.name || data[existingIndex][1],
+            user.email || data[existingIndex][2],
+            user.department || data[existingIndex][3],
+            user.role || data[existingIndex][4],
+            user.country || data[existingIndex][5],
+            user.timezone || data[existingIndex][6],
+            user.avatar || data[existingIndex][7]
+          ]]);
+        } else {
+          // Create new user
+          await appendToSheet(env, 'cirklehrEmployees!A:H', [[
+            user.discordId,
+            user.name || '',
+            user.email || '',
+            user.department || 'Unassigned',
+            user.role || 'Member',
+            user.country || '',
+            user.timezone || '',
+            user.avatar || ''
+          ]]);
+        }
+        
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      // Employees hire
+      if (url.pathname === '/api/employees/hire' && request.method === 'POST') {
+        const emp = await request.json();
+        await appendToSheet(env, 'cirklehrEmployees!A:H', [[
+          emp.discordId,
+          emp.name,
+          emp.email || '',
+          emp.department || 'Unassigned',
+          emp.role || 'Member',
+          emp.country || '',
+          emp.timezone || '',
+          emp.avatar || ''
+        ]]);
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      if (url.pathname.startsWith('/api/user/absences/')) {
+        const userId = url.pathname.split('/').pop();
+        const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+        const absences = data.slice(1)
+          .filter(row => row[7] === userId && row[6] === 'Approved')
+          .map(row => ({
+            name: row[0],
+            startDate: row[1],
+            endDate: row[2],
+            reason: row[3],
+            totalDays: row[4]
+          }));
+        return new Response(JSON.stringify({ success: true, absences }), { headers: corsHeaders });
+      }
+
+      // Payslips fetch
+      if (url.pathname === '/api/payslips/fetch' && request.method === 'POST') {
+        const { userId } = await request.json();
+        const data = await getSheetsData(env, 'cirklehrPayslips!A:G');
+        const payslips = data.slice(1)
+          .filter(row => row[0] === userId)
+          .map(row => ({
+            userId: row[0],
+            period: row[1],
+            link: row[2],
+            status: row[5]
+          }));
+        return new Response(JSON.stringify({ success: true, payslips }), { headers: corsHeaders });
+      }
+
+      // Disciplinaries fetch
+      if (url.pathname === '/api/disciplinaries/fetch' && request.method === 'POST') {
+        const { userId } = await request.json();
+        const data = await getSheetsData(env, 'cirklehrStrikes!A:H');
+        const disciplinaries = data.slice(1)
+          .filter(row => row[0] === userId)
+          .map(row => ({
+            userId: row[0],
+            type: row[2],
+            description: row[3],
+            employer: row[4],
+            timestamp: row[6],
+            status: row[7]
+          }));
+        return new Response(JSON.stringify({ success: true, disciplinaries }), { headers: corsHeaders });
+      }
+
       // Reports
       if (url.pathname === '/api/reports/fetch') {
         const { userId } = await request.json();
