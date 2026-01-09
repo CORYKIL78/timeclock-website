@@ -45,9 +45,46 @@ export default {
       if (url.pathname === '/api/reports/check-pending') {
         const data = await getSheetsData(env, 'cirklehrReports!A:I');
         let processed = 0;
+        let errors = [];
         
         for (let i = 1; i < data.length; i++) {
           if (data[i][6]?.toLowerCase() === 'submit') {
+            // Send DM notification
+            if (data[i][0] && env.DISCORD_BOT_TOKEN) {
+              try {
+                const dmResponse = await fetch(`https://discord.com/api/v10/users/@me/channels`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ recipient_id: data[i][0] })
+                });
+                
+                if (dmResponse.ok) {
+                  const dmChannel = await dmResponse.json();
+                  await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      embeds: [{
+                        title: '📧 New Report Available',
+                        description: `You have a new report available!\\n\\nPlease check the **Staff Portal** to view it.`,
+                        color: 0x667eea,
+                        footer: { text: 'https://cirkledevelopment.co.uk' }
+                      }]
+                    })
+                  });
+                }
+              } catch (dmError) {
+                console.error('DM error:', dmError);
+                errors.push({ row: i + 1, error: 'DM failed' });
+              }
+            }
+            
             await updateSheets(env, `cirklehrReports!G${i + 1}:I${i + 1}`, [
               ['Processed', new Date().toISOString(), '✅']
             ]);
@@ -55,7 +92,7 @@ export default {
           }
         }
         
-        return new Response(JSON.stringify({ success: true, processed }), { headers: corsHeaders });
+        return new Response(JSON.stringify({ success: true, processed, errors: errors.length > 0 ? errors : undefined }), { headers: corsHeaders });
       }
 
       // Events
@@ -122,9 +159,46 @@ export default {
       if (url.pathname === '/api/payslips/check-pending') {
         const data = await getSheetsData(env, 'cirklehrPayslips!A:G');
         let processed = 0;
+        let errors = [];
         
         for (let i = 1; i < data.length; i++) {
           if (data[i][5]?.toLowerCase() === 'submit') {
+            // Send DM notification
+            if (data[i][0] && env.DISCORD_BOT_TOKEN) {
+              try {
+                const dmResponse = await fetch(`https://discord.com/api/v10/users/@me/channels`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ recipient_id: data[i][0] })
+                });
+                
+                if (dmResponse.ok) {
+                  const dmChannel = await dmResponse.json();
+                  await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      embeds: [{
+                        title: '💰 New Payslip Available',
+                        description: `Your payslip is ready!\\n\\nPlease check the **Staff Portal** to view it.`,
+                        color: 0x4caf50,
+                        footer: { text: 'https://cirkledevelopment.co.uk' }
+                      }]
+                    })
+                  });
+                }
+              } catch (dmError) {
+                console.error('DM error:', dmError);
+                errors.push({ row: i + 1, error: 'DM failed' });
+              }
+            }
+            
             await updateSheets(env, `cirklehrPayslips!F${i + 1}:G${i + 1}`, [
               ['Processed', new Date().toISOString()]
             ]);
@@ -132,7 +206,7 @@ export default {
           }
         }
         
-        return new Response(JSON.stringify({ success: true, processed }), { headers: corsHeaders });
+        return new Response(JSON.stringify({ success: true, processed, errors: errors.length > 0 ? errors : undefined }), { headers: corsHeaders });
       }
 
       // Disciplinaries
@@ -148,6 +222,8 @@ export default {
         ]]);
         
         // Send Discord DM
+        let dmSent = false;
+        let dmError = null;
         if (disc.userId && env.DISCORD_BOT_TOKEN) {
           try {
             const dmResponse = await fetch(`https://discord.com/api/v10/users/@me/channels`, {
@@ -159,10 +235,10 @@ export default {
               body: JSON.stringify({ recipient_id: disc.userId })
             });
             
-            if (dmResponse.ok) {
-              const dmChannel = await dmResponse.json();
-              
-              await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+            const dmData = await dmResponse.json();
+            
+            if (dmResponse.ok && dmData.id) {
+              const msgResponse = await fetch(`https://discord.com/api/v10/channels/${dmData.id}/messages`, {
                 method: 'POST',
                 headers: {
                   'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
@@ -171,22 +247,28 @@ export default {
                 body: JSON.stringify({
                   embeds: [{
                     title: '⚠️ New Disciplinary Notice',
-                    description: `You have received a new disciplinary action.`,
-                    fields: [
-                      { name: 'Type', value: disc.strikeType || 'Warning', inline: true },
-                      { name: 'Date', value: new Date().toLocaleDateString(), inline: true },
-                      { name: 'Reason', value: disc.reason || 'No reason provided', inline: false }
-                    ],
+                    description: `You have received a new disciplinary action.\n\nPlease check the **Staff Portal** to view the full details.`,
                     color: 0xff9800,
-                    footer: { text: 'Please check the portal for more details.' }
+                    footer: { text: 'https://cirkledevelopment.co.uk' }
                   }]
                 })
               });
+              dmSent = msgResponse.ok;
+            } else {
+              dmError = dmData.message || 'Could not open DM channel';
+              console.log('DM Error:', dmError, '- User may not share server with bot or has DMs disabled');
             }
-          } catch (dmError) {
-            console.error('DM error:', dmError);
+          } catch (error) {
+            dmError = error.message;
+            console.error('DM exception:', error);
           }
         }
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          dmSent,
+          dmError: dmError || undefined 
+        }), { headers: corsHeaders });
         
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
@@ -194,6 +276,7 @@ export default {
       if (url.pathname === '/api/disciplinaries/check-pending') {
         const data = await getSheetsData(env, 'cirklehrStrikes!A:F');
         let processed = 0;
+        let errors = [];
         
         for (let i = 1; i < data.length; i++) {
           if (data[i][4]?.toLowerCase() === 'submit') {
@@ -221,26 +304,28 @@ export default {
                     body: JSON.stringify({
                       embeds: [{
                         title: '⚠️ New Disciplinary Notice',
-                        description: `You have received a new disciplinary action.`,
-                        fields: [
-                          { name: 'Type', value: data[i][1] || 'Warning', inline: true },
-                          { name: 'Reason', value: data[i][2] || 'No reason provided', inline: false }
-                        ],
+                        description: `You have received a new disciplinary action.\n\nPlease check the **Staff Portal** to view the full details.`,
                         color: 0xff9800,
-                        footer: { text: 'Please check the portal for more details.' }
+                        footer: { text: 'https://cirkledevelopment.co.uk' }
                       }]
                     })
                   });
                 }
               } catch (dmError) {
                 console.error('DM error:', dmError);
+                errors.push({ row: i + 1, userId: data[i][0], error: 'DM failed' });
               }
             }
             
-            await updateSheets(env, `cirklehrStrikes!E${i + 1}:F${i + 1}`, [
-              ['Processed', new Date().toISOString()]
-            ]);
-            processed++;
+            // Update status column
+            try {
+              await updateSheets(env, `cirklehrStrikes!E${i + 1}:F${i + 1}`, [
+                ['Processed', new Date().toISOString()]
+              ]);
+              processed++;
+            } catch (updateError) {
+              errors.push({ row: i + 1, error: 'Sheet update failed: ' + updateError.message });
+            }
           }
         }
         
