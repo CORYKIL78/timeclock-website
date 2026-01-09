@@ -99,6 +99,48 @@ function updateProfileDisplay() {
     updateProfilePictures();
 }
 
+// Register service worker for PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker registered:', reg))
+            .catch(err => console.error('Service Worker registration failed:', err));
+    });
+}
+
+// PWA Install Prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // Show custom install prompt after 3 seconds if not on standalone mode
+    if (!window.matchMedia('(display-mode: standalone)').matches) {
+        setTimeout(() => {
+            const prompt = document.createElement('div');
+            prompt.className = 'install-prompt';
+            prompt.innerHTML = `
+                <div>📱 Install Staff Portal as an app?</div>
+                <button class="install-yes">Install</button>
+                <button class="install-no">Not now</button>
+            `;
+            document.body.appendChild(prompt);
+            
+            prompt.querySelector('.install-yes').addEventListener('click', () => {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => {
+                    prompt.remove();
+                    deferredPrompt = null;
+                });
+            });
+            
+            prompt.querySelector('.install-no').addEventListener('click', () => {
+                prompt.remove();
+            });
+        }, 3000);
+    }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[DEBUG] DOMContentLoaded fired');
     

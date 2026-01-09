@@ -1,0 +1,6 @@
+name = "timeclock-backend"
+main = "worker.js"
+compatibility_date = "2025-01-09"
+
+[vars]
+SPREADSHEET_ID = "1U05VEI29EWMFfjcQoQ-vGOjQZvfRQWMB7rDexMPEFZs"

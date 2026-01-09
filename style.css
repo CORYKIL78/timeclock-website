@@ -659,44 +659,172 @@ body.dark .profile-stat {
         transform: none !important;
     }
     
+    /* Enhanced mobile profile layout */
     .profile-container {
-        padding: 16px;
-        gap: 16px;
+        padding: 12px;
+        gap: 12px;
     }
     
     .profile-header {
         flex-direction: column;
         text-align: center;
-        gap: 16px;
+        gap: 12px;
+    }
+    
+    .profile-img-large {
+        width: 100px;
+        height: 100px;
     }
     
     .profile-stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-        padding: 16px;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 12px;
     }
     
     .profile-info-grid,
     .profile-actions,
     .change-requests-list {
-        padding: 16px;
+        padding: 12px;
     }
     
     .profile-card-header {
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
         align-items: stretch;
     }
     
     .profile-card-title {
-        padding: 16px;
+        padding: 12px;
+        font-size: 1.1em;
+    }
+    
+    /* Mobile-optimized buttons */
+    button, .btn {
+        min-height: 44px;
+        font-size: 16px;
+        padding: 12px 20px;
+    }
+    
+    /* Mobile navigation improvements */
+    .sidebar-btn {
+        padding: 14px;
+        font-size: 1em;
+        margin: 6px 0;
+    }
+    
+    /* Mobile table improvements */
+    table {
+        font-size: 0.9em;
+    }
+    
+    th, td {
+        padding: 10px 6px;
+    }
+    
+    /* Mobile form improvements */
+    input, select, textarea {
+        font-size: 16px !important;
+        min-height: 44px;
+    }
+    
+    /* Hide less important columns on mobile */
+    .hide-mobile {
+        display: none !important;
+    }
+    
+    /* Stack modal content vertically */
+    .modal-content {
+        max-width: 95vw;
+        margin: 10px;
+        padding: 20px;
+    }
+    
+    /* Mobile-friendly cards */
+    .card, .info-card {
+        margin: 8px 0;
+        padding: 12px;
+    }
+    
+    /* Touch-friendly spacing */
+    .action-buttons {
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .action-buttons button {
+        flex: 1 1 100%;
+        min-width: unset;
     }
 }
+
+/* Tablet optimizations */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .container {
+        max-width: 85%;
+    }
+    
+    .profile-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    button, .btn {
+        min-height: 40px;
+    }
+}
+
+/* PWA Install prompt styling */
+.install-prompt {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 10000;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateX(-50%) translateY(100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+.install-prompt button {
+    margin: 0 8px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.install-prompt .install-yes {
+    background: white;
+    color: var(--primary);
+}
+
+.install-prompt .install-no {
+    background: transparent;
+    color: white;
+    border: 1px solid white;
+}
+
 #resetProfileBtn.counting-down {
     background: #b71c1c;
     color: #fff;
     animation: pulse 1s infinite alternate;
 }
+
 @keyframes pulse {
     from { box-shadow: 0 0 0 0 rgba(220,53,69,0.3); }
     to { box-shadow: 0 0 16px 8px rgba(220,53,69,0.15); }

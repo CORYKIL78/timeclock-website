@@ -1,0 +1,46 @@
+{
+  "name": "Cirkle Development Staff Portal",
+  "short_name": "Staff Portal",
+  "description": "Employee management and timeclock system",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#667eea",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "https://media.discordapp.net/attachments/1419317839269073016/1434615119182172170/cirkledevlogopng1.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://media.discordapp.net/attachments/1419317839269073016/1434615119182172170/cirkledevlogopng1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Timeclock",
+      "url": "/#timeclock",
+      "icons": [
+        {
+          "src": "https://media.discordapp.net/attachments/1419317839269073016/1434615119182172170/cirkledevlogopng1.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "url": "/#events",
+      "icons": [
+        {
+          "src": "https://media.discordapp.net/attachments/1419317839269073016/1434615119182172170/cirkledevlogopng1.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
