@@ -136,12 +136,107 @@ export default {
       }
 
       // Disciplinaries
+      if (url.pathname === '/api/disciplinaries/create') {
+        const disc = await request.json();
+        await appendToSheet(env, 'cirklehrStrikes!A:F', [[
+          disc.userId,
+          disc.strikeType || 'Warning',
+          disc.reason || '',
+          new Date().toISOString(),
+          'Submit',
+          ''
+        ]]);
+        
+        // Send Discord DM
+        if (disc.userId && env.DISCORD_BOT_TOKEN) {
+          try {
+            const dmResponse = await fetch(`https://discord.com/api/v10/users/@me/channels`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ recipient_id: disc.userId })
+            });
+            
+            if (dmResponse.ok) {
+              const dmChannel = await dmResponse.json();
+              
+              await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  embeds: [{
+                    title: '⚠️ New Disciplinary Notice',
+                    description: `You have received a new disciplinary action.`,
+                    fields: [
+                      { name: 'Type', value: disc.strikeType || 'Warning', inline: true },
+                      { name: 'Date', value: new Date().toLocaleDateString(), inline: true },
+                      { name: 'Reason', value: disc.reason || 'No reason provided', inline: false }
+                    ],
+                    color: 0xff9800,
+                    footer: { text: 'Please check the portal for more details.' }
+                  }]
+                })
+              });
+            }
+          } catch (dmError) {
+            console.error('DM error:', dmError);
+          }
+        }
+        
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+      
       if (url.pathname === '/api/disciplinaries/check-pending') {
         const data = await getSheetsData(env, 'cirklehrStrikes!A:F');
         let processed = 0;
         
         for (let i = 1; i < data.length; i++) {
           if (data[i][4]?.toLowerCase() === 'submit') {
+            // Send DM if Discord token available
+            if (data[i][0] && env.DISCORD_BOT_TOKEN) {
+              try {
+                const dmResponse = await fetch(`https://discord.com/api/v10/users/@me/channels`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ recipient_id: data[i][0] })
+                });
+                
+                if (dmResponse.ok) {
+                  const dmChannel = await dmResponse.json();
+                  
+                  await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      embeds: [{
+                        title: '⚠️ New Disciplinary Notice',
+                        description: `You have received a new disciplinary action.`,
+                        fields: [
+                          { name: 'Type', value: data[i][1] || 'Warning', inline: true },
+                          { name: 'Reason', value: data[i][2] || 'No reason provided', inline: false }
+                        ],
+                        color: 0xff9800,
+                        footer: { text: 'Please check the portal for more details.' }
+                      }]
+                    })
+                  });
+                }
+              } catch (dmError) {
+                console.error('DM error:', dmError);
+              }
+            }
+            
             await updateSheets(env, `cirklehrStrikes!E${i + 1}:F${i + 1}`, [
               ['Processed', new Date().toISOString()]
             ]);
