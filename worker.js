@@ -1036,21 +1036,7 @@ export default {
             status: row[5],           // F
             timestamp: row[6]         // G
           }));
-        return new Response(JSON.stringify({ success: true, requests }), { headers: corsHeaders });              } catch (dmError) {
-                console.error('DM error:', dmError);
-                errors.push({ row: i + 1, error: 'DM failed' });
-              }
-            }
-            
-            // Update status
-            await updateSheets(env, `cirklehrRequests!F${i + 1}:H${i + 1}`, [
-              ['Processed', new Date().toISOString(), '✅ Success']
-            ]);
-            processed++;
-          }
-        }
-        
-        return new Response(JSON.stringify({ success: true, processed, errors: errors.length > 0 ? errors : undefined }), { headers: corsHeaders });
+        return new Response(JSON.stringify({ success: true, requests }), { headers: corsHeaders });
       }
 
       // Disciplinaries
