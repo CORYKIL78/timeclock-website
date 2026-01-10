@@ -104,11 +104,11 @@ export default {
         }
         
         try {
-          // Fetch user from cirklehrUsers sheet
-          const usersData = await getSheetsData(env, 'cirklehrUsers!A2:Z1000');
+          // Fetch user from cirklehrUsers sheet (skip header row)
+          const usersData = await getSheetsData(env, 'cirklehrUsers!A3:Z1000');
           
-          // Find user by Discord ID (column A)
-          const userRow = usersData.find(row => row[0] === userId);
+          // Find user by Discord ID (column D = index 3)
+          const userRow = usersData.find(row => row[3] === userId);
           
           if (!userRow) {
             return new Response(JSON.stringify({ 
@@ -121,18 +121,19 @@ export default {
           }
           
           // Return user data from sheets
-          // Columns: A=Discord ID, B=Name, C=Email, D=Department, E=Discord Tag, F=Staff ID, etc.
+          // Columns: A=Name, B=Email, C=Department, D=Discord ID, E=Timezone, F=Country, etc.
           return new Response(JSON.stringify({
-            id: userRow[0] || userId,
-            username: userRow[4] || 'User', // Discord Tag column
-            roles: [], // Can add role mapping later if needed
-            joined_at: new Date().toISOString(),
-            // Additional profile data
-            name: userRow[1] || '',
-            email: userRow[2] || '',
-            department: userRow[3] || '',
-            discordTag: userRow[4] || '',
-            staffId: userRow[5] || ''
+            id: userRow[3] || userId, // Discord ID from column D
+            username: userRow[3] || 'User', // Discord ID
+            roles: [], 
+            joined_at: userRow[6] || new Date().toISOString(), // Date of Signup column G
+            // Profile data
+            name: userRow[0] || '',
+            email: userRow[1] || '',
+            department: userRow[2] || '',
+            discordTag: userRow[3] || '', // Discord ID
+            timezone: userRow[4] || '',
+            country: userRow[5] || ''
           }), { headers: corsHeaders });
           
         } catch (e) {
