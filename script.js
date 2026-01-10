@@ -4083,27 +4083,6 @@ async function fetchAttendanceCount() {
 }
 
 // REMOVED: Events polling (broken functionality)
-        
-        if (!response.ok) {
-            console.error('[Events] Failed to fetch events:', response.statusText);
-            return;
-        }
-        
-        const data = await response.json();
-        eventsData = data.events || [];
-        console.log('[Events] Fetched events:', eventsData);
-        
-        // Check for new events and notify user
-        checkForNewEvents();
-        
-        // Re-render if on events screen
-        if (document.getElementById('eventsScreen').classList.contains('active')) {
-            renderEvents();
-        }
-    } catch (error) {
-        console.error('[Events] Error fetching events:', error);
-    }
-}
 
 // Event modal state tracking
 let isShowingEventModal = false;
