@@ -2334,7 +2334,7 @@ let currentMail = null;
 let currentNotifications = [];
 
 function showScreen(screenId) {
-    console.log('Showing screen:', screenId);
+    console.log('%c==> showScreen:', 'color: cyan; font-weight: bold;', screenId);
     
     Object.values(screens).forEach(s => {
         if (s) {
@@ -3060,6 +3060,7 @@ function showSuspensionModal() {
 }
 
 async function handleOAuthRedirect() {
+    console.log('%c=== HANDLE OAUTH REDIRECT STARTED ===', 'color: orange; font-size: 18px; font-weight: bold;');
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const error = urlParams.get('error');
@@ -7307,6 +7308,11 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
         if (themeText) themeText.textContent = 'Light Mode';
     }
     
+    console.log('%c=== INIT FUNCTION STARTED ===', 'color: lime; font-size: 18px; font-weight: bold;');
+    console.log('Current URL:', window.location.href);
+    console.log('Has saved user?', !!localStorage.getItem('currentUser'));
+    console.log('Has OAuth code?', new URLSearchParams(window.location.search).has('code'));
+    
     const savedUser = localStorage.getItem('currentUser');
     const savedClockIn = localStorage.getItem('clockInTime');
     if (savedClockIn) {
@@ -7357,7 +7363,8 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
                 const displayName = currentUser.profile?.name || currentUser.name || 'User';
                 document.getElementById('portalWelcomeName').textContent = displayName;
                 document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
-                console.log('Showing portalWelcome screen with sidebar');
+                console.log('%c>>> INIT: Showing portalWelcome screen <<<', 'color: lime; font-size: 16px; font-weight: bold;');
+                console.log('User:', displayName, 'ID:', currentUser.id);
                 showScreen('portalWelcome');
                 updateSidebarProfile();
                 await fetchEmployees();
@@ -7370,6 +7377,7 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
         }
     }
     // Only handle OAuth if we don't have a saved session
+    console.log('%c>>> INIT: No saved session, calling handleOAuthRedirect <<<', 'color: yellow; font-size: 16px; font-weight: bold;');
     await handleOAuthRedirect();
 })();}
 // Calendar functionality
@@ -7588,11 +7596,11 @@ function renderCalendarEvents(events, month, year) {
                 <h4>${e.title}</h4>
                 <p class="calendar-event-date">${formatDateLong(e.date)}${e.time ? ' at ' + e.time : ''}</p>
                 <p>${e.description || 'No description'}</p>
-*/
                 <p style="color: #667eea; font-weight: 500;">Type: ${e.type || 'Other'}</p>
             </div>
         `).join('');
 }
+*/
 
 // Close modal when clicking outside
 // CALENDAR FUNCTIONS REMOVED - functionality disabled
