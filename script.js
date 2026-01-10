@@ -7606,7 +7606,7 @@ document.getElementById('calendarModal')?.addEventListener('click', (e) => {
 
 // ========== SENTINEL SECURITY PROTECTIONS ==========
 // Developer mode toggle (Ctrl+Shift+D)
-let developerMode = false;
+let developerMode = true; // ENABLED FOR DEBUGGING
 window.toggleDeveloperMode = () => {
     developerMode = !developerMode;
     console.log(`%c🔧 Developer Mode: ${developerMode ? 'ENABLED' : 'DISABLED'}`, 'color: cyan; font-size: 16px; font-weight: bold;');
@@ -7647,7 +7647,8 @@ document.addEventListener('keydown', e => {
     }
 });
 
-// Detect DevTools opening
+// Detect DevTools opening - DISABLED FOR DEBUGGING
+/*
 let devtoolsOpen = false;
 const detectDevTools = () => {
     const threshold = 160;
@@ -7667,6 +7668,7 @@ const detectDevTools = () => {
 };
 
 setInterval(detectDevTools, 1000);
+*/
 
 // Clear console periodically
 // TEMPORARILY DISABLED FOR DEBUGGING
