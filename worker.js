@@ -92,7 +92,7 @@ export default {
         }
       }
       
-      // Discord guild member endpoint - TEMPORARILY DISABLED
+      // Discord member endpoint - fetch from Google Sheets
       if (url.pathname.startsWith('/member/') && request.method === 'GET') {
         const userId = url.pathname.split('/member/')[1];
         
@@ -103,66 +103,47 @@ export default {
           });
         }
         
-        // Return mock member data to allow login without guild check
-        return new Response(JSON.stringify({
-          id: userId,
-          username: 'User',
-          roles: [],
-          joined_at: new Date().toISOString()
-        }), { headers: corsHeaders });
-        
-        /* DISABLED - WRONG GUILD ID
         try {
-          // Get guild member info from Discord
-          const guildId = '1295075877597876326'; // Your Discord server ID
-          const botToken = env.DISCORD_BOT_TOKEN;
+          // Fetch user from cirklehrUsers sheet
+          const usersData = await getSheetsData(env, 'cirklehrUsers!A2:Z1000');
           
-          if (!botToken) {
-            return new Response(JSON.stringify({ error: 'Bot token not configured' }), {
-              status: 500,
-              headers: corsHeaders
-            });
-          }
+          // Find user by Discord ID (column A)
+          const userRow = usersData.find(row => row[0] === userId);
           
-          const memberResponse = await fetch(
-            `https://discord.com/api/v10/guilds/${guildId}/members/${userId}`,
-            {
-              headers: {
-                'Authorization': `Bot ${botToken}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-          
-          if (!memberResponse.ok) {
-            const errorText = await memberResponse.text();
-            return new Response(JSON.stringify({ error: 'Not found', details: errorText }), {
+          if (!userRow) {
+            return new Response(JSON.stringify({ 
+              error: 'Not found',
+              message: 'User not found in database'
+            }), {
               status: 404,
               headers: corsHeaders
             });
           }
           
-          const memberData = await memberResponse.json();
-          
-          // Return member data with roles
+          // Return user data from sheets
+          // Columns: A=Discord ID, B=Name, C=Email, D=Department, E=Discord Tag, F=Staff ID, etc.
           return new Response(JSON.stringify({
-            id: memberData.user.id,
-            username: memberData.user.username,
-            discriminator: memberData.user.discriminator,
-            avatar: memberData.user.avatar,
-            global_name: memberData.user.global_name,
-            roles: memberData.roles,
-            nick: memberData.nick,
-            joined_at: memberData.joined_at
+            id: userRow[0] || userId,
+            username: userRow[4] || 'User', // Discord Tag column
+            roles: [], // Can add role mapping later if needed
+            joined_at: new Date().toISOString(),
+            // Additional profile data
+            name: userRow[1] || '',
+            email: userRow[2] || '',
+            department: userRow[3] || '',
+            discordTag: userRow[4] || '',
+            staffId: userRow[5] || ''
           }), { headers: corsHeaders });
           
         } catch (e) {
-          return new Response(JSON.stringify({ error: 'Member fetch error', message: e.message }), {
+          return new Response(JSON.stringify({ 
+            error: 'Member fetch error', 
+            message: e.message 
+          }), {
             status: 500,
             headers: corsHeaders
           });
         }
-        */
       }
       
       // Debug endpoint to list all sheets
