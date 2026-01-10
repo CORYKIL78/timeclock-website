@@ -5373,11 +5373,6 @@ if (myRolesBtn) {
     myRolesBtn.addEventListener('click', async () => {
         showScreen('myRoles');
         
-        // Ensure role names are fetched
-        if (Object.keys(roleNames).length === 0) {
-            await fetchRoleNames();
-        }
-        
         const list = document.getElementById('rolesList');
         list.innerHTML = '';
         
@@ -5386,9 +5381,10 @@ if (myRolesBtn) {
             return;
         }
         
-        currentUser.roles.forEach(roleId => {
+        currentUser.roles.forEach(role => {
             const li = document.createElement('li');
-            const roleName = roleNames[roleId] || 'Unknown Role';
+            // Role is already a string from the backend (baseLevel)
+            const roleName = typeof role === 'string' ? role : (roleNames[role] || 'Unknown Role');
             li.textContent = roleName;
             li.style.cssText = 'padding: 12px; background: #f3f4f6; border-radius: 8px; margin-bottom: 8px; font-weight: 500;';
             list.appendChild(li);
