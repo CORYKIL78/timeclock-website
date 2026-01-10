@@ -766,9 +766,9 @@ export default {
                 body: JSON.stringify({
                   embeds: [{
                     title: approved ? '✅ Absence Request Approved' : '❌ Absence Request Rejected',
-                    description: `Your absence request has been ${status.toLowerCase()}.\\n\\nPlease check the **Staff Portal** for details.`,
+                    description: `Your absence request has been ${status.toLowerCase()}.\n\n Please check the **Staff Portal** for details.`,
                     color: approved ? 0x4caf50 : 0xf44336,
-                    footer: { text: 'https://cirkledevelopment.co.uk' }
+                    footer: { text: 'Portal by Cirkle | https://portal.cirkledevelopment.co.uk' }
                   }]
                 })
               });
@@ -850,7 +850,7 @@ export default {
                         title: '💰 New Payslip Available',
                         description: `Your payslip is ready!\\n\\nPlease check the **Staff Portal** to view it.`,
                         color: 0x4caf50,
-                        footer: { text: 'https://cirkledevelopment.co.uk' }
+                        footer: { text: 'Portal by Cirkle | https://portal.cirkledevelopment.co.uk' }
                       }]
                     })
                   });
@@ -933,7 +933,7 @@ export default {
                     title: approved ? '✅ Request Approved' : '❌ Request Denied',
                     description: `Your request has been ${status.toLowerCase()}.\n\nPlease check the **Staff Portal** for details.`,
                     color: approved ? 0x4caf50 : 0xf44336,
-                    footer: { text: 'https://cirkledevelopment.co.uk' }
+                    footer: { text: 'Portal by Cirkle | https://portal.cirkledevelopment.co.uk' }
                   }]
                 })
               });
@@ -1081,7 +1081,7 @@ export default {
                     title: '⚠️ New Disciplinary Notice',
                     description: `You have received a new disciplinary action.\n\nPlease check the **Staff Portal** to view the full details.`,
                     color: 0xff9800,
-                    footer: { text: 'https://cirkledevelopment.co.uk' }
+                    footer: { text: 'Portal by Cirkle | https://portal.cirkledevelopment.co.uk' }
                   }]
                 })
               });
@@ -1138,7 +1138,7 @@ export default {
                         title: '⚠️ New Disciplinary Notice',
                         description: `You have received a new disciplinary action.\n\nPlease check the **Staff Portal** to view the full details.`,
                         color: 0xff9800,
-                        footer: { text: 'https://cirkledevelopment.co.uk' }
+                        footer: { text: 'Portal by Cirkle | https://portal.cirkledevelopment.co.uk' }
                       }]
                     })
                   });

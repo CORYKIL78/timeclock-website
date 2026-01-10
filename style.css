@@ -46,7 +46,7 @@ img, video, iframe {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    background: white;
+    background: var(--card-bg);
     border-radius: 16px;
     box-shadow: var(--shadow);
 }
@@ -187,7 +187,7 @@ img, video, iframe {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    background: white;
+    background: var(--card-bg);
     border-radius: 16px;
     box-shadow: var(--shadow);
 }
@@ -289,7 +289,7 @@ img, video, iframe {
 .change-requests-section {
     margin-top: 24px;
     padding: 20px;
-    background: white;
+    background: var(--card-bg);
     border: 1px solid var(--mail-border);
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -402,7 +402,7 @@ body.dark .change-request-item {
     align-items: center;
     gap: 24px;
     padding: 24px;
-    background: white;
+    background: var(--card-bg);
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     border: 1px solid var(--mail-border);
@@ -494,7 +494,7 @@ body.dark .profile-status-indicator {
 }
 
 .profile-card {
-    background: white;
+    background: var(--card-bg);
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     border: 1px solid var(--mail-border);
@@ -809,7 +809,7 @@ body.dark .profile-stat {
 }
 
 .install-prompt .install-yes {
-    background: white;
+    background: var(--card-bg);
     color: var(--primary);
 }
 
@@ -1125,7 +1125,6 @@ body.dark .profile-stat {
     --bg-color: #f8f9fa;
     --text-color: #212529;
     --primary: #007bff;
-
     --secondary: #6c757d;
     --success: #28a745;
     --danger: #dc3545;
@@ -1137,23 +1136,35 @@ body.dark .profile-stat {
     --mail-border: #e1e4e8;
     --yellow-hazard: #ffc107;
     --transition-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --card-bg: #ffffff;
+    --input-bg: #ffffff;
+    --border-color: #dee2e6;
+    --hover-bg: #f0f0f0;
+    --surface-color: #ffffff;
+    --text-secondary: #6c757d;
 }
 
 body.dark {
     --bg-color: #0d1117;
     --text-color: #e6edf3;
-    --primary: #1f2937;
-    --secondary: #374151;
-    --success: #10b981;
-    --danger: #ef4444;
-    --info: #3b82f6;
-    --warning: #f59e0b;
+    --primary: #58a6ff;
+    --secondary: #8b949e;
+    --success: #3fb950;
+    --danger: #f85149;
+    --info: #79c0ff;
+    --warning: #d29922;
     --shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
     --mail-bg: #161b22;
     --mail-border: #30363d;
     background: #0d1117;
     --tab-active-bg: #238636;
-    --yellow-hazard: #f59e0b;
+    --yellow-hazard: #d29922;
+    --card-bg: #161b22;
+    --input-bg: #0d1117;
+    --border-color: #30363d;
+    --hover-bg: #21262d;
+    --surface-color: #161b22;
+    --text-secondary: #8b949e;
 }
 
 * {
@@ -1170,6 +1181,64 @@ body {
     transition: background 0.3s var(--transition-ease), color 0.3s var(--transition-ease);
     overflow-x: hidden;
 }
+
+/* ===== DARK MODE COMPREHENSIVE STYLING ===== */
+body.dark {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+body.dark * {
+    color: inherit;
+}
+
+body.dark a {
+    color: var(--primary);
+}
+
+body.dark button:not(.sidebar-toggle):not(#logoutBtn) {
+    background: var(--primary);
+    color: white;
+    border: 1px solid var(--primary);
+}
+
+body.dark button:hover:not(.sidebar-toggle):not(#logoutBtn) {
+    background: var(--info);
+    border-color: var(--info);
+}
+
+body.dark input,
+body.dark select,
+body.dark textarea {
+    background: var(--input-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+body.dark input::placeholder,
+body.dark textarea::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+body.dark .modal,
+body.dark .modal-content {
+    background: var(--card-bg);
+    color: var(--text-color);
+}
+
+body.dark .sidebar {
+    background: var(--surface-color);
+    color: var(--text-color);
+    border-right-color: var(--border-color);
+}
+
+body.dark .notification {
+    background: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+/* ===== END DARK MODE COMPREHENSIVE STYLING ===== */
 
 #companyLogo {
     position: fixed;
@@ -1206,7 +1275,7 @@ body {
 }
 
 .container {
-    background: white;
+    background: var(--card-bg);
     border-radius: 12px;
     padding: 24px;
     text-align: center;
@@ -1230,8 +1299,9 @@ body {
 }
 
 body.dark .container {
-    background: #1a2332;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    background: var(--card-bg);
+    box-shadow: var(--shadow);
+    border-color: var(--border-color);
 }
 
 @keyframes slideIn {
@@ -1245,7 +1315,7 @@ input, select, textarea {
     margin: 8px 0;
     border: 1px solid #e5e7eb;
     border-radius: 8px;
-    background: white;
+    background: var(--card-bg);
     color: var(--text-color);
     font-size: 15px;
     transition: all 0.2s ease;
@@ -1262,9 +1332,15 @@ input:focus, select:focus, textarea:focus {
 }
 
 body.dark input, body.dark select, body.dark textarea {
-    background: #1e293b;
-    border-color: #334155;
-    color: #e6edf3;
+    background: var(--input-bg);
+    border-color: var(--border-color);
+    color: var(--text-color);
+}
+
+body.dark input::placeholder,
+body.dark select::placeholder,
+body.dark textarea::placeholder {
+    color: var(--text-secondary);
 }
 
 body.dark input:focus, body.dark select:focus, body.dark textarea:focus {
@@ -1312,7 +1388,7 @@ textarea {
     padding: 10px;
     border: 1px solid var(--mail-border);
     border-radius: 6px;
-    background: white;
+    background: var(--card-bg);
     font-size: 16px;
 }
 
@@ -1519,7 +1595,7 @@ body.dark #addTaskBtn:hover {
 
 /* Rectangular user header card for dashboard */
 .user-header-card {
-    background: white;
+    background: var(--card-bg);
     border-radius: 12px;
     padding: 25px 30px;
     margin-bottom: 25px;
@@ -1815,7 +1891,7 @@ body.dark .sidebar.extended {
     transform: translateY(-50%);
     width: 20px;
     height: 20px;
-    background: white;
+    background: var(--card-bg);
     color: var(--primary);
     border-radius: 50%;
     display: flex;
@@ -1966,7 +2042,7 @@ body.dark .logout-btn:hover {
     right: 20px;
     width: 300px;
     max-height: 500px;
-    background: white;
+    background: var(--card-bg);
     border: 1px solid var(--mail-border);
     border-radius: 8px;
     padding: 15px;
@@ -2039,7 +2115,7 @@ body.dark .notifications {
     right: 24px;
     width: 360px;
     max-height: 480px;
-    background: white;
+    background: var(--card-bg);
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
     overflow: hidden;
@@ -2180,7 +2256,7 @@ body.dark .notifications-panel li:hover {
 }
 
 .session-item {
-    background: white;
+    background: var(--card-bg);
     border: 1px solid #e0e0e0;
     border-radius: 12px;
     padding: 20px;
@@ -2346,7 +2422,7 @@ body.dark .notification-item {
 }
 
 .modal-content {
-    background: white;
+    background: var(--card-bg);
     border-radius: 16px;
     padding: 32px;
     max-width: 500px;
@@ -2687,7 +2763,7 @@ body.dark .absence-item.canceled {
 
 .absence-details {
     position: static;
-    background: white;
+    background: var(--card-bg);
     border: 1px solid var(--mail-border);
     border-radius: 6px;
     padding: 10px;
@@ -2765,7 +2841,7 @@ body.dark .delete-absence-btn:hover {
 }
 
 .employee-card {
-    background: white;
+    background: var(--card-bg);
     border-radius: 6px;
     padding: 12px;
     text-align: center;
@@ -3452,11 +3528,13 @@ body.dark .thread-item {
 }
 
 .stat-card {
-    background: #fff;
+    background: var(--card-bg);
     border-radius: 8px;
     padding: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow);
     text-align: left;
+    color: var(--text-color);
+}
 }
 
 body.dark .stat-card {
@@ -3499,7 +3577,7 @@ body.dark .stat-card {
 }
 
 .disciplinary-item, .payslip-item, .report-item {
-    background: white;
+    background: var(--card-bg);
     border: 1px solid var(--mail-border);
     border-radius: 8px;
     padding: 16px;
@@ -3890,7 +3968,7 @@ body.dark .suspended-message p {
     display: flex;
     gap: 60px;
     align-items: flex-start;
-    background: white;
+    background: var(--card-bg);
     border-radius: 16px;
     padding: 40px 60px;
     box-shadow: var(--shadow);
@@ -3991,7 +4069,7 @@ body.dark .profile-info-row {
 .request-modal {
     max-width: 500px;
     margin: 10vh auto;
-    background: white;
+    background: var(--card-bg);
     border-radius: 16px;
     padding: 30px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.2);
@@ -4422,7 +4500,7 @@ body.dark .request-field textarea {
 
 .calendar-day.other-month {
     color: #ccc;
-    background: #fafafa;
+    background: var(--hover-bg);
 }
 
 .calendar-day-number {
@@ -4431,7 +4509,7 @@ body.dark .request-field textarea {
 }
 
 .calendar-event-item {
-    background: white;
+    background: var(--card-bg);
     border-radius: 10px;
     padding: 15px;
     margin-bottom: 10px;
@@ -4844,7 +4922,7 @@ body.dark .request-field textarea {
 
 /* ===== HOME SCREEN RECTANGULAR LAYOUT ===== */
 .home-profile-card {
-    background: white;
+    background: var(--card-bg);
     border-radius: 16px;
     padding: 40px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -5679,7 +5757,7 @@ button:active::before,
         border: 1px solid #e0e0e0;
         border-radius: 12px;
         padding: 10px;
-        background: white;
+        background: var(--card-bg);
     }
     
     td {
@@ -5727,10 +5805,14 @@ button:active::before,
 }
 
 .loading-skeleton {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background: linear-gradient(90deg, var(--hover-bg) 25%, #d0d0d0 50%, var(--hover-bg) 75%);
     background-size: 1000px 100%;
     animation: shimmer 2s infinite;
     border-radius: 8px;
+}
+
+body.dark .loading-skeleton {
+    background: linear-gradient(90deg, #2a2e32 25%, #333740 50%, #2a2e32 75%);
 }
 
 /* Enhanced pull-to-refresh indicator */

@@ -4928,7 +4928,8 @@ if (setupEmailContinueBtn) {
     } else {
         showModal('alert', 'Please enter a valid email with @ and a domain (e.g., example.com)');
     }
-});
+    });
+}
 
 const setupNameContinueBtn = document.getElementById('setupNameContinueBtn');
 if (setupNameContinueBtn) {
@@ -7399,20 +7400,6 @@ function updateNotificationBadge() {
     }
 }
 
-const modeToggle = document.getElementById('modeToggle');
-if (modeToggle) {
-    modeToggle.addEventListener('change', (e) => {
-        document.body.classList.toggle('dark', e.target.checked);
-        localStorage.setItem('darkMode', e.target.checked);
-        
-        // Update theme text
-        const themeText = document.getElementById('themeText');
-        if (themeText) {
-            themeText.textContent = e.target.checked ? 'Dark Mode' : 'Light Mode';
-        }
-    });
-}
-
 // Mobile Nav Button Handler
 const mobileNavBtn = document.getElementById('mobileNavBtn');
 if (mobileNavBtn) {
@@ -7439,7 +7426,7 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
     
     // Initialize dark mode from localStorage
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
-    const modeToggle = document.getElementById('modeToggle');
+    let modeToggle = document.getElementById('modeToggle');
     const themeText = document.getElementById('themeText');
     
     if (savedDarkMode) {
@@ -7448,6 +7435,19 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
         if (themeText) themeText.textContent = 'Dark Mode';
     } else {
         if (themeText) themeText.textContent = 'Light Mode';
+    }
+    
+    // Setup dark mode toggle listener
+    if (modeToggle) {
+        modeToggle.addEventListener('change', (e) => {
+            document.body.classList.toggle('dark', e.target.checked);
+            localStorage.setItem('darkMode', e.target.checked);
+            
+            // Update theme text
+            if (themeText) {
+                themeText.textContent = e.target.checked ? 'Dark Mode' : 'Light Mode';
+            }
+        });
     }
     
     console.log('%c=== INIT FUNCTION STARTED ===', 'color: lime; font-size: 18px; font-weight: bold;');
@@ -7554,19 +7554,11 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
             console.error('Error parsing saved user:', e);
         }
     }
-                await fetchEmployees();
-                // Don't call handleOAuthRedirect if we already have a valid session
-                return;
-            }
-        } catch (e) {
-            console.error('Error parsing saved user:', e);
-            localStorage.removeItem('currentUser');
-        }
-    }
+    
     // Only handle OAuth if we don't have a saved session
     console.log('%c>>> INIT: No saved session, calling handleOAuthRedirect <<<', 'color: yellow; font-size: 16px; font-weight: bold;');
     await handleOAuthRedirect();
-})();}
+})();
 // Calendar functionality
 let currentCalendarDate = new Date();
 
