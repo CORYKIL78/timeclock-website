@@ -162,6 +162,7 @@ export default {
             headers: corsHeaders
           });
         }
+        */
       }
       
       // Debug endpoint to list all sheets
