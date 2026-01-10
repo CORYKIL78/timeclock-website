@@ -24,24 +24,80 @@ export default {
     };
 
     try {
+      // Debug endpoint to list all sheets
+      if (url.pathname === '/api/debug/sheets') {
+        try {
+          const sheets = ['cirklehrUsers', 'cirklehrStrikes', 'cirklehrAbsences', 'cirklehrReports', 'cirklehrPayslips'];
+          const results = {};
+          
+          for (const sheetName of sheets) {
+            try {
+              const data = await getSheetsData(env, `${sheetName}!A1:Z10`);
+              results[sheetName] = { 
+                exists: true, 
+                rows: data.length,
+                firstRow: data[0] || [],
+                sample: data.slice(0, 3)
+              };
+            } catch (e) {
+              results[sheetName] = { exists: false, error: e.message };
+            }
+          }
+          
+          return new Response(JSON.stringify(results, null, 2), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { headers: corsHeaders });
+        }
+      }
+
       // User/Profile endpoints
       if (url.pathname === '/api/user/profile' && request.method === 'POST') {
         const { discordId } = await request.json();
-        const data = await getSheetsData(env, 'cirklehrEmployees!A:Z');
-        const userRow = data.find(row => row[0] === discordId);
+        const data = await getSheetsData(env, 'cirklehrUsers!A:Z');
+        
+        // Discord ID is in column D (index 3)
+        const userRow = data.find(row => row[3] === discordId);
         
         if (userRow) {
+          const discordId = userRow[3];
+          const suspended = userRow[7]?.toLowerCase() === 'suspended'; // Column H
+          
+          // Fetch actual avatar from Discord
+          let avatarUrl = null;
+          if (discordId && env.DISCORD_BOT_TOKEN) {
+            try {
+              const discordRes = await fetch(`https://discord.com/api/v10/users/${discordId}`, {
+                headers: { 'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}` }
+              });
+              if (discordRes.ok) {
+                const discordUser = await discordRes.json();
+                if (discordUser.avatar) {
+                  avatarUrl = `https://cdn.discordapp.com/avatars/${discordId}/${discordUser.avatar}.png?size=128`;
+                }
+              }
+            } catch (e) {
+              console.error('Failed to fetch Discord avatar:', e);
+            }
+          }
+          
+          const baseLevel = userRow[10] || '';
+          
           return new Response(JSON.stringify({
             success: true,
             profile: {
-              discordId: userRow[0],
-              name: userRow[1],
-              email: userRow[2],
-              department: userRow[3],
-              role: userRow[4],
+              name: userRow[0],
+              email: userRow[1],
+              department: userRow[2],
+              discordId: discordId,
+              timezone: userRow[4],
               country: userRow[5],
-              timezone: userRow[6],
-              avatar: userRow[7]
+              dateOfSignup: userRow[6],
+              utilisation: userRow[7],
+              suspended: suspended,
+              baseLevel: baseLevel,
+              role: baseLevel,
+              roles: baseLevel ? [baseLevel] : [],
+              avatar: avatarUrl
             }
           }), { headers: corsHeaders });
         }
@@ -50,18 +106,19 @@ export default {
         return new Response(JSON.stringify({ 
           success: true, 
           profile: null,
-          message: 'User not in database, using Discord profile'
+          message: 'User not in database, using Discord profile',
+          debug: { totalRows: data.length, searchedFor: discordId }
         }), { headers: corsHeaders });
       }
 
       if (url.pathname === '/api/user/upsert' && request.method === 'POST') {
         const user = await request.json();
-        const data = await getSheetsData(env, 'cirklehrEmployees!A:Z');
+        const data = await getSheetsData(env, 'cirklehrUsers!A:Z');
         const existingIndex = data.findIndex(row => row[0] === user.discordId);
         
         if (existingIndex >= 0) {
           // Update existing user
-          await updateSheets(env, `cirklehrEmployees!A${existingIndex + 1}:H${existingIndex + 1}`, [[
+          await updateSheets(env, `cirklehrUsers!A${existingIndex + 1}:H${existingIndex + 1}`, [[
             user.discordId,
             user.name || data[existingIndex][1],
             user.email || data[existingIndex][2],
@@ -73,7 +130,7 @@ export default {
           ]]);
         } else {
           // Create new user
-          await appendToSheet(env, 'cirklehrEmployees!A:H', [[
+          await appendToSheet(env, 'cirklehrUsers!A:H', [[
             user.discordId,
             user.name || '',
             user.email || '',
@@ -91,7 +148,7 @@ export default {
       // Employees hire
       if (url.pathname === '/api/employees/hire' && request.method === 'POST') {
         const emp = await request.json();
-        await appendToSheet(env, 'cirklehrEmployees!A:H', [[
+        await appendToSheet(env, 'cirklehrUsers!A:H', [[
           emp.discordId,
           emp.name,
           emp.email || '',
@@ -121,32 +178,44 @@ export default {
 
       // Payslips fetch
       if (url.pathname === '/api/payslips/fetch' && request.method === 'POST') {
-        const { userId } = await request.json();
+        const body = await request.json();
+        const userId = body.userId || body.staffId;
         const data = await getSheetsData(env, 'cirklehrPayslips!A:G');
         const payslips = data.slice(1)
           .filter(row => row[0] === userId)
           .map(row => ({
             userId: row[0],
             period: row[1],
+            payPeriod: row[1],
             link: row[2],
-            status: row[5]
+            url: row[2],
+            timestamp: row[4],
+            dateIssued: row[4],
+            status: row[5] || 'Issued',
+            acknowledged: row[5] === 'Acknowledged'
           }));
         return new Response(JSON.stringify({ success: true, payslips }), { headers: corsHeaders });
       }
 
       // Disciplinaries fetch
       if (url.pathname === '/api/disciplinaries/fetch' && request.method === 'POST') {
-        const { userId } = await request.json();
+        const body = await request.json();
+        const userId = body.userId || body.staffId; // Accept both userId and staffId
         const data = await getSheetsData(env, 'cirklehrStrikes!A:H');
         const disciplinaries = data.slice(1)
           .filter(row => row[0] === userId)
           .map(row => ({
             userId: row[0],
+            strikeType: row[2],
+            comment: row[3],
+            assignedBy: row[4],
+            dateAssigned: row[6],
+            status: row[7],
+            // Also include old field names for compatibility
             type: row[2],
             description: row[3],
             employer: row[4],
-            timestamp: row[6],
-            status: row[7]
+            timestamp: row[6]
           }));
         return new Response(JSON.stringify({ success: true, disciplinaries }), { headers: corsHeaders });
       }
@@ -169,15 +238,31 @@ export default {
         return new Response(JSON.stringify({ success: true, reports }), { headers: corsHeaders });
       }
 
+      // Reports create
+      if (url.pathname === '/api/reports/create') {
+        const report = await request.json();
+        await appendToSheet(env, 'cirklehrReports!A:I', [[
+          report.userId || '',           // A: User ID
+          '',                            // B: Blank
+          report.type || report.reportType || '',  // C: Report type
+          report.comment || '',          // D: Comment
+          report.scale || '',            // E: Scale
+          report.publishedBy || report.employerName || '', // F: Published by
+          'Submit',                      // G: Submit status
+          new Date().toISOString(),      // H: Timestamp
+          ''                             // I: Status
+        ]]);
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
       if (url.pathname === '/api/reports/check-pending') {
         const data = await getSheetsData(env, 'cirklehrReports!A:I');
         let processed = 0;
         let errors = [];
         
         for (let i = 1; i < data.length; i++) {
-          // Check for Submit status - need to verify which column
-          const statusCol = data[i][8] || data[i][7] || data[i][6];  // Check H, G, or F
-          if (statusCol?.toLowerCase() === 'submit') {
+          // Check column G for Submit status
+          if (data[i][6] === 'Submit') {
             // Send DM notification
             if (data[i][0] && env.DISCORD_BOT_TOKEN) {
               try {
@@ -200,9 +285,9 @@ export default {
                     },
                     body: JSON.stringify({
                       embeds: [{
-                        title: '📧 New Report Available',
-                        description: `You have a new report available!\\n\\nPlease check the **Staff Portal** to view it.`,
-                        color: 0x667eea,
+                        title: '📋 New Report Available',
+                        description: `You have a new report!\n\nPlease check the **Staff Portal** to view it.`,
+                        color: 0x2196F3,
                         footer: { text: 'https://cirkledevelopment.co.uk' }
                       }]
                     })
@@ -214,9 +299,8 @@ export default {
               }
             }
             
-            await updateSheets(env, `cirklehrReports!G${i + 1}:I${i + 1}`, [
-              ['Processed', new Date().toISOString(), '✅']
-            ]);
+            // Mark as processed in column G
+            await updateSheets(env, `cirklehrReports!G${i + 1}`, [['Processed']]);
             processed++;
           }
         }
@@ -271,7 +355,84 @@ export default {
       }
 
       // Absence
-      if (url.pathname === '/api/absence/submit') {
+      // Ongoing absences (for Discord /manual-loa)
+      if (url.pathname === '/api/absence/ongoing') {
+        const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+        const today = new Date();
+        const absences = data.slice(1)
+          .filter(row => {
+            const status = (row[6] || '').toLowerCase();
+            const endDate = new Date(row[2]);
+            return status === 'approved' && endDate >= today;
+          })
+          .map((row, index) => ({
+            id: `${index + 2}`, // Row number
+            username: row[0],
+            userId: row[7],
+            startDate: row[1],
+            endDate: row[2],
+            reason: row[3],
+            comment: row[5],
+            status: row[6],
+            approvedBy: row[7],
+            isExpired: new Date(row[2]) < today
+          }));
+        return new Response(JSON.stringify({ success: true, absences }), { headers: corsHeaders });
+      }
+
+      // Extend LOA
+      if (url.pathname.match(/^\/api\/absence\/\d+\/extend$/)) {
+        const rowIndex = parseInt(url.pathname.split('/')[3]);
+        const { days, extendedBy } = await request.json();
+        
+        // Get current end date
+        const data = await getSheetsData(env, `cirklehrAbsences!C${rowIndex}`);
+        const currentEndDate = new Date(data[0][0]);
+        currentEndDate.setDate(currentEndDate.getDate() + parseInt(days));
+        
+        // Update end date
+        await updateSheets(env, `cirklehrAbsences!C${rowIndex}`, [[currentEndDate.toISOString().split('T')[0]]]);
+        
+        return new Response(JSON.stringify({ success: true, newEndDate: currentEndDate.toISOString() }), { headers: corsHeaders });
+      }
+
+      // Void LOA
+      if (url.pathname.match(/^\/api\/absence\/\d+\/void$/)) {
+        const rowIndex = parseInt(url.pathname.split('/')[3]);
+        const { voidedBy } = await request.json();
+        
+        // Update status to VOIDED
+        await updateSheets(env, `cirklehrAbsences!G${rowIndex}`, [['VOIDED']]);
+        
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      // Fetch user absences
+      if (url.pathname.startsWith('/api/user/absences/')) {
+        const userId = url.pathname.split('/').pop();
+        const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+        const absences = data.slice(1)
+          .filter(row => row[7] === userId) // Column H: User ID
+          .map(row => ({
+            id: `${row[7]}-${row[8]}`, // userId-timestamp as ID
+            name: row[0],
+            startDate: row[1],
+            endDate: row[2],
+            type: row[3],
+            reason: row[3],
+            totalDays: row[4],
+            comment: row[5],
+            userComment: row[5],
+            status: (row[6] || 'Pending').toLowerCase(), // Normalize to lowercase
+            approvedBy: row[7],
+            timestamp: row[8],
+            messageId: null
+          }));
+        return new Response(JSON.stringify({ success: true, absences }), { headers: corsHeaders });
+      }
+
+      // Handle both /api/absence and /api/absence/submit
+      if (url.pathname === '/api/absence/submit' || url.pathname === '/api/absence') {
         const absence = await request.json();
         const startDate = new Date(absence.startDate);
         const endDate = new Date(absence.endDate);
@@ -283,9 +444,9 @@ export default {
           absence.endDate,                 // C: end date
           absence.reason || '',            // D: reason
           totalDays,                       // E: total days
-          absence.userComment || '',       // F: user comment
+          absence.comment || absence.userComment || '',  // F: user comment
           'Pending',                       // G: approved or not
-          absence.userId,                  // H: user ID
+          absence.discordId || absence.userId,  // H: user ID
           new Date().toISOString(),        // I: timestamp
           'Submit'                         // J: status (success/failed submit)
         ]]);
@@ -294,16 +455,21 @@ export default {
       
       // Absence approval
       if (url.pathname === '/api/absence/approve') {
-        const { rowIndex, approved, userId } = await request.json();
+        const { rowIndex, approved, approverId } = await request.json();
         const status = approved ? 'Approved' : 'Rejected';
+        
+        // Get the absence row to find the user ID
+        const data = await getSheetsData(env, `cirklehrAbsences!A${rowIndex}:J${rowIndex}`);
+        const absenceRow = data[0];
+        const targetUserId = absenceRow[7]; // Column H: User ID
         
         // Update approval status
         await updateSheets(env, `cirklehrAbsences!G${rowIndex}:J${rowIndex}`, [
-          [status, userId, new Date().toISOString(), '✅ Success']
+          [status, approverId || 'System', new Date().toISOString(), '✅ Success']
         ]);
         
-        // Send DM notification
-        if (userId && env.DISCORD_BOT_TOKEN) {
+        // Send DM notification to the user who requested the absence
+        if (targetUserId && env.DISCORD_BOT_TOKEN) {
           try {
             const dmResponse = await fetch(`https://discord.com/api/v10/users/@me/channels`, {
               method: 'POST',
@@ -311,7 +477,7 @@ export default {
                 'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
                 'Content-Type': 'application/json'
               },
-              body: JSON.stringify({ recipient_id: userId })
+              body: JSON.stringify({ recipient_id: targetUserId })
             });
             
             if (dmResponse.ok) {
@@ -347,7 +513,8 @@ export default {
         let errors = [];
         
         for (let i = 1; i < data.length; i++) {
-          if (data[i][5]?.toLowerCase() === 'submit') {
+          // Only process if status is exactly 'Submit', not 'Processed'
+          if (data[i][5] === 'Submit' && data[i][6] !== 'Processed') {
             // Send DM notification
             if (data[i][0] && env.DISCORD_BOT_TOKEN) {
               try {
@@ -395,6 +562,80 @@ export default {
       }
 
       // Requests endpoints
+      // Requests fetch
+      if (url.pathname === '/api/requests/fetch' && request.method === 'POST') {
+        const body = await request.json();
+        const userId = body.userId || body.staffId;
+        const data = await getSheetsData(env, 'cirklehrRequests!A:H');
+        const requests = data.slice(1)
+          .filter(row => row[3] === userId)
+          .map(row => ({
+            name: row[0],
+            request: row[1],
+            userComment: row[2],
+            userId: row[3],
+            employerName: row[4],
+            submitStatus: row[5],
+            timestamp: row[6],
+            status: row[7],
+            // For compatibility
+            type: row[1],
+            comment: row[2]
+          }));
+        return new Response(JSON.stringify({ success: true, requests }), { headers: corsHeaders });
+      }
+
+      // Requests approval
+      if (url.pathname === '/api/requests/approve') {
+        const { rowIndex, approved, approverId } = await request.json();
+        const status = approved ? 'Approved' : 'Denied';
+        
+        // Get the request row to find user ID
+        const data = await getSheetsData(env, `cirklehrRequests!A${rowIndex}:H${rowIndex}`);
+        const requestRow = data[0];
+        const targetUserId = requestRow[3]; // Column D: User ID
+        
+        // Update status in column H
+        await updateSheets(env, `cirklehrRequests!H${rowIndex}`, [[status]]);
+        
+        // Send DM to user
+        if (targetUserId && env.DISCORD_BOT_TOKEN) {
+          try {
+            const dmResponse = await fetch(`https://discord.com/api/v10/users/@me/channels`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ recipient_id: targetUserId })
+            });
+            
+            if (dmResponse.ok) {
+              const dmChannel = await dmResponse.json();
+              await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  embeds: [{
+                    title: approved ? '✅ Request Approved' : '❌ Request Denied',
+                    description: `Your request has been ${status.toLowerCase()}.\n\nPlease check the **Staff Portal** for details.`,
+                    color: approved ? 0x4caf50 : 0xf44336,
+                    footer: { text: 'https://cirkledevelopment.co.uk' }
+                  }]
+                })
+              });
+            }
+          } catch (e) {
+            console.error('DM error:', e);
+          }
+        }
+        
+        return new Response(JSON.stringify({ success: true, status }), { headers: corsHeaders });
+      }
+
       if (url.pathname === '/api/requests/submit') {
         const req = await request.json();
         await appendToSheet(env, 'cirklehrRequests!A:H', [[
@@ -605,10 +846,15 @@ export default {
 
 // Google Sheets helpers using REST API
 async function getAccessToken(env) {
-  const jwtHeader = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+  // Helper for URL-safe base64
+  const base64url = (str) => {
+    return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  };
+  
+  const jwtHeader = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
   
-  const jwtClaimSet = btoa(JSON.stringify({
+  const jwtClaimSet = base64url(JSON.stringify({
     iss: env.GOOGLE_CLIENT_EMAIL,
     scope: 'https://www.googleapis.com/auth/spreadsheets',
     aud: 'https://oauth2.googleapis.com/token',
@@ -631,7 +877,7 @@ async function getAccessToken(env) {
     new TextEncoder().encode(signatureInput)
   );
 
-  const jwt = `${signatureInput}.${btoa(String.fromCharCode(...new Uint8Array(signature)))}`;
+  const jwt = `${signatureInput}.${base64url(String.fromCharCode(...new Uint8Array(signature)))}`;
 
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -639,8 +885,14 @@ async function getAccessToken(env) {
     body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
   });
 
-  const { access_token } = await tokenResponse.json();
-  return access_token;
+  const tokenData = await tokenResponse.json();
+  
+  if (!tokenResponse.ok) {
+    console.error('Token Error:', tokenData);
+    throw new Error(`Failed to get access token: ${JSON.stringify(tokenData)}`);
+  }
+  
+  return tokenData.access_token;
 }
 
 async function getSheetsData(env, range) {
@@ -650,6 +902,13 @@ async function getSheetsData(env, range) {
     { headers: { Authorization: `Bearer ${token}` } }
   );
   const data = await response.json();
+  
+  // Debug logging
+  if (!response.ok) {
+    console.error('Sheets API Error:', data);
+    throw new Error(`Sheets API error: ${JSON.stringify(data)}`);
+  }
+  
   return data.values || [];
 }
 

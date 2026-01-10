@@ -3,4 +3,4 @@ main = "worker.js"
 compatibility_date = "2025-01-09"
 
 [vars]
-SPREADSHEET_ID = "1U05VEI29EWMFfjcQoQ-vGOjQZvfRQWMB7rDexMPEFZs"
+SPREADSHEET_ID = "1_RE6ahFPZ-k5QbxH96JlzvqwRQ34DbZ7ExMuaYJ2-pY"
