@@ -128,11 +128,13 @@ export default {
           }
           
           // Return user data from sheets
-          // Columns: A=Name, B=Email, C=Department, D=Discord ID, E=Timezone, F=Country, etc.
+          // Columns: A=Name, B=Email, C=Department, D=Discord ID, E=Timezone, F=Country, G=DateOfSignup, H=Utilisation, I=?, J=?, K=BaseLevel
+          const baseLevel = userRow[10] || ''; // Column K (index 10)
+          
           return new Response(JSON.stringify({
             id: userRow[3] || userId, // Discord ID from column D
             username: userRow[3] || 'User', // Discord ID
-            roles: [], 
+            roles: baseLevel ? [baseLevel] : [], 
             joined_at: userRow[6] || new Date().toISOString(), // Date of Signup column G
             // Profile data
             name: userRow[0] || '',
@@ -140,7 +142,9 @@ export default {
             department: userRow[2] || '',
             discordTag: userRow[3] || '', // Discord ID
             timezone: userRow[4] || '',
-            country: userRow[5] || ''
+            country: userRow[5] || '',
+            baseLevel: baseLevel,
+            role: baseLevel
           }), { headers: corsHeaders });
           
         } catch (e) {

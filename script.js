@@ -5361,9 +5361,9 @@ if (profileCountrySelect) {
             if (!currentUser.profile) currentUser.profile = {};
             currentUser.profile.country = country;
             
-            // Save to backend
+            // Save to localStorage
             try {
-                await saveProfile();
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 showModal('alert', '<span class="success-tick"></span> Country updated successfully!');
                 playSuccessSound();
             } catch (error) {
@@ -7378,12 +7378,17 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
                             discordTag: currentUser.name,
                             staffId: memberData.staffId || '',
                             timezone: memberData.timezone || '',
-                            country: memberData.country || ''
+                            country: memberData.country || '',
+                            baseLevel: memberData.baseLevel || ''
                         };
+                        
+                        // Update roles
+                        currentUser.roles = memberData.roles || [];
                         
                         // Save updated data
                         localStorage.setItem('currentUser', JSON.stringify(currentUser));
                         console.log('Updated profile:', currentUser.profile);
+                        console.log('Updated roles:', currentUser.roles);
                     }
                 } catch (e) {
                     console.error('Error fetching fresh member data:', e);
@@ -7719,7 +7724,7 @@ setInterval(() => {
 
 // Disable text selection on sensitive areas
 document.addEventListener('selectstart', e => {
-    if (e.target.classList.contains('sensitive-data')) {
+    if (e.target && e.target.classList && e.target.classList.contains('sensitive-data')) {
         e.preventDefault();
         return false;
     }
