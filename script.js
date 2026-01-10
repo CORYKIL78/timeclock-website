@@ -2278,6 +2278,7 @@ const NOTIFICATION_CHANNEL = '1417583684525232291';
 const screens = {
     discord: document.getElementById('discordScreen'),
     searching: document.getElementById('searchingScreen'),
+    sequentialLoading: document.getElementById('sequentialLoadingScreen'),
     roles: document.getElementById('rolesScreen'),
     cherry: document.getElementById('cherryScreen'),
     confirm: document.getElementById('confirmScreen'),
