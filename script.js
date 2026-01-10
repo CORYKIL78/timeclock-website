@@ -144,6 +144,9 @@ window.addEventListener('beforeinstallprompt', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[DEBUG] DOMContentLoaded fired');
     
+    // Setup disciplinaries/reports tabs
+    setupDisciplinariesTabs();
+    
     // If requests screen is active, reload the requests
     setTimeout(() => {
         if (document.getElementById('requestsScreen')?.classList.contains('active')) {
@@ -464,21 +467,24 @@ document.addEventListener('DOMContentLoaded', () => {
         
         profilePics.forEach(pic => {
             if (window.currentUser) {
-                if (window.currentUser.avatar && window.currentUser.avatar !== '') {
-                    // Use Discord avatar if available
-                    pic.src = window.currentUser.avatar;
-                    console.log('[PROFILE PIC] Setting Discord avatar:', window.currentUser.avatar);
+                // Priority: backend profile avatar > Discord avatar > initials
+                const avatarUrl = window.currentUser.profile?.avatar || window.currentUser.avatar || null;
+                
+                if (avatarUrl) {
+                    // Use backend or Discord avatar if available
+                    pic.src = avatarUrl;
+                    console.log('[PROFILE PIC] Setting avatar from backend/Discord:', avatarUrl);
                     
                     // Add error handler in case avatar fails to load
                     pic.onerror = () => {
-                        console.warn('[PROFILE PIC] Failed to load Discord avatar, using initials');
+                        console.warn('[PROFILE PIC] Failed to load avatar, using initials');
                         const name = window.currentUser.profile?.name || window.currentUser.name || window.currentUser.username || 'User';
                         pic.src = generateInitialsAvatar(name);
                         pic.onerror = null; // Remove error handler after fallback
                     };
                 } else if (window.currentUser.profile && window.currentUser.profile.name) {
                     // Generate initials avatar if name is available
-                    console.log('[PROFILE PIC] No Discord avatar, using initials for:', window.currentUser.profile.name);
+                    console.log('[PROFILE PIC] No avatar, using initials for:', window.currentUser.profile.name);
                     pic.src = generateInitialsAvatar(window.currentUser.profile.name);
                 } else if (window.currentUser.name) {
                     // Fallback to currentUser.name
@@ -2766,7 +2772,9 @@ function renderPreviousSessions() {
 
 function updateSidebarProfile() {
     const emp = getEmployee(currentUser.id);
-    document.getElementById('sidebarProfilePic').src = currentUser.avatar || 'https://via.placeholder.com/100';
+    // Use profile avatar from backend if available, otherwise fallback to currentUser.avatar
+    const avatarUrl = currentUser.profile?.avatar || currentUser.avatar || `https://cdn.discordapp.com/embed/avatars/${Math.floor(Math.random() * 5)}.png`;
+    document.getElementById('sidebarProfilePic').src = avatarUrl;
 }
 
 function getGreeting() {
@@ -5975,15 +5983,16 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
             return;
         }
         
-        // Display payslips in clean row format matching the screenshot
+        // Display payslips in clean row format
         content.innerHTML = `
             <div class="payslips-list" style="display: flex; flex-direction: column; gap: 12px; padding: 20px;">
                 ${payslips.map((payslip, index) => {
-                    const date = payslip.dateAssigned || 'N/A';
-                    const assignedBy = payslip.assignedBy || 'Marcus Ray';
+                    const date = payslip.dateAssigned || payslip.timestamp || 'N/A';
+                    const assignedBy = payslip.assignedBy || 'Unknown';
+                    const link = payslip.link || payslip.url || '';
                     
                     return `
-                    <div class="payslip-row" data-index="${index}" style="
+                    <div class="payslip-row" data-index="${index}" data-link="${link}" style="
                         display: flex; 
                         justify-content: space-between; 
                         align-items: center; 
@@ -5996,10 +6005,22 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
                         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
                     " onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.08)'; this.style.transform='translateY(0)'">
                         <div style="flex: 1;">
-                            <span style="font-weight: 600; color: #1976d2; font-size: 16px;">PAYSLIP: ${date}</span>
+                            <span style="font-weight: 600; color: #1976d2; font-size: 16px;">Date Assigned: ${date}</span>
                         </div>
-                        <div style="flex: 1; text-align: right;">
-                            <span style="color: #888; font-size: 14px;">by ${assignedBy}</span>
+                        <div style="flex: 1; text-align: center;">
+                            <span style="color: #666; font-size: 14px;">Assigned By: ${assignedBy}</span>
+                        </div>
+                        <div style="flex: 0 0 auto;">
+                            <button onclick="window.open('${link}', '_blank')" style="
+                                background: #1976d2;
+                                color: white;
+                                border: none;
+                                padding: 10px 20px;
+                                border-radius: 6px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                transition: background 0.2s;
+                            " onmouseover="this.style.background='#1565c0'" onmouseout="this.style.background='#1976d2'">View Payslip</button>
                         </div>
                     </div>
                 `;

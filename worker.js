@@ -24,6 +24,74 @@ export default {
     };
 
     try {
+      // Discord OAuth endpoint
+      if (url.pathname === '/auth' && request.method === 'GET') {
+        const code = url.searchParams.get('code');
+        const redirectUri = url.searchParams.get('redirect_uri');
+        
+        if (!code) {
+          return new Response(JSON.stringify({ error: 'No code provided' }), { 
+            status: 400, 
+            headers: corsHeaders 
+          });
+        }
+        
+        try {
+          // Exchange code for access token
+          const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              client_id: '1417915896634277888',
+              client_secret: env.DISCORD_CLIENT_SECRET || '',
+              grant_type: 'authorization_code',
+              code: code,
+              redirect_uri: redirectUri || 'https://portal.cirkledevelopment.co.uk'
+            })
+          });
+          
+          if (!tokenResponse.ok) {
+            const errorData = await tokenResponse.text();
+            return new Response(JSON.stringify({ error: 'Token exchange failed', details: errorData }), {
+              status: tokenResponse.status,
+              headers: corsHeaders
+            });
+          }
+          
+          const tokenData = await tokenResponse.json();
+          
+          // Get user info from Discord
+          const userResponse = await fetch('https://discord.com/api/users/@me', {
+            headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+          });
+          
+          if (!userResponse.ok) {
+            const errorData = await userResponse.text();
+            return new Response(JSON.stringify({ error: 'Failed to get user info', details: errorData }), {
+              status: userResponse.status,
+              headers: corsHeaders
+            });
+          }
+          
+          const userData = await userResponse.json();
+          
+          // Return user data
+          return new Response(JSON.stringify({
+            id: userData.id,
+            username: userData.username,
+            discriminator: userData.discriminator,
+            avatar: userData.avatar,
+            global_name: userData.global_name
+          }), { headers: corsHeaders });
+          
+        } catch (e) {
+          return new Response(JSON.stringify({ error: 'Auth error', message: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+      
       // Debug endpoint to list all sheets
       if (url.pathname === '/api/debug/sheets') {
         try {
@@ -187,8 +255,10 @@ export default {
             userId: row[0],
             period: row[1],
             payPeriod: row[1],
-            link: row[2],
-            url: row[2],
+            assignedBy: row[2] || 'Marcus Ray',
+            link: row[3],
+            url: row[3],
+            dateAssigned: row[4],
             timestamp: row[4],
             dateIssued: row[4],
             status: row[5] || 'Issued',
