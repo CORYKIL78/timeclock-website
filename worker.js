@@ -92,6 +92,69 @@ export default {
         }
       }
       
+      // Discord guild member endpoint
+      if (url.pathname.startsWith('/member/') && request.method === 'GET') {
+        const userId = url.pathname.split('/member/')[1];
+        
+        if (!userId) {
+          return new Response(JSON.stringify({ error: 'No user ID provided' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+        
+        try {
+          // Get guild member info from Discord
+          const guildId = '1295075877597876326'; // Your Discord server ID
+          const botToken = env.DISCORD_BOT_TOKEN;
+          
+          if (!botToken) {
+            return new Response(JSON.stringify({ error: 'Bot token not configured' }), {
+              status: 500,
+              headers: corsHeaders
+            });
+          }
+          
+          const memberResponse = await fetch(
+            `https://discord.com/api/v10/guilds/${guildId}/members/${userId}`,
+            {
+              headers: {
+                'Authorization': `Bot ${botToken}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          
+          if (!memberResponse.ok) {
+            const errorText = await memberResponse.text();
+            return new Response(JSON.stringify({ error: 'Not found', details: errorText }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+          
+          const memberData = await memberResponse.json();
+          
+          // Return member data with roles
+          return new Response(JSON.stringify({
+            id: memberData.user.id,
+            username: memberData.user.username,
+            discriminator: memberData.user.discriminator,
+            avatar: memberData.user.avatar,
+            global_name: memberData.user.global_name,
+            roles: memberData.roles,
+            nick: memberData.nick,
+            joined_at: memberData.joined_at
+          }), { headers: corsHeaders });
+          
+        } catch (e) {
+          return new Response(JSON.stringify({ error: 'Member fetch error', message: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+      
       // Debug endpoint to list all sheets
       if (url.pathname === '/api/debug/sheets') {
         try {
