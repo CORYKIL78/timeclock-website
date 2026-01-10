@@ -5721,6 +5721,13 @@ function renderAbsences(tab) {
         if (status === 'approve') status = 'approved';
         if (status === 'reject') status = 'rejected';
         if (status !== a.status) a.status = status; // update in-memory for consistency
+        
+        // Check if LOA has ended (past end date)
+        const endDate = new Date(a.endDate);
+        const today = new Date();
+        const isEnded = endDate < today && status === 'approved';
+        const isVoided = status?.toUpperCase() === 'VOIDED';
+        
         if (status === 'pending') {
             console.log('[DEBUG] Rendering pending absence:', JSON.stringify(a));
         }
@@ -5728,15 +5735,21 @@ function renderAbsences(tab) {
         li.className = `absence-item ${status}`;
         let bg = '';
         if (status === 'pending') bg = 'background: var(--yellow-hazard); color: #212529;';
-        if (status === 'approved') bg = 'background: #d4edda; color: #155724;';
+        if (status === 'approved' && !isEnded) bg = 'background: #d4edda; color: #155724;';
+        if (isEnded) bg = 'background: #0d5c1d; color: #fff;'; // Dark green for ended
+        if (isVoided) bg = 'background: #555; color: #fff; opacity: 0.8;'; // Dark gray for voided
         if (status === 'rejected') bg = 'background: #f8d7da; color: #721c24;';
         if (status === 'archived') bg = 'background: #e2e3e5; color: #41464b; opacity: 0.7;';
         li.setAttribute('style', bg);
+        
+        const statusDisplay = isVoided ? 'VOIDED' : (isEnded ? 'ENDED' : status.toUpperCase());
+        
         li.innerHTML = `
             <span>Type: ${a.type}</span>
             <span>Start: ${a.startDate}</span>
             <span>End: ${a.endDate}</span>
             <span style="background:rgba(255,255,0,0.2);padding:2px 6px;border-radius:4px;">Total Days: ${Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
+            <span style="font-weight: bold;">${statusDisplay}</span>
             ${status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
             ${status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
             ${status === 'archived' ? `<button class="delete-absence-btn" data-id="${a.id}">Delete Absence</button>` : ''}
