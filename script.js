@@ -6771,38 +6771,41 @@ document.getElementById('submitRequestFormBtn').addEventListener('click', async 
             body: JSON.stringify({
                 userId,
                 type,
-                comment: details
+                comment: details,
+                details: details  // Include both for compatibility
             })
         });
         
         if (!res.ok) {
-            throw new Error('Failed to submit request');
+            const errorText = await res.text();
+            console.error('[DEBUG] Request submission failed:', res.status, errorText);
+            throw new Error(`Failed to submit request (${res.status})`);
         }
         
         const data = await res.json();
-        console.log('[DEBUG] Request submitted:', data);
+        console.log('[DEBUG] Request submitted successfully:', data);
+        
+        // Add notification
+        addNotification('requests', `✅ ${type} request submitted successfully!`, 'requests');
         
         // Close modal
         closeModal('submitRequest');
         
         // Show success message
-        showModal('alert', '<span class="success-tick"></span> Your request has been submitted successfully! You will be notified when it is reviewed.');
+        showModal('alert', '<span class="success-tick">✓</span> Your request has been submitted successfully! You will be notified when it is reviewed.');
         
         // Refresh the requests list
         setTimeout(async () => {
-            if (document.getElementById('requestsScreen').classList.contains('active')) {
-                console.log('[DEBUG] Reloading requests after submission');
-                try {
-                    await reloadRequests();
-                } catch (e) {
-                    console.error('[DEBUG] Error reloading requests:', e);
-                }
+            try {
+                await reloadRequests();
+            } catch (e) {
+                console.error('[DEBUG] Error reloading requests:', e);
             }
         }, 1000);
         
     } catch (error) {
-        console.error('Error submitting request:', error);
-        alert('Failed to submit request. Please try again.');
+        console.error('[DEBUG] Error submitting request:', error);
+        alert(`Failed to submit request: ${error.message}`);
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Submit Request';
@@ -7472,82 +7475,85 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
             currentUser = JSON.parse(savedUser);
             console.log('Loaded saved user:', currentUser);
             if (currentUser.id) {
-                // Show loading screen during data fetch
-                const loadingScreen = document.getElementById('loadingScreen');
-                if (loadingScreen) loadingScreen.style.display = 'flex';
-                
-                // RE-FETCH Discord member data with roles
-                console.log('Fetching Discord member data for:', currentUser.id);
-                try {
-                    const membersResponse = await fetch(`${WORKER_URL}/members/${GUILD_ID}`, {
-                        method: 'GET',
-                        headers: { 'Content-Type': 'application/json' },
-                        mode: 'cors'
-                    });
-                    if (membersResponse.ok) {
-                        const allMembers = await membersResponse.json();
-                        const discordMember = allMembers.find(m => m.user.id === currentUser.id);
-                        if (discordMember) {
-                            currentUser.roles = discordMember.roles || [];
-                            currentUser.avatar = discordMember.user.avatar 
-                                ? `https://cdn.discordapp.com/avatars/${currentUser.id}/${discordMember.user.avatar}.png?size=128` 
-                                : currentUser.avatar;
-                            console.log('Updated Discord roles:', currentUser.roles);
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error fetching Discord member data:', e);
-                }
-                
-                // RE-FETCH member data from Google Sheets
-                console.log('Re-fetching member data from sheets for:', currentUser.id);
-                try {
-                    const memberResponse = await fetch(`${WORKER_URL}/member/${currentUser.id}`, {
-                        method: 'GET',
-                        headers: { 'Content-Type': 'application/json' },
-                        mode: 'cors'
-                    });
-                    
-                    if (memberResponse.ok) {
-                        const memberData = await memberResponse.json();
-                        console.log('Fresh member data from sheets:', memberData);
-                        
-                        // Update profile with fresh data
-                        if (!currentUser.profile) currentUser.profile = {};
-                        currentUser.profile.name = memberData.name || currentUser.profile.name || currentUser.name;
-                        currentUser.profile.email = memberData.email || currentUser.profile.email || 'Not set';
-                        currentUser.profile.department = memberData.department || currentUser.profile.department || 'Not set';
-                        currentUser.profile.discordTag = currentUser.name;
-                        currentUser.profile.staffId = memberData.staffId || currentUser.profile.staffId || '';
-                        currentUser.profile.timezone = memberData.timezone || currentUser.profile.timezone || '';
-                        currentUser.profile.country = memberData.country || currentUser.profile.country || '';
-                        currentUser.profile.baseLevel = memberData.baseLevel || currentUser.profile.baseLevel || '';
-                        
-                        // Save updated data
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                        console.log('Updated profile:', currentUser.profile);
-                        console.log('Updated roles:', currentUser.roles);
-                    } else {
-                        console.warn('Member fetch returned non-200, using cached profile data');
-                    }
-                } catch (e) {
-                    console.error('Error fetching fresh member data, using cached profile:', e);
-                }
-                
-                // Hide loading screen
-                if (loadingScreen) loadingScreen.style.display = 'none';
-                
-                // Sync all user data from backend for cross-device support
-                await syncUserDataFromBackend(currentUser.id);
-                
-                const emp = getEmployee(currentUser.id);
+                // Show welcome screen IMMEDIATELY - load data in background
                 const displayName = currentUser.profile?.name || currentUser.name || 'User';
                 document.getElementById('portalWelcomeName').textContent = displayName;
-                document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
+                document.getElementById('portalLastLogin').textContent = localStorage.getItem('lastLogin') || 'Never';
                 console.log('%c>>> INIT: Showing portalWelcome screen <<<', 'color: lime; font-size: 16px; font-weight: bold;');
-                console.log('User:', displayName, 'ID:', currentUser.id);
                 showScreen('portalWelcome');
                 updateSidebarProfile();
+                
+                // Load all data in the background - DON'T WAIT FOR THIS
+                (async () => {
+                    try {
+                        // RE-FETCH Discord member data with roles
+                        console.log('Background: Fetching Discord member data for:', currentUser.id);
+                        const membersResponse = await fetch(`${WORKER_URL}/members/${GUILD_ID}`, {
+                            method: 'GET',
+                            headers: { 'Content-Type': 'application/json' },
+                            mode: 'cors'
+                        });
+                        if (membersResponse.ok) {
+                            const allMembers = await membersResponse.json();
+                            const discordMember = allMembers.find(m => m.user.id === currentUser.id);
+                            if (discordMember) {
+                                currentUser.roles = discordMember.roles || [];
+                                currentUser.avatar = discordMember.user.avatar 
+                                    ? `https://cdn.discordapp.com/avatars/${currentUser.id}/${discordMember.user.avatar}.png?size=128` 
+                                    : currentUser.avatar;
+                                console.log('Background: Updated Discord roles:', currentUser.roles);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Background: Error fetching Discord member data:', e);
+                    }
+                    
+                    try {
+                        // RE-FETCH member data from Google Sheets
+                        const memberResponse = await fetch(`${WORKER_URL}/member/${currentUser.id}`, {
+                            method: 'GET',
+                            headers: { 'Content-Type': 'application/json' },
+                            mode: 'cors'
+                        });
+                        
+                        if (memberResponse.ok) {
+                            const memberData = await memberResponse.json();
+                            console.log('Background: Fresh member data from sheets:', memberData);
+                            
+                            // Update profile with fresh data
+                            if (!currentUser.profile) currentUser.profile = {};
+                            currentUser.profile.name = memberData.name || currentUser.profile.name || currentUser.name;
+                            currentUser.profile.email = memberData.email || currentUser.profile.email || 'Not set';
+                            currentUser.profile.department = memberData.department || currentUser.profile.department || 'Not set';
+                            currentUser.profile.discordTag = currentUser.name;
+                            currentUser.profile.staffId = memberData.staffId || currentUser.profile.staffId || '';
+                            currentUser.profile.timezone = memberData.timezone || currentUser.profile.timezone || '';
+                            currentUser.profile.country = memberData.country || currentUser.profile.country || '';
+                            currentUser.profile.baseLevel = memberData.baseLevel || currentUser.profile.baseLevel || '';
+                            
+                            // Save updated data
+                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                            localStorage.setItem('lastLogin', new Date().toLocaleString());
+                            console.log('Background: Updated profile:', currentUser.profile);
+                        }
+                    } catch (e) {
+                        console.error('Background: Error fetching fresh member data:', e);
+                    }
+                    
+                    // Sync all user data from backend for cross-device support
+                    try {
+                        await syncUserDataFromBackend(currentUser.id);
+                    } catch (e) {
+                        console.error('Background: Error syncing user data:', e);
+                    }
+                })();
+                
+                return; // Exit early - show welcome screen immediately
+            }
+        } catch (e) {
+            console.error('Error parsing saved user:', e);
+        }
+    }
                 await fetchEmployees();
                 // Don't call handleOAuthRedirect if we already have a valid session
                 return;

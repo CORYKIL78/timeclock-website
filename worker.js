@@ -948,28 +948,36 @@ export default {
 
       if (url.pathname === '/api/requests/submit') {
         const req = await request.json();
-        await appendToSheet(env, 'cirklehrRequests!A:H', [[
-          req.name || '',           // A: name
-          req.request || '',        // B: Request
-          req.userComment || '',    // C: user comment
-          req.userId,               // D: user ID
-          req.employerName || '',   // E: employer name
-          'Submit',                 // F: submit status
-          new Date().toISOString(), // G: timestamp
-          ''                        // H: status (success/failed)
+        const userId = req.userId || req.discordId || '';
+        const requestType = req.type || req.request || '';
+        const comment = req.comment || req.details || req.userComment || '';
+        
+        await appendToSheet(env, 'cirklehrRequests!A:G', [[
+          userId,                   // A: User ID
+          requestType,              // B: Request type
+          comment,                  // C: Comment/details
+          userId,                   // D: User ID (duplicate for reference)
+          '',                       // E: Employer name (to be filled by admin)
+          'Submit',                 // F: Status (Submit/Approve/Deny)
+          new Date().toISOString()  // G: Timestamp
         ]]);
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        
+        console.log('[REQUESTS] Submitted:', { userId, requestType, comment });
+        return new Response(JSON.stringify({ success: true, message: 'Request submitted' }), { headers: corsHeaders });
       }
 
       if (url.pathname === '/api/requests/check-pending') {
-        const data = await getSheetsData(env, 'cirklehrRequests!A:H');
+        const data = await getSheetsData(env, 'cirklehrRequests!A:G');
         let processed = 0;
         let errors = [];
         
         for (let i = 1; i < data.length; i++) {
-          if (data[i][5]?.toLowerCase() === 'submit') {  // F column
+          if (data[i][5]?.toLowerCase() === 'submit') {  // F column: Status
+            const userId = data[i][0];  // A: User ID
+            const requestType = data[i][1];  // B: Request type
+            
             // Send DM notification
-            if (data[i][3] && env.DISCORD_BOT_TOKEN) {  // D: user ID
+            if (userId && env.DISCORD_BOT_TOKEN) {
               try {
                 const dmResponse = await fetch(`https://discord.com/api/v10/users/@me/channels`, {
                   method: 'POST',
@@ -977,7 +985,7 @@ export default {
                     'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
                     'Content-Type': 'application/json'
                   },
-                  body: JSON.stringify({ recipient_id: data[i][3] })
+                  body: JSON.stringify({ recipient_id: userId })
                 });
                 
                 if (dmResponse.ok) {
@@ -990,15 +998,45 @@ export default {
                     },
                     body: JSON.stringify({
                       embeds: [{
-                        title: '📝 Request Update',
-                        description: `Your request has been processed.\\n\\nPlease check the **Staff Portal** for details.`,
+                        title: `📝 ${requestType} Request Update`,
+                        description: `Your **${requestType}** request has been processed.\\n\\nPlease check the **Staff Portal** for details and any required actions.`,
                         color: 0x2196f3,
-                        footer: { text: 'https://cirkledevelopment.co.uk' }
+                        footer: { text: 'portal.cirkledevelopment.co.uk' }
                       }]
                     })
                   });
                 }
+                
+                processed++;
+                // Update status to Success
+                await updateSheets(env, `cirklehrRequests!F${i + 1}`, [['Success']]);
               } catch (dmError) {
+                console.error('DM error for request:', dmError);
+                errors.push({ row: i + 1, error: 'DM failed' });
+                // Update status to Failed
+                await updateSheets(env, `cirklehrRequests!F${i + 1}`, [['Failed']]);
+              }
+            }
+          }
+        }
+        
+        return new Response(JSON.stringify({ success: true, processed, errors }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/requests/fetch') {
+        const { userId } = await request.json();
+        const data = await getSheetsData(env, 'cirklehrRequests!A:G');
+        const requests = data.slice(1)
+          .filter(row => row[0] === userId)  // A: User ID
+          .map(row => ({
+            userId: row[0],           // A
+            type: row[1],             // B
+            comment: row[2],          // C
+            employerName: row[4],     // E
+            status: row[5],           // F
+            timestamp: row[6]         // G
+          }));
+        return new Response(JSON.stringify({ success: true, requests }), { headers: corsHeaders });              } catch (dmError) {
                 console.error('DM error:', dmError);
                 errors.push({ row: i + 1, error: 'DM failed' });
               }

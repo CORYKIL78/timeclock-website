@@ -18,8 +18,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2.0.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Cache busting meta tag -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <!-- EMERGENCY MAINTENANCE CHECK -->
     <script>
         (async function() {
@@ -1119,6 +1123,14 @@
     <footer>© Cirkle Development 2024</footer>
 
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <script src="script.js"></script>
+    <script src="script.js?v=2.0.0"></script>
+    <script>
+        // Force service worker update on every page load
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                registrations.forEach(reg => reg.update());
+            });
+        }
+    </script>
 </body>
 </html>
