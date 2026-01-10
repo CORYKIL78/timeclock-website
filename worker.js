@@ -24,6 +24,13 @@ export default {
     };
 
     try {
+      // Health check endpoint
+      if (url.pathname === '/api/status' && request.method === 'GET') {
+        return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), { 
+          headers: corsHeaders 
+        });
+      }
+
       // Discord OAuth endpoint
       if (url.pathname === '/auth' && request.method === 'GET') {
         const code = url.searchParams.get('code');
@@ -145,6 +152,75 @@ export default {
             headers: corsHeaders
           });
         }
+      }
+      
+      // Members endpoint (fetch all guild members)
+      if (url.pathname.startsWith('/members/') && request.method === 'GET') {
+        const guildId = url.pathname.split('/members/')[1];
+        
+        try {
+          // Return all users from cirklehrUsers sheet
+          const usersData = await getSheetsData(env, 'cirklehrUsers!A3:Z1000');
+          
+          const members = usersData.map(row => ({
+            id: row[3] || '', // Discord ID from column D
+            name: row[0] || '',
+            email: row[1] || '',
+            department: row[2] || '',
+            discordTag: row[3] || '',
+            timezone: row[4] || '',
+            country: row[5] || ''
+          })).filter(m => m.id); // Filter out empty rows
+          
+          return new Response(JSON.stringify(members), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: 'Failed to fetch members', message: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+      
+      // Change request check endpoint
+      if (url.pathname === '/api/change-request/check-approved' && request.method === 'POST') {
+        return new Response(JSON.stringify({ hasApproved: false, changes: [] }), { 
+          headers: corsHeaders 
+        });
+      }
+      
+      // Request status check endpoint
+      if (url.pathname === '/api/requests/check-status' && request.method === 'POST') {
+        return new Response(JSON.stringify({ hasUpdates: false, requests: [] }), { 
+          headers: corsHeaders 
+        });
+      }
+      
+      // Absence check approved endpoint
+      if (url.pathname === '/api/absence/check-approved' && request.method === 'POST') {
+        return new Response(JSON.stringify({ hasApproved: false, absences: [] }), { 
+          headers: corsHeaders 
+        });
+      }
+      
+      // Payslips check acknowledged endpoint
+      if (url.pathname === '/api/payslips/check-acknowledged' && request.method === 'POST') {
+        return new Response(JSON.stringify({ hasPending: false, payslips: [] }), { 
+          headers: corsHeaders 
+        });
+      }
+      
+      // Disciplinaries check acknowledged endpoint
+      if (url.pathname === '/api/disciplinaries/check-acknowledged' && request.method === 'POST') {
+        return new Response(JSON.stringify({ hasPending: false, disciplinaries: [] }), { 
+          headers: corsHeaders 
+        });
+      }
+      
+      // Events check pending endpoint
+      if (url.pathname === '/api/events/check-pending' && request.method === 'POST') {
+        return new Response(JSON.stringify({ hasPending: false, events: [] }), { 
+          headers: corsHeaders 
+        });
       }
       
       // Debug endpoint to list all sheets
