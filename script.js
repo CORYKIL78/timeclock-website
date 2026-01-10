@@ -8114,12 +8114,35 @@ function sendNotificationToAll(type, message, link) {
 }
 
 // Initialize all systems on DOM ready
+function setupModalCloseButtons() {
+    // Setup close buttons for all modals
+    document.querySelectorAll('.modal .close').forEach(closeBtn => {
+        closeBtn.addEventListener('click', (e) => {
+            const modal = e.target.closest('.modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+    
+    // Close modal when clicking outside
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         setTimeout(initCalendar, 500);
         setTimeout(fetchAndDisplayRoleNames, 1000);
+        setTimeout(setupModalCloseButtons, 300);
     });
 } else {
     initCalendar();
     fetchAndDisplayRoleNames();
+    setupModalCloseButtons();
 }
