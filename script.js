@@ -2288,7 +2288,6 @@ const screens = {
     disciplinaries: document.getElementById('disciplinariesScreen'),
     timeclock: document.getElementById('timeclockScreen'),
     requests: document.getElementById('requestsScreen'),
-    events: document.getElementById('eventsScreen'),
     mail: document.getElementById('mailScreen'),
     clickup: document.getElementById('clickupScreen'),
     handbooks: document.getElementById('handbooksScreen'),
@@ -2327,11 +2326,6 @@ let currentNotifications = [];
 function showScreen(screenId) {
     console.log('Showing screen:', screenId);
     
-    // Stop attendance polling when leaving events screen
-    if (screenId !== 'events') {
-        stopAttendanceCountPolling();
-    }
-    
     Object.values(screens).forEach(s => {
         if (s) {
             s.classList.remove('active');
@@ -2347,7 +2341,7 @@ function showScreen(screenId) {
         const sidebar = document.getElementById('sidebar');
         const notificationPanel = document.getElementById('notificationPanel');
         const notificationBtn = document.getElementById('notificationBtn');
-        if (screenId !== 'portalWelcome' && ['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'events', 'mail', 'clickup', 'handbooks', 'requests'].includes(screenId)) {
+        if (screenId !== 'portalWelcome' && ['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail', 'clickup', 'handbooks', 'requests'].includes(screenId)) {
             sidebar.classList.remove('hidden');
             if (notificationBtn) notificationBtn.classList.remove('hidden');
             // Update notification badge
@@ -2389,7 +2383,6 @@ function updateActiveNavButton(screenId) {
         'disciplinaries': 'disciplinariesBtn',
         'requests': 'requestsBtn',
         'timeclock': 'timeclockBtn',
-        'events': 'eventsBtn',
         'mail': 'mailBtn',
         'tasks': 'clickupBtn',
         'clickup': 'clickupBtn',
@@ -6659,12 +6652,13 @@ document.getElementById('cancelRequestFormBtn').addEventListener('click', () => 
     closeModal('submitRequest');
 });
 
-document.getElementById('eventsBtn').addEventListener('click', () => {
-    showScreen('events');
-    startAttendanceCountPolling(); // Start polling for attendance count updates
-    renderEvents();
-    closeMobileSidebar();
-});
+// Events functionality removed
+// document.getElementById('eventsBtn').addEventListener('click', () => {
+//     showScreen('events');
+//     startAttendanceCountPolling();
+//     renderEvents();
+//     closeMobileSidebar();
+// });
 
 document.getElementById('mailBtn').addEventListener('click', async () => {
     showScreen('mail');
@@ -7354,10 +7348,12 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
 // Calendar functionality
 let currentCalendarDate = new Date();
 
-document.getElementById('calendarBtn').addEventListener('click', () => {
-    openCalendarModal();
-});
+// Calendar functionality removed
+// document.getElementById('calendarBtn').addEventListener('click', () => {
+//     openCalendarModal();
+// });
 
+/*
 function openCalendarModal() {
     document.getElementById('calendarModal').style.display = 'flex';
     renderCalendar();
@@ -7537,7 +7533,11 @@ function formatDateLong(dateString) {
         day: 'numeric' 
     });
 }
+*/
 
+// ========== CALENDAR/EVENTS FUNCTIONS END (REMOVED) ==========
+
+/*
 function renderCalendarEvents(events, month, year) {
     const eventsList = document.getElementById('calendarEventsList');
     
@@ -7561,17 +7561,21 @@ function renderCalendarEvents(events, month, year) {
                 <h4>${e.title}</h4>
                 <p class="calendar-event-date">${formatDateLong(e.date)}${e.time ? ' at ' + e.time : ''}</p>
                 <p>${e.description || 'No description'}</p>
+*/
                 <p style="color: #667eea; font-weight: 500;">Type: ${e.type || 'Other'}</p>
             </div>
         `).join('');
 }
 
 // Close modal when clicking outside
+// CALENDAR FUNCTIONS REMOVED - functionality disabled
+/*
 document.getElementById('calendarModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'calendarModal') {
         closeCalendarModal();
     }
 });
+*/
 
 // ========== SENTINEL SECURITY PROTECTIONS ==========
 // Developer mode toggle (Ctrl+Shift+D)
