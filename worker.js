@@ -761,6 +761,41 @@ export default {
         
         return new Response(JSON.stringify({ success: true, status }), { headers: corsHeaders });
       }
+      
+      // Absence cancellation
+      if (url.pathname === '/api/absence/cancel' && request.method === 'POST') {
+        const { name, startDate, endDate } = await request.json();
+        
+        try {
+          // Find the absence row in Google Sheets
+          const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+          
+          for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+            // Match by name, startDate, and endDate
+            if (row[0] === name && row[1] === startDate && row[2] === endDate) {
+              const rowIndex = i + 1; // Sheets are 1-indexed
+              
+              // Update status column (G) to 'CANCELLED'
+              await updateSheets(env, `cirklehrAbsences!G${rowIndex}`, [['CANCELLED']]);
+              
+              return new Response(JSON.stringify({ success: true, message: 'Absence cancelled in sheets' }), { 
+                headers: corsHeaders 
+              });
+            }
+          }
+          
+          return new Response(JSON.stringify({ success: false, message: 'Absence not found' }), { 
+            status: 404,
+            headers: corsHeaders 
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({ success: false, error: error.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
 
       // Payslips
       if (url.pathname === '/api/payslips/check-pending') {
