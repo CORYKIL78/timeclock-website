@@ -2587,6 +2587,76 @@ function downloadTXT(user, clockInTime, clockOutTime, actions) {
     return { id: Date.now().toString(), clockIn: inStr, clockOut: outStr, duration, actions: actions.join(', ') };
 }
 
+// Fetch all user data from backend for cross-device syncing
+async function syncUserDataFromBackend(userId) {
+    console.log('[SYNC] Fetching all user data from backend for cross-device sync...');
+    
+    try {
+        // Fetch absences from backend
+        const absencesResponse = await fetch(`${WORKER_URL}/api/user/absences/${userId}`);
+        if (absencesResponse.ok) {
+            const absencesData = await absencesResponse.json();
+            const emp = getEmployee(userId);
+            emp.absences = absencesData.absences.map(a => ({
+                id: Date.now() + Math.random(),
+                type: a.reason || 'Personal',
+                startDate: a.startDate,
+                endDate: a.endDate,
+                reason: a.reason,
+                comment: a.comment || '',
+                status: 'approved'
+            }));
+            console.log('[SYNC] Loaded', emp.absences.length, 'absences from backend');
+        }
+        
+        // Fetch payslips from backend
+        const payslipsResponse = await fetch(`${WORKER_URL}/api/payslips/fetch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        });
+        if (payslipsResponse.ok) {
+            const payslipsData = await payslipsResponse.json();
+            const emp = getEmployee(userId);
+            emp.payslips = payslipsData.payslips || [];
+            console.log('[SYNC] Loaded', emp.payslips.length, 'payslips from backend');
+        }
+        
+        // Fetch disciplinaries from backend
+        const disciplinariesResponse = await fetch(`${WORKER_URL}/api/disciplinaries/fetch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        });
+        if (disciplinariesResponse.ok) {
+            const disciplinariesData = await disciplinariesResponse.json();
+            const emp = getEmployee(userId);
+            emp.strikes = disciplinariesData.disciplinaries || [];
+            console.log('[SYNC] Loaded', emp.strikes.length, 'disciplinaries from backend');
+        }
+        
+        // Fetch requests from backend
+        const requestsResponse = await fetch(`${WORKER_URL}/api/requests/fetch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        });
+        if (requestsResponse.ok) {
+            const requestsData = await requestsResponse.json();
+            const emp = getEmployee(userId);
+            emp.requests = requestsData.requests || [];
+            console.log('[SYNC] Loaded', emp.requests.length, 'requests from backend');
+        }
+        
+        console.log('[SYNC] ✓ All user data synced from backend');
+        saveEmployees();
+        return true;
+    } catch (error) {
+        console.error('[SYNC] Error syncing user data from backend:', error);
+        return false;
+    }
+}
+
 function saveEmployees() {
     localStorage.setItem('employees', JSON.stringify(employees));
 }
@@ -3288,6 +3358,8 @@ async function handleOAuthRedirect() {
     console.log('[LOGIN] Step 4: Fetching all employees...');
     await fetchEmployees();
     console.log('[LOGIN] Employees fetched');
+
+    console.log('[LOGIN] Step 5: Creating user profile...');
 
     // Use member data from Google Sheets directly - SKIP backend profile fetch
     console.log('[LOGIN] Using member data from Google Sheets');
@@ -5019,14 +5091,107 @@ if (continueBtn) {
 
 const portalLoginBtn = document.getElementById('portalLoginBtn');
 if (portalLoginBtn) {
-    portalLoginBtn.addEventListener('click', () => {
-        console.log('Portal login button clicked');
-        showScreen('mainMenu');
-        updateSidebarProfile();
-        updateMainScreen();
+    portalLoginBtn.addEventListener('click', async () => {
+        console.log('[Portal Login] Starting sequential loading...');
         
-        // Start events polling after login
-        startEventsPolling();
+        // Show sequential loading screen
+        const userName = currentUser?.profile?.name || currentUser?.name || 'User';
+        document.getElementById('loadingUserName').textContent = userName;
+        showScreen('sequentialLoading');
+        
+        // Helper function to activate a loading step
+        const activateStep = (stepName) => {
+            const step = document.querySelector(`.loading-step[data-step="${stepName}"]`);
+            if (step) {
+                step.classList.add('active');
+                step.classList.remove('completed');
+            }
+        };
+        
+        // Helper function to complete a loading step
+        const completeStep = (stepName) => {
+            const step = document.querySelector(`.loading-step[data-step="${stepName}"]`);
+            if (step) {
+                step.classList.remove('active');
+                step.classList.add('completed');
+            }
+        };
+        
+        try {
+            // Step 1: Loading Discord data
+            activateStep('discord');
+            await new Promise(r => setTimeout(r, 800));
+            const membersResponse = await fetch(`${WORKER_URL}/members/${GUILD_ID}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                mode: 'cors'
+            });
+            if (membersResponse.ok) {
+                const allMembers = await membersResponse.json();
+                const discordMember = allMembers.find(m => m.user.id === currentUser.id);
+                if (discordMember) {
+                    currentUser.roles = discordMember.roles || [];
+                    currentUser.avatar = discordMember.user.avatar 
+                        ? `https://cdn.discordapp.com/avatars/${currentUser.id}/${discordMember.user.avatar}.png?size=128` 
+                        : currentUser.avatar;
+                }
+            }
+            completeStep('discord');
+            
+            // Step 2: Loading database data
+            activateStep('database');
+            await new Promise(r => setTimeout(r, 700));
+            const memberResponse = await fetch(`${WORKER_URL}/member/${currentUser.id}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                mode: 'cors'
+            });
+            if (memberResponse.ok) {
+                const memberData = await memberResponse.json();
+                if (!currentUser.profile) currentUser.profile = {};
+                currentUser.profile.name = memberData.name || currentUser.profile.name || currentUser.name;
+                currentUser.profile.email = memberData.email || currentUser.profile.email || 'Not set';
+                currentUser.profile.department = memberData.department || currentUser.profile.department || 'Not set';
+                currentUser.profile.baseLevel = memberData.baseLevel || currentUser.profile.baseLevel || '';
+                currentUser.profile.timezone = memberData.timezone || currentUser.profile.timezone || '';
+                currentUser.profile.country = memberData.country || currentUser.profile.country || '';
+            }
+            completeStep('database');
+            
+            // Step 3: Loading backend and Cloudflare
+            activateStep('backend');
+            await new Promise(r => setTimeout(r, 600));
+            await fetchEmployees();
+            // Sync all user data from backend for cross-device support
+            await syncUserDataFromBackend(currentUser.id);
+            completeStep('backend');
+            
+            // Step 4: Loading Sentinel
+            activateStep('sentinel');
+            await new Promise(r => setTimeout(r, 500));
+            completeStep('sentinel');
+            
+            // Step 5: Loading contents
+            activateStep('contents');
+            await new Promise(r => setTimeout(r, 600));
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            updateSidebarProfile();
+            completeStep('contents');
+            
+            // Step 6: Success!
+            activateStep('success');
+            completeStep('success');
+            await new Promise(r => setTimeout(r, 800));
+            
+            // Transition to main menu
+            showScreen('mainMenu');
+            updateMainScreen();
+            
+        } catch (error) {
+            console.error('[Portal Login] Error during loading:', error);
+            showModal('alert', 'Failed to load profile data. Please try again.');
+            showScreen('portalWelcome');
+        }
     });
 }
 
@@ -7392,6 +7557,9 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
                 
                 // Hide loading screen
                 if (loadingScreen) loadingScreen.style.display = 'none';
+                
+                // Sync all user data from backend for cross-device support
+                await syncUserDataFromBackend(currentUser.id);
                 
                 const emp = getEmployee(currentUser.id);
                 const displayName = currentUser.profile?.name || currentUser.name || 'User';
