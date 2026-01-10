@@ -271,12 +271,7 @@ export default {
         });
       }
       
-      // Events check pending endpoint
-      if (url.pathname === '/api/events/check-pending' && request.method === 'POST') {
-        return new Response(JSON.stringify({ hasPending: false, events: [] }), { 
-          headers: corsHeaders 
-        });
-      }
+      // Events removed - was broken
       
       // Debug endpoint to list all sheets
       if (url.pathname === '/api/debug/sheets') {
@@ -564,35 +559,7 @@ export default {
         return new Response(JSON.stringify({ success: true, processed, errors: errors.length > 0 ? errors : undefined }), { headers: corsHeaders });
       }
 
-      // Events
-      if (url.pathname === '/api/events/fetch') {
-        const data = await getSheetsData(env, 'cirklehrEvents!A:H');
-        const events = data.slice(1).map(row => ({
-          id: row[0],
-          title: row[1],
-          date: row[2],
-          time: row[3],
-          location: row[4],
-          description: row[5],
-          attendees: row[6] ? row[6].split(',') : []
-        }));
-        return new Response(JSON.stringify({ success: true, events }), { headers: corsHeaders });
-      }
-
-      if (url.pathname === '/api/events/create') {
-        const event = await request.json();
-        await appendToSheet(env, 'cirklehrEvents!A:H', [[
-          event.id || Date.now().toString(),
-          event.title,
-          event.date,
-          event.time,
-          event.location,
-          event.description,
-          '',
-          new Date().toISOString()
-        ]]);
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-      }
+      // Events removed - was broken
 
       // Attendance
       if (url.pathname === '/api/attendance/log') {
