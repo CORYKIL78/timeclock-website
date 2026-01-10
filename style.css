@@ -968,16 +968,21 @@ body.dark .profile-stat {
 /* Responsive sidebar: topbar for mobile */
 @media (max-width: 700px) {
     .sidebar {
-        width: 0 !important;
-        height: 0 !important;
-        visibility: hidden;
-        opacity: 0;
-        pointer-events: none;
+        width: 70px !important;
+        height: 100vh !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
         transition: all 0.3s var(--transition-ease);
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        z-index: 1001 !important;
+        background: var(--primary) !important;
     }
     
     .sidebar.hidden {
-        display: none !important;
+        display: flex !important;
     }
     
     .sidebar-toggle {
