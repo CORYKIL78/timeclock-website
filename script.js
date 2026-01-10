@@ -7373,3 +7373,316 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
 // Calendar functionality
 let currentCalendarDate = new Date();
 
+// Calendar functionality removed
+// document.getElementById('calendarBtn').addEventListener('click', () => {
+//     openCalendarModal();
+// });
+
+/*
+function openCalendarModal() {
+    document.getElementById('calendarModal').style.display = 'flex';
+    renderCalendar();
+}
+
+function closeCalendarModal() {
+    document.getElementById('calendarModal').style.display = 'none';
+}
+
+function changeMonth(direction) {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+    renderCalendar();
+}
+
+function renderCalendar() {
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    // Set header
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+    document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
+    
+    // Get calendar events
+    const events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+    
+    // Create calendar grid
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = '';
+    
+    // Add day headers
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+        const header = document.createElement('div');
+        header.className = 'calendar-day-header';
+        header.textContent = day;
+        grid.appendChild(header);
+    });
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    
+    // Today's date for highlighting
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+    
+    // Add previous month's trailing days
+    for (let i = firstDay - 1; i >= 0; i--) {
+        const day = daysInPrevMonth - i;
+        const cell = createDayCell(day, month - 1, year, events, true);
+        grid.appendChild(cell);
+    }
+    
+    // Add current month's days
+    for (let day = 1; day <= daysInMonth; day++) {
+        const isToday = isCurrentMonth && day === today.getDate();
+        const cell = createDayCell(day, month, year, events, false, isToday);
+        grid.appendChild(cell);
+    }
+    
+    // Add next month's leading days
+    const totalCells = grid.children.length - 7; // Subtract headers
+    const remainingCells = 42 - totalCells; // 6 weeks * 7 days
+    for (let day = 1; day <= remainingCells; day++) {
+        const cell = createDayCell(day, month + 1, year, events, true);
+        grid.appendChild(cell);
+    }
+    
+    // Render events list
+    renderCalendarEvents(events, month, year);
+}
+
+function createDayCell(day, month, year, events, isOtherMonth, isToday = false) {
+    const cell = document.createElement('div');
+    cell.className = 'calendar-day';
+    if (isOtherMonth) cell.classList.add('other-month');
+    if (isToday) cell.classList.add('today');
+    
+    // Check if this day has events
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayEvents = events.filter(e => e.date === dateStr);
+    if (dayEvents.length > 0) {
+        cell.classList.add('has-event');
+        cell.title = dayEvents.map(e => e.title).join('\n');
+    }
+    
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'calendar-day-number';
+    dayNumber.textContent = day;
+    cell.appendChild(dayNumber);
+    
+    cell.onclick = () => showDayEvents(dateStr, dayEvents);
+    
+    return cell;
+}
+
+function showDayEvents(date, events) {
+    // Create modal for showing day events
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.cssText = 'display: flex; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10001;';
+    
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    modalContent.style.cssText = 'background: white; border-radius: 16px; padding: 30px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.3);';
+    
+    if (events.length === 0) {
+        modalContent.innerHTML = `
+            <div style="text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 15px;">📅</div>
+                <h2 style="color: #333; margin: 0 0 10px 0;">${formatDateLong(date)}</h2>
+                <p style="color: #999; font-size: 16px; margin: 20px 0;">No events scheduled for this day</p>
+                <button onclick="this.closest('.modal').remove()" style="margin-top: 20px; padding: 12px 30px; background: #667eea; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">
+                    Close
+                </button>
+            </div>
+        `;
+    } else {
+        const eventsHTML = events.map(e => `
+            <div style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 15px; border-left: 4px solid #667eea;">
+                <h3 style="margin: 0 0 10px 0; color: #333; font-size: 1.2em;">${e.title}</h3>
+                ${e.time ? `<p style="color: #667eea; font-weight: 600; margin: 8px 0; font-size: 14px;">🕒 ${e.time}</p>` : ''}
+                ${e.description ? `<p style="color: #666; margin: 8px 0; line-height: 1.6;">${e.description}</p>` : '<p style="color: #999; margin: 8px 0; font-style: italic;">No description</p>'}
+                ${e.type ? `<span style="display: inline-block; background: #667eea; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 8px; text-transform: uppercase;">${e.type}</span>` : ''}
+            </div>
+        `).join('');
+        
+        modalContent.innerHTML = `
+            <div style="text-align: center; margin-bottom: 25px;">
+                <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
+                <h2 style="color: #333; margin: 0 0 5px 0; font-size: 1.6em;">${formatDateLong(date)}</h2>
+                <p style="color: #667eea; font-weight: 600; font-size: 14px;">${events.length} Event${events.length !== 1 ? 's' : ''} Scheduled</p>
+            </div>
+            
+            <div style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+                ${eventsHTML}
+            </div>
+            
+            <button onclick="this.closest('.modal').remove()" style="width: 100%; padding: 14px; background: #667eea; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 16px; transition: all 0.3s ease;">
+                Close
+            </button>
+        `;
+    }
+    
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+    
+    // Add hover effect to close button
+    const closeBtn = modalContent.querySelector('button');
+    closeBtn.addEventListener('mouseenter', () => {
+        closeBtn.style.background = '#5568d3';
+        closeBtn.style.transform = 'translateY(-2px)';
+        closeBtn.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+    });
+    closeBtn.addEventListener('mouseleave', () => {
+        closeBtn.style.background = '#667eea';
+        closeBtn.style.transform = 'translateY(0)';
+        closeBtn.style.boxShadow = 'none';
+    });
+}
+
+function formatDateLong(dateString) {
+    const date = new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('en-GB', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+}
+*/
+
+// ========== CALENDAR/EVENTS FUNCTIONS END (REMOVED) ==========
+
+/*
+function renderCalendarEvents(events, month, year) {
+    const eventsList = document.getElementById('calendarEventsList');
+    
+    // Filter events for current month
+    const monthEvents = events.filter(e => {
+        const eventDate = new Date(e.date);
+        return eventDate.getMonth() === month && eventDate.getFullYear() === year;
+    });
+    
+    if (monthEvents.length === 0) {
+        eventsList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No events this month</p>';
+        return;
+    }
+    
+    // Sort by date
+    monthEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    eventsList.innerHTML = '<h3 style="margin-bottom: 15px; color: #333;">Events This Month</h3>' +
+        monthEvents.map(e => `
+            <div class="calendar-event-item">
+                <h4>${e.title}</h4>
+                <p class="calendar-event-date">${formatDateLong(e.date)}${e.time ? ' at ' + e.time : ''}</p>
+                <p>${e.description || 'No description'}</p>
+*/
+                <p style="color: #667eea; font-weight: 500;">Type: ${e.type || 'Other'}</p>
+            </div>
+        `).join('');
+}
+
+// Close modal when clicking outside
+// CALENDAR FUNCTIONS REMOVED - functionality disabled
+/*
+document.getElementById('calendarModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'calendarModal') {
+        closeCalendarModal();
+    }
+});
+*/
+
+// ========== SENTINEL SECURITY PROTECTIONS ==========
+// Developer mode toggle (Ctrl+Shift+D)
+let developerMode = false;
+window.toggleDeveloperMode = () => {
+    developerMode = !developerMode;
+    console.log(`%c🔧 Developer Mode: ${developerMode ? 'ENABLED' : 'DISABLED'}`, 'color: cyan; font-size: 16px; font-weight: bold;');
+    if (developerMode) {
+        console.log('%c✓ Right-click enabled', 'color: green;');
+        console.log('%c✓ DevTools shortcuts enabled', 'color: green;');
+        console.log('%c✓ Console clearing disabled', 'color: green;');
+    }
+};
+
+// Prevent context menu (right-click) - unless developer mode
+document.addEventListener('contextmenu', e => {
+    if (developerMode) return true;
+    e.preventDefault();
+    return false;
+});
+
+// Prevent common developer tools shortcuts
+document.addEventListener('keydown', e => {
+    // Ctrl+Shift+D to toggle developer mode
+    if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        window.toggleDeveloperMode();
+        return false;
+    }
+    
+    // Don't block shortcuts in developer mode
+    if (developerMode) return true;
+    
+    // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U
+    if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key)) ||
+        (e.ctrlKey && e.key === 'U')
+    ) {
+        e.preventDefault();
+        return false;
+    }
+});
+
+// Detect DevTools opening
+let devtoolsOpen = false;
+const detectDevTools = () => {
+    const threshold = 160;
+    const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+    const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+    
+    if (widthThreshold || heightThreshold) {
+        if (!devtoolsOpen) {
+            devtoolsOpen = true;
+            console.clear();
+            console.log('%c⚠️ SENTINEL SECURITY WARNING', 'color: red; font-size: 24px; font-weight: bold;');
+            console.log('%cThis is a secure internal portal. Unauthorized access attempts are logged.', 'color: orange; font-size: 16px;');
+        }
+    } else {
+        devtoolsOpen = false;
+    }
+};
+
+setInterval(detectDevTools, 1000);
+
+// Clear console periodically
+// TEMPORARILY DISABLED FOR DEBUGGING
+/*
+setInterval(() => {
+    console.clear();
+    console.log('%c🛡️ Protected by SENTINEL Security', 'color: #667eea; font-size: 14px; font-weight: bold;');
+}, 5000);
+*/
+
+// Disable text selection on sensitive areas
+document.addEventListener('selectstart', e => {
+    if (e.target.classList.contains('sensitive-data')) {
+        e.preventDefault();
+        return false;
+    }
+});
+
+console.log('%c🛡️ SENTINEL Security DISABLED for debugging', 'color: orange; font-size: 16px; font-weight: bold;');
+console.log('%c⚠️ Console is now accessible - Check for errors above', 'color: red; font-size: 14px; font-weight: bold;');
+
