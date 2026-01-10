@@ -2907,15 +2907,15 @@ async function fetchEmployees() {
         if (!response.ok) throw new Error(`Members fetch failed: ${response.status} ${await response.text()}`);
         const members = await response.json();
         employees = members.map(member => {
-            const existing = getEmployee(member.id);
+            const existing = getEmployee(member.user.id);
             return {
                 ...existing,
-                id: member.id,
-                name: member.name || member.discordTag,
+                id: member.user.id,
+                name: member.name || member.user.username,
                 email: member.email,
                 department: member.department,
-                avatar: `https://cdn.discordapp.com/embed/avatars/0.png`,
-                roles: []
+                avatar: member.user.avatar ? `https://cdn.discordapp.com/avatars/${member.user.id}/${member.user.avatar}.png?size=128` : `https://cdn.discordapp.com/embed/avatars/0.png`,
+                roles: member.roles || []
             };
         });
         saveEmployees();

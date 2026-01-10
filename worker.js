@@ -154,23 +154,74 @@ export default {
         }
       }
       
-      // Members endpoint (fetch all guild members)
+      // Members endpoint (fetch guild members from Discord with roles)
       if (url.pathname.startsWith('/members/') && request.method === 'GET') {
         const guildId = url.pathname.split('/members/')[1];
         
         try {
-          // Return all users from cirklehrUsers sheet
+          const botToken = env.DISCORD_BOT_TOKEN;
+          
+          if (!botToken) {
+            return new Response(JSON.stringify({ error: 'Bot token not configured' }), {
+              status: 500,
+              headers: corsHeaders
+            });
+          }
+          
+          // Fetch members from Discord API
+          const discordResponse = await fetch(
+            `https://discord.com/api/v10/guilds/${guildId}/members?limit=1000`,
+            {
+              headers: {
+                'Authorization': `Bot ${botToken}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          
+          if (!discordResponse.ok) {
+            const errorText = await discordResponse.text();
+            return new Response(JSON.stringify({ error: 'Discord API error', details: errorText }), {
+              status: discordResponse.status,
+              headers: corsHeaders
+            });
+          }
+          
+          const discordMembers = await discordResponse.json();
+          
+          // Also get Google Sheets data to merge
           const usersData = await getSheetsData(env, 'cirklehrUsers!A3:Z1000');
           
-          const members = usersData.map(row => ({
-            id: row[3] || '', // Discord ID from column D
-            name: row[0] || '',
-            email: row[1] || '',
-            department: row[2] || '',
-            discordTag: row[3] || '',
-            timezone: row[4] || '',
-            country: row[5] || ''
-          })).filter(m => m.id); // Filter out empty rows
+          // Create a map of Discord ID to Sheets data
+          const sheetsMap = {};
+          usersData.forEach(row => {
+            const discordId = row[3];
+            if (discordId) {
+              sheetsMap[discordId] = {
+                name: row[0] || '',
+                email: row[1] || '',
+                department: row[2] || '',
+                timezone: row[4] || '',
+                country: row[5] || ''
+              };
+            }
+          });
+          
+          // Merge Discord data with Sheets data
+          const members = discordMembers.map(member => {
+            const sheetData = sheetsMap[member.user.id] || {};
+            return {
+              user: member.user,
+              roles: member.roles,
+              nick: member.nick,
+              // Merged data
+              name: sheetData.name || member.user.username,
+              email: sheetData.email || '',
+              department: sheetData.department || '',
+              timezone: sheetData.timezone || '',
+              country: sheetData.country || ''
+            };
+          });
           
           return new Response(JSON.stringify(members), { headers: corsHeaders });
         } catch (e) {
