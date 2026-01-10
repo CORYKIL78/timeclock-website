@@ -7879,3 +7879,247 @@ document.addEventListener('selectstart', e => {
 console.log('%c🛡️ SENTINEL Security DISABLED for debugging', 'color: orange; font-size: 16px; font-weight: bold;');
 console.log('%c⚠️ Console is now accessible - Check for errors above', 'color: red; font-size: 14px; font-weight: bold;');
 
+// ===== CALENDAR SYSTEM =====
+let calendarEvents = JSON.parse(localStorage.getItem('calendarEvents') || '{}');
+let currentCalendarMonth = new Date();
+
+function initCalendar() {
+    const calendarBtn = document.getElementById('calendarBtn');
+    if (calendarBtn) {
+        calendarBtn.addEventListener('click', () => showScreen('calendarScreen'));
+    }
+    
+    renderCalendar();
+    setupCalendarControls();
+}
+
+function renderCalendar() {
+    const monthYear = document.getElementById('calendarMonthYear');
+    const daysContainer = document.getElementById('calendarDays');
+    
+    if (!monthYear || !daysContainer) return;
+    
+    const year = currentCalendarMonth.getFullYear();
+    const month = currentCalendarMonth.getMonth();
+    
+    monthYear.textContent = currentCalendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    
+    daysContainer.innerHTML = '';
+    
+    // Add empty cells for days before month starts
+    for (let i = 0; i < (startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1); i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.style.opacity = '0.3';
+        daysContainer.appendChild(emptyCell);
+    }
+    
+    // Add day cells
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayCell = document.createElement('button');
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const hasEvent = calendarEvents[dateStr] && calendarEvents[dateStr].length > 0;
+        
+        dayCell.textContent = day;
+        dayCell.style.cssText = `
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            position: relative;
+        `;
+        
+        if (hasEvent) {
+            dayCell.style.borderColor = '#3b82f6';
+            dayCell.style.background = '#dbeafe';
+            dayCell.style.color = '#1e40af';
+            
+            // Add mini blue dot indicator
+            const dot = document.createElement('div');
+            dot.style.cssText = `
+                position: absolute;
+                top: 4px;
+                right: 4px;
+                width: 8px;
+                height: 8px;
+                background: #3b82f6;
+                border-radius: 50%;
+            `;
+            dayCell.appendChild(dot);
+        }
+        
+        dayCell.addEventListener('click', () => showCalendarEventModal(dateStr));
+        dayCell.addEventListener('mouseover', () => {
+            dayCell.style.transform = 'scale(1.05)';
+        });
+        dayCell.addEventListener('mouseout', () => {
+            dayCell.style.transform = 'scale(1)';
+        });
+        
+        daysContainer.appendChild(dayCell);
+    }
+}
+
+function setupCalendarControls() {
+    const prevBtn = document.getElementById('calendarPrevMonth');
+    const nextBtn = document.getElementById('calendarNextMonth');
+    
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() - 1);
+            renderCalendar();
+        });
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + 1);
+            renderCalendar();
+        });
+    }
+}
+
+function showCalendarEventModal(dateStr) {
+    const modal = document.getElementById('calendarEventModal');
+    const dateElement = document.getElementById('eventDate');
+    const eventList = document.getElementById('eventList');
+    const addBtn = document.getElementById('addEventBtn');
+    
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    dateElement.textContent = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    
+    const events = calendarEvents[dateStr] || [];
+    eventList.innerHTML = '';
+    
+    if (events.length === 0) {
+        eventList.innerHTML = '<p style="color: #9ca3af; padding: 20px; text-align: center;">No events scheduled for this date</p>';
+    } else {
+        events.forEach((event, idx) => {
+            const eventDiv = document.createElement('div');
+            eventDiv.style.cssText = `
+                padding: 12px;
+                margin: 8px 0;
+                background: #f3f4f6;
+                border-left: 4px solid #3b82f6;
+                border-radius: 4px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            `;
+            eventDiv.innerHTML = `
+                <div>
+                    <strong>${event.name || 'Event'}</strong>
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #6b7280;">${event.description || ''}</p>
+                </div>
+                <button onclick="deleteCalendarEvent('${dateStr}', ${idx})" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">Delete</button>
+            `;
+            eventList.appendChild(eventDiv);
+        });
+    }
+    
+    addBtn.onclick = () => {
+        const name = prompt('Event name:');
+        if (name) {
+            const description = prompt('Event description (optional):');
+            if (!calendarEvents[dateStr]) calendarEvents[dateStr] = [];
+            calendarEvents[dateStr].push({ name, description: description || '' });
+            localStorage.setItem('calendarEvents', JSON.stringify(calendarEvents));
+            renderCalendar();
+            showCalendarEventModal(dateStr);
+            
+            // Send notification
+            addNotification('calendar', `📅 New event added: ${name} on ${dateStr}`, 'calendar');
+        }
+    };
+    
+    modal.style.display = 'block';
+}
+
+function deleteCalendarEvent(dateStr, idx) {
+    if (calendarEvents[dateStr]) {
+        calendarEvents[dateStr].splice(idx, 1);
+        if (calendarEvents[dateStr].length === 0) delete calendarEvents[dateStr];
+        localStorage.setItem('calendarEvents', JSON.stringify(calendarEvents));
+        renderCalendar();
+        showCalendarEventModal(dateStr);
+    }
+}
+
+// ===== ROLE NAME DISPLAY =====
+async function fetchAndDisplayRoleNames() {
+    if (!window.currentUser || !window.currentUser.id) return;
+    
+    try {
+        // Fetch guild roles from Discord API via backend
+        const rolesRes = await fetch('https://timeclock-backend.marcusray.workers.dev/api/guild/roles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ guildId: '1310656642672627752' })
+        });
+        
+        if (!rolesRes.ok) return;
+        
+        const rolesData = await rolesRes.json();
+        const roleMap = {};
+        
+        if (rolesData.roles && Array.isArray(rolesData.roles)) {
+            rolesData.roles.forEach(role => {
+                roleMap[role.id] = role.name;
+            });
+        }
+        
+        // Store role map globally
+        window.discordRoleMap = roleMap;
+        
+        // Update any role displays on page
+        document.querySelectorAll('[data-role-id]').forEach(el => {
+            const roleId = el.getAttribute('data-role-id');
+            if (roleMap[roleId]) {
+                el.textContent = roleMap[roleId];
+            }
+        });
+    } catch (e) {
+        console.error('Error fetching role names:', e);
+    }
+}
+
+// ===== ENHANCED NOTIFICATION SYSTEM =====
+function sendNotificationToAll(type, message, link) {
+    const emp = getEmployee(currentUser.id);
+    
+    // Add to portal notifications
+    addNotification(type, message, link);
+    
+    // Send Discord DM notification
+    try {
+        fetch('https://timeclock-backend.marcusray.workers.dev/api/notifications/discord', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discordId: currentUser.id,
+                message: message,
+                type: type
+            })
+        }).catch(e => console.error('Failed to send Discord notification:', e));
+    } catch (e) {
+        console.error('Notification error:', e);
+    }
+}
+
+// Initialize all systems on DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(initCalendar, 500);
+        setTimeout(fetchAndDisplayRoleNames, 1000);
+    });
+} else {
+    initCalendar();
+    fetchAndDisplayRoleNames();
+}

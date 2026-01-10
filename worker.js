@@ -237,6 +237,57 @@ export default {
         }
       }
       
+      // Guild roles endpoint (fetch all roles in a guild for name mapping)
+      if (url.pathname === '/api/guild/roles' && request.method === 'POST') {
+        const { guildId } = await request.json();
+        
+        try {
+          const botToken = env.DISCORD_BOT_TOKEN;
+          
+          if (!botToken) {
+            return new Response(JSON.stringify({ error: 'Bot token not configured' }), {
+              status: 500,
+              headers: corsHeaders
+            });
+          }
+          
+          // Fetch roles from Discord API
+          const rolesResponse = await fetch(
+            `https://discord.com/api/v10/guilds/${guildId}/roles`,
+            {
+              headers: {
+                'Authorization': `Bot ${botToken}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          
+          if (!rolesResponse.ok) {
+            const errorText = await rolesResponse.text();
+            return new Response(JSON.stringify({ error: 'Discord API error', details: errorText }), {
+              status: rolesResponse.status,
+              headers: corsHeaders
+            });
+          }
+          
+          const roles = await rolesResponse.json();
+          
+          return new Response(JSON.stringify({ 
+            success: true,
+            roles: roles.map(role => ({
+              id: role.id,
+              name: role.name,
+              color: role.color
+            }))
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: 'Failed to fetch roles', message: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+      
       // Change request check endpoint
       if (url.pathname === '/api/change-request/check-approved' && request.method === 'POST') {
         return new Response(JSON.stringify({ hasApproved: false, changes: [] }), { 
