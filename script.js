@@ -1388,8 +1388,13 @@ function setupDisciplinariesTabs() {
         if (disciplinariesSection) disciplinariesSection.style.display = 'none';
         
         // Load reports when tab is clicked
+        console.log('[setupDisciplinariesTabs] Loading reports on tab click');
         loadEmployeeReports();
     });
+    
+    // IMPORTANT: Load reports initially when page loads
+    console.log('[setupDisciplinariesTabs] Loading reports on initial setup');
+    setTimeout(() => loadEmployeeReports(), 100);
 }
 
 // Polling for new employee reports
@@ -2070,10 +2075,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 endDate,
                 comment,
                 status: 'pending',
-                messageId: null
+                messageId: null,
+                createdAt: new Date().toISOString()
             };
             emp.absences.push(absence);
+            console.log('[submitAbsence] Adding absence to employee record:', JSON.stringify(absence));
             updateEmployee(emp);
+            console.log('[submitAbsence] Employee now has', emp.absences.length, 'absences');
             
             // Send to Google Sheets backend
             try {
@@ -2664,6 +2672,16 @@ async function syncUserDataFromBackend(userId) {
 
 function saveEmployees() {
     localStorage.setItem('employees', JSON.stringify(employees));
+}
+
+// Save employees array to localStorage
+function saveEmployees() {
+    try {
+        localStorage.setItem('employees', JSON.stringify(employees));
+        console.log('[saveEmployees] Saved', employees.length, 'employees to localStorage');
+    } catch (e) {
+        console.error('[saveEmployees] Error saving employees:', e);
+    }
 }
 
 function getEmployee(id) {
@@ -5846,11 +5864,16 @@ document.getElementById('absencesScreen').addEventListener('click', (e) => {
 
 function renderAbsences(tab) {
     console.log(`[DEBUG] Rendering absences for tab: ${tab}`);
-    let empDebug = getEmployee(currentUser.id);
+    // CRITICAL: Always reload from employees array to ensure we have the latest data
+    const empDebug = getEmployee(currentUser.id);
+    console.log('[renderAbsences] Current user ID:', currentUser.id);
+    console.log('[renderAbsences] Got employee:', empDebug?.id, 'with', empDebug?.absences?.length || 0, 'absences');
     if (empDebug && empDebug.absences) {
-        empDebug.absences.forEach(a => {
-            console.log(`[DEBUG] Absence:`, a, `Status: ${a.status}`);
+        empDebug.absences.forEach((a, idx) => {
+            console.log(`[DEBUG] Absence[${idx}]:`, JSON.stringify(a));
         });
+    } else {
+        console.log('[renderAbsences] No absences found!');
     }
     // UI debug: check if pendingAbsences UL is visible and if Pending tab/folder are active
     const pendingUl = document.getElementById('pendingAbsences');

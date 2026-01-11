@@ -304,9 +304,49 @@ export default {
       
       // Absence check approved endpoint
       if (url.pathname === '/api/absence/check-approved' && request.method === 'POST') {
-        return new Response(JSON.stringify({ hasApproved: false, absences: [] }), { 
-          headers: corsHeaders 
-        });
+        try {
+          const { name, discordId } = await request.json();
+          
+          // Fetch all absences from Google Sheets
+          const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+          
+          const processedAbsences = [];
+          let hasNewStatuses = false;
+          
+          for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+            // Column A: Name (or User ID), H: Discord ID
+            // Column G: Approval status (Pending, Approved, Rejected, CANCELLED, VOIDED)
+            const rowName = row[0];
+            const rowDiscordId = row[7]; // Column H
+            const absenceStatus = row[6]; // Column G: Approval status
+            const startDate = row[1];     // Column B
+            const endDate = row[2];       // Column C
+            
+            // Match by name or Discord ID
+            if ((rowName === name || rowDiscordId === discordId) && absenceStatus && absenceStatus !== 'Pending') {
+              hasNewStatuses = true;
+              processedAbsences.push({
+                startDate,
+                endDate,
+                status: absenceStatus.toLowerCase().includes('approved') ? 'approved' : 'rejected',
+                sheets_status: absenceStatus,
+                sheets_row: i + 1
+              });
+            }
+          }
+          
+          console.log('[ABSENCE CHECK] Found', processedAbsences.length, 'processed absences for', name || discordId);
+          return new Response(JSON.stringify({ hasNewStatuses, processedAbsences }), { 
+            headers: corsHeaders 
+          });
+        } catch (error) {
+          console.error('[ABSENCE CHECK] Error:', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
       }
       
       // Payslips check acknowledged endpoint
@@ -1782,21 +1822,23 @@ async function processAbsenceApprove(env, rowIndex) {
   try {
     const data = await getSheetsData(env, `cirklehrAbsences!A${rowIndex}:J${rowIndex}`);
     const row = data[0];
-    const userId = row[0];
-    const absenceType = row[2];
+    const discordId = row[7]; // Column H: Discord ID
+    const absenceType = row[3]; // Column D: Reason
+    const startDate = row[1];   // Column B: Start Date
     
-    console.log(`[WORKFLOW] Approving absence for user ${userId}`);
+    console.log(`[WORKFLOW] Approving absence for user ${discordId}`);
     
-    if (userId && env.DISCORD_BOT_TOKEN) {
-      await sendDM(env, userId, {
+    if (discordId && env.DISCORD_BOT_TOKEN) {
+      await sendDM(env, discordId, {
         title: '✅ Absence Approved',
-        description: `Your **${absenceType || 'absence'}** request has been **approved**!\n\nCheck the **Absences** tab on the portal.`,
+        description: `Your **${absenceType || 'absence'}** request from **${startDate}** has been **approved**!\n\nCheck the **Absences** tab on the portal.`,
         color: 0x4caf50
       });
     }
     
-    await updateSheets(env, `cirklehrAbsences!I${rowIndex}:J${rowIndex}`, [
-      [new Date().toISOString(), '✅ Success']
+    // Update approval status in columns G-J
+    await updateSheets(env, `cirklehrAbsences!G${rowIndex}:J${rowIndex}`, [
+      ['Approved', 'System', new Date().toISOString(), '✅ Success']
     ]);
   } catch (e) {
     console.error('[WORKFLOW] Error approving absence:', e);
@@ -1808,21 +1850,23 @@ async function processAbsenceReject(env, rowIndex) {
   try {
     const data = await getSheetsData(env, `cirklehrAbsences!A${rowIndex}:J${rowIndex}`);
     const row = data[0];
-    const userId = row[0];
-    const absenceType = row[2];
+    const discordId = row[7]; // Column H: Discord ID
+    const absenceType = row[3]; // Column D: Reason
+    const startDate = row[1];   // Column B: Start Date
     
-    console.log(`[WORKFLOW] Rejecting absence for user ${userId}`);
+    console.log(`[WORKFLOW] Rejecting absence for user ${discordId}`);
     
-    if (userId && env.DISCORD_BOT_TOKEN) {
-      await sendDM(env, userId, {
+    if (discordId && env.DISCORD_BOT_TOKEN) {
+      await sendDM(env, discordId, {
         title: '❌ Absence Rejected',
-        description: `Your **${absenceType || 'absence'}** request has been **rejected**.\n\nCheck the **Absences** tab on the portal for details.`,
+        description: `Your **${absenceType || 'absence'}** request from **${startDate}** has been **rejected**.\n\nCheck the **Absences** tab on the portal for details.`,
         color: 0xf44336
       });
     }
     
-    await updateSheets(env, `cirklehrAbsences!I${rowIndex}:J${rowIndex}`, [
-      [new Date().toISOString(), '✅ Rejected']
+    // Update approval status in columns G-J
+    await updateSheets(env, `cirklehrAbsences!G${rowIndex}:J${rowIndex}`, [
+      ['Rejected', 'System', new Date().toISOString(), '✅ Rejected']
     ]);
   } catch (e) {
     console.error('[WORKFLOW] Error rejecting absence:', e);
