@@ -1446,6 +1446,66 @@ export default {
         headers: corsHeaders
       });
     }
+  },
+  
+  // Scheduled handler - runs every 5 minutes
+  async scheduled(event, env) {
+    console.log('[SCHEDULER] Running scheduled workflow processor');
+    
+    try {
+      // Process report submissions
+      const reportsData = await getSheetsData(env, 'cirklehrReports!A:I');
+      for (let i = 1; i < reportsData.length; i++) {
+        const row = reportsData[i];
+        const status = (row[6] || '').trim();  // Column G
+        const timestamp = row[7];  // Column H
+        
+        if (status === 'Submit' && !timestamp) {
+          console.log(`[SCHEDULER] Processing report submit at row ${i+1}`);
+          const submitterName = row[4] || 'Admin';  // Column E
+          await processReportSubmit(env, i + 1, submitterName);
+        }
+      }
+      
+      // Process request approvals/rejections
+      const requestsData = await getSheetsData(env, 'cirklehrRequests!A:H');
+      for (let i = 1; i < requestsData.length; i++) {
+        const row = requestsData[i];
+        const action = (row[5] || '').trim().toLowerCase();  // Column F
+        const timestamp = row[6];  // Column G
+        const approverName = row[4] || 'Admin';  // Column E
+        
+        if ((action === 'approve' || action === 'reject') && !timestamp) {
+          console.log(`[SCHEDULER] Processing request ${action} at row ${i+1}`);
+          if (action === 'approve') {
+            await processRequestApprove(env, i + 1, approverName);
+          } else {
+            await processRequestReject(env, i + 1, approverName);
+          }
+        }
+      }
+      
+      // Process absence approvals/rejections
+      const absencesData = await getSheetsData(env, 'cirklehrAbsences!A:J');
+      for (let i = 1; i < absencesData.length; i++) {
+        const row = absencesData[i];
+        const action = (row[6] || '').trim().toLowerCase();  // Column G
+        const timestamp = row[8];  // Column I
+        
+        if ((action === 'approved' || action === 'rejected') && !timestamp) {
+          console.log(`[SCHEDULER] Processing absence ${action} at row ${i+1}`);
+          if (action === 'approved') {
+            await processAbsenceApprove(env, i + 1);
+          } else {
+            await processAbsenceReject(env, i + 1);
+          }
+        }
+      }
+      
+      console.log('[SCHEDULER] Workflow processing complete');
+    } catch (error) {
+      console.error('[SCHEDULER] Error:', error);
+    }
   }
 };
 
@@ -1641,67 +1701,6 @@ function str2ab(str) {
   }
   return buf;
 }
-
-  // Scheduled handler - runs every 5 minutes
-  async scheduled(event, env) {
-    console.log('[SCHEDULER] Running scheduled workflow processor');
-    
-    try {
-      // Process report submissions
-      const reportsData = await getSheetsData(env, 'cirklehrReports!A:I');
-      for (let i = 1; i < reportsData.length; i++) {
-        const row = reportsData[i];
-        const status = (row[6] || '').trim();  // Column G
-        const timestamp = row[7];  // Column H
-        
-        if (status === 'Submit' && !timestamp) {
-          console.log(`[SCHEDULER] Processing report submit at row ${i+1}`);
-          const submitterName = row[4] || 'Admin';  // Column E
-          await processReportSubmit(env, i + 1, submitterName);
-        }
-      }
-      
-      // Process request approvals/rejections
-      const requestsData = await getSheetsData(env, 'cirklehrRequests!A:H');
-      for (let i = 1; i < requestsData.length; i++) {
-        const row = requestsData[i];
-        const action = (row[5] || '').trim().toLowerCase();  // Column F
-        const timestamp = row[6];  // Column G
-        const approverName = row[4] || 'Admin';  // Column E
-        
-        if ((action === 'approve' || action === 'reject') && !timestamp) {
-          console.log(`[SCHEDULER] Processing request ${action} at row ${i+1}`);
-          if (action === 'approve') {
-            await processRequestApprove(env, i + 1, approverName);
-          } else {
-            await processRequestReject(env, i + 1, approverName);
-          }
-        }
-      }
-      
-      // Process absence approvals/rejections
-      const absencesData = await getSheetsData(env, 'cirklehrAbsences!A:J');
-      for (let i = 1; i < absencesData.length; i++) {
-        const row = absencesData[i];
-        const action = (row[6] || '').trim().toLowerCase();  // Column G
-        const timestamp = row[8];  // Column I
-        
-        if ((action === 'approved' || action === 'rejected') && !timestamp) {
-          console.log(`[SCHEDULER] Processing absence ${action} at row ${i+1}`);
-          if (action === 'approved') {
-            await processAbsenceApprove(env, i + 1);
-          } else {
-            await processAbsenceReject(env, i + 1);
-          }
-        }
-      }
-      
-      console.log('[SCHEDULER] Workflow processing complete');
-    } catch (error) {
-      console.error('[SCHEDULER] Error:', error);
-    }
-  }
-};
 
 // Helper function: Process report submission
 async function processReportSubmit(env, rowIndex, submitterName) {
