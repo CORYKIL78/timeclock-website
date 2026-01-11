@@ -59,6 +59,34 @@ export default {
         }
       }
 
+      // DEBUG: Dump current absence data
+      if (url.pathname === '/api/debug/absences' && request.method === 'GET') {
+        try {
+          const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+          return new Response(JSON.stringify({ 
+            total: data.length,
+            absences: data.map((row, i) => ({
+              row: i,
+              name: row[0],
+              startDate: row[1],
+              endDate: row[2],
+              reason: row[3],
+              totalDays: row[4],
+              comment: row[5],
+              approvalStatus: row[6],  // Column G - THIS IS KEY
+              discordId: row[7],
+              timestamp: row[8],
+              status: row[9]
+            }))
+          }), { headers: corsHeaders });
+        } catch (error) {
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
       // Discord OAuth endpoint
       if (url.pathname === '/auth' && request.method === 'GET') {
         const code = url.searchParams.get('code');

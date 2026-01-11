@@ -1771,8 +1771,18 @@ setInterval(async () => {
 }, 3000); // Poll every 3 seconds
 
 // Call syncUserProfileOnLogin() after successful login (e.g. after setting currentUser)
-// Track which absences have already been notified about
-let notifiedAbsences = new Set();
+// Track which absences have already been notified about (persisted to localStorage)
+let notifiedAbsences = new Set(
+    JSON.parse(localStorage.getItem('notifiedAbsences') || '[]')
+);
+
+function saveNotifiedAbsences() {
+    try {
+        localStorage.setItem('notifiedAbsences', JSON.stringify(Array.from(notifiedAbsences)));
+    } catch (e) {
+        console.error('Error saving notified absences:', e);
+    }
+}
 
 // Polling for absence status updates
 setInterval(async () => {
@@ -1835,11 +1845,14 @@ setInterval(async () => {
                     
                     // Only send notification if we haven't notified about this status change before
                     if (!notifiedAbsences.has(absenceKey)) {
+                        console.log('[DEBUG] NEW absence status change, sending notification:', absenceKey);
                         notifiedAbsences.add(absenceKey);
+                        saveNotifiedAbsences();  // PERSIST to localStorage
                         
                         // Add portal notification
                         const isApproved = processedAbsence.status === 'approved';
                         addNotification('absence', `${isApproved ? '✅' : '❌'} Absence request ${isApproved ? 'approved' : 'rejected'}!`, 'absences');
+                        playNotificationSound();
                         
                         // Send DM notification for absence approval/rejection
                         try {
@@ -1856,7 +1869,7 @@ setInterval(async () => {
                             console.error('Failed to send absence approval DM:', e);
                         }
                     } else {
-                        console.log('[DEBUG] Already notified about:', absenceKey);
+                        console.log('[DEBUG] Already notified about this change:', absenceKey);
                     }
                 }
             }
