@@ -733,12 +733,23 @@ export default {
         const { rowIndex, approved, approverId } = await request.json();
         const status = approved ? 'Approved' : 'Rejected';
         
+        if (!rowIndex) {
+          return new Response(JSON.stringify({ success: false, error: 'rowIndex is required' }), { headers: corsHeaders, status: 400 });
+        }
+        
         // Get the absence row to find the user ID
         const data = await getSheetsData(env, `cirklehrAbsences!A${rowIndex}:J${rowIndex}`);
+        if (!data || !data[0]) {
+          return new Response(JSON.stringify({ success: false, error: 'Absence not found' }), { headers: corsHeaders, status: 404 });
+        }
+        
         const absenceRow = data[0];
         const targetUserId = absenceRow[7]; // Column H: User ID
+        const absenceType = absenceRow[2] || 'Absence'; // Column C: Type
         
-        // Update approval status
+        console.log(`[ABSENCE] Approving absence for user ${targetUserId}, status: ${status}`);
+        
+        // Update approval status (Columns G-J)
         await updateSheets(env, `cirklehrAbsences!G${rowIndex}:J${rowIndex}`, [
           [status, approverId || 'System', new Date().toISOString(), '✅ Success']
         ]);
@@ -900,13 +911,24 @@ export default {
         const { rowIndex, approved, approverId } = await request.json();
         const status = approved ? 'Approved' : 'Denied';
         
-        // Get the request row to find user ID
-        const data = await getSheetsData(env, `cirklehrRequests!A${rowIndex}:H${rowIndex}`);
-        const requestRow = data[0];
-        const targetUserId = requestRow[3]; // Column D: User ID
+        if (!rowIndex) {
+          return new Response(JSON.stringify({ success: false, error: 'rowIndex is required' }), { headers: corsHeaders, status: 400 });
+        }
         
-        // Update status in column H
-        await updateSheets(env, `cirklehrRequests!H${rowIndex}`, [[status]]);
+        // Get the request row to find user ID
+        const data = await getSheetsData(env, `cirklehrRequests!A${rowIndex}:G${rowIndex}`);
+        if (!data || !data[0]) {
+          return new Response(JSON.stringify({ success: false, error: 'Request not found' }), { headers: corsHeaders, status: 404 });
+        }
+        
+        const requestRow = data[0];
+        const targetUserId = requestRow[0] || requestRow[3]; // Column A or D: User ID
+        const requestType = requestRow[1]; // Column B: Request type
+        
+        console.log(`[REQUESTS] Approving request for user ${targetUserId}, type: ${requestType}, status: ${status}`);
+        
+        // Update status in column F (index 5)
+        await updateSheets(env, `cirklehrRequests!F${rowIndex}`, [[status]]);
         
         // Send DM to user
         if (targetUserId && env.DISCORD_BOT_TOKEN) {

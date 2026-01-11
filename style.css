@@ -968,17 +968,18 @@ body.dark .profile-stat {
 /* Responsive sidebar: topbar for mobile */
 @media (max-width: 700px) {
     .sidebar {
-        width: 70px !important;
+        width: 280px !important;
         height: 100vh !important;
         visibility: visible !important;
         opacity: 1 !important;
         pointer-events: auto !important;
         transition: all 0.3s var(--transition-ease);
         position: fixed !important;
-        left: 0 !important;
+        left: -280px !important;
         top: 0 !important;
         z-index: 1001 !important;
-        background: var(--primary) !important;
+        background: var(--card-bg) !important;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2) !important;
     }
     
     .sidebar.hidden {
@@ -1024,18 +1025,30 @@ body.dark .profile-stat {
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
-        width: 100vw !important;
+        width: 280px !important;
         height: 100vh !important;
         min-height: 100vh !important;
         display: flex !important;
         flex-direction: column;
         align-items: stretch !important;
         border: none !important;
-        background: var(--primary);
+        background: var(--card-bg);
         z-index: 1002 !important;
         visibility: visible !important;
         opacity: 1 !important;
         pointer-events: auto !important;
+        box-shadow: 2px 0 15px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    .sidebar.extended::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 280px;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: -1;
     }
     
     .sidebar.extended .sidebar-toggle {

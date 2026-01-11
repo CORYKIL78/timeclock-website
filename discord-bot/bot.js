@@ -36,6 +36,36 @@ const client = new Client({
 // Store commands
 client.commands = new Collection();
 
+// ============================================================================
+// HELPER FUNCTION: GET REGISTERED EMPLOYEE COUNT
+// ============================================================================
+/**
+ * Fetch the count of registered employees from the database
+ * This will be used to set the bot's status
+ * @returns {Promise<number>} Count of registered employees
+ */
+async function getRegisteredEmployeeCount() {
+    try {
+        const employees = await db.db.collection('employees').find({}).toArray();
+        return employees?.length || 0;
+    } catch (error) {
+        console.error('[EMPLOYEE COUNT] Error fetching employee count:', error);
+        return 0;
+    }
+}
+
+// Update bot status every 5 minutes
+setInterval(async () => {
+    try {
+        const employeeCount = await getRegisteredEmployeeCount();
+        if (client.isReady()) {
+            client.user.setActivity(`${employeeCount} employees`, { type: 'WATCHING' });
+        }
+    } catch (error) {
+        console.error('Error updating bot status:', error);
+    }
+}, 5 * 60 * 1000); // 5 minutes
+
 // Load all commands from commands folder
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -58,6 +88,16 @@ client.once('ready', async () => {
     
     // Initialize database connection
     await db.connectDatabase();
+    
+    // Set bot status with employee count
+    try {
+        const employeeCount = await getRegisteredEmployeeCount();
+        client.user.setActivity(`${employeeCount} employees`, { type: 'WATCHING' });
+        console.log(`👀 Set bot status: Watching ${employeeCount} employees`);
+    } catch (error) {
+        console.error('Error setting bot status:', error);
+        client.user.setActivity('the Staff Portal', { type: 'WATCHING' });
+    }
     
     console.log(`🚀 Dev Toolbox Commission System is ready!`);
 });

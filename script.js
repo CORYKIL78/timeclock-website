@@ -1165,7 +1165,7 @@ function renderReports(reports) {
         let iconColor = '#666';
         let icon = '📄';
         
-        const reportType = report.reportType?.toLowerCase();
+        const reportType = (report.type || report.reportType || '')?.toLowerCase();
         if (reportType === 'commendation') {
             bgColor = '#f0fdf4';
             borderColor = '#86efac';
@@ -7475,6 +7475,9 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
             currentUser = JSON.parse(savedUser);
             console.log('Loaded saved user:', currentUser);
             if (currentUser.id) {
+                // Create backup of current user data to prevent loss on sync errors
+                const userDataBackup = JSON.stringify(currentUser);
+                
                 // Show welcome screen IMMEDIATELY - load data in background
                 const displayName = currentUser.profile?.name || currentUser.name || 'User';
                 document.getElementById('portalWelcomeName').textContent = displayName;
@@ -7546,6 +7549,9 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
                     } catch (e) {
                         console.error('Background: Error syncing user data:', e);
                     }
+                    
+                    // Always save currentUser after sync to prevent data loss
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 })();
                 
                 return; // Exit early - show welcome screen immediately
