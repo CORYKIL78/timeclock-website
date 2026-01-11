@@ -32,6 +32,33 @@ export default {
         });
       }
 
+      // Send Discord DM endpoint (exposed for frontend)
+      if (url.pathname === '/api/send-dm' && request.method === 'POST') {
+        try {
+          const { userId, embed } = await request.json();
+          
+          if (!userId || !embed) {
+            return new Response(JSON.stringify({ success: false, error: 'userId and embed required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+          
+          // Call internal sendDM function
+          await sendDM(env, userId, embed);
+          
+          return new Response(JSON.stringify({ success: true, message: 'DM sent' }), {
+            headers: corsHeaders
+          });
+        } catch (error) {
+          console.error('[SEND-DM] Error:', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
       // Discord OAuth endpoint
       if (url.pathname === '/auth' && request.method === 'GET') {
         const code = url.searchParams.get('code');

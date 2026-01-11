@@ -1771,6 +1771,9 @@ setInterval(async () => {
 }, 3000); // Poll every 3 seconds
 
 // Call syncUserProfileOnLogin() after successful login (e.g. after setting currentUser)
+// Track which absences have already been notified about
+let notifiedAbsences = new Set();
+
 // Polling for absence status updates
 setInterval(async () => {
     console.log('[DEBUG] Polling for absence status updates...');
@@ -1827,23 +1830,33 @@ setInterval(async () => {
                     localAbsence.status = processedAbsence.status;
                     console.log(`[DEBUG] Updated absence status: ${oldStatus} -> ${processedAbsence.status}`);
                     
-                    // Add portal notification
-                    const isApproved = processedAbsence.status === 'approved';
-                    addNotification('absence', `${isApproved ? '✅' : '❌'} Absence request ${isApproved ? 'approved' : 'rejected'}!`, 'absences');
+                    // Create unique key for this absence to avoid duplicate notifications
+                    const absenceKey = `${processedAbsence.startDate}|${processedAbsence.endDate}|${processedAbsence.status}`;
                     
-                    // Send DM notification for absence approval/rejection
-                    try {
-                        const emoji = isApproved ? '✅' : '❌';
-                        const status = isApproved ? 'approved' : 'rejected';
-                        const color = isApproved ? 0x00ff00 : 0xff0000;
+                    // Only send notification if we haven't notified about this status change before
+                    if (!notifiedAbsences.has(absenceKey)) {
+                        notifiedAbsences.add(absenceKey);
                         
-                        await sendDiscordDM(currentUser.id, {
-                            title: `${emoji} Absence Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-                            description: `Your absence request has been ${status}!\n\n**Dates:** ${processedAbsence.startDate} to ${processedAbsence.endDate}\n**Status:** ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-                            color: color
-                        });
-                    } catch (e) {
-                        console.error('Failed to send absence approval DM:', e);
+                        // Add portal notification
+                        const isApproved = processedAbsence.status === 'approved';
+                        addNotification('absence', `${isApproved ? '✅' : '❌'} Absence request ${isApproved ? 'approved' : 'rejected'}!`, 'absences');
+                        
+                        // Send DM notification for absence approval/rejection
+                        try {
+                            const emoji = isApproved ? '✅' : '❌';
+                            const status = isApproved ? 'approved' : 'rejected';
+                            const color = isApproved ? 0x00ff00 : 0xff0000;
+                            
+                            await sendDiscordDM(currentUser.id, {
+                                title: `${emoji} Absence Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+                                description: `Your absence request has been ${status}!\n\n**Dates:** ${processedAbsence.startDate} to ${processedAbsence.endDate}\n**Status:** ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+                                color: color
+                            });
+                        } catch (e) {
+                            console.error('Failed to send absence approval DM:', e);
+                        }
+                    } else {
+                        console.log('[DEBUG] Already notified about:', absenceKey);
                     }
                 }
             }
@@ -1856,9 +1869,7 @@ setInterval(async () => {
     } catch (e) {
         console.error('[DEBUG] Error checking absence approvals:', e);
     }
-}, 5000); // Poll every 5 seconds for near-instant notifications
-
-// Auto-process pending payslips and disciplinaries (check for "Submit" status in Google Sheets)
+}, 5000); // Poll every 5 seconds for near-instant notifications// Auto-process pending payslips and disciplinaries (check for "Submit" status in Google Sheets)
 setInterval(async () => {
     try {
         // Check and process pending payslips
@@ -2208,7 +2219,7 @@ const REDIRECT_URI = 'https://portal.cirkledevelopment.co.uk';
 async function sendDiscordDM(userId, embed) {
     try {
         // Use the new POST endpoint with native Discord embeds
-        const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/sendDM`, {
+        const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/send-dm`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
