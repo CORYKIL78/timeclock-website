@@ -1186,6 +1186,255 @@ export default {
         return new Response(JSON.stringify({ success: true, processed }), { headers: corsHeaders });
       }
 
+      // ============================================================================
+      // REPORTS WORKFLOW: Submit → DM + Update Sheets + Portal
+      // ============================================================================
+      if (url.pathname === '/api/reports/workflow/submit-approval' && request.method === 'POST') {
+        const { rowIndex, submitterName } = await request.json();
+        if (!rowIndex) return new Response(JSON.stringify({ error: 'rowIndex required' }), { headers: corsHeaders, status: 400 });
+        
+        try {
+          const data = await getSheetsData(env, `cirklehrReports!A${rowIndex}:I${rowIndex}`);
+          const row = data[0];
+          const userId = row[0];
+          const reportType = row[2];
+          
+          console.log(`[REPORTS] Approving report for user ${userId}, submitted by ${submitterName}`);
+          
+          // Send DM to user
+          if (userId && env.DISCORD_BOT_TOKEN) {
+            await sendDM(env, userId, {
+              title: '📋 New Report Available',
+              description: `You have a new report!\n\nSubmitted by: **${submitterName}**\n\nCheck the **My Reports** tab on the portal.`,
+              color: 0x2196F3
+            });
+          }
+          
+          // Update Sheets: H=timestamp, I=success status
+          await updateSheets(env, `cirklehrReports!H${rowIndex}:I${rowIndex}`, [
+            [new Date().toISOString(), '✅ Success']
+          ]);
+          
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        } catch (e) {
+          console.error('[REPORTS] Error:', e);
+          return new Response(JSON.stringify({ error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
+      // ============================================================================
+      // REQUESTS WORKFLOW: Approve/Reject → DM + Update Sheets + Portal
+      // ============================================================================
+      if (url.pathname === '/api/requests/workflow/approve' && request.method === 'POST') {
+        const { rowIndex, approverName } = await request.json();
+        if (!rowIndex) return new Response(JSON.stringify({ error: 'rowIndex required' }), { headers: corsHeaders, status: 400 });
+        
+        try {
+          const data = await getSheetsData(env, `cirklehrRequests!A${rowIndex}:H${rowIndex}`);
+          const row = data[0];
+          const userId = row[0];
+          
+          console.log(`[REQUESTS] Approving request for user ${userId}, approved by ${approverName}`);
+          
+          // Send DM to user
+          if (userId && env.DISCORD_BOT_TOKEN) {
+            await sendDM(env, userId, {
+              title: '✅ Request Approved',
+              description: `Your request has been **approved**!\n\nApproved by: **${approverName}**\n\nCheck the **Requests** tab on the portal.`,
+              color: 0x4caf50
+            });
+          }
+          
+          // Update Sheets: F=approved, G=timestamp, H=status
+          await updateSheets(env, `cirklehrRequests!F${rowIndex}:H${rowIndex}`, [
+            ['Approve', new Date().toISOString(), '✅ Success']
+          ]);
+          
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        } catch (e) {
+          console.error('[REQUESTS] Error:', e);
+          return new Response(JSON.stringify({ error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
+      if (url.pathname === '/api/requests/workflow/reject' && request.method === 'POST') {
+        const { rowIndex, approverName } = await request.json();
+        if (!rowIndex) return new Response(JSON.stringify({ error: 'rowIndex required' }), { headers: corsHeaders, status: 400 });
+        
+        try {
+          const data = await getSheetsData(env, `cirklehrRequests!A${rowIndex}:H${rowIndex}`);
+          const row = data[0];
+          const userId = row[0];
+          
+          console.log(`[REQUESTS] Rejecting request for user ${userId}, rejected by ${approverName}`);
+          
+          // Send DM to user
+          if (userId && env.DISCORD_BOT_TOKEN) {
+            await sendDM(env, userId, {
+              title: '❌ Request Rejected',
+              description: `Your request has been **rejected**.\n\nRejected by: **${approverName}**\n\nCheck the **Requests** tab on the portal for details.`,
+              color: 0xf44336
+            });
+          }
+          
+          // Update Sheets: F=reject, G=timestamp, H=status
+          await updateSheets(env, `cirklehrRequests!F${rowIndex}:H${rowIndex}`, [
+            ['Reject', new Date().toISOString(), '✅ Success']
+          ]);
+          
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        } catch (e) {
+          console.error('[REQUESTS] Error:', e);
+          return new Response(JSON.stringify({ error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
+      // ============================================================================
+      // ABSENCES WORKFLOW: Approve/Reject → DM + Update Sheets + Portal
+      // ============================================================================
+      if (url.pathname === '/api/absences/workflow/approve' && request.method === 'POST') {
+        const { rowIndex } = await request.json();
+        if (!rowIndex) return new Response(JSON.stringify({ error: 'rowIndex required' }), { headers: corsHeaders, status: 400 });
+        
+        try {
+          const data = await getSheetsData(env, `cirklehrAbsences!A${rowIndex}:J${rowIndex}`);
+          const row = data[0];
+          const userId = row[0];
+          const absenceType = row[2];
+          
+          console.log(`[ABSENCES] Approving absence for user ${userId}`);
+          
+          // Send DM to user
+          if (userId && env.DISCORD_BOT_TOKEN) {
+            await sendDM(env, userId, {
+              title: '✅ Absence Approved',
+              description: `Your **${absenceType || 'absence'}** request has been **approved**!\n\nCheck the **Absences** tab on the portal.`,
+              color: 0x4caf50
+            });
+          }
+          
+          // Update Sheets: I=timestamp, J=success status
+          await updateSheets(env, `cirklehrAbsences!I${rowIndex}:J${rowIndex}`, [
+            [new Date().toISOString(), '✅ Success']
+          ]);
+          
+          // Update column G to Approved
+          await updateSheets(env, `cirklehrAbsences!G${rowIndex}`, [['Approved']]);
+          
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        } catch (e) {
+          console.error('[ABSENCES] Error:', e);
+          return new Response(JSON.stringify({ error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
+      if (url.pathname === '/api/absences/workflow/reject' && request.method === 'POST') {
+        const { rowIndex } = await request.json();
+        if (!rowIndex) return new Response(JSON.stringify({ error: 'rowIndex required' }), { headers: corsHeaders, status: 400 });
+        
+        try {
+          const data = await getSheetsData(env, `cirklehrAbsences!A${rowIndex}:J${rowIndex}`);
+          const row = data[0];
+          const userId = row[0];
+          const absenceType = row[2];
+          
+          console.log(`[ABSENCES] Rejecting absence for user ${userId}`);
+          
+          // Send DM to user
+          if (userId && env.DISCORD_BOT_TOKEN) {
+            await sendDM(env, userId, {
+              title: '❌ Absence Rejected',
+              description: `Your **${absenceType || 'absence'}** request has been **rejected**.\n\nCheck the **Absences** tab on the portal for details.`,
+              color: 0xf44336
+            });
+          }
+          
+          // Update Sheets: I=timestamp, J=success status
+          await updateSheets(env, `cirklehrAbsences!I${rowIndex}:J${rowIndex}`, [
+            [new Date().toISOString(), '✅ Rejected']
+          ]);
+          
+          // Update column G to Rejected
+          await updateSheets(env, `cirklehrAbsences!G${rowIndex}`, [['Rejected']]);
+          
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        } catch (e) {
+          console.error('[ABSENCES] Error:', e);
+          return new Response(JSON.stringify({ error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
+      // ============================================================================
+      // USER RESET/DELETION: Wipe user from sheets, backend, and portal
+      // ============================================================================
+      if (url.pathname === '/api/users/workflow/reset' && request.method === 'POST') {
+        const { rowIndex, userId } = await request.json();
+        if (!rowIndex || !userId) return new Response(JSON.stringify({ error: 'rowIndex and userId required' }), { headers: corsHeaders, status: 400 });
+        
+        try {
+          console.log(`[USER_RESET] Resetting user ${userId} from row ${rowIndex}`);
+          
+          // Send DM to user BEFORE deletion
+          if (userId && env.DISCORD_BOT_TOKEN) {
+            await sendDM(env, userId, {
+              title: '⚠️ Account Reset',
+              description: `Your account has been **reset** and removed from the system.\n\nIf this was a mistake, please contact your administrator.`,
+              color: 0xff9800
+            });
+          }
+          
+          // Delete user data from cirklehrUsers (clear the row)
+          const userRow = Array(15).fill('');
+          await updateSheets(env, `cirklehrUsers!A${rowIndex}:O${rowIndex}`, [userRow]);
+          
+          // Delete from cirklehrPayslips
+          const payslipsData = await getSheetsData(env, 'cirklehrPayslips!A:A');
+          for (let i = payslipsData.length - 1; i >= 1; i--) {
+            if (payslipsData[i][0] === userId) {
+              await deleteRow(env, 'cirklehrPayslips', i + 1);
+            }
+          }
+          
+          // Delete from cirklehrAbsences
+          const absencesData = await getSheetsData(env, 'cirklehrAbsences!A:A');
+          for (let i = absencesData.length - 1; i >= 1; i--) {
+            if (absencesData[i][0] === userId) {
+              await deleteRow(env, 'cirklehrAbsences', i + 1);
+            }
+          }
+          
+          // Delete from cirklehrRequests
+          const requestsData = await getSheetsData(env, 'cirklehrRequests!A:A');
+          for (let i = requestsData.length - 1; i >= 1; i--) {
+            if (requestsData[i][0] === userId) {
+              await deleteRow(env, 'cirklehrRequests', i + 1);
+            }
+          }
+          
+          // Delete from cirklehrReports
+          const reportsData = await getSheetsData(env, 'cirklehrReports!A:A');
+          for (let i = reportsData.length - 1; i >= 1; i--) {
+            if (reportsData[i][0] === userId) {
+              await deleteRow(env, 'cirklehrReports', i + 1);
+            }
+          }
+          
+          // Delete from cirklehrDisciplinaries
+          const disciplinariesData = await getSheetsData(env, 'cirklehrDisciplinaries!A:A');
+          for (let i = disciplinariesData.length - 1; i >= 1; i--) {
+            if (disciplinariesData[i][0] === userId) {
+              await deleteRow(env, 'cirklehrDisciplinaries', i + 1);
+            }
+          }
+          
+          console.log(`[USER_RESET] Successfully reset user ${userId}`);
+          return new Response(JSON.stringify({ success: true, message: 'User completely reset' }), { headers: corsHeaders });
+        } catch (e) {
+          console.error('[USER_RESET] Error:', e);
+          return new Response(JSON.stringify({ error: e.message }), { headers: corsHeaders, status: 500 });
+        }
+      }
+
       return new Response(JSON.stringify({ error: 'Not found' }), { 
         status: 404, 
         headers: corsHeaders 
@@ -1296,6 +1545,92 @@ async function appendToSheet(env, range, values) {
       body: JSON.stringify({ values })
     }
   );
+}
+
+// Send Discord DM with embed
+async function sendDM(env, userId, { title, description, color }) {
+  if (!env.DISCORD_BOT_TOKEN) return;
+  
+  try {
+    const dmResponse = await fetch(`https://discord.com/api/v10/users/@me/channels`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ recipient_id: userId })
+    });
+    
+    if (!dmResponse.ok) {
+      console.error('[DM] Failed to create channel:', dmResponse.status);
+      return;
+    }
+    
+    const channel = await dmResponse.json();
+    
+    await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        embeds: [{
+          title: title,
+          description: description,
+          color: color,
+          footer: { text: 'Cirkle Development Staff Portal' },
+          timestamp: new Date().toISOString()
+        }]
+      })
+    });
+  } catch (e) {
+    console.error('[DM] Error:', e);
+  }
+}
+
+// Delete a row from Sheets
+async function deleteRow(env, sheetName, rowIndex) {
+  const token = await getAccessToken(env);
+  const sheetId = await getSheetId(env, sheetName);
+  
+  if (!sheetId) {
+    console.error(`[DELETE] Sheet ${sheetName} not found`);
+    return;
+  }
+  
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${env.SPREADSHEET_ID}/batchUpdate`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      requests: [{
+        deleteRange: {
+          range: {
+            sheetId: sheetId,
+            dimension: 'ROWS',
+            startIndex: rowIndex - 1,
+            endIndex: rowIndex
+          },
+          shiftDimension: 'ROWS'
+        }
+      }]
+    })
+  });
+}
+
+// Get sheet ID by name
+async function getSheetId(env, sheetName) {
+  const token = await getAccessToken(env);
+  const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${env.SPREADSHEET_ID}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  
+  const data = await response.json();
+  const sheet = data.sheets?.find(s => s.properties.title === sheetName);
+  return sheet?.properties.sheetId;
 }
 
 function str2ab(str) {
