@@ -1358,7 +1358,11 @@ function setupDisciplinariesTabs() {
     const disciplinariesSection = document.getElementById('disciplinariesSection');
     const reportsSection = document.getElementById('reportsSection');
     
-    if (!disciplinariesBtn || !reportsBtn) return;
+    if (!disciplinariesBtn || !reportsBtn) {
+        console.warn('[setupDisciplinariesTabs] Buttons not found, retrying in 500ms');
+        setTimeout(() => setupDisciplinariesTabs(), 500);
+        return;
+    }
     
     disciplinariesBtn.addEventListener('click', () => {
         disciplinariesBtn.classList.add('active');
@@ -2365,7 +2369,7 @@ function showScreen(screenId) {
         const sidebar = document.getElementById('sidebar');
         const notificationPanel = document.getElementById('notificationPanel');
         const notificationBtn = document.getElementById('notificationBtn');
-        if (screenId !== 'portalWelcome' && ['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail', 'clickup', 'handbooks', 'requests'].includes(screenId)) {
+        if (screenId !== 'portalWelcome' && ['mainMenu', 'myProfile', 'myRoles', 'tasks', 'absences', 'payslips', 'disciplinaries', 'timeclock', 'mail', 'clickup', 'handbooks', 'requests', 'calendarScreen'].includes(screenId)) {
             sidebar.classList.remove('hidden');
             if (notificationBtn) notificationBtn.classList.remove('hidden');
             // Update notification badge
@@ -2391,7 +2395,8 @@ function showScreen(screenId) {
         updateActiveNavButton(screenId);
     } else {
         console.error('Screen not found:', screenId);
-        showScreen('discord');
+        console.warn('Screen not found, staying on current screen');
+        return;
     }
 }
 
@@ -5468,6 +5473,32 @@ if (confirmResetBtn) {
 });
 }
 
+// Save profile function - persists to localStorage and backend
+async function saveProfile() {
+    if (!currentUser) {
+        throw new Error('No current user');
+    }
+    
+    try {
+        // Save to localStorage immediately
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        // Also save to backend via employee record
+        const emp = getEmployee(currentUser.id);
+        if (emp) {
+            if (!emp.profile) emp.profile = {};
+            emp.profile = { ...emp.profile, ...currentUser.profile };
+            updateEmployee(emp);
+        }
+        
+        console.log('[saveProfile] Profile saved successfully');
+        return { success: true };
+    } catch (error) {
+        console.error('[saveProfile] Error:', error);
+        throw error;
+    }
+}
+
 // Country and Timezone dropdowns - auto-save on change
 const profileCountrySelect = document.getElementById('profileCountrySelect');
 if (profileCountrySelect) {
@@ -5498,9 +5529,9 @@ if (profileTimezoneSelect) {
             if (!currentUser.profile) currentUser.profile = {};
             currentUser.profile.timezone = timezone;
             
-            // Save to backend
+            // Save to localStorage immediately
             try {
-                await saveProfile();
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 showModal('alert', '<span class="success-tick"></span> Timezone updated successfully!');
                 playSuccessSound();
             } catch (error) {
@@ -7473,6 +7504,7 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
     if (savedUser) {
         try {
             currentUser = JSON.parse(savedUser);
+            window.currentUser = currentUser;  // IMPORTANT: Set window.currentUser so sync functions can access it
             console.log('Loaded saved user:', currentUser);
             if (currentUser.id) {
                 // Create backup of current user data to prevent loss on sync errors

@@ -1641,3 +1641,191 @@ function str2ab(str) {
   }
   return buf;
 }
+
+  // Scheduled handler - runs every 5 minutes
+  async scheduled(event, env) {
+    console.log('[SCHEDULER] Running scheduled workflow processor');
+    
+    try {
+      // Process report submissions
+      const reportsData = await getSheetsData(env, 'cirklehrReports!A:I');
+      for (let i = 1; i < reportsData.length; i++) {
+        const row = reportsData[i];
+        const status = (row[6] || '').trim();  // Column G
+        const timestamp = row[7];  // Column H
+        
+        if (status === 'Submit' && !timestamp) {
+          console.log(`[SCHEDULER] Processing report submit at row ${i+1}`);
+          const submitterName = row[4] || 'Admin';  // Column E
+          await processReportSubmit(env, i + 1, submitterName);
+        }
+      }
+      
+      // Process request approvals/rejections
+      const requestsData = await getSheetsData(env, 'cirklehrRequests!A:H');
+      for (let i = 1; i < requestsData.length; i++) {
+        const row = requestsData[i];
+        const action = (row[5] || '').trim().toLowerCase();  // Column F
+        const timestamp = row[6];  // Column G
+        const approverName = row[4] || 'Admin';  // Column E
+        
+        if ((action === 'approve' || action === 'reject') && !timestamp) {
+          console.log(`[SCHEDULER] Processing request ${action} at row ${i+1}`);
+          if (action === 'approve') {
+            await processRequestApprove(env, i + 1, approverName);
+          } else {
+            await processRequestReject(env, i + 1, approverName);
+          }
+        }
+      }
+      
+      // Process absence approvals/rejections
+      const absencesData = await getSheetsData(env, 'cirklehrAbsences!A:J');
+      for (let i = 1; i < absencesData.length; i++) {
+        const row = absencesData[i];
+        const action = (row[6] || '').trim().toLowerCase();  // Column G
+        const timestamp = row[8];  // Column I
+        
+        if ((action === 'approved' || action === 'rejected') && !timestamp) {
+          console.log(`[SCHEDULER] Processing absence ${action} at row ${i+1}`);
+          if (action === 'approved') {
+            await processAbsenceApprove(env, i + 1);
+          } else {
+            await processAbsenceReject(env, i + 1);
+          }
+        }
+      }
+      
+      console.log('[SCHEDULER] Workflow processing complete');
+    } catch (error) {
+      console.error('[SCHEDULER] Error:', error);
+    }
+  }
+};
+
+// Helper function: Process report submission
+async function processReportSubmit(env, rowIndex, submitterName) {
+  try {
+    const data = await getSheetsData(env, `cirklehrReports!A${rowIndex}:I${rowIndex}`);
+    const row = data[0];
+    const userId = row[0];
+    
+    console.log(`[WORKFLOW] Submitting report for user ${userId}`);
+    
+    if (userId && env.DISCORD_BOT_TOKEN) {
+      await sendDM(env, userId, {
+        title: '📋 New Report Available',
+        description: `You have a new report!\n\nSubmitted by: **${submitterName}**\n\nCheck the **My Reports** tab on the portal.`,
+        color: 0x2196F3
+      });
+    }
+    
+    await updateSheets(env, `cirklehrReports!H${rowIndex}:I${rowIndex}`, [
+      [new Date().toISOString(), '✅ Success']
+    ]);
+  } catch (e) {
+    console.error('[WORKFLOW] Error processing report:', e);
+  }
+}
+
+// Helper function: Process request approval
+async function processRequestApprove(env, rowIndex, approverName) {
+  try {
+    const data = await getSheetsData(env, `cirklehrRequests!A${rowIndex}:H${rowIndex}`);
+    const row = data[0];
+    const userId = row[0];
+    
+    console.log(`[WORKFLOW] Approving request for user ${userId}`);
+    
+    if (userId && env.DISCORD_BOT_TOKEN) {
+      await sendDM(env, userId, {
+        title: '✅ Request Approved',
+        description: `Your request has been **approved**!\n\nApproved by: **${approverName}**\n\nCheck the **Requests** tab on the portal.`,
+        color: 0x4caf50
+      });
+    }
+    
+    await updateSheets(env, `cirklehrRequests!F${rowIndex}:H${rowIndex}`, [
+      ['Approve', new Date().toISOString(), '✅ Success']
+    ]);
+  } catch (e) {
+    console.error('[WORKFLOW] Error approving request:', e);
+  }
+}
+
+// Helper function: Process request rejection
+async function processRequestReject(env, rowIndex, approverName) {
+  try {
+    const data = await getSheetsData(env, `cirklehrRequests!A${rowIndex}:H${rowIndex}`);
+    const row = data[0];
+    const userId = row[0];
+    
+    console.log(`[WORKFLOW] Rejecting request for user ${userId}`);
+    
+    if (userId && env.DISCORD_BOT_TOKEN) {
+      await sendDM(env, userId, {
+        title: '❌ Request Rejected',
+        description: `Your request has been **rejected**.\n\nRejected by: **${approverName}**\n\nCheck the **Requests** tab on the portal for details.`,
+        color: 0xf44336
+      });
+    }
+    
+    await updateSheets(env, `cirklehrRequests!F${rowIndex}:H${rowIndex}`, [
+      ['Reject', new Date().toISOString(), '✅ Success']
+    ]);
+  } catch (e) {
+    console.error('[WORKFLOW] Error rejecting request:', e);
+  }
+}
+
+// Helper function: Process absence approval
+async function processAbsenceApprove(env, rowIndex) {
+  try {
+    const data = await getSheetsData(env, `cirklehrAbsences!A${rowIndex}:J${rowIndex}`);
+    const row = data[0];
+    const userId = row[0];
+    const absenceType = row[2];
+    
+    console.log(`[WORKFLOW] Approving absence for user ${userId}`);
+    
+    if (userId && env.DISCORD_BOT_TOKEN) {
+      await sendDM(env, userId, {
+        title: '✅ Absence Approved',
+        description: `Your **${absenceType || 'absence'}** request has been **approved**!\n\nCheck the **Absences** tab on the portal.`,
+        color: 0x4caf50
+      });
+    }
+    
+    await updateSheets(env, `cirklehrAbsences!I${rowIndex}:J${rowIndex}`, [
+      [new Date().toISOString(), '✅ Success']
+    ]);
+  } catch (e) {
+    console.error('[WORKFLOW] Error approving absence:', e);
+  }
+}
+
+// Helper function: Process absence rejection
+async function processAbsenceReject(env, rowIndex) {
+  try {
+    const data = await getSheetsData(env, `cirklehrAbsences!A${rowIndex}:J${rowIndex}`);
+    const row = data[0];
+    const userId = row[0];
+    const absenceType = row[2];
+    
+    console.log(`[WORKFLOW] Rejecting absence for user ${userId}`);
+    
+    if (userId && env.DISCORD_BOT_TOKEN) {
+      await sendDM(env, userId, {
+        title: '❌ Absence Rejected',
+        description: `Your **${absenceType || 'absence'}** request has been **rejected**.\n\nCheck the **Absences** tab on the portal for details.`,
+        color: 0xf44336
+      });
+    }
+    
+    await updateSheets(env, `cirklehrAbsences!I${rowIndex}:J${rowIndex}`, [
+      [new Date().toISOString(), '✅ Rejected']
+    ]);
+  } catch (e) {
+    console.error('[WORKFLOW] Error rejecting absence:', e);
+  }
+}
