@@ -913,18 +913,18 @@ export default {
           const startDate = absenceRow[1]; // Column B
           const endDate = absenceRow[2];   // Column C
           
-          console.log(`[ADMIN] Updating absence at row ${rowIndex} to status: ${status}`);
+          console.log(`[ADMIN] Updating absence at row ${rowIndex} to status: ${status}, Discord ID: ${discordId}`);
           
           // Update columns G-J (Approval status, Approved by, Timestamp, Success status)
+          // DO NOT mark as notified yet - let the frontend do that after sending notification
           await updateSheets(env, `cirklehrAbsences!G${rowIndex}:J${rowIndex}`, [[
             status === 'Approved' ? 'Approved' : 'Rejected',
             'Admin Portal',
             new Date().toISOString(),
-            '✅ Updated'
+            '✅ Success'
           ]]);
           
-          // Mark as acknowledged in column J to prevent re-notification
-          await updateSheets(env, `cirklehrAbsences!J${rowIndex}`, [['notified']]);
+          console.log(`[ADMIN] Sheet updated for row ${rowIndex}`);
           
           // Send Discord DM if bot token available
           if (discordId && env.DISCORD_BOT_TOKEN) {
@@ -934,17 +934,19 @@ export default {
               const statusText = isApproved ? 'approved' : 'rejected';
               const color = isApproved ? 0x00ff00 : 0xff0000;
               
-              await sendDM(env, discordId, {
+              const dmResult = await sendDM(env, discordId, {
                 title: `${emoji} Absence Request ${statusText.charAt(0).toUpperCase() + statusText.slice(1)}`,
                 description: `Your absence request has been ${statusText}!\n\n**Dates:** ${startDate} to ${endDate}\n**Status:** ${statusText.charAt(0).toUpperCase() + statusText.slice(1)}`,
                 color: color,
                 footer: { text: 'Cirkle Development HR Portal' },
                 timestamp: new Date().toISOString()
               });
-              console.log(`[ADMIN] DM sent to user ${discordId}`);
+              console.log(`[ADMIN] DM sent to user ${discordId}, result:`, dmResult);
             } catch (e) {
               console.error('[ADMIN] Failed to send DM:', e);
             }
+          } else {
+            console.log(`[ADMIN] No DM sent - Discord ID: ${discordId}, Bot token: ${env.DISCORD_BOT_TOKEN ? 'set' : 'NOT SET'}`);
           }
           
           return new Response(JSON.stringify({ success: true, message: `Absence ${status.toLowerCase()}` }), { 
