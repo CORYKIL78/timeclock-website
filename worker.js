@@ -953,11 +953,13 @@ export default {
           
           console.log(`[ADMIN] Updating absence at row ${rowIndex} to status: ${status}, Discord ID: ${discordId}`);
           
-          // Update columns G-J (Approval status, Approved by, Timestamp, Success status)
-          // DO NOT mark as notified yet - let the frontend do that after sending notification
-          await updateSheets(env, `cirklehrAbsences!G${rowIndex}:J${rowIndex}`, [[
-            status === 'Approved' ? 'Approved' : 'Rejected',
-            'Admin Portal',
+          // Update columns G and I-J (Approval status, Timestamp, Success status)
+          // Skip column H (Discord ID) - do not overwrite it
+          await updateSheets(env, `cirklehrAbsences!G${rowIndex}:G${rowIndex}`, [[
+            status === 'Approved' ? 'Approved' : 'Rejected'
+          ]]);
+          
+          await updateSheets(env, `cirklehrAbsences!I${rowIndex}:J${rowIndex}`, [[
             new Date().toISOString(),
             '✅ Success'
           ]]);
