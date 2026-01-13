@@ -100,7 +100,9 @@ function updateProfileDisplay() {
         profileTimezoneSelect.value = currentUser.profile.timezone;
     }
     
-    updateProfilePictures();
+    if (typeof updateProfilePictures === 'function') {
+        updateProfilePictures();
+    }
 }
 
 // Register service worker for PWA
@@ -183,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const emp = getEmployee(currentUser.id);
                 if (emp) {
                     emp.absences = data.absences;
-                    localStorage.setItem('employees', JSON.stringify(getEmployees()));
+                    localStorage.setItem('employees', JSON.stringify(employees));
                     console.debug('[syncAbsencesFromSheets] Updated localStorage with', data.absences.length, 'absences');
                     
                     // Update dashboard if on absence tab
