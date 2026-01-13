@@ -62,7 +62,7 @@ export default {
       // DEBUG: Dump current absence data
       if (url.pathname === '/api/debug/absences' && request.method === 'GET') {
         try {
-          const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+          const data = await getSheetsData(env, 'cirklehrAbsences!A1:J1000');
           return new Response(JSON.stringify({ 
             total: data.length,
             absences: data.map((row, i) => ({
@@ -168,7 +168,7 @@ export default {
         
         try {
           // Fetch user from cirklehrUsers sheet (skip header row)
-          const usersData = await getSheetsData(env, 'cirklehrUsers!A3:Z1000');
+          const usersData = await getSheetsData(env, 'cirklehrUsers!A1:Z1000');
           
           // Find user by Discord ID (column D = index 3)
           const userRow = usersData.find(row => row[3] === userId);
@@ -438,7 +438,7 @@ export default {
           }
           
           // Fetch all absences from Google Sheets
-          const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+          const data = await getSheetsData(env, 'cirklehrAbsences!A2:J1000');
           
           // Find the matching absence row
           for (let i = 1; i < data.length; i++) {
@@ -501,7 +501,7 @@ export default {
       // User/Profile endpoints
       if (url.pathname === '/api/user/profile' && request.method === 'POST') {
         const { discordId } = await request.json();
-        const data = await getSheetsData(env, 'cirklehrUsers!A:Z');
+        const data = await getSheetsData(env, 'cirklehrUsers!A1:Z1000');
         
         // Discord ID is in column D (index 3)
         const userRow = data.find(row => row[3] === discordId);
@@ -561,7 +561,7 @@ export default {
 
       if (url.pathname === '/api/user/upsert' && request.method === 'POST') {
         const user = await request.json();
-        const data = await getSheetsData(env, 'cirklehrUsers!A:Z');
+        const data = await getSheetsData(env, 'cirklehrUsers!A1:Z1000');
         const existingIndex = data.findIndex(row => row[0] === user.discordId);
         
         if (existingIndex >= 0) {
@@ -611,7 +611,7 @@ export default {
 
       if (url.pathname.startsWith('/api/user/absences/')) {
         const userId = url.pathname.split('/').pop();
-        const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+        const data = await getSheetsData(env, 'cirklehrAbsences!A2:J1000');
         const absences = data.slice(1)
           .filter(row => row[7] === userId && row[6] === 'Approved')
           .map(row => ({
@@ -673,7 +673,7 @@ export default {
       // Reports
       if (url.pathname === '/api/reports/fetch') {
         const { userId } = await request.json();
-        const data = await getSheetsData(env, 'cirklehrReports!A:J');
+        const data = await getSheetsData(env, 'cirklehrReports!A1:J1000');
         const reports = data.slice(1)
           .filter(row => row[0] === userId)
           .map(row => ({
@@ -789,7 +789,7 @@ export default {
       // Absence
       // Ongoing absences (for Discord /manual-loa)
       if (url.pathname === '/api/absence/ongoing') {
-        const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+        const data = await getSheetsData(env, 'cirklehrAbsences!A2:J1000');
         const today = new Date();
         const absences = data.slice(1)
           .filter(row => {
@@ -842,7 +842,7 @@ export default {
       // Fetch user absences
       if (url.pathname.startsWith('/api/user/absences/')) {
         const userId = url.pathname.split('/').pop();
-        const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+        const data = await getSheetsData(env, 'cirklehrAbsences!A2:J1000');
         const absences = data.slice(1)
           .filter(row => row[7] === userId) // Column H: User ID
           .map(row => ({
@@ -1070,7 +1070,7 @@ export default {
         
         try {
           // Find the absence row in Google Sheets
-          const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+          const data = await getSheetsData(env, 'cirklehrAbsences!A2:J1000');
           
           for (let i = 1; i < data.length; i++) {
             const row = data[i];
@@ -1786,7 +1786,7 @@ export default {
       }
       
       // Process absence approvals/rejections
-      const absencesData = await getSheetsData(env, 'cirklehrAbsences!A:J');
+      const absencesData = await getSheetsData(env, 'cirklehrAbsences!A2:J1000');
       for (let i = 1; i < absencesData.length; i++) {
         const row = absencesData[i];
         const action = (row[6] || '').trim().toLowerCase();  // Column G
