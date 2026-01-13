@@ -884,6 +884,44 @@ export default {
         ]]);
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
+
+      // Admin fetch all absences endpoint
+      if (url.pathname === '/api/admin/absences' && request.method === 'GET') {
+        try {
+          const data = await getSheetsData(env, 'cirklehrAbsences!A2:J1000');
+          
+          const absences = (data || []).map((row, index) => {
+            const rowIndex = index + 2; // Row 2 is the first data row (index 0)
+            return {
+              rowIndex: rowIndex,
+              name: row[0] || '',           // A: Name
+              startDate: row[1] || '',      // B: Start Date
+              endDate: row[2] || '',        // C: End Date
+              reason: row[3] || '',         // D: Reason
+              totalDays: row[4] || 0,       // E: Total Days
+              comment: row[5] || '',        // F: Comment
+              status: (row[6] || 'pending').toLowerCase(), // G: Approval Status (Pending/Approved/Rejected)
+              discordId: row[7] || '',      // H: Discord ID
+              timestamp: row[8] || '',      // I: Timestamp
+              acknowledgment: row[9] || ''  // J: Acknowledgment
+            };
+          }).filter(absence => {
+            // Filter out empty rows and header rows
+            if (!absence.name) return false;
+            // Skip header row (contains "Name", "Start Date", etc.)
+            if (absence.name === 'Name' || absence.startDate === 'Start Date') return false;
+            return true;
+          });
+          
+          return new Response(JSON.stringify({ success: true, absences }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[ADMIN] Error fetching absences:', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), { 
+            headers: corsHeaders,
+            status: 500
+          });
+        }
+      }
       
       // Absence approval
       // Admin absence update status endpoint
