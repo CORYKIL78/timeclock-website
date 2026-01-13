@@ -379,12 +379,16 @@ export default {
             const endDate = row[2];       // Column C
             
             // Match by name or Discord ID
-            if ((rowName === name || rowDiscordId === discordId) && absenceStatus && absenceStatus !== 'Pending') {
+            // Check if status is not empty and not 'Pending'
+            const normalizedStatus = (absenceStatus || '').trim().toLowerCase();
+            if ((rowName === name || rowDiscordId === discordId) && normalizedStatus && normalizedStatus !== 'pending') {
               hasNewStatuses = true;
+              // Handle variations: 'Approved', 'Approve', 'Approved', 'APPROVED', etc.
+              const isApproved = normalizedStatus.startsWith('approv'); // Matches 'approved' and 'approve'
               processedAbsences.push({
                 startDate,
                 endDate,
-                status: absenceStatus.toLowerCase().includes('approved') ? 'approved' : 'rejected',
+                status: isApproved ? 'approved' : 'rejected',
                 sheets_status: absenceStatus,
                 sheets_row: i + 1
               });

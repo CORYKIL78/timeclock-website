@@ -1746,8 +1746,18 @@ setInterval(async () => {
         if (payslipRes.ok) {
             const payslipData = await payslipRes.json();
             if (payslipData.hasNewPayslips) {
-                console.log(`[DEBUG] Acknowledged ${payslipData.count} new payslip(s)`);
-                addNotification('payslips', `💰 ${payslipData.count} new payslip${payslipData.count > 1 ? 's' : ''} available!`, 'payslips');
+                // Create unique key for this payslip notification
+                const payslipKey = `payslip_${payslipData.count}_${new Date().toDateString()}`;
+                
+                // Only send notification if we haven't notified about this batch before
+                if (!notifiedPayslips.has(payslipKey)) {
+                    console.log(`[DEBUG] NEW payslip notification, acknowledged ${payslipData.count} new payslip(s)`);
+                    notifiedPayslips.add(payslipKey);
+                    saveNotifiedPayslips();
+                    addNotification('payslips', `💰 ${payslipData.count} new payslip${payslipData.count > 1 ? 's' : ''} available!`, 'payslips');
+                } else {
+                    console.log('[DEBUG] Payslip notification already sent for this batch');
+                }
             }
         }
         
@@ -1761,8 +1771,18 @@ setInterval(async () => {
         if (disciplinaryRes.ok) {
             const disciplinaryData = await disciplinaryRes.json();
             if (disciplinaryData.hasNewDisciplinaries) {
-                console.log(`[DEBUG] Acknowledged ${disciplinaryData.count} new disciplinary action(s)`);
-                addNotification('disciplinaries', `⚠️ ${disciplinaryData.count} new disciplinary action${disciplinaryData.count > 1 ? 's' : ''} received!`, 'disciplinaries');
+                // Create unique key for this disciplinary notification
+                const disciplinaryKey = `disciplinary_${disciplinaryData.count}_${new Date().toDateString()}`;
+                
+                // Only send notification if we haven't notified about this batch before
+                if (!notifiedDisciplinaries.has(disciplinaryKey)) {
+                    console.log(`[DEBUG] NEW disciplinary notification, acknowledged ${disciplinaryData.count} new disciplinary action(s)`);
+                    notifiedDisciplinaries.add(disciplinaryKey);
+                    saveNotifiedDisciplinaries();
+                    addNotification('disciplinaries', `⚠️ ${disciplinaryData.count} new disciplinary action${disciplinaryData.count > 1 ? 's' : ''} received!`, 'disciplinaries');
+                } else {
+                    console.log('[DEBUG] Disciplinary notification already sent for this batch');
+                }
             }
         }
     } catch (e) {
@@ -1776,11 +1796,35 @@ let notifiedAbsences = new Set(
     JSON.parse(localStorage.getItem('notifiedAbsences') || '[]')
 );
 
+// Track which payslips/disciplinaries have already been notified about
+let notifiedPayslips = new Set(
+    JSON.parse(localStorage.getItem('notifiedPayslips') || '[]')
+);
+let notifiedDisciplinaries = new Set(
+    JSON.parse(localStorage.getItem('notifiedDisciplinaries') || '[]')
+);
+
 function saveNotifiedAbsences() {
     try {
         localStorage.setItem('notifiedAbsences', JSON.stringify(Array.from(notifiedAbsences)));
     } catch (e) {
         console.error('Error saving notified absences:', e);
+    }
+}
+
+function saveNotifiedPayslips() {
+    try {
+        localStorage.setItem('notifiedPayslips', JSON.stringify(Array.from(notifiedPayslips)));
+    } catch (e) {
+        console.error('Error saving notified payslips:', e);
+    }
+}
+
+function saveNotifiedDisciplinaries() {
+    try {
+        localStorage.setItem('notifiedDisciplinaries', JSON.stringify(Array.from(notifiedDisciplinaries)));
+    } catch (e) {
+        console.error('Error saving notified disciplinaries:', e);
     }
 }
 
@@ -2601,7 +2645,11 @@ async function updateEmbed(channelId, messageId, embed) {
 
 async function sendDM(userId, message) {
     try {
-        const response = await fetch(`${WORKER_URL}/sendDM?user_id=${userId}&message=${encodeURIComponent(message)}`);
+        const response = await fetch(`${WORKER_URL}/api/send-dm`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, embed: { title: 'Notification', description: message } })
+        });
         if (!response.ok) throw new Error(`DM failed: ${response.status} ${await response.text()}`);
         console.log('DM sent successfully to user:', userId);
     } catch (e) {
