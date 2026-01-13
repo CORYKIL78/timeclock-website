@@ -171,6 +171,22 @@ document.addEventListener('DOMContentLoaded', () => {
         console.debug('[syncAbsencesFromSheets] Starting sync for user:', currentUser.id);
         
         try {
+            // Check cache first
+            const cacheKey = `absences_${currentUser.id}`;
+            const cached = apiCache.get(cacheKey);
+            if (cached) {
+                console.debug('[syncAbsencesFromSheets] Using cached absences');
+                const data = cached;
+                if (data.absences && Array.isArray(data.absences)) {
+                    const emp = getEmployee(currentUser.id);
+                    if (emp) {
+                        emp.absences = data.absences;
+                        localStorage.setItem('employees', JSON.stringify(employees));
+                    }
+                }
+                return;
+            }
+            
             const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/user/absences/${currentUser.id}`);
             if (!response.ok) {
                 console.error('[syncAbsencesFromSheets] Failed to fetch:', response.status);
@@ -178,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const data = await response.json();
+            apiCache.set(cacheKey, data);
             console.debug('[syncAbsencesFromSheets] Fetched', data.absences?.length || 0, 'absences');
             
             if (data.absences && Array.isArray(data.absences)) {
@@ -832,6 +849,49 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 // --- USER PROFILE & STRIKES BACKEND INTEGRATION ---
 const BACKEND_URL = 'https://timeclock-backend.marcusray.workers.dev';
+
+// API Response Cache - Reduce quota usage
+const apiCache = {
+    data: {},
+    timestamps: {},
+    TTL: 30000, // 30 second cache
+    inFlight: {}, // Track in-flight requests to prevent duplicates
+    
+    set(key, value) {
+        this.data[key] = value;
+        this.timestamps[key] = Date.now();
+    },
+    
+    get(key) {
+        const timestamp = this.timestamps[key];
+        if (!timestamp) return null;
+        if (Date.now() - timestamp > this.TTL) {
+            delete this.data[key];
+            delete this.timestamps[key];
+            return null;
+        }
+        return this.data[key];
+    },
+    
+    isInFlight(key) {
+        return this.inFlight[key];
+    },
+    
+    setInFlight(key, promise) {
+        this.inFlight[key] = promise;
+    },
+    
+    clearInFlight(key) {
+        delete this.inFlight[key];
+    },
+    
+    clear() {
+        this.data = {};
+        this.timestamps = {};
+        this.inFlight = {};
+    }
+};
+
 // --- Backend Integration: Upsert User Profile ---
 async function upsertUserProfile() {
     try {
@@ -858,6 +918,14 @@ async function upsertUserProfile() {
 
 async function fetchUserProfile(discordId) {
     try {
+        // Check cache first
+        const cacheKey = `profile_${discordId}`;
+        const cached = apiCache.get(cacheKey);
+        if (cached) {
+            console.log('[fetchUserProfile] Using cached profile');
+            return cached;
+        }
+        
         console.log('[fetchUserProfile] Starting fetch for discordId:', discordId);
         console.log('[fetchUserProfile] Backend URL:', BACKEND_URL);
         console.log('[fetchUserProfile] Current origin:', window.location.origin);
@@ -891,6 +959,7 @@ async function fetchUserProfile(discordId) {
         const data = await res.json();
         console.log('[fetchUserProfile] Success! Data:', JSON.stringify(data));
         setProfileDebug('', false); // Clear any previous errors
+        apiCache.set(cacheKey, data);
         return data;
     } catch (e) {
         console.error('[fetchUserProfile] Exception caught:', e);
@@ -1073,14 +1142,37 @@ function showDisciplinaryDetails(disciplinary) {
 // Fetch employee reports from backend
 async function fetchEmployeeReports(userId) {
     try {
-        const res = await fetch(`${BACKEND_URL}/api/reports/fetch`, {
+        const cacheKey = `reports_${userId}`;
+        
+        // Check cache first
+        const cached = apiCache.get(cacheKey);
+        if (cached) {
+            console.log('[fetchEmployeeReports] Using cached reports');
+            return cached;
+        }
+        
+        // Check if request is already in flight
+        if (apiCache.isInFlight(cacheKey)) {
+            console.log('[fetchEmployeeReports] Request already in flight, waiting...');
+            return await apiCache.isInFlight(cacheKey);
+        }
+        
+        const fetchPromise = fetch(`${BACKEND_URL}/api/reports/fetch`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId })
+        }).then(async (res) => {
+            if (!res.ok) throw new Error('Failed to fetch employee reports');
+            const data = await res.json();
+            const reports = data.reports || [];
+            apiCache.set(cacheKey, reports);
+            return reports;
+        }).finally(() => {
+            apiCache.clearInFlight(cacheKey);
         });
-        if (!res.ok) throw new Error('Failed to fetch employee reports');
-        const data = await res.json();
-        return data.reports || [];
+        
+        apiCache.setInFlight(cacheKey, fetchPromise);
+        return await fetchPromise;
     } catch (e) {
         console.error('fetchEmployeeReports error:', e);
         return [];
