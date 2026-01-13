@@ -362,13 +362,13 @@ export default {
         try {
           const { name, discordId } = await request.json();
           
-          // Fetch all absences from Google Sheets
-          const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+          // Fetch absences from Google Sheets (limited to first 1000 rows for performance)
+          const data = await getSheetsData(env, 'cirklehrAbsences!A2:J1000');
           
           const processedAbsences = [];
           let hasNewStatuses = false;
           
-          for (let i = 1; i < data.length; i++) {
+          for (let i = 0; i < data.length; i++) {
             const row = data[i];
             // Column A: Name (or User ID), H: Discord ID
             // Column G: Approval status (Pending, Approved, Rejected, CANCELLED, VOIDED)
@@ -393,7 +393,7 @@ export default {
                 endDate,
                 status: isApproved ? 'approved' : 'rejected',
                 sheets_status: absenceStatus,
-                sheets_row: i + 1
+                sheets_row: i + 2  // Add 2 because data starts from row 2, and arrays are 0-indexed
               });
             }
           }
