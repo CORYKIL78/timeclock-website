@@ -372,16 +372,19 @@ export default {
             const row = data[i];
             // Column A: Name (or User ID), H: Discord ID
             // Column G: Approval status (Pending, Approved, Rejected, CANCELLED, VOIDED)
+            // Column I: Timestamp, Column J: Status (for tracking if user has acknowledged)
             const rowName = row[0];
             const rowDiscordId = row[7]; // Column H
             const absenceStatus = row[6]; // Column G: Approval status
             const startDate = row[1];     // Column B
             const endDate = row[2];       // Column C
+            const userAcknowledged = row[9]; // Column J: Used to track if user has been notified
             
             // Match by name or Discord ID
             // Check if status is not empty and not 'Pending'
             const normalizedStatus = (absenceStatus || '').trim().toLowerCase();
-            if ((rowName === name || rowDiscordId === discordId) && normalizedStatus && normalizedStatus !== 'pending') {
+            // Only return absences that have been decided (not pending) AND haven't been acknowledged yet
+            if ((rowName === name || rowDiscordId === discordId) && normalizedStatus && normalizedStatus !== 'pending' && !userAcknowledged) {
               hasNewStatuses = true;
               // Handle variations: 'Approved', 'Approve', 'Approved', 'APPROVED', etc.
               const isApproved = normalizedStatus.startsWith('approv'); // Matches 'approved' and 'approve'
@@ -420,6 +423,51 @@ export default {
         return new Response(JSON.stringify({ hasPending: false, disciplinaries: [] }), { 
           headers: corsHeaders 
         });
+      }
+      
+      // Mark absence as acknowledged (user has been notified)
+      if (url.pathname === '/api/absence/acknowledge' && request.method === 'POST') {
+        try {
+          const { startDate, endDate, discordId } = await request.json();
+          
+          if (!startDate || !endDate) {
+            return new Response(JSON.stringify({ success: false, error: 'startDate and endDate required' }), { 
+              status: 400,
+              headers: corsHeaders 
+            });
+          }
+          
+          // Fetch all absences from Google Sheets
+          const data = await getSheetsData(env, 'cirklehrAbsences!A:J');
+          
+          // Find the matching absence row
+          for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+            const rowStartDate = row[1];
+            const rowEndDate = row[2];
+            const rowDiscordId = row[7];
+            
+            if (rowStartDate === startDate && rowEndDate === endDate && rowDiscordId === discordId) {
+              // Mark column J as "notified" to prevent re-notification
+              await updateSheets(env, `cirklehrAbsences!J${i + 1}:J${i + 1}`, [['notified']]);
+              console.log(`[ABSENCE ACK] Marked absence as acknowledged for row ${i + 1}`);
+              return new Response(JSON.stringify({ success: true }), { 
+                headers: corsHeaders 
+              });
+            }
+          }
+          
+          return new Response(JSON.stringify({ success: false, error: 'Absence not found' }), { 
+            status: 404,
+            headers: corsHeaders 
+          });
+        } catch (error) {
+          console.error('[ABSENCE ACK] Error:', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
       }
       
       // Events removed - was broken

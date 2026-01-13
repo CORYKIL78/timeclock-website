@@ -1912,6 +1912,22 @@ setInterval(async () => {
                         } catch (e) {
                             console.error('Failed to send absence approval DM:', e);
                         }
+                        
+                        // Mark absence as acknowledged in backend so it won't be returned again
+                        try {
+                            await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/acknowledge', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    startDate: processedAbsence.startDate,
+                                    endDate: processedAbsence.endDate,
+                                    discordId: currentUser.id
+                                })
+                            });
+                            console.log('[DEBUG] Marked absence as acknowledged:', absenceKey);
+                        } catch (e) {
+                            console.error('[DEBUG] Error acknowledging absence:', e);
+                        }
                     } else {
                         console.log('[DEBUG] Already notified about this change:', absenceKey);
                     }
@@ -2802,7 +2818,6 @@ async function addNotification(type, message, link, userId = currentUser.id) {
     const timestamp = new Date().toLocaleString();
     emp.notifications.push({ type, message, timestamp, link });
     updateEmployee(emp);
-    playNotificationSound();
     
     // Update currentNotifications array for immediate UI update
     currentNotifications = emp.notifications;
