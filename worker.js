@@ -886,6 +886,79 @@ export default {
       }
       
       // Absence approval
+      // Admin absence update status endpoint
+      if (url.pathname === '/api/admin/absence/update-status' && request.method === 'POST') {
+        try {
+          const { rowIndex, status } = await request.json();
+          
+          if (!rowIndex || !status) {
+            return new Response(JSON.stringify({ success: false, error: 'rowIndex and status required' }), { 
+              headers: corsHeaders, 
+              status: 400 
+            });
+          }
+          
+          // Fetch the absence row to get user info
+          const data = await getSheetsData(env, `cirklehrAbsences!A${rowIndex}:J${rowIndex}`);
+          if (!data || !data[0]) {
+            return new Response(JSON.stringify({ success: false, error: 'Absence not found' }), { 
+              headers: corsHeaders, 
+              status: 404 
+            });
+          }
+          
+          const absenceRow = data[0];
+          const discordId = absenceRow[7]; // Column H: Discord ID
+          const absenceType = absenceRow[3] || 'Absence'; // Column D: Reason/Type
+          const startDate = absenceRow[1]; // Column B
+          const endDate = absenceRow[2];   // Column C
+          
+          console.log(`[ADMIN] Updating absence at row ${rowIndex} to status: ${status}`);
+          
+          // Update columns G-J (Approval status, Approved by, Timestamp, Success status)
+          await updateSheets(env, `cirklehrAbsences!G${rowIndex}:J${rowIndex}`, [[
+            status === 'Approved' ? 'Approved' : 'Rejected',
+            'Admin Portal',
+            new Date().toISOString(),
+            '✅ Updated'
+          ]]);
+          
+          // Mark as acknowledged in column J to prevent re-notification
+          await updateSheets(env, `cirklehrAbsences!J${rowIndex}`, [['notified']]);
+          
+          // Send Discord DM if bot token available
+          if (discordId && env.DISCORD_BOT_TOKEN) {
+            try {
+              const isApproved = status === 'Approved';
+              const emoji = isApproved ? '✅' : '❌';
+              const statusText = isApproved ? 'approved' : 'rejected';
+              const color = isApproved ? 0x00ff00 : 0xff0000;
+              
+              await sendDM(env, discordId, {
+                title: `${emoji} Absence Request ${statusText.charAt(0).toUpperCase() + statusText.slice(1)}`,
+                description: `Your absence request has been ${statusText}!\n\n**Dates:** ${startDate} to ${endDate}\n**Status:** ${statusText.charAt(0).toUpperCase() + statusText.slice(1)}`,
+                color: color,
+                footer: { text: 'Cirkle Development HR Portal' },
+                timestamp: new Date().toISOString()
+              });
+              console.log(`[ADMIN] DM sent to user ${discordId}`);
+            } catch (e) {
+              console.error('[ADMIN] Failed to send DM:', e);
+            }
+          }
+          
+          return new Response(JSON.stringify({ success: true, message: `Absence ${status.toLowerCase()}` }), { 
+            headers: corsHeaders 
+          });
+        } catch (error) {
+          console.error('[ADMIN] Error updating absence:', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), { 
+            headers: corsHeaders,
+            status: 500
+          });
+        }
+      }
+
       if (url.pathname === '/api/absence/approve') {
         const { rowIndex, approved, approverId } = await request.json();
         const status = approved ? 'Approved' : 'Rejected';
