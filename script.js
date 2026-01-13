@@ -48,6 +48,43 @@ function setAuthDebug(msg, isError) {
 }
 
 // Simple profile display update using Discord data - GLOBAL FUNCTION
+
+// Global request deduplicator - prevents duplicate API calls within 30 seconds
+const requestDeduplicator = {
+    pending: new Map(),  // Map of endpoint -> Promise
+    lastCall: new Map(), // Map of endpoint -> timestamp
+    TTL: 30000, // 30 seconds
+    
+    async execute(endpoint, fn) {
+        // Check if we have a pending request for this endpoint
+        if (this.pending.has(endpoint)) {
+            console.log(`[DEDUP] Returning pending request for ${endpoint}`);
+            return await this.pending.get(endpoint);
+        }
+        
+        // Check if we have a cached result within TTL
+        const lastTime = this.lastCall.get(endpoint);
+        if (lastTime && Date.now() - lastTime < this.TTL) {
+            console.log(`[DEDUP] Result still fresh for ${endpoint}, returning cached`);
+            return this.lastResult.get(endpoint);
+        }
+        
+        // Create new request
+        const promise = fn().then(result => {
+            this.lastCall.set(endpoint, Date.now());
+            if (!this.lastResult) this.lastResult = new Map();
+            this.lastResult.set(endpoint, result);
+            this.pending.delete(endpoint);
+            return result;
+        }).catch(error => {
+            this.pending.delete(endpoint);
+            throw error;
+        });
+        
+        this.pending.set(endpoint, promise);
+        return await promise;
+    }
+};
 function updateProfileDisplay() {
     if (!currentUser) return;
     
