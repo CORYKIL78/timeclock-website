@@ -1060,11 +1060,11 @@ async function fetchUserStrikes(discordId) {
         const res = await fetch(`${BACKEND_URL}/api/disciplinaries/fetch`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ staffId: discordId })
+            body: JSON.stringify({ userId: discordId })
         });
         if (!res.ok) throw new Error('Failed to fetch disciplinaries');
         const data = await res.json();
-        return data.disciplinaries || [];
+        return Array.isArray(data) ? data : (data.disciplinaries || []);
     } catch (e) {
         console.error('fetchUserStrikes error:', e);
         return [];
@@ -1941,21 +1941,18 @@ function saveNotifiedDisciplinaries() {
 let lastPayslipCheck = localStorage.getItem('lastPayslipCheck') ? JSON.parse(localStorage.getItem('lastPayslipCheck')) : {};
 setInterval(async () => {
     if (!window.currentUser) return;
-    const emp = getEmployee(window.currentUser.id);
-    const staffId = emp.profile?.staffId;
-    if (!staffId) return;
     
     try {
         const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/payslips/fetch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ staffId })
+            body: JSON.stringify({ userId: window.currentUser.id })
         });
         
         if (!res.ok) return;
         
         const data = await res.json();
-        const payslips = data.payslips || [];
+        const payslips = Array.isArray(data) ? data : (data.payslips || []);
         
         // Check if there are new payslips
         const userKey = window.currentUser.id;
@@ -2007,21 +2004,18 @@ setInterval(async () => {
 let lastDisciplinaryCheck = localStorage.getItem('lastDisciplinaryCheck') ? JSON.parse(localStorage.getItem('lastDisciplinaryCheck')) : {};
 setInterval(async () => {
     if (!window.currentUser) return;
-    const emp = getEmployee(window.currentUser.id);
-    const staffId = emp.profile?.staffId || 'Not assigned'; // Use actual staff ID
-    if (!staffId || staffId === 'Not assigned') return;
     
     try {
         const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/disciplinaries/fetch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ staffId })
+            body: JSON.stringify({ userId: window.currentUser.id })
         });
         
         if (!res.ok) return;
         
         const data = await res.json();
-        const disciplinaries = data.disciplinaries || [];
+        const disciplinaries = Array.isArray(data) ? data : (data.disciplinaries || []);
         
         // Check if there are new disciplinaries
         const userKey = window.currentUser.id;
@@ -3038,47 +3032,20 @@ function updateMainScreen() {
 }
 
 async function fetchRoleNames() {
-    try {
-        const response = await fetch(`${WORKER_URL}/roles/${GUILD_ID}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors'
-        });
-        if (!response.ok) throw new Error(`Role fetch failed: ${response.status} ${await response.text()}`);
-        const roles = await response.json();
-        roleNames = roles.reduce((acc, role) => {
-            acc[role.id] = role.name;
-            return acc;
-        }, {});
-        console.log('Role names fetched:', roleNames);
-    } catch (e) {
-        console.error('Role fetch error:', e);
-    }
+    // NOTE: /roles/{GUILD_ID} endpoint not available in backend
+    // Discord roles are managed through the staff portal
+    console.log('[INIT] fetchRoleNames DISABLED - roles managed through portal');
+    return;
 }
 
 async function fetchEmployees() {
+    // NOTE: /members/{GUILD_ID} endpoint not available in backend
+    // Using locally cached employee data from localStorage instead
     try {
-        const response = await fetch(`${WORKER_URL}/members/${GUILD_ID}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors'
-        });
-        if (!response.ok) throw new Error(`Members fetch failed: ${response.status} ${await response.text()}`);
-        const members = await response.json();
-        employees = members.map(member => {
-            const existing = getEmployee(member.user.id);
-            return {
-                ...existing,
-                id: member.user.id,
-                name: member.name || member.user.username,
-                email: member.email,
-                department: member.department,
-                avatar: member.user.avatar ? `https://cdn.discordapp.com/avatars/${member.user.id}/${member.user.avatar}.png?size=128` : `https://cdn.discordapp.com/embed/avatars/0.png`,
-                roles: member.roles || []
-            };
-        });
-        saveEmployees();
-        console.log('Employees fetched:', employees);
+        console.log('[INIT] fetchEmployees - using local cache since /members endpoint unavailable');
+        // Employees are loaded from localStorage automatically
+        // This function is now a no-op but kept for compatibility
+        return;
     } catch (e) {
         console.error('Employees fetch error:', e);
     }
@@ -3370,33 +3337,15 @@ async function handleOAuthRedirect() {
     await new Promise(r => setTimeout(r, 500));
 
     console.log('[LOGIN] Step 1: Fetching Discord guild member data with roles...');
-    let discordMember;
-    try {
-        const membersResponse = await fetch(`${WORKER_URL}/members/${GUILD_ID}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors'
-        });
-        if (membersResponse.ok) {
-            const allMembers = await membersResponse.json();
-            discordMember = allMembers.find(m => m.user.id === user.id);
-            console.log('[LOGIN] Discord member data:', discordMember);
-        }
-    } catch (e) {
-        console.error('[LOGIN] Failed to fetch Discord member data:', e);
-    }
-
-    // Check if user has required role
-    if (discordMember && !discordMember.roles.includes(REQUIRED_ROLE)) {
-        console.log('[LOGIN] User lacks required role:', REQUIRED_ROLE);
-        showModal('alert', 'You do not have the required permissions to access this portal. Please contact HR.');
-        localStorage.removeItem('lastProcessedCode');
-        window.history.replaceState({}, document.title, REDIRECT_URI);
-        showScreen('discord');
-        return;
-    }
+    // NOTE: /members/{GUILD_ID} endpoint removed - not available in backend
+    // Discord roles are now managed through the staff portal admin system
+    // Role enforcement is skipped - all users with valid Discord auth can access the portal
+    console.log('[LOGIN] Discord role checking DISABLED - using backend OAuth only');
 
     console.log('[LOGIN] Step 2: Fetching user profile from KV...');
+    // Wait a brief moment for the /auth endpoint to create the profile in KV
+    await new Promise(r => setTimeout(r, 500));
+    
     let member;
     try {
         const response = await fetch(`${WORKER_URL}/api/user/profile`, {
@@ -3413,16 +3362,14 @@ async function handleOAuthRedirect() {
                 name: user.global_name || user.username,
                 email: 'Not set',
                 department: 'Not set',
-                roles: discordMember?.roles || [],
+                roles: [],
                 baseLevel: '',
                 timezone: '',
                 country: ''
             };
         } else {
             member = await response.json();
-            // Merge Discord roles with Sheets data
-            member.roles = discordMember?.roles || member.roles || [];
-            console.log('Member data received from sheets:', member);
+            console.log('Member data received from KV:', member);
         }
     } catch (e) {
         console.error('Member fetch error:', e.message);
@@ -3432,7 +3379,7 @@ async function handleOAuthRedirect() {
             name: user.global_name || user.username,
             email: 'Not set',
             department: 'Not set',
-            roles: discordMember?.roles || [],
+            roles: [],
             baseLevel: '',
             timezone: '',
             country: ''
@@ -3440,18 +3387,14 @@ async function handleOAuthRedirect() {
         console.log('Using placeholder profile due to fetch error');
     }
 
-    console.log('[LOGIN] Step 3: Fetching role names...');
-    await fetchRoleNames();
-    console.log('[LOGIN] Role names fetched');
-    
-    console.log('[LOGIN] Step 4: Fetching all employees...');
+    console.log('[LOGIN] Step 3: Fetching all employees...');
     await fetchEmployees();
     console.log('[LOGIN] Employees fetched');
 
-    console.log('[LOGIN] Step 5: Creating user profile...');
+    console.log('[LOGIN] Step 4: Creating user profile...');
 
-    // Use member data from Google Sheets directly - SKIP backend profile fetch
-    console.log('[LOGIN] Using member data from Google Sheets');
+    // Use member data from KV
+    console.log('[LOGIN] Using member data from KV');
     console.log('[LOGIN] Member data:', member);
     
     let isFirstTime = false;
@@ -6315,7 +6258,7 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
         const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/payslips/fetch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ staffId })
+            body: JSON.stringify({ userId: staffId })
         });
         
         if (!res.ok) {
@@ -6323,7 +6266,7 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
         }
         
         const data = await res.json();
-        const payslips = data.payslips || [];
+        const payslips = Array.isArray(data) ? data : (data.payslips || []);
         
         console.log('[DEBUG] Fetched payslips:', payslips);
         console.log('[DEBUG] Number of payslips:', payslips.length);
@@ -6473,7 +6416,7 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
         const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/disciplinaries/fetch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ staffId })
+            body: JSON.stringify({ userId: staffId })
         });
         
         if (!res.ok) {
@@ -6481,7 +6424,7 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
         }
         
         const data = await res.json();
-        const disciplinaries = data.disciplinaries || [];
+        const disciplinaries = Array.isArray(data) ? data : (data.disciplinaries || []);
         
         console.log('[DEBUG] Fetched disciplinaries:', disciplinaries);
         
