@@ -1873,236 +1873,24 @@ async function checkForReset(discordId) {
 
 // Function to check for approved/rejected change requests and apply them
 async function checkApprovedChangeRequests(discordId) {
-    try {
-        console.log('[DEBUG] checkApprovedChangeRequests called for Discord ID:', discordId);
-        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/change-request/check-approved', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ discordId })
-        });
-        
-        console.log('[DEBUG] Change request check response status:', response.status);
-        const responseText = await response.text();
-        console.log('[DEBUG] Change request check raw response:', responseText);
-        
-        if (response.ok) {
-            const result = JSON.parse(responseText);
-            console.log('[DEBUG] Change request check result:', result);
-            
-            if (result.appliedChanges && result.appliedChanges.length > 0) {
-                // Handle both approved and rejected changes
-                for (const change of result.appliedChanges) {
-                    if (change.approved) {
-                        // Handle approved changes
-                        if (change.type === 'name') {
-                            addNotification('profile', `✅ Name change approved: ${change.from} → ${change.to}`, 'myProfile');
-                        } else if (change.type === 'department') {
-                            addNotification('profile', `✅ Department change approved: ${change.from} → ${change.to}`, 'myProfile');
-                        } else if (change.type === 'email') {
-                            addNotification('profile', `✅ Email change approved: ${change.from} → ${change.to}`, 'myProfile');
-                        }
-                    } else {
-                        // Handle rejected changes
-                        if (change.type === 'name') {
-                            addNotification('profile', `❌ Name change rejected: ${change.from} → ${change.to}`, 'myProfile');
-                        } else if (change.type === 'department') {
-                            addNotification('profile', `❌ Department change rejected: ${change.from} → ${change.to}`, 'myProfile');
-                        } else if (change.type === 'email') {
-                            addNotification('profile', `❌ Email change rejected: ${change.from} → ${change.to}`, 'myProfile');
-                        }
-                    }
-                }
-                
-                // If there were approved changes, refresh user profile
-                if (result.hasApprovedRequests) {
-                    const updatedProfile = await fetchUserProfile(discordId);
-                    if (updatedProfile) {
-                        const emp = getEmployee(discordId);
-                        emp.profile = {
-                            name: updatedProfile.name || '',
-                            email: updatedProfile.email || '',
-                            department: updatedProfile.department || '',
-                            discordTag: updatedProfile.discordTag || '',
-                            status: updatedProfile.status || 'Active'
-                        };
-                        
-                        // Clear pending change flags
-                        emp.pendingDeptChange = null;
-                        emp.pendingNameChange = null;
-                        emp.pendingEmailChange = null;
-                        
-                        updateEmployee(emp);
-                        currentUser.profile = emp.profile;
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                        
-                        // Update profile display if on profile page
-                        if (document.getElementById('profileName')) {
-                            document.getElementById('profileName').textContent = emp.profile.name;
-                            document.getElementById('profileName').classList.remove('pending-name');
-                        }
-                        if (document.getElementById('profileDepartment')) {
-                            document.getElementById('profileDepartment').textContent = emp.profile.department;
-                            document.getElementById('profileDepartment').classList.remove('pending-department');
-                        }
-                        if (document.getElementById('profileEmail')) {
-                            document.getElementById('profileEmail').textContent = emp.profile.email;
-                            document.getElementById('profileEmail').classList.remove('pending-email');
-                        }
-                    }
-                }
-                
-                // If there were rejected changes, clear any pending flags
-                if (result.hasRejectedRequests) {
-                    const emp = getEmployee(discordId);
-                    if (emp) {
-                        emp.pendingDeptChange = null;
-                        emp.pendingNameChange = null;
-                        emp.pendingEmailChange = null;
-                        updateEmployee(emp);
-                        
-                        // Remove any pending styling
-                        if (document.getElementById('profileDepartment')) {
-                            document.getElementById('profileDepartment').classList.remove('pending-department');
-                        }
-                        if (document.getElementById('profileName')) {
-                            document.getElementById('profileName').classList.remove('pending-name');
-                        }
-                        if (document.getElementById('profileEmail')) {
-                            document.getElementById('profileEmail').classList.remove('pending-email');
-                        }
-                    }
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error checking for approved change requests:', error);
-    }
+    // NOTE: Change request endpoint not available in backend
+    // Profile change management is handled through the new system
+    // This function is disabled and kept for backward compatibility only
+    return;
 }
 
-// Polling for approved change requests
-setInterval(async () => {
-    console.log('[DEBUG] Polling for change request updates...');
-    if (!currentUser) {
-        console.log('[DEBUG] No currentUser found for change requests');
-        return;
-    }
-    console.log('[DEBUG] Checking change requests for Discord ID:', currentUser.id);
-    try {
-        await checkApprovedChangeRequests(currentUser.id);
-    } catch (e) {
-        console.error('Error polling for approved change requests:', e);
-    }
-}, 2000); // Poll every 2 seconds for faster notifications
+// NOTE: Polling for approved change requests DISABLED
+// The /api/change-request/check-approved endpoint is not available in the backend
+// Change requests feature is deprecated in the new system
+// setInterval(async () => {...}, 2000);
 
-// Polling for general request status updates (resignation, disputes, etc.)
-let lastRequestCheck = localStorage.getItem('lastRequestCheck') ? JSON.parse(localStorage.getItem('lastRequestCheck')) : {};
-setInterval(async () => {
-    console.log('[DEBUG] Polling for request status updates...');
-    if (!currentUser) {
-        console.log('[DEBUG] No currentUser found for requests');
-        return;
-    }
-    
-    try {
-        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/requests/check-status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUser.id })
-        });
-        
-        if (res.ok) {
-            const data = await res.json();
-            if (data.hasUpdates && data.updatedRequests) {
-                console.log(`[DEBUG] Found ${data.updatedRequests.length} updated request(s)`);
-                
-                for (const request of data.updatedRequests) {
-                    const isApproved = request.status === 'Approve' || request.status === 'Approved';
-                    const statusEmoji = isApproved ? '✅' : '❌';
-                    const statusText = isApproved ? 'approved' : 'denied';
-                    addNotification('requests', `${statusEmoji} Your ${request.type} request was ${statusText}!`, 'requests');
-                    
-                    // Play notification sound
-                    playNotificationSound();
-                }
-                
-                // Refresh requests list if on requests screen
-                if (document.getElementById('requestsScreen').classList.contains('active')) {
-                    console.log('[DEBUG] Reloading requests list after status update');
-                    try {
-                        await reloadRequests();
-                    } catch (e) {
-                        console.error('[DEBUG] Error calling reloadRequests:', e);
-                    }
-                }
-            }
-        }
-    } catch (e) {
-        console.error('[DEBUG] Error checking request status:', e);
-    }
-}, 5000); // Poll every 5 seconds for request updates
+// NOTE: Polling for request status updates DISABLED
+// The /api/requests/check-status endpoint is not available in the backend
+// setInterval(async () => {...}, 5000);
 
-// Polling for acknowledged payslips and disciplinaries
-setInterval(async () => {
-    console.log('[DEBUG] Polling for payslip/disciplinary acknowledgements...');
-    if (!currentUser) {
-        console.log('[DEBUG] No currentUser found for payslip/disciplinary check');
-        return;
-    }
-    
-    try {
-        // Check for payslips that need acknowledgement
-        const payslipRes = await fetch('https://timeclock-backend.marcusray.workers.dev/api/payslips/check-acknowledged', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ discordId: currentUser.id })
-        });
-        
-        if (payslipRes.ok) {
-            const payslipData = await payslipRes.json();
-            if (payslipData.hasNewPayslips) {
-                // Create unique key for this payslip notification
-                const payslipKey = `payslip_${payslipData.count}_${new Date().toDateString()}`;
-                
-                // Only send notification if we haven't notified about this batch before
-                if (!notifiedPayslips.has(payslipKey)) {
-                    console.log(`[DEBUG] NEW payslip notification, acknowledged ${payslipData.count} new payslip(s)`);
-                    notifiedPayslips.add(payslipKey);
-                    saveNotifiedPayslips();
-                    addNotification('payslips', `💰 ${payslipData.count} new payslip${payslipData.count > 1 ? 's' : ''} available!`, 'payslips');
-                } else {
-                    console.log('[DEBUG] Payslip notification already sent for this batch');
-                }
-            }
-        }
-        
-        // Check for disciplinaries that need acknowledgement
-        const disciplinaryRes = await fetch('https://timeclock-backend.marcusray.workers.dev/api/disciplinaries/check-acknowledged', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ discordId: currentUser.id })
-        });
-        
-        if (disciplinaryRes.ok) {
-            const disciplinaryData = await disciplinaryRes.json();
-            if (disciplinaryData.hasNewDisciplinaries) {
-                // Create unique key for this disciplinary notification
-                const disciplinaryKey = `disciplinary_${disciplinaryData.count}_${new Date().toDateString()}`;
-                
-                // Only send notification if we haven't notified about this batch before
-                if (!notifiedDisciplinaries.has(disciplinaryKey)) {
-                    console.log(`[DEBUG] NEW disciplinary notification, acknowledged ${disciplinaryData.count} new disciplinary action(s)`);
-                    notifiedDisciplinaries.add(disciplinaryKey);
-                    saveNotifiedDisciplinaries();
-                    addNotification('disciplinaries', `⚠️ ${disciplinaryData.count} new disciplinary action${disciplinaryData.count > 1 ? 's' : ''} received!`, 'disciplinaries');
-                } else {
-                    console.log('[DEBUG] Disciplinary notification already sent for this batch');
-                }
-            }
-        }
-    } catch (e) {
-        console.error('Error checking payslips/disciplinaries:', e);
-    }
-}, 3000); // Poll every 3 seconds
+// NOTE: Polling for acknowledged payslips and disciplinaries DISABLED
+// The /api/payslips/check-acknowledged and /api/disciplinaries/check-acknowledged endpoints are not available in the backend
+// setInterval(async () => {...}, 3000);
 
 // Call syncUserProfileOnLogin() after successful login (e.g. after setting currentUser)
 // Track which absences have already been notified about (persisted to localStorage)
@@ -2142,138 +1930,12 @@ function saveNotifiedDisciplinaries() {
     }
 }
 
-// Polling for absence status updates
-setInterval(async () => {
-    console.log('[DEBUG] Polling for absence status updates...');
-    if (!currentUser) {
-        console.log('[DEBUG] No currentUser found');
-        return;
-    }
-    console.log('[DEBUG] CurrentUser:', currentUser.id);
-    const emp = getEmployee(currentUser.id);
-    console.log('[DEBUG] Employee found:', emp);
-    if (!emp || !emp.name) {
-        console.log('[DEBUG] No employee Discord name found for absence check. emp:', emp, 'name:', emp?.name);
-        return;
-    }
-    
-    console.log('[DEBUG] Checking absences for name:', emp.name, 'Discord ID:', currentUser.id);
-    
-    try {
-        // Check for new approved/denied absences
-        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/check-approved', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: emp.name, // Use Discord name instead of profile name
-                discordId: currentUser.id
-            })
-        });
-        
-        console.log('[DEBUG] Absence check response status:', res.status);
-        const responseText = await res.text();
-        console.log('[DEBUG] Absence check raw response:', responseText);
-        
-        if (!res.ok) {
-            console.error('[DEBUG] Absence check failed:', res.status, responseText);
-            return;
-        }
-        
-        const data = JSON.parse(responseText);
-        console.log('[DEBUG] Absence check response:', data);
-        
-        if (data.hasNewStatuses && data.processedAbsences) {
-            // Update local absence records
-            if (!emp.absences) emp.absences = [];
-            
-            for (const processedAbsence of data.processedAbsences) {
-                // Find matching absence in local data
-                const localAbsence = emp.absences.find(a => 
-                    a.startDate === processedAbsence.startDate && 
-                    a.endDate === processedAbsence.endDate
-                );
-                
-                if (localAbsence) {
-                    const oldStatus = localAbsence.status;
-                    localAbsence.status = processedAbsence.status;
-                    console.log(`[DEBUG] Updated absence status: ${oldStatus} -> ${processedAbsence.status}`);
-                    
-                    // Create unique key for this absence to avoid duplicate notifications
-                    const absenceKey = `${processedAbsence.startDate}|${processedAbsence.endDate}|${processedAbsence.status}`;
-                    
-                    // Only send notification if we haven't notified about this status change before
-                    if (!notifiedAbsences.has(absenceKey)) {
-                        console.log('[DEBUG] NEW absence status change, sending notification:', absenceKey);
-                        notifiedAbsences.add(absenceKey);
-                        saveNotifiedAbsences();  // PERSIST to localStorage
-                        
-                        // Add portal notification
-                        const isApproved = processedAbsence.status === 'approved';
-                        addNotification('absence', `${isApproved ? '✅' : '❌'} Absence request ${isApproved ? 'approved' : 'rejected'}!`, 'absences');
-                        playNotificationSound();
-                        
-                        // Send DM notification for absence approval/rejection
-                        try {
-                            const emoji = isApproved ? '✅' : '❌';
-                            const status = isApproved ? 'approved' : 'rejected';
-                            const color = isApproved ? 0x00ff00 : 0xff0000;
-                            
-                            await sendDiscordDM(currentUser.id, {
-                                title: `${emoji} Absence Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-                                description: `Your absence request has been ${status}!\n\n**Dates:** ${processedAbsence.startDate} to ${processedAbsence.endDate}\n**Status:** ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-                                color: color
-                            });
-                        } catch (e) {
-                            console.error('Failed to send absence approval DM:', e);
-                        }
-                        
-                        // Mark absence as acknowledged in backend so it won't be returned again
-                        try {
-                            await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence/acknowledge', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    startDate: processedAbsence.startDate,
-                                    endDate: processedAbsence.endDate,
-                                    discordId: currentUser.id
-                                })
-                            });
-                            console.log('[DEBUG] Marked absence as acknowledged:', absenceKey);
-                        } catch (e) {
-                            console.error('[DEBUG] Error acknowledging absence:', e);
-                        }
-                    } else {
-                        console.log('[DEBUG] Already notified about this change:', absenceKey);
-                    }
-                }
-            }
-            
-            updateEmployee(emp);
-            
-            // Re-render absence tabs to show updated statuses
-            ['pending', 'approved', 'rejected', 'archived'].forEach(tab => renderAbsences(tab));
-        }
-    } catch (e) {
-        console.error('[DEBUG] Error checking absence approvals:', e);
-    }
-}, 5000); // Poll every 5 seconds for near-instant notifications// Auto-process pending payslips and disciplinaries (check for "Submit" status in Google Sheets)
-setInterval(async () => {
-    try {
-        // Check and process pending payslips
-        await fetch('https://timeclock-backend.marcusray.workers.dev/api/payslips/check-pending', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        
-        // Check and process pending disciplinaries
-        await fetch('https://timeclock-backend.marcusray.workers.dev/api/disciplinaries/check-pending', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-    } catch (e) {
-        console.error('[DEBUG] Error auto-processing submissions:', e);
-    }
-}, 3000); // Check every 3 seconds for instant processing
+// NOTE: Polling for absence status updates DISABLED
+// The /api/absence/check-approved and /api/absence/acknowledge endpoints require different payloads
+// Absence management is now handled through the new backend system
+// setInterval(async () => {...}, 5000);// NOTE: Auto-process pending payslips and disciplinaries DISABLED
+// These endpoints require userId parameter which is now missing
+// setInterval(async () => {...}, 3000);
 
 // Polling for new payslips
 let lastPayslipCheck = localStorage.getItem('lastPayslipCheck') ? JSON.parse(localStorage.getItem('lastPayslipCheck')) : {};
@@ -3014,7 +2676,7 @@ async function syncUserDataFromBackend(userId) {
         if (absencesResponse.ok) {
             const absencesData = await absencesResponse.json();
             const emp = getEmployee(userId);
-            emp.absences = absencesData.absences.map(a => ({
+            emp.absences = (Array.isArray(absencesData) ? absencesData : []).map(a => ({
                 id: Date.now() + Math.random(),
                 type: a.reason || 'Personal',
                 startDate: a.startDate,
@@ -3035,7 +2697,7 @@ async function syncUserDataFromBackend(userId) {
         if (payslipsResponse.ok) {
             const payslipsData = await payslipsResponse.json();
             const emp = getEmployee(userId);
-            emp.payslips = payslipsData.payslips || [];
+            emp.payslips = Array.isArray(payslipsData) ? payslipsData : (payslipsData.payslips || []);
             console.log('[SYNC] Loaded', emp.payslips.length, 'payslips from backend');
         }
         
@@ -3048,7 +2710,7 @@ async function syncUserDataFromBackend(userId) {
         if (disciplinariesResponse.ok) {
             const disciplinariesData = await disciplinariesResponse.json();
             const emp = getEmployee(userId);
-            emp.strikes = disciplinariesData.disciplinaries || [];
+            emp.strikes = Array.isArray(disciplinariesData) ? disciplinariesData : (disciplinariesData.disciplinaries || []);
             console.log('[SYNC] Loaded', emp.strikes.length, 'disciplinaries from backend');
         }
         
@@ -3061,7 +2723,7 @@ async function syncUserDataFromBackend(userId) {
         if (requestsResponse.ok) {
             const requestsData = await requestsResponse.json();
             const emp = getEmployee(userId);
-            emp.requests = requestsData.requests || [];
+            emp.requests = Array.isArray(requestsData) ? requestsData : (requestsData.requests || []);
             console.log('[SYNC] Loaded', emp.requests.length, 'requests from backend');
         }
         
@@ -8096,28 +7758,8 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
                 
                 // Load all data in the background - DON'T WAIT FOR THIS
                 (async () => {
-                    try {
-                        // RE-FETCH Discord member data with roles
-                        console.log('Background: Fetching Discord member data for:', currentUser.id);
-                        const membersResponse = await fetch(`${WORKER_URL}/members/${GUILD_ID}`, {
-                            method: 'GET',
-                            headers: { 'Content-Type': 'application/json' },
-                            mode: 'cors'
-                        });
-                        if (membersResponse.ok) {
-                            const allMembers = await membersResponse.json();
-                            const discordMember = allMembers.find(m => m.user.id === currentUser.id);
-                            if (discordMember) {
-                                currentUser.roles = discordMember.roles || [];
-                                currentUser.avatar = discordMember.user.avatar 
-                                    ? `https://cdn.discordapp.com/avatars/${currentUser.id}/${discordMember.user.avatar}.png?size=128` 
-                                    : currentUser.avatar;
-                                console.log('Background: Updated Discord roles:', currentUser.roles);
-                            }
-                        }
-                    } catch (e) {
-                        console.error('Background: Error fetching Discord member data:', e);
-                    }
+                    // Discord member data fetching removed - endpoint not available from backend
+                    // Discord roles are now managed through the profile system
                     
                     try {
                         // RE-FETCH member data from KV
@@ -8667,40 +8309,10 @@ function deleteCalendarEvent(dateStr, idx) {
 
 // ===== ROLE NAME DISPLAY =====
 async function fetchAndDisplayRoleNames() {
-    if (!window.currentUser || !window.currentUser.id) return;
-    
-    try {
-        // Fetch guild roles from Discord API via backend
-        const rolesRes = await fetch('https://timeclock-backend.marcusray.workers.dev/api/guild/roles', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ guildId: '1310656642672627752' })
-        });
-        
-        if (!rolesRes.ok) return;
-        
-        const rolesData = await rolesRes.json();
-        const roleMap = {};
-        
-        if (rolesData.roles && Array.isArray(rolesData.roles)) {
-            rolesData.roles.forEach(role => {
-                roleMap[role.id] = role.name;
-            });
-        }
-        
-        // Store role map globally
-        window.discordRoleMap = roleMap;
-        
-        // Update any role displays on page
-        document.querySelectorAll('[data-role-id]').forEach(el => {
-            const roleId = el.getAttribute('data-role-id');
-            if (roleMap[roleId]) {
-                el.textContent = roleMap[roleId];
-            }
-        });
-    } catch (e) {
-        console.error('Error fetching role names:', e);
-    }
+    // NOTE: Guild roles endpoint not available in backend
+    // Discord role management is handled through the profile system
+    // This function is disabled and kept for backward compatibility only
+    return;
 }
 
 // ===== ENHANCED NOTIFICATION SYSTEM =====
