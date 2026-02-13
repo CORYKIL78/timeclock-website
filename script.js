@@ -959,19 +959,26 @@ async function upsertUserProfile() {
             name: currentUser.profile.name,
             email: currentUser.profile.email,
             department: currentUser.profile.department,
-            timezone: currentUser.profile.timezone,
-            country: currentUser.profile.country
+            timezone: currentUser.profile.timezone || '',
+            country: currentUser.profile.country || '',
+            staffId: currentUser.profile.staffId || ''
         };
-        setProfileDebug('[upsertUserProfile] Sending payload: ' + JSON.stringify(payload), false);
-        const res = await fetch('https://timeclock-backend.marcusray.workers.dev/api/user/upsert', {
+        console.log('[upsertUserProfile] Saving profile to backend:', payload);
+        const res = await fetch(`${WORKER_URL}/api/user/profile/update`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            mode: 'cors',
             body: JSON.stringify(payload)
         });
-        const data = await res.json();
-        setProfileDebug('[upsertUserProfile] Backend response: ' + JSON.stringify(data), false);
+        if (res.ok) {
+            const data = await res.json();
+            console.log('[upsertUserProfile] Profile saved successfully:', data);
+            sessionStorage.removeItem('needsProfileSetup');
+        } else {
+            console.error('[upsertUserProfile] Backend error:', res.status);
+        }
     } catch (e) {
-        setProfileDebug('[User Upsert] Failed to upsert user profile: ' + e, true);
+        console.error('[upsertUserProfile] Failed to save profile:', e);
     }
 }
 
@@ -2344,6 +2351,7 @@ const NOTIFICATION_CHANNEL = '1417583684525232291';
 const screens = {
     discord: document.getElementById('discordScreen'),
     searching: document.getElementById('searchingScreen'),
+    loading: document.getElementById('loadingScreen'),
     sequentialLoading: document.getElementById('sequentialLoadingScreen'),
     roles: document.getElementById('rolesScreen'),
     cherry: document.getElementById('cherryScreen'),
@@ -3237,7 +3245,7 @@ async function handleOAuthRedirect() {
                         console.log('[OAUTH-SAVED] Profile completeness:', { staffId: bpHasStaffId, email: bpHasRealEmail, dept: bpHasRealDept, complete: bpIsComplete });
                         
                         if (!bpIsComplete) {
-                            console.log('[OAUTH-SAVED] Profile incomplete - redirecting to signup');
+                            console.log('[OAUTH-SAVED] Profile incomplete - redirecting to signup flow');
                             currentUser.profile = {
                                 name: backendProfile.name || currentUser.name,
                                 email: backendProfile.email || '',
@@ -3247,8 +3255,7 @@ async function handleOAuthRedirect() {
                             };
                             localStorage.setItem('currentUser', JSON.stringify(currentUser));
                             sessionStorage.setItem('needsProfileSetup', 'true');
-                            showModal('alert', 'Welcome! Please complete your profile to access the portal.\n\nUpdate your email and department on the next screen.');
-                            showScreen('myProfile');
+                            showScreen('setupWelcome');
                             return;
                         }
                         
@@ -3313,10 +3320,9 @@ async function handleOAuthRedirect() {
                         const bp2IsComplete = bp2HasStaffId || (bp2HasRealEmail && bp2HasRealDept);
                         
                         if (!bp2IsComplete) {
-                            console.log('[OAUTH-REUSE] Profile incomplete - redirecting to signup');
+                            console.log('[OAUTH-REUSE] Profile incomplete - redirecting to signup flow');
                             sessionStorage.setItem('needsProfileSetup', 'true');
-                            showModal('alert', 'Welcome! Please complete your profile to access the portal.\n\nUpdate your email and department on the next screen.');
-                            showScreen('myProfile');
+                            showScreen('setupWelcome');
                             return;
                         }
                     }
@@ -3450,7 +3456,7 @@ async function handleOAuthRedirect() {
     // Auto-created profile (from /auth endpoint) is NOT complete
     // User MUST complete signup before accessing portal
     if (!isProfileComplete) {
-        console.log('[LOGIN] ⚠️ Profile incomplete - redirecting to profile setup');
+        console.log('[LOGIN] ⚠️ Profile incomplete - redirecting to signup flow');
         
         // Store the Discord user data temporarily for signup form
         currentUser = {
@@ -3471,14 +3477,11 @@ async function handleOAuthRedirect() {
         localStorage.setItem('lastProcessedCode', code);
         window.history.replaceState({}, document.title, REDIRECT_URI);
         
-        // Show modal with setup instructions
-        showModal('alert', 'Welcome! Your account has been created.\n\nPlease complete your profile by updating your email and department on the next screen.\n\nAfter saving, you\'ll have full access to the portal.');
-        
         // Mark that they need to complete profile before accessing portal
         sessionStorage.setItem('needsProfileSetup', 'true');
         
-        // Show profile screen for setup
-        showScreen('myProfile');
+        // Send them through the proper signup flow
+        showScreen('setupWelcome');
         return;
     }
     
@@ -7746,7 +7749,7 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
                     console.log('[INIT] Profile completeness:', { staffId: initHasStaffId, email: initHasRealEmail, dept: initHasRealDept, complete: initProfileComplete });
                     
                     if (!initProfileComplete) {
-                        console.warn('[INIT] ⚠️ Profile exists but is INCOMPLETE - redirecting to signup');
+                        console.warn('[INIT] ⚠️ Profile exists but is INCOMPLETE - redirecting to signup flow');
                         // Update currentUser with latest profile data for the setup form
                         currentUser.profile = {
                             name: initProfile.name || currentUser.name,
@@ -7757,8 +7760,7 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
                         };
                         localStorage.setItem('currentUser', JSON.stringify(currentUser));
                         sessionStorage.setItem('needsProfileSetup', 'true');
-                        showModal('alert', 'Welcome! Please complete your profile to access the portal.\n\nUpdate your email and department on the next screen.');
-                        showScreen('myProfile');
+                        showScreen('setupWelcome');
                         return;
                     }
                     

@@ -1144,9 +1144,9 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <!-- Load environment configuration -->
     <script src="config-loader.js"></script>
-    <script src=".env-config.js"></script>
+    <script src=".env-config.js" onerror="console.log('[CONFIG] .env-config.js not found - using defaults')"></script>
     <!-- Main application script -->
-    <script src="script.js?v=2.0.4"></script>
+    <script src="script.js?v=2.0.5"></script>
     <script>
         // Force service worker update on every page load
         if ('serviceWorker' in navigator) {
