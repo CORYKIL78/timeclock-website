@@ -2143,6 +2143,342 @@ export default {
         return new Response(JSON.stringify({ status: 'active' }), { headers: corsHeaders });
       }
 
+      // ===========================================
+      // EMAIL API - Cirkle Mail using Resend
+      // ===========================================
+      
+      // Send email via Resend
+      if (url.pathname === '/api/email/send' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { from, to, cc, bcc, subject, html, replyTo } = body;
+          
+          if (!from || !to || !subject) {
+            return new Response(JSON.stringify({ success: false, error: 'Missing required fields' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+          
+          const resendResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              from: from,
+              to: Array.isArray(to) ? to : to.split(',').map(e => e.trim()),
+              cc: cc ? (Array.isArray(cc) ? cc : cc.split(',').map(e => e.trim())) : undefined,
+              bcc: bcc ? (Array.isArray(bcc) ? bcc : bcc.split(',').map(e => e.trim())) : undefined,
+              subject: subject,
+              html: html || '<p>No content</p>',
+              reply_to: replyTo
+            })
+          });
+          
+          const result = await resendResponse.json();
+          
+          if (!resendResponse.ok) {
+            return new Response(JSON.stringify({ success: false, error: result.message || 'Failed to send email' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+          
+          // Store in sent emails sheet
+          const senderEmail = from.match(/<(.+)>/)?.[1] || from;
+          await appendToSheet(env, 'cirklehrEmails!A:H', [[
+            result.id,
+            senderEmail,
+            Array.isArray(to) ? to.join(',') : to,
+            subject,
+            html || '',
+            new Date().toISOString(),
+            'sent',
+            ''
+          ]]);
+          
+          return new Response(JSON.stringify({ success: true, id: result.id }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+      
+      // Get inbox for user
+      if (url.pathname.startsWith('/api/email/inbox/') && request.method === 'GET') {
+        try {
+          const userEmail = url.pathname.split('/api/email/inbox/')[1];
+          const data = await getCachedSheetsData(env, 'cirklehrEmails!A3:H1000');
+          
+          const inbox = (data || [])
+            .filter(row => row[2] && row[2].toLowerCase().includes(userEmail.toLowerCase()) && row[6] !== 'sent')
+            .map(row => ({
+              id: row[0],
+              from: row[1],
+              to: row[2],
+              subject: row[3],
+              body: row[4],
+              timestamp: row[5],
+              status: row[6],
+              read: row[7] === 'true'
+            }))
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          
+          return new Response(JSON.stringify({ success: true, emails: inbox }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, emails: [] }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+      
+      // Get sent emails for user
+      if (url.pathname.startsWith('/api/email/sent/') && request.method === 'GET') {
+        try {
+          const userEmail = url.pathname.split('/api/email/sent/')[1];
+          const data = await getCachedSheetsData(env, 'cirklehrEmails!A3:H1000');
+          
+          const sent = (data || [])
+            .filter(row => row[1] && row[1].toLowerCase().includes(userEmail.toLowerCase()) && row[6] === 'sent')
+            .map(row => ({
+              id: row[0],
+              from: row[1],
+              to: row[2],
+              subject: row[3],
+              body: row[4],
+              timestamp: row[5],
+              status: row[6]
+            }))
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          
+          return new Response(JSON.stringify({ success: true, emails: sent }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, emails: [] }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+      
+      // Save draft
+      if (url.pathname === '/api/email/draft' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { discordId, to, cc, bcc, subject, html } = body;
+          
+          const draftId = `draft_${Date.now()}`;
+          await appendToSheet(env, 'cirklehrEmailDrafts!A:G', [[
+            draftId,
+            discordId,
+            to || '',
+            cc || '',
+            bcc || '',
+            subject || '',
+            html || '',
+            new Date().toISOString()
+          ]]);
+          
+          return new Response(JSON.stringify({ success: true, draftId }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+      
+      // Get drafts for user
+      if (url.pathname.startsWith('/api/email/drafts/') && request.method === 'GET') {
+        try {
+          const discordId = url.pathname.split('/api/email/drafts/')[1];
+          const data = await getCachedSheetsData(env, 'cirklehrEmailDrafts!A3:H1000');
+          
+          const drafts = (data || [])
+            .filter(row => row[1] === discordId)
+            .map(row => ({
+              id: row[0],
+              discordId: row[1],
+              to: row[2],
+              cc: row[3],
+              bcc: row[4],
+              subject: row[5],
+              body: row[6],
+              timestamp: row[7]
+            }))
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          
+          return new Response(JSON.stringify({ success: true, drafts }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, drafts: [] }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+      
+      // Get user's staff email
+      if (url.pathname.startsWith('/api/email/account/') && request.method === 'GET') {
+        try {
+          const discordId = url.pathname.split('/api/email/account/')[1];
+          const usersData = await getCachedSheetsData(env, 'cirklehrUsers!A3:Z1000');
+          
+          // Find user
+          const userRow = (usersData || []).find(row => row[0] === discordId);
+          if (!userRow) {
+            return new Response(JSON.stringify({ success: false, error: 'User not found' }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+          
+          // Generate email from name (first and last name)
+          const name = userRow[2] || userRow[1] || 'user';
+          const nameParts = name.toLowerCase().replace(/[^a-z\s]/g, '').trim().split(/\s+/);
+          let emailLocal = nameParts.length > 1 
+            ? nameParts[0] + nameParts[nameParts.length - 1]
+            : nameParts[0];
+          if (!emailLocal) emailLocal = discordId;
+          
+          const staffEmail = `${emailLocal}@staff.cirkledevelopment.co.uk`;
+          
+          return new Response(JSON.stringify({ 
+            success: true, 
+            email: staffEmail,
+            displayName: name,
+            discordId
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // ===========================================
+      // CALENDAR API
+      // ===========================================
+      
+      // Get calendar events
+      if (url.pathname === '/api/calendar/events' && request.method === 'GET') {
+        try {
+          const data = await getCachedSheetsData(env, 'cirklehrCalendar!A3:G1000');
+          
+          const events = (data || []).map((row, idx) => ({
+            id: row[0] || `event_${idx}`,
+            date: row[1],
+            title: row[2],
+            description: row[3],
+            type: row[4],
+            createdBy: row[5],
+            createdAt: row[6]
+          }));
+          
+          return new Response(JSON.stringify({ success: true, events }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, events: [] }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+      
+      // Add calendar event (admin only)
+      if (url.pathname === '/api/calendar/events' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { date, title, description, type, createdBy } = body;
+          
+          if (!date || !title) {
+            return new Response(JSON.stringify({ success: false, error: 'Date and title required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+          
+          const eventId = `event_${Date.now()}`;
+          await appendToSheet(env, 'cirklehrCalendar!A:G', [[
+            eventId,
+            date,
+            title,
+            description || '',
+            type || 'event',
+            createdBy || 'admin',
+            new Date().toISOString()
+          ]]);
+          
+          // Log admin action
+          await appendToSheet(env, 'cirklehrAdminLogs!A:E', [[
+            new Date().toISOString(),
+            createdBy || 'admin',
+            'calendar_event_added',
+            `Added event "${title}" on ${date}`,
+            eventId
+          ]]);
+          
+          return new Response(JSON.stringify({ success: true, eventId }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // ===========================================
+      // ADMIN ACTIVITY LOGS
+      // ===========================================
+      
+      // Get admin logs
+      if (url.pathname === '/api/admin/logs' && request.method === 'GET') {
+        try {
+          const data = await getCachedSheetsData(env, 'cirklehrAdminLogs!A3:E1000');
+          
+          const logs = (data || []).map(row => ({
+            timestamp: row[0],
+            adminId: row[1],
+            action: row[2],
+            details: row[3],
+            targetId: row[4]
+          })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          
+          return new Response(JSON.stringify({ success: true, logs }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, logs: [] }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+      
+      // Add admin log entry
+      if (url.pathname === '/api/admin/logs' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { adminId, action, details, targetId } = body;
+          
+          await appendToSheet(env, 'cirklehrAdminLogs!A:E', [[
+            new Date().toISOString(),
+            adminId || 'unknown',
+            action || 'unknown_action',
+            details || '',
+            targetId || ''
+          ]]);
+          
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
       return new Response(JSON.stringify({ error: 'Not found' }), { 
         status: 404, 
         headers: corsHeaders 
@@ -2163,6 +2499,135 @@ export default {
     // Migration Note: Scheduled tasks now handled by application events or external triggers
   }
 };
+
+// Helper function: Get Google Sheets access token
+async function getGoogleAccessToken(env) {
+  const privateKey = env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const clientEmail = env.GOOGLE_CLIENT_EMAIL;
+  
+  if (!privateKey || !clientEmail) {
+    throw new Error('Missing Google credentials');
+  }
+  
+  // Create JWT
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const now = Math.floor(Date.now() / 1000);
+  const claim = {
+    iss: clientEmail,
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now + 3600,
+    iat: now
+  };
+  
+  const encoder = new TextEncoder();
+  const headerB64 = btoa(String.fromCharCode(...encoder.encode(JSON.stringify(header)))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const claimB64 = btoa(String.fromCharCode(...encoder.encode(JSON.stringify(claim)))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const unsignedToken = `${headerB64}.${claimB64}`;
+  
+  // Import private key and sign
+  const pemHeader = '-----BEGIN PRIVATE KEY-----';
+  const pemFooter = '-----END PRIVATE KEY-----';
+  const pemContents = privateKey.replace(pemHeader, '').replace(pemFooter, '').replace(/\s/g, '');
+  const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+  
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    binaryDer,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  
+  const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, encoder.encode(unsignedToken));
+  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const jwt = `${unsignedToken}.${signatureB64}`;
+  
+  // Exchange JWT for access token
+  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
+  });
+  
+  if (!tokenResponse.ok) {
+    throw new Error('Failed to get Google access token');
+  }
+  
+  const tokenData = await tokenResponse.json();
+  return tokenData.access_token;
+}
+
+// Helper function: Get data from Google Sheets with caching
+async function getCachedSheetsData(env, range) {
+  const spreadsheetId = env.GOOGLE_SPREADSHEET_ID || '1kfW45cOFnA2Uv2FQ3YhE3DFQ7vLLHAV-dV9kW2xG1Zc';
+  const accessToken = await getGoogleAccessToken(env);
+  
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
+    {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    }
+  );
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Sheets API error: ${response.status} - ${error}`);
+  }
+  
+  const data = await response.json();
+  return data.values || [];
+}
+
+// Helper function: Append data to Google Sheets
+async function appendToSheet(env, range, values) {
+  const spreadsheetId = env.GOOGLE_SPREADSHEET_ID || '1kfW45cOFnA2Uv2FQ3YhE3DFQ7vLLHAV-dV9kW2xG1Zc';
+  const accessToken = await getGoogleAccessToken(env);
+  
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ values })
+    }
+  );
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Sheets append error: ${response.status} - ${error}`);
+  }
+  
+  return await response.json();
+}
+
+// Helper function: Update a cell in Google Sheets
+async function updateSheetCell(env, range, value) {
+  const spreadsheetId = env.GOOGLE_SPREADSHEET_ID || '1kfW45cOFnA2Uv2FQ3YhE3DFQ7vLLHAV-dV9kW2xG1Zc';
+  const accessToken = await getGoogleAccessToken(env);
+  
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+    {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ values: [[value]] })
+    }
+  );
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Sheets update error: ${response.status} - ${error}`);
+  }
+  
+  return await response.json();
+}
 
 // Helper function: Send Discord DM with embed
 async function sendDM(env, userId, { title, description, color }) {

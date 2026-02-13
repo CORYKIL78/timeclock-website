@@ -348,7 +348,7 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
 <!-- ====== DASHBOARD ====== -->
 <div id="dashboard" class="screen">
   <aside class="sidebar">
-    <div class="sidebar-logo"><span>Cirkle</span><span class="tag">ADMIN</span></div>
+    <div class="sidebar-logo"><span>OC</span><span class="tag">PORTAL</span></div>
     <nav>
       <button class="nav-btn active" data-tab="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Users</span></button>
       <button class="nav-btn" data-tab="absences"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Absences</span></button>
@@ -356,6 +356,8 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
       <button class="nav-btn" data-tab="payslips"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Payslips</span></button>
       <button class="nav-btn" data-tab="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>Reports</span></button>
       <button class="nav-btn" data-tab="strikes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Strikes</span></button>
+      <button class="nav-btn" data-tab="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="14" r="1"/><circle cx="12" cy="14" r="1"/><circle cx="16" cy="14" r="1"/></svg><span>Calendar</span></button>
+      <button class="nav-btn" data-tab="logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg><span>Logs</span></button>
     </nav>
     <div class="sidebar-user">
       <img id="sidebarAvatar" src="" alt="" />
@@ -426,6 +428,33 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
         <div class="table-wrap">
           <div class="table-header"><h3>All Disciplinaries</h3></div>
           <div id="strikesTable"><div class="loading-inline">Loading disciplinaries...</div></div>
+
+      <!-- CALENDAR TAB -->
+      <div class="tab-content" id="tab-calendar">
+        <div class="stats-row">
+          <div class="stat-card"><div class="label">Total Events</div><div class="value" id="calendarEventsCount">-</div></div>
+          <div class="stat-card"><div class="label">This Month</div><div class="value" id="calendarThisMonth">-</div></div>
+          <div class="stat-card"><div class="label">Upcoming</div><div class="value" id="calendarUpcoming">-</div></div>
+        </div>
+        <div style="margin-bottom:16px"><button class="btn btn-primary" onclick="openModal('calendarEventModal')">+ Add Event</button></div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>Calendar Events</h3></div>
+          <div id="calendarTable"><div class="loading-inline">Loading events...</div></div>
+        </div>
+      </div>
+
+      <!-- LOGS TAB -->
+      <div class="tab-content" id="tab-logs">
+        <div class="stats-row">
+          <div class="stat-card"><div class="label">Total Logs</div><div class="value" id="logsCount">-</div></div>
+          <div class="stat-card"><div class="label">Today</div><div class="value" id="logsToday">-</div></div>
+          <div class="stat-card"><div class="label">This Week</div><div class="value" id="logsThisWeek">-</div></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>Admin Activity Logs</h3></div>
+          <div id="logsTable"><div class="loading-inline">Loading logs...</div></div>
+        </div>
+      </div>
         </div>
       </div>
     </div>
@@ -491,9 +520,36 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
           <option value="">Select type...</option>
           <option value="Verbal Warning">Verbal Warning (-1 point)</option>
           <option value="Formal Warning">Formal Warning (-2 points)</option>
-          <option value="Suspension">Suspension (-4 points)</option>
-          <option value="Other">Other (custom points)</option>
+          <oCALENDAR EVENT MODAL ====== -->
+<div class="modal-overlay" id="calendarEventModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Add Calendar Event</h3><button class="modal-close" onclick="closeModal('calendarEventModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Event Date</label><input type="date" id="eventDate" /></div>
+      <div class="field"><label>Event Title</label><input type="text" id="eventTitle" placeholder="Event title..." /></div>
+      <div class="field"><label>Event Type</label>
+        <select id="eventType">
+          <option value="event">General Event</option>
+          <option value="meeting">Meeting</option>
+          <option value="deadline">Deadline</option>
+          <option value="holiday">Holiday</option>
+          <option value="announcement">Announcement</option>
         </select>
+      </div>
+      <div class="field"><label>Description</label><textarea id="eventDescription" placeholder="Event description..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('calendarEventModal')">Cancel</button>
+      <button class="btn btn-primary" id="addCalendarEventBtn">Add Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== ption value="Suspension">Suspension (-4 points)</option>
+          <option value="Other">Other (custom points)</option>
+        </sele
+  calendarEvents: [],
+  logs: [],ct>
       </div>
       <div class="field points-field" id="customPointsField"><label>Points to Remove</label><input type="number" id="strikeCustomPoints" placeholder="e.g. 3" min="0"/></div>
       <div class="field"><label>Description</label><textarea id="strikeDesc" placeholder="Describe the reason..."></textarea></div>
@@ -686,6 +742,8 @@ async function loadTab(tab) {
     case 'payslips': await loadPayslips(); break;
     case 'reports': await loadReports(); break;
     case 'strikes': await loadStrikes(); break;
+    case 'calendar': await loadCalendar(); break;
+    case 'logs': await loadLogs(); break;
   }
 }
 
@@ -960,6 +1018,94 @@ async function loadStrikes() {
 }
 
 /* ================================================================
+   LOAD CALENDAR EVENTS
+   ================================================================ */
+async function loadCalendar() {
+  const container = document.getElementById('calendarTable');
+  container.innerHTML = '<div class="loading-inline">Loading events...</div>';
+  try {
+    const data = await apiGet('/api/calendar/events');
+    const events = data.events || [];
+    state.calendarEvents = events;
+
+    const today = new Date();
+    const thisMonth = events.filter(e => {
+      const d = new Date(e.date);
+      return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+    });
+    const upcoming = events.filter(e => new Date(e.date) >= today);
+
+    document.getElementById('calendarEventsCount').textContent = events.length;
+    document.getElementById('calendarThisMonth').textContent = thisMonth.length;
+    document.getElementById('calendarUpcoming').textContent = upcoming.length;
+
+    if (!events.length) { container.innerHTML = '<div class="empty-state"><p>No calendar events found.</p></div>'; return; }
+
+    let html = `<table><thead><tr><th>Date</th><th>Title</th><th>Type</th><th>Description</th><th>Created By</th></tr></thead><tbody>`;
+    events.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(e => {
+      const date = e.date ? new Date(e.date).toLocaleDateString('en-GB') : '-';
+      const typeColor = e.type === 'meeting' ? 'var(--accent)' : e.type === 'deadline' ? 'var(--red)' : e.type === 'holiday' ? 'var(--green)' : 'var(--text2)';
+      html += `<tr><td>${esc(date)}</td><td style="font-weight:600">${esc(e.title || '-')}</td><td><span style="color:${typeColor};text-transform:capitalize">${esc(e.type || 'event')}</span></td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">${esc(e.description || '-')}</td><td>${esc(e.createdBy || '-')}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Error: ${esc(e.message)}</p></div>`;
+  }
+}
+
+/* ================================================================
+   LOAD ADMIN LOGS
+   ================================================================ */
+async function loadLogs() {
+  const container = document.getElementById('logsTable');
+  container.innerHTML = '<div class="loading-inline">Loading logs...</div>';
+  try {
+    const data = await apiGet('/api/admin/logs');
+    const logs = data.logs || [];
+    state.logs = logs;
+
+    const today = new Date().toDateString();
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const logsToday = logs.filter(l => new Date(l.timestamp).toDateString() === today);
+    const logsThisWeek = logs.filter(l => new Date(l.timestamp) >= weekAgo);
+
+    document.getElementById('logsCount').textContent = logs.length;
+    document.getElementById('logsToday').textContent = logsToday.length;
+    document.getElementById('logsThisWeek').textContent = logsThisWeek.length;
+
+    if (!logs.length) { container.innerHTML = '<div class="empty-state"><p>No admin activity logs found.</p></div>'; return; }
+
+    let html = `<table><thead><tr><th>Timestamp</th><th>Admin</th><th>Action</th><th>Details</th></tr></thead><tbody>`;
+    logs.slice(0, 100).forEach(l => {
+      const time = l.timestamp ? new Date(l.timestamp).toLocaleString('en-GB') : '-';
+      const admin = state.users.find(u => u.discordId === l.adminId);
+      const adminName = admin ? admin.name : l.adminId || '-';
+      const actionColor = l.action?.includes('approv') ? 'var(--green)' : l.action?.includes('deny') || l.action?.includes('reject') ? 'var(--red)' : 'var(--text)';
+      html += `<tr><td style="white-space:nowrap">${esc(time)}</td><td>${esc(adminName)}</td><td style="color:${actionColor}">${esc(l.action || '-')}</td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">${esc(l.details || '-')}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Error: ${esc(e.message)}</p></div>`;
+  }
+}
+
+// Helper function to log admin actions
+async function logAdminAction(action, details, targetId = '') {
+  try {
+    await apiPost('/api/admin/logs', {
+      adminId: state.admin?.id,
+      action,
+      details,
+      targetId
+    });
+  } catch (e) {
+    console.error('Failed to log admin action:', e);
+  }
+}
+
+/* ================================================================
    USER PANEL
    ================================================================ */
 async function openUserPanel(idx) {
@@ -1168,6 +1314,12 @@ document.getElementById('actionConfirmBtn').addEventListener('click', async () =
         reason: reason,
         approver: state.admin.name
       });
+      // Log admin action
+      await logAdminAction(
+        action.status === 'Approved' ? 'absence_approved' : 'absence_denied',
+        `${state.admin.name} ${action.status.toLowerCase()} ${action.item.name}'s absence request${reason ? ': ' + reason : ''}`,
+        action.item.userId || action.item.discordId
+      );
       toast(`Absence ${action.status.toLowerCase()} for ${action.item.name}${reason ? ' — Reason: ' + reason : ''}`, action.status === 'Approved' ? 'success' : 'info');
       await loadAbsences();
     } else if (action.type === 'request') {
@@ -1177,6 +1329,12 @@ document.getElementById('actionConfirmBtn').addEventListener('click', async () =
         reason: reason,
         approver: state.admin.name
       });
+      // Log admin action
+      await logAdminAction(
+        action.approved ? 'request_approved' : 'request_denied',
+        `${state.admin.name} ${action.approved ? 'approved' : 'denied'} ${action.item.name || action.item.userId}'s ${action.item.type || 'request'}${reason ? ': ' + reason : ''}`,
+        action.item.userId || action.item.discordId
+      );
       toast(`Request ${action.approved ? 'approved' : 'denied'} for ${action.item.name || action.item.userId}${reason ? ' — Reason: ' + reason : ''}`, action.approved ? 'success' : 'info');
       await loadRequests();
     }
@@ -1199,10 +1357,15 @@ document.getElementById('sendPayslipBtn').addEventListener('click', async () => 
   if (!userId) { toast('Select a user', 'error'); return; }
   if (!link) { toast('Enter a payslip link', 'error'); return; }
 
+  const user = state.users.find(u => u.discordId === userId);
+  const userName = user ? user.name : userId;
+
   try {
     await apiPost('/api/admin/payslips/create', {
       userId, period, link, comment, assignedBy: state.admin.name
     });
+    // Log admin action
+    await logAdminAction('payslip_sent', `${state.admin.name} sent payslip for ${period || 'N/A'} to ${userName}`, userId);
     toast('Payslip sent successfully', 'success');
     closeModal('payslipModal');
     document.getElementById('payslipPeriod').value = '';
@@ -1225,6 +1388,9 @@ document.getElementById('sendReportBtn').addEventListener('click', async () => {
   if (!userId || !type) { toast('Select user and report type', 'error'); return; }
   if (!desc) { toast('Enter a description', 'error'); return; }
 
+  const user = state.users.find(u => u.discordId === userId);
+  const userName = user ? user.name : userId;
+
   try {
     await apiPost('/api/reports/create', {
       userId, type, comment: desc, publishedBy: state.admin.name, scale: type
@@ -1239,6 +1405,8 @@ document.getElementById('sendReportBtn').addEventListener('click', async () => {
         color: pts > 0 ? 0x22c55e : pts < 0 ? 0xef4444 : 0x3b82f6
       }
     });
+    // Log admin action
+    await logAdminAction('report_issued', `${state.admin.name} issued ${type} to ${userName}: ${desc}`, userId);
     toast('Report issued successfully', 'success');
     closeModal('reportModal');
     document.getElementById('reportDesc').value = '';
@@ -1267,6 +1435,8 @@ document.getElementById('sendStrikeBtn').addEventListener('click', async () => {
   if (!desc) { toast('Enter a description', 'error'); return; }
 
   const pts = type === 'Other' ? -Math.abs(customPts) : (STRIKE_POINTS[type] || 0);
+  const user = state.users.find(u => u.discordId === userId);
+  const userName = user ? user.name : userId;
 
   try {
     await apiPost('/api/disciplinaries/create', {
@@ -1281,6 +1451,8 @@ document.getElementById('sendStrikeBtn').addEventListener('click', async () => {
         color: 0xef4444
       }
     });
+    // Log admin action
+    await logAdminAction('disciplinary_issued', `${state.admin.name} issued ${type} to ${userName}: ${desc}`, userId);
     toast('Disciplinary issued', 'success');
     closeModal('strikeModal');
     document.getElementById('strikeDesc').value = '';
@@ -1290,6 +1462,35 @@ document.getElementById('sendStrikeBtn').addEventListener('click', async () => {
     await loadStrikes();
   } catch (e) {
     toast('Failed to issue disciplinary', 'error');
+  }
+});
+
+/* ================================================================
+   ADD CALENDAR EVENT
+   ================================================================ */
+document.getElementById('addCalendarEventBtn').addEventListener('click', async () => {
+  const date = document.getElementById('eventDate').value;
+  const title = document.getElementById('eventTitle').value.trim();
+  const type = document.getElementById('eventType').value;
+  const description = document.getElementById('eventDescription').value.trim();
+
+  if (!date || !title) { toast('Enter date and title', 'error'); return; }
+
+  try {
+    await apiPost('/api/calendar/events', {
+      date, title, type, description, createdBy: state.admin.name
+    });
+    // Log admin action
+    await logAdminAction('calendar_event_added', `${state.admin.name} added event "${title}" on ${date}`, title);
+    toast('Event added successfully', 'success');
+    closeModal('calendarEventModal');
+    document.getElementById('eventDate').value = '';
+    document.getElementById('eventTitle').value = '';
+    document.getElementById('eventDescription').value = '';
+    document.getElementById('eventType').value = 'event';
+    await loadCalendar();
+  } catch (e) {
+    toast('Failed to add event', 'error');
   }
 });
 

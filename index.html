@@ -96,17 +96,31 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <div class="mail-compose">
-                <h2>Compose Mail</h2>
-                <select id="mailRecipients" multiple required>
-                    <option value="" disabled>Select Recipients</option>
-                </select>
-                <input type="text" id="mailSubject" placeholder="Subject">
-                <textarea id="mailContent" placeholder="Message"></textarea>
-                <input type="file" id="mailAttachments" multiple>
-                <div id="mailError" class="mail-error hidden">Select at least one participant</div>
+                <h2>Compose Email</h2>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 4px;">Your Email</label>
+                    <input type="text" id="userStaffEmail" readonly style="background: #f3f4f6; border: 1px solid #e5e7eb; padding: 10px; border-radius: 6px; width: 100%; font-size: 14px; color: #666;">
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 4px;">To (separate emails with commas)</label>
+                    <input type="text" id="mailTo" placeholder="email@example.com, another@example.com" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 4px;">CC (optional)</label>
+                        <input type="text" id="mailCc" placeholder="cc@example.com" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 4px;">BCC (optional)</label>
+                        <input type="text" id="mailBcc" placeholder="bcc@example.com" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                    </div>
+                </div>
+                <input type="text" id="mailSubject" placeholder="Subject" style="margin-bottom: 12px;">
+                <textarea id="mailContent" placeholder="Write your message here... Supports **bold**, *italic*, and bullet points" style="min-height: 150px; margin-bottom: 12px;"></textarea>
+                <div id="mailError" class="mail-error hidden">Please enter at least one recipient email</div>
                 <div class="mail-actions">
-                    <button id="sendMailBtn">Send</button>
-                    <button id="saveDraftBtn">Save to Drafts</button>
+                    <button id="sendMailBtn" style="background: #7c3aed; color: white;">Send Email</button>
+                    <button id="saveDraftBtn" style="background: #6b7280; color: white;">Save Draft</button>
                 </div>
             </div>
         </div>

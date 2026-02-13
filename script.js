@@ -2713,7 +2713,8 @@ const screens = {
     clickup: document.getElementById('clickupScreen'),
     handbooks: document.getElementById('handbooksScreen'),
     goodbye: document.getElementById('goodbyeScreen'),
-    suspended: document.getElementById('suspendedScreen')
+    suspended: document.getElementById('suspendedScreen'),
+    calendarScreen: document.getElementById('calendarScreen')
 };
 
 const modals = {
@@ -2821,6 +2822,7 @@ function updateActiveNavButton(screenId) {
         'mail': 'mailBtn',
         'tasks': 'clickupBtn',
         'clickup': 'clickupBtn',
+        'calendarScreen': 'calendarBtn',
         'handbooks': 'handbooksBtn'
     };
     
@@ -4411,69 +4413,156 @@ async function syncMailFromBackend() {
     try {
         console.log('[DEBUG] Syncing mail from backend for user:', currentUser.id);
         
+        // Get user's staff email
+        const emailResponse = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/email/account/${currentUser.id}`);
+        let userEmail = '';
+        if (emailResponse.ok) {
+            const emailData = await emailResponse.json();
+            if (emailData.success) {
+                userEmail = emailData.email;
+                localStorage.setItem(`staffEmail_${currentUser.id}`, userEmail);
+            }
+        }
+        
+        if (!userEmail) {
+            userEmail = localStorage.getItem(`staffEmail_${currentUser.id}`) || '';
+        }
+        
         // Get current mail from localStorage (preserve drafts)
         const userMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
         
         // Fetch inbox from backend
-        const inboxResponse = await fetch('https://timeclock-backend.marcusray.workers.dev/api/mail/inbox', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUser.id })
-        });
-        
-        if (inboxResponse.ok) {
-            const result = await inboxResponse.json();
-            console.log('[DEBUG] Fetched inbox from backend:', result);
+        if (userEmail) {
+            const inboxResponse = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/email/inbox/${encodeURIComponent(userEmail)}`);
             
-            if (result.success && result.mails) {
-                // Update inbox with backend data
-                userMail.inbox = result.mails.map(mail => ({
-                    id: mail.id,
-                    senderName: mail.fromName || mail.from || 'Unknown',
-                    senderId: mail.fromUserId || mail.senderId,
-                    recipients: [currentUser.id],
-                    subject: mail.subject,
-                    content: mail.content,
-                    timestamp: mail.timestamp,
-                    read: mail.read,
-                    attachments: mail.attachments || []
-                }));
+            if (inboxResponse.ok) {
+                const result = await inboxResponse.json();
+                console.log('[DEBUG] Fetched inbox from backend:', result);
                 
-                console.log('[DEBUG] Updated inbox with', userMail.inbox.length, 'messages');
+                if (result.success && result.emails) {
+                    userMail.inbox = result.emails.map(mail => ({
+                        id: mail.id,
+                        senderName: mail.from || 'Unknown',
+                        senderId: mail.from,
+                        recipients: [userEmail],
+                        subject: mail.subject,
+                        content: mail.body,
+                        timestamp: mail.timestamp,
+                        read: mail.read,
+                        attachments: []
+                    }));
+                    console.log('[DEBUG] Updated inbox with', userMail.inbox.length, 'messages');
+                }
+            }
+            
+            // Fetch sent mail from backend
+            const sentResponse = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/email/sent/${encodeURIComponent(userEmail)}`);
+            
+            if (sentResponse.ok) {
+                const result = await sentResponse.json();
+                console.log('[DEBUG] Fetched sent mail from backend:', result);
+                
+                if (result.success && result.emails) {
+                    userMail.sent = result.emails.map(mail => ({
+                        id: mail.id,
+                        recipients: mail.to ? mail.to.split(',') : [],
+                        subject: mail.subject,
+                        content: mail.body,
+                        timestamp: mail.timestamp,
+                        attachments: []
+                    }));
+                    console.log('[DEBUG] Updated sent mail with', userMail.sent.length, 'messages');
+                }
+            }
+            
+            // Fetch drafts from backend
+            const draftsResponse = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/email/drafts/${currentUser.id}`);
+            
+            if (draftsResponse.ok) {
+                const result = await draftsResponse.json();
+                console.log('[DEBUG] Fetched drafts from backend:', result);
+                
+                if (result.success && result.drafts) {
+                    userMail.drafts = result.drafts.map(draft => ({
+                        id: draft.id,
+                        recipients: draft.to ? draft.to.split(',') : [],
+                        cc: draft.cc || '',
+                        bcc: draft.bcc || '',
+                        subject: draft.subject,
+                        content: draft.body,
+                        timestamp: draft.timestamp
+                    }));
+                    console.log('[DEBUG] Updated drafts with', userMail.drafts.length, 'messages');
+                }
             }
         }
         
-        // Fetch sent mail from backend
-        const sentResponse = await fetch('https://timeclock-backend.marcusray.workers.dev/api/mail/sent', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUser.id })
-        });
-        
-        if (sentResponse.ok) {
-            const result = await sentResponse.json();
-            console.log('[DEBUG] Fetched sent mail from backend:', result);
-            
-            if (result.success && result.mails) {
-                // Update sent mail with backend data
-                userMail.sent = result.mails.map(mail => ({
-                    id: mail.id,
-                    recipients: mail.recipients || [mail.toName || mail.toUserId || 'Unknown'],
-                    subject: mail.subject,
-                    content: mail.content,
-                    timestamp: mail.timestamp,
-                    attachments: mail.attachments || []
-                }));
-                
-                console.log('[DEBUG] Updated sent mail with', userMail.sent.length, 'messages');
-            }
-        }
-        
-        // Save to localStorage (preserves drafts since we didn't modify them)
+        // Save to localStorage
         localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(userMail));
         
     } catch (error) {
         console.error('[DEBUG] Error syncing mail from backend:', error);
+    }
+}
+
+// Initialize staff email and send welcome message if first time
+async function initializeStaffEmail() {
+    if (!currentUser) return;
+    
+    const welcomeSent = localStorage.getItem(`mailWelcomeSent_${currentUser.id}`);
+    if (welcomeSent) return;
+    
+    try {
+        // Get user's staff email
+        const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/email/account/${currentUser.id}`);
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        if (!data.success || !data.email) return;
+        
+        const staffEmail = data.email;
+        localStorage.setItem(`staffEmail_${currentUser.id}`, staffEmail);
+        
+        // Send welcome email
+        await fetch('https://timeclock-backend.marcusray.workers.dev/api/email/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                from: 'Cirkle Mail <noreply@staff.cirkledevelopment.co.uk>',
+                to: staffEmail,
+                subject: 'Welcome to Cirkle Mail',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <div style="background: linear-gradient(135deg, #7c3aed, #3b82f6); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                            <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to Cirkle Mail</h1>
+                        </div>
+                        <div style="background: white; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+                            <p style="font-size: 16px; color: #333; line-height: 1.6;">Hello ${data.displayName || 'there'}!</p>
+                            <p style="font-size: 16px; color: #333; line-height: 1.6;">Your staff email has been created:</p>
+                            <div style="background: #f3f4f6; padding: 15px 20px; border-radius: 8px; font-size: 18px; font-weight: 600; color: #7c3aed; margin: 20px 0; text-align: center;">
+                                ${staffEmail}
+                            </div>
+                            <p style="font-size: 16px; color: #333; line-height: 1.6;">You can send and receive emails directly from the Staff Portal. Use the Mail tab to:</p>
+                            <ul style="font-size: 14px; color: #666; line-height: 1.8;">
+                                <li>Compose and send emails to colleagues</li>
+                                <li>Check your inbox for new messages</li>
+                                <li>View your sent emails</li>
+                                <li>Save drafts for later</li>
+                            </ul>
+                            <p style="font-size: 14px; color: #666; margin-top: 20px; text-align: center;">
+                                — The Cirkle Development Team
+                            </p>
+                        </div>
+                    </div>
+                `
+            })
+        });
+        
+        localStorage.setItem(`mailWelcomeSent_${currentUser.id}`, 'true');
+        console.log('[Mail] Welcome email sent to', staffEmail);
+        
+    } catch (error) {
+        console.error('[Mail] Error initializing staff email:', error);
     }
 }
 
@@ -7286,7 +7375,41 @@ if (cancelRequestFormBtn) {
 
 document.getElementById('mailBtn').addEventListener('click', async () => {
     showScreen('mail');
-    await syncMailFromBackend(); // Sync mail from backend before rendering
+    
+    // Show loading animation for 2 seconds
+    const mailContent = document.querySelector('.mail-content');
+    if (mailContent) {
+        mailContent.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px;">
+                <div style="width: 50px; height: 50px; border: 4px solid #e5e7eb; border-top-color: #7c3aed; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <p style="margin-top: 16px; color: #666; font-size: 14px;">Loading your mailbox...</p>
+            </div>
+            <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+        `;
+    }
+    
+    // Check if user has been welcomed to mail
+    await initializeStaffEmail();
+    
+    // Wait 2 seconds for visual effect
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Restore mail content structure
+    if (mailContent) {
+        mailContent.innerHTML = `
+            <div id="inboxFolder" class="mail-folder active">
+                <ul id="inboxContent" style="list-style: none; padding: 0; margin: 0;"></ul>
+            </div>
+            <div id="sentFolder" class="mail-folder">
+                <ul id="sentContent" style="list-style: none; padding: 0; margin: 0;"></ul>
+            </div>
+            <div id="draftsFolder" class="mail-folder">
+                <ul id="draftsContent" style="list-style: none; padding: 0; margin: 0;"></ul>
+            </div>
+        `;
+    }
+    
+    await syncMailFromBackend();
     renderMail();
     document.querySelectorAll('.mail-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelector('.mail-tabs .tab-btn[data-tab="inbox"]').classList.add('active');
@@ -7519,14 +7642,16 @@ function openClickUpTask(taskId) {
 }
 
 document.getElementById('composeMailBtn').addEventListener('click', async () => {
-    setSelectValues('mailRecipients', []);
+    document.getElementById('mailTo').value = '';
+    document.getElementById('mailCc').value = '';
+    document.getElementById('mailBcc').value = '';
     document.getElementById('mailSubject').value = '';
     document.getElementById('mailContent').value = '';
-    document.getElementById('mailAttachments').value = '';
     delete document.getElementById('sendMailBtn').dataset.draftIndex;
     
-    // Load recipients when opening compose modal
-    await loadMailRecipients();
+    // Show user's staff email
+    const staffEmail = localStorage.getItem(`staffEmail_${currentUser.id}`) || 'Loading...';
+    document.getElementById('userStaffEmail').value = staffEmail;
     
     showModal('composeMail');
 });
@@ -7539,12 +7664,13 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
     window.mailSending = true;
     sendBtn.disabled = true;
     
-    const recipientIds = Array.from(document.getElementById('mailRecipients').selectedOptions).map(opt => opt.value);
+    const toEmails = document.getElementById('mailTo').value.trim();
+    const ccEmails = document.getElementById('mailCc').value.trim();
+    const bccEmails = document.getElementById('mailBcc').value.trim();
     const subject = document.getElementById('mailSubject').value.trim();
     const content = document.getElementById('mailContent').value.trim();
-    const files = document.getElementById('mailAttachments').files;
     
-    if (!recipientIds.length || recipientIds.includes('')) {
+    if (!toEmails) {
         document.getElementById('mailError').classList.remove('hidden');
         setTimeout(() => document.getElementById('mailError').classList.add('hidden'), 2000);
         window.mailSending = false;
@@ -7560,53 +7686,62 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
     
     showModal('alert', 'Sending...');
     
-    const timestamp = new Date().toISOString();
-    const senderName = currentUser.profile?.name || 'Unknown User';
+    const staffEmail = localStorage.getItem(`staffEmail_${currentUser.id}`);
+    const senderName = currentUser.profile?.name || 'Staff Member';
     
-    // Process attachments
-    const attachments = await Promise.all(Array.from(files).map(async file => {
-        const reader = new FileReader();
-        return new Promise(resolve => {
-            reader.onload = () => resolve({ name: file.name, url: reader.result });
-            reader.readAsDataURL(file);
-        });
-    }));
+    // Convert markdown-style formatting to HTML
+    let htmlContent = content
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/\n/g, '<br>');
+    
+    if (htmlContent.includes('<li>')) {
+        htmlContent = htmlContent.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+    }
     
     try {
-        // Send mail via backend API (stores in Google Sheets and sends DMs)
-        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/mail/send', {
+        // Send email via Resend API
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/email/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                fromUserId: currentUser.id,
-                toUserIds: recipientIds,
-                subject: subject || "(No Subject)",
-                content: content,
-                attachments: attachments.length ? attachments : []
+                from: `${senderName} <${staffEmail || 'noreply@staff.cirkledevelopment.co.uk'}>`,
+                to: toEmails,
+                cc: ccEmails || undefined,
+                bcc: bccEmails || undefined,
+                subject: subject || '(No Subject)',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <div style="padding: 20px; background: #f9fafb; border-radius: 8px;">
+                            ${htmlContent}
+                        </div>
+                        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
+                            Sent via Cirkle Mail - Staff Portal
+                        </div>
+                    </div>
+                `,
+                replyTo: staffEmail
             })
         });
         
         const result = await response.json();
         
         if (!response.ok || !result.success) {
-            throw new Error(result.error || 'Failed to send mail');
+            throw new Error(result.error || 'Failed to send email');
         }
         
-        console.log('[DEBUG] Mail sent successfully:', result);
+        console.log('[DEBUG] Email sent successfully:', result);
         
         // Store locally for quick access
         const mailData = {
-            id: result.mail.id || Date.now().toString(),
-            senderName: senderName,
-            senderId: currentUser.id,
-            recipients: recipientIds,
-            subject: subject || "(No Subject)",
-            content,
-            timestamp,
-            attachments: attachments.length ? attachments : null
+            id: result.id || Date.now().toString(),
+            recipients: toEmails.split(',').map(e => e.trim()),
+            subject: subject || '(No Subject)',
+            content: content,
+            timestamp: new Date().toISOString()
         };
         
-        // Add to sender's sent mail in localStorage
         const senderMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
         senderMail.sent.push(mailData);
         localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(senderMail));
@@ -7619,66 +7754,81 @@ document.getElementById('sendMailBtn').addEventListener('click', async () => {
         }
         
         showMailDeliveryAnimation();
-        showModal('alert', '<span class="success-tick"></span> Successfully sent!');
+        showModal('alert', '<span class="success-tick"></span> Email sent successfully!');
         playSuccessSound();
-        addNotification('mail', 'Your mail has been sent!', 'mail');
+        addNotification('mail', 'Your email has been sent!', 'mail');
         renderMail();
         closeModal('composeMail');
         
-        // Reset sending flag
         window.mailSending = false;
         sendBtn.disabled = false;
         
     } catch (error) {
-        console.error('Error sending mail:', error);
-        showModal('alert', '❌ Failed to send mail. Please try again.');
-        
-        // Reset sending flag on error
+        console.error('Error sending email:', error);
+        showModal('alert', 'Failed to send email: ' + error.message);
         window.mailSending = false;
         sendBtn.disabled = false;
     }
 });
 
 document.getElementById('saveDraftBtn').addEventListener('click', async () => {
-    const recipientIds = Array.from(document.getElementById('mailRecipients').selectedOptions).map(opt => opt.value);
+    const toEmails = document.getElementById('mailTo').value.trim();
+    const ccEmails = document.getElementById('mailCc').value.trim();
+    const bccEmails = document.getElementById('mailBcc').value.trim();
     const subject = document.getElementById('mailSubject').value.trim();
     const content = document.getElementById('mailContent').value.trim();
-    const files = document.getElementById('mailAttachments').files;
-    
-    // Process attachments
-    const attachments = await Promise.all(Array.from(files).map(async file => {
-        const reader = new FileReader();
-        return new Promise(resolve => {
-            reader.onload = () => resolve({ name: file.name, url: reader.result });
-            reader.readAsDataURL(file);
-        });
-    }));
     
     const draftData = {
-        recipients: recipientIds,
+        to: toEmails,
+        cc: ccEmails,
+        bcc: bccEmails,
         subject,
         content,
-        timestamp: new Date().toISOString(),
-        attachments: attachments.length ? attachments : null
+        timestamp: new Date().toISOString()
     };
     
+    // Save to backend
+    try {
+        await fetch('https://timeclock-backend.marcusray.workers.dev/api/email/draft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discordId: currentUser.id,
+                ...draftData
+            })
+        });
+    } catch (e) {
+        console.error('Error saving draft to backend:', e);
+    }
+    
+    // Also save locally
     const userMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
     
-    if ('draftIndex' in document.getElementById('sendMailBtn').dataset) {
-        // Update existing draft
-        userMail.drafts[parseInt(document.getElementById('sendMailBtn').dataset.draftIndex)] = draftData;
-        delete document.getElementById('sendMailBtn').dataset.draftIndex;
+    if ('draftIndex' in document.getElementById('saveDraftBtn').dataset) {
+        userMail.drafts[parseInt(document.getElementById('saveDraftBtn').dataset.draftIndex)] = draftData;
+        delete document.getElementById('saveDraftBtn').dataset.draftIndex;
     } else {
-        // Add new draft
         userMail.drafts.push(draftData);
     }
     
     localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(userMail));
     closeModal('composeMail');
-    showModal('alert', '<span class="success-tick"></span> Draft saved successfully!');
+    showModal('alert', '<span class="success-tick"></span> Draft saved! It will auto-delete in 30 seconds.');
     playSuccessSound();
-    addNotification('mail', 'Mail draft saved!', 'mail');
+    addNotification('mail', 'Email draft saved!', 'mail');
     renderMail();
+    
+    // Auto-delete draft after 30 seconds
+    setTimeout(() => {
+        const currentMail = JSON.parse(localStorage.getItem(`mail_${currentUser.id}`) || '{"inbox": [], "sent": [], "drafts": []}');
+        const draftIdx = currentMail.drafts.findIndex(d => d.timestamp === draftData.timestamp);
+        if (draftIdx !== -1) {
+            currentMail.drafts.splice(draftIdx, 1);
+            localStorage.setItem(`mail_${currentUser.id}`, JSON.stringify(currentMail));
+            renderMail();
+            console.log('[Mail] Draft auto-deleted after 30 seconds');
+        }
+    }, 30000);
 });
 
 document.getElementById('replyMailBtn').addEventListener('click', () => {
