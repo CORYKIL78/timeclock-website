@@ -5462,62 +5462,7 @@ if (homeBtn) {
         
         updateMainScreen();
         // Close mobile sidebar after navigation
-        closeMobileSidebar();async () => {
-    const name = document.getElementById('updateNameInput').value.trim();
-    const email = document.getElementById('updateEmailInput').value.trim();
-    if (name && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        const emp = getEmployee(currentUser.id);
-        emp.profile.name = name;
-        emp.profile.email = email;
-        updateEmployee(emp);
-        currentUser.profile = emp.profile;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        
-        // Also save to backend
-        try {
-            const response = await fetch(`${WORKER_URL}/api/user/profile/update`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    discordId: currentUser.id,
-                    name: name,
-                    email: email,
-                    department: emp.profile.department || '',
-                    staffId: emp.profile.staffId || '',
-                    timezone: emp.profile.timezone || '',
-                    country: emp.profile.country || ''
-                })
-            });
-            
-            if (response.ok) {
-                console.log('[PROFILE] Successfully saved profile to backend');
-                
-                // If this was a required setup, clear the flag
-                sessionStorage.removeItem('needsProfileSetup');
-                
-                showModal('alert', '<span class="success-tick"></span> Profile updated successfully!');
-                playSuccessSound();
-                addNotification('profile', 'Your profile has been updated!', 'myProfile');
-            } else {
-                console.warn('[PROFILE] Failed to save to backend:', response.status);
-                showModal('alert', 'Profile saved locally but could not reach server. Please try again.');
-            }
-        } catch (e) {
-            console.error('[PROFILE] Error saving to backend:', e);
-            showModal('alert', 'Profile saved locally but encountered an error. Please try again.');
-        }
-        
-        updateEmployee(emp);
-        currentUser.profile = emp.profile;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        showModal('alert', '<span class="success-tick"></span> Profile updated successfully!');
-        playSuccessSound();
-        addNotification('profile', 'Your profile has been updated!', 'myProfile');
-        document.getElementById('profileName').textContent = name;
-        document.getElementById('profileEmail').textContent = email;
-    } else {
-        showModal('alert', 'Please enter a valid name and email');
-    }
+        closeMobileSidebar();
     });
 }
 
