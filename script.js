@@ -2591,22 +2591,22 @@ async function sendAbsenceWebhook(absence) {
     }
 }
 
-const REQUIRED_ROLE = '1315346851616002158';
-const DEPT_ROLES = {
+const REQUIRED_ROLE = window.CONFIG?.REQUIRED_ROLE || '1315346851616002158';
+const DEPT_ROLES = window.CONFIG?.DEPT_ROLES || {
     'Development Department': '1315323804528017498',
     'Customer Relations Department': '1315042036969242704',
     'Finance Department': '1433453982453338122'
 };
-const GUILD_ID = '1310656642672627752';
-const WORKER_URL = 'https://timeclock-backend.marcusray.workers.dev';
-const CLIENT_ID = '1417915896634277888';
-const REDIRECT_URI = 'https://portal.cirkledevelopment.co.uk';
+const GUILD_ID = window.CONFIG?.GUILD_ID || '1310656642672627752';
+const WORKER_URL = window.CONFIG?.WORKER_URL || 'https://timeclock-backend.marcusray.workers.dev';
+const CLIENT_ID = window.CONFIG?.DISCORD_CLIENT_ID || '1417915896634277888';
+const REDIRECT_URI = window.CONFIG?.REDIRECT_URI || 'https://portal.cirkledevelopment.co.uk';
 
 // Discord DM utility functions
 async function sendDiscordDM(userId, embed) {
     try {
         // Use the new POST endpoint with native Discord embeds
-        const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/send-dm`, {
+        const response = await fetch(`${WORKER_URL}/api/send-dm`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

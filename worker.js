@@ -354,12 +354,22 @@ export default {
         }
 
         try {
+          const clientId = env.DISCORD_CLIENT_ID || '1417915896634277888';
+          const clientSecret = env.DISCORD_CLIENT_SECRET;
+          
+          if (!clientSecret) {
+            return new Response(JSON.stringify({ error: 'Discord client secret not configured' }), {
+              status: 500,
+              headers: corsHeaders
+            });
+          }
+          
           const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
-              client_id: '1417915896634277888',
-              client_secret: env.DISCORD_CLIENT_SECRET || '',
+              client_id: clientId,
+              client_secret: clientSecret,
               grant_type: 'authorization_code',
               code: code,
               redirect_uri: redirectUri || 'https://portal.cirkledevelopment.co.uk'

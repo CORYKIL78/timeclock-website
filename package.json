@@ -1,5 +1,16 @@
 {
+  "name": "timeclock-website",
+  "version": "1.0.0",
+  "description": "Timeclock staff portal with Cloudflare Workers backend",
+  "scripts": {
+    "build-config": "node generate-config.js",
+    "setup": "cp .env.example .env && echo 'Edit .env with your credentials, then run: npm run build-config'",
+    "deploy": "npm run build-config && wrangler deploy"
+  },
   "dependencies": {
     "mongodb": "^7.0.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
   }
 }

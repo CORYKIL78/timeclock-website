@@ -2,10 +2,24 @@ name = "timeclock-backend"
 main = "worker.js"
 compatibility_date = "2025-01-09"
 
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+# NOTE: Secrets must be set via Cloudflare dashboard or wrangler secret commands
+# 
+# Set secrets with:
+#   wrangler secret put DISCORD_CLIENT_SECRET
+#   wrangler secret put DISCORD_CLIENT_ID
+#   wrangler secret put RESEND_API_KEY
+
 # KV Namespaces for data storage
 [[kv_namespaces]]
 binding = "DATA"
 id = "af9db3ed58534d12b8faca9bf294ae44"
 
-[triggers]
-crons = ["*/5 * * * *"]
+# Environment variables (for non-sensitive config)
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[env.development]
+vars = { ENVIRONMENT = "development" }
