@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cirkle Admin</title>
+<title>OC Portal - Oversight & Corporate</title>
 <style>
 :root {
   --bg: #0b0d17;
@@ -316,8 +316,8 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
 <div id="loginScreen" class="screen active">
   <div class="stars" id="starsContainer"></div>
   <div class="login-card">
-    <h1>Cirkle Admin</h1>
-    <p class="subtitle">Staff Portal Administration</p>
+    <h1>OC Portal</h1>
+    <p class="subtitle">Oversight & Corporate Administration</p>
     <input type="text" id="discordIdInput" placeholder="Discord ID" autocomplete="off" />
     <input type="password" id="pinInput" placeholder="PIN" maxlength="6" autocomplete="off" />
     <button class="login-btn" id="loginBtn">Sign In</button>
@@ -627,28 +627,15 @@ async function doLogin() {
     // Fetch Discord profile from backend
     let avatarSrc = defaultAvatar(id);
     let displayName = ADMINS[id].name;
+    
     try {
-      const profile = await apiPost('/api/user/profile', { discordId: id });
-      if (profile?.profile?.avatar) avatarSrc = profile.profile.avatar;
-      if (profile?.profile?.name) displayName = profile.profile.name;
+      const discordUser = await apiGet(`/api/discord/user/${id}`);
+      if (discordUser?.avatar_url) avatarSrc = discordUser.avatar_url;
+      if (discordUser?.global_name) displayName = discordUser.global_name;
+      else if (discordUser?.username) displayName = discordUser.username;
     } catch (e) {
-      // Try /member endpoint as fallback
-      try {
-        const member = await apiGet(`/member/${id}`);
-        if (member?.name) displayName = member.name;
-      } catch (e2) {}
+      console.log('Could not fetch Discord profile, using defaults:', e);
     }
-
-    // Also try to get avatar from Discord members list
-    try {
-      const members = await apiGet(`/members/${GUILD_ID}`);
-      if (Array.isArray(members)) {
-        state.discordMembers = members;
-        const me = members.find(m => m.user?.id === id);
-        if (me?.user?.avatar) avatarSrc = avatarUrl(id, me.user.avatar);
-        if (me?.user?.global_name) displayName = me.user.global_name;
-      }
-    } catch (e) {}
 
     state.admin = { id, name: displayName, avatar: avatarSrc };
 
@@ -709,53 +696,17 @@ document.getElementById('refreshBtn').addEventListener('click', () => loadTab(st
    ================================================================ */
 async function loadUsers() {
   const container = document.getElementById('usersTable');
-  container.innerHTML = '<div class="loading-inline">Loading users...</div>';
+  container.innerHTML = '<div class="loading-inline">Loading users from backend...</div>';
   try {
-    // Fetch users from sheets via admin endpoint
-    let users = [];
-    try {
-      const data = await apiGet('/api/admin/users');
-      if (data.success && data.users) users = data.users;
-    } catch (e) {
-      // Fallback: fetch from members endpoint and cross-ref with sheets
-      if (!state.discordMembers.length) {
-        try { state.discordMembers = await apiGet(`/members/${GUILD_ID}`); } catch(e2) {}
-      }
+    // Fetch users from Google Sheets via backend API
+    const data = await apiGet('/api/admin/users');
+    if (!data.success || !data.users) {
+      throw new Error(data.error || 'Failed to fetch users from backend');
     }
+    
+    const users = data.users;
 
-    // If we got discord members, try to enrich user data
-    if (state.discordMembers.length && Array.isArray(state.discordMembers)) {
-      const memberMap = {};
-      state.discordMembers.forEach(m => { if (m.user) memberMap[m.user.id] = m; });
-
-      if (users.length === 0) {
-        // Build users from discord members that have sheet data
-        state.discordMembers.forEach(m => {
-          if (m.name || m.email || m.department) {
-            users.push({
-              name: m.name || m.user?.global_name || m.user?.username || '',
-              email: m.email || '',
-              department: m.department || '',
-              discordId: m.user?.id || '',
-              avatar: m.user?.avatar ? avatarUrl(m.user.id, m.user.avatar) : defaultAvatar(m.user?.id || '0'),
-              discordName: m.user?.global_name || m.user?.username || '',
-              dateOfSignup: m.joined_at || '',
-              timezone: m.timezone || '',
-              country: m.country || ''
-            });
-          }
-        });
-      } else {
-        users.forEach(u => {
-          const m = memberMap[u.discordId];
-          if (m?.user?.avatar) u.avatar = avatarUrl(u.discordId, m.user.avatar);
-          else if (u.discordId) u.avatar = defaultAvatar(u.discordId);
-          if (m?.user?.global_name && !u.discordName) u.discordName = m.user.global_name;
-        });
-      }
-    }
-
-    // Fallback: make sure all users have avatars
+    // Ensure all users have avatars
     users.forEach(u => {
       if (!u.avatar && u.discordId) u.avatar = defaultAvatar(u.discordId);
     });

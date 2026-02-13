@@ -1656,28 +1656,50 @@ function setupDisciplinariesTabs() {
         return;
     }
     
-    disciplinariesBtn.addEventListener('click', () => {
-        disciplinariesBtn.classList.add('active');
-        disciplinariesBtn.style.background = '#7c3aed';
-        disciplinariesBtn.style.color = 'white';
-        reportsBtn.classList.remove('active');
-        reportsBtn.style.background = '#e0e0e0';
-        reportsBtn.style.color = '#666';
+    console.log('[setupDisciplinariesTabs] Setting up tab buttons');
+    
+    // Remove any existing listeners by cloning nodes
+    const newDisciplinariesBtn = disciplinariesBtn.cloneNode(true);
+    const newReportsBtn = reportsBtn.cloneNode(true);
+    disciplinariesBtn.parentNode.replaceChild(newDisciplinariesBtn, disciplinariesBtn);
+    reportsBtn.parentNode.replaceChild(newReportsBtn, reportsBtn);
+    
+    newDisciplinariesBtn.addEventListener('click', () => {
+        console.log('[setupDisciplinariesTabs] Disciplinaries tab clicked');
+        newDisciplinariesBtn.classList.add('active');
+        newDisciplinariesBtn.style.background = '#7c3aed';
+        newDisciplinariesBtn.style.color = 'white';
+        newReportsBtn.classList.remove('active');
+        newReportsBtn.style.background = '#e0e0e0';
+        newReportsBtn.style.color = '#666';
         
-        if (disciplinariesSection) disciplinariesSection.style.display = 'block';
-        if (reportsSection) reportsSection.style.display = 'none';
+        if (disciplinariesSection) {
+            disciplinariesSection.style.display = 'block';
+            disciplinariesSection.classList.add('active');
+        }
+        if (reportsSection) {
+            reportsSection.style.display = 'none';
+            reportsSection.classList.remove('active');
+        }
     });
     
-    reportsBtn.addEventListener('click', () => {
-        reportsBtn.classList.add('active');
-        reportsBtn.style.background = '#7c3aed';
-        reportsBtn.style.color = 'white';
-        disciplinariesBtn.classList.remove('active');
-        disciplinariesBtn.style.background = '#e0e0e0';
-        disciplinariesBtn.style.color = '#666';
+    newReportsBtn.addEventListener('click', () => {
+        console.log('[setupDisciplinariesTabs] Reports tab clicked');
+        newReportsBtn.classList.add('active');
+        newReportsBtn.style.background = '#7c3aed';
+        newReportsBtn.style.color = 'white';
+        newDisciplinariesBtn.classList.remove('active');
+        newDisciplinariesBtn.style.background = '#e0e0e0';
+        newDisciplinariesBtn.style.color = '#666';
         
-        if (reportsSection) reportsSection.style.display = 'block';
-        if (disciplinariesSection) disciplinariesSection.style.display = 'none';
+        if (reportsSection) {
+            reportsSection.style.display = 'block';
+            reportsSection.classList.add('active');
+        }
+        if (disciplinariesSection) {
+            disciplinariesSection.style.display = 'none';
+            disciplinariesSection.classList.remove('active');
+        }
         
         // Load reports when tab is clicked
         console.log('[setupDisciplinariesTabs] Loading reports on tab click');
