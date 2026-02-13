@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>Staff Portal</title>
+    <title>Portal - Cirkle Staff</title>
     
     <!-- SENTINEL Security Meta Tags -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -1139,14 +1139,26 @@
     </div>
     <div id="mailDeliveryAnimation" class="mail-delivery-animation hidden"></div>
 
-    <footer>© Cirkle Development 2024 | Portal V3</footer>
+    <footer>© Cirkle Development 2024 | Portal V4</footer>
 
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <!-- Load environment configuration -->
     <script src="config-loader.js"></script>
-    <script src=".env-config.js" onerror="console.log('[CONFIG] .env-config.js not found - using defaults')"></script>
+    <script>
+        // Try to load .env-config.js but don't block if unavailable
+        // All config values have hardcoded fallbacks in script.js
+        try {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '.env-config.js', false); // synchronous
+            xhr.send();
+            if (xhr.status === 200 && xhr.responseText.indexOf('ENVIRONMENT_CONFIG') !== -1) {
+                eval(xhr.responseText);
+                if (typeof loadConfig === 'function') loadConfig();
+            }
+        } catch(e) { /* .env-config.js not available - using defaults */ }
+    </script>
     <!-- Main application script -->
-    <script src="script.js?v=2.0.6"></script>
+    <script src="script.js?v=2.0.7"></script>
     <script>
         // Force service worker update on every page load
         if ('serviceWorker' in navigator) {
