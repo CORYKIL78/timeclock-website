@@ -3227,8 +3227,32 @@ async function handleOAuthRedirect() {
                     
                     // Re-fetch from backend to ensure we have latest data
                     const backendProfile = await fetchUserProfile(currentUser.id);
-                    if (backendProfile && (backendProfile.name || backendProfile.department)) {
-                        console.log('Backend profile confirmed, user exists - going to portalWelcome');
+                    if (backendProfile) {
+                        // Check if profile is COMPLETE (not just auto-created placeholder)
+                        const bpHasStaffId = !!backendProfile.staffId;
+                        const bpHasRealEmail = backendProfile.email && backendProfile.email !== 'Not set';
+                        const bpHasRealDept = backendProfile.department && backendProfile.department !== 'Not set';
+                        const bpIsComplete = bpHasStaffId || (bpHasRealEmail && bpHasRealDept);
+                        
+                        console.log('[OAUTH-SAVED] Profile completeness:', { staffId: bpHasStaffId, email: bpHasRealEmail, dept: bpHasRealDept, complete: bpIsComplete });
+                        
+                        if (!bpIsComplete) {
+                            console.log('[OAUTH-SAVED] Profile incomplete - redirecting to signup');
+                            currentUser.profile = {
+                                name: backendProfile.name || currentUser.name,
+                                email: backendProfile.email || '',
+                                department: backendProfile.department || '',
+                                discordTag: backendProfile.discordTag || currentUser.name,
+                                staffId: backendProfile.staffId || ''
+                            };
+                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                            sessionStorage.setItem('needsProfileSetup', 'true');
+                            showModal('alert', 'Welcome! Please complete your profile to access the portal.\n\nUpdate your email and department on the next screen.');
+                            showScreen('myProfile');
+                            return;
+                        }
+                        
+                        console.log('Backend profile confirmed and COMPLETE - going to portalWelcome');
                         currentUser.profile = {
                             name: backendProfile.name || currentUser.name,
                             email: backendProfile.email || 'Not set',
@@ -3270,18 +3294,30 @@ async function handleOAuthRedirect() {
             try {
                 currentUser = JSON.parse(savedUser);
                 if (currentUser.id) {
-                    // Ensure profile exists
-                    if (!currentUser.profile || !currentUser.profile.name) {
-                        const backendProfile = await fetchUserProfile(currentUser.id);
-                        if (backendProfile && backendProfile.name) {
-                            currentUser.profile = {
-                                name: backendProfile.name,
-                                email: backendProfile.email,
-                                department: backendProfile.department,
-                                discordTag: backendProfile.discordTag || currentUser.name,
-                                staffId: backendProfile.staffId
-                            };
-                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    // Re-fetch and validate profile completeness
+                    const backendProfile2 = await fetchUserProfile(currentUser.id);
+                    if (backendProfile2) {
+                        currentUser.profile = {
+                            name: backendProfile2.name || currentUser.name,
+                            email: backendProfile2.email || '',
+                            department: backendProfile2.department || '',
+                            discordTag: backendProfile2.discordTag || currentUser.name,
+                            staffId: backendProfile2.staffId || ''
+                        };
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        
+                        // Check completeness
+                        const bp2HasStaffId = !!backendProfile2.staffId;
+                        const bp2HasRealEmail = backendProfile2.email && backendProfile2.email !== 'Not set';
+                        const bp2HasRealDept = backendProfile2.department && backendProfile2.department !== 'Not set';
+                        const bp2IsComplete = bp2HasStaffId || (bp2HasRealEmail && bp2HasRealDept);
+                        
+                        if (!bp2IsComplete) {
+                            console.log('[OAUTH-REUSE] Profile incomplete - redirecting to signup');
+                            sessionStorage.setItem('needsProfileSetup', 'true');
+                            showModal('alert', 'Welcome! Please complete your profile to access the portal.\n\nUpdate your email and department on the next screen.');
+                            showScreen('myProfile');
+                            return;
                         }
                     }
                     
@@ -7696,11 +7732,37 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
                         localStorage.removeItem('currentUser');
                         localStorage.removeItem('lastLogin');
                         localStorage.removeItem('lastProcessedCode');
-                        // Force Discord OAuth
-                        await handleOAuthRedirect();
+                        showScreen('discord');
                         return;
                     }
-                    console.log('[INIT] ✓ Profile validated in backend - proceeding with login');
+                    
+                    // Profile exists - but is it COMPLETE? (not just auto-created placeholder)
+                    const initProfile = await profileCheckResponse.json();
+                    const initHasStaffId = !!initProfile.staffId;
+                    const initHasRealEmail = initProfile.email && initProfile.email !== 'Not set';
+                    const initHasRealDept = initProfile.department && initProfile.department !== 'Not set';
+                    const initProfileComplete = initHasStaffId || (initHasRealEmail && initHasRealDept);
+                    
+                    console.log('[INIT] Profile completeness:', { staffId: initHasStaffId, email: initHasRealEmail, dept: initHasRealDept, complete: initProfileComplete });
+                    
+                    if (!initProfileComplete) {
+                        console.warn('[INIT] ⚠️ Profile exists but is INCOMPLETE - redirecting to signup');
+                        // Update currentUser with latest profile data for the setup form
+                        currentUser.profile = {
+                            name: initProfile.name || currentUser.name,
+                            email: initProfile.email || '',
+                            department: initProfile.department || '',
+                            discordTag: initProfile.discordTag || currentUser.name,
+                            staffId: initProfile.staffId || ''
+                        };
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        sessionStorage.setItem('needsProfileSetup', 'true');
+                        showModal('alert', 'Welcome! Please complete your profile to access the portal.\n\nUpdate your email and department on the next screen.');
+                        showScreen('myProfile');
+                        return;
+                    }
+                    
+                    console.log('[INIT] ✓ Profile validated AND complete in backend - proceeding with login');
                 } catch (validationError) {
                     console.error('[INIT] Error validating profile:', validationError);
                     // If validation fails (network error), still allow login but log warning
