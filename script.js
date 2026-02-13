@@ -3734,17 +3734,18 @@ async function handleOAuthRedirect() {
         return;
     }
 
-    console.log('[LOGIN] Step 2: Fetching member data from Google Sheets...');
+    console.log('[LOGIN] Step 2: Fetching user profile from KV...');
     let member;
     try {
-        const response = await fetch(`${WORKER_URL}/member/${user.id}`, {
-            method: 'GET',
+        const response = await fetch(`${WORKER_URL}/api/user/profile`, {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            mode: 'cors'
+            mode: 'cors',
+            body: JSON.stringify({ discordId: user.id })
         });
         if (!response.ok) {
-            console.warn('Member not found in sheets (404), creating placeholder profile');
-            // User not in sheets yet - create placeholder profile
+            console.warn('User profile not found (404), creating placeholder profile');
+            // User not in KV yet - create placeholder profile
             member = {
                 id: user.id,
                 name: user.global_name || user.username,
@@ -5634,10 +5635,11 @@ if (portalLoginBtn) {
             // Step 2: Loading database data
             activateStep('database');
             await new Promise(r => setTimeout(r, 700));
-            const memberResponse = await fetch(`${WORKER_URL}/member/${currentUser.id}`, {
-                method: 'GET',
+            const memberResponse = await fetch(`${WORKER_URL}/api/user/profile`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                mode: 'cors'
+                mode: 'cors',
+                body: JSON.stringify({ discordId: currentUser.id })
             });
             if (memberResponse.ok) {
                 const memberData = await memberResponse.json();
@@ -8118,16 +8120,17 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
                     }
                     
                     try {
-                        // RE-FETCH member data from Google Sheets
-                        const memberResponse = await fetch(`${WORKER_URL}/member/${currentUser.id}`, {
-                            method: 'GET',
+                        // RE-FETCH member data from KV
+                        const memberResponse = await fetch(`${WORKER_URL}/api/user/profile`, {
+                            method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            mode: 'cors'
+                            mode: 'cors',
+                            body: JSON.stringify({ discordId: currentUser.id })
                         });
                         
                         if (memberResponse.ok) {
                             const memberData = await memberResponse.json();
-                            console.log('Background: Fresh member data from sheets:', memberData);
+                            console.log('Background: Fresh member data from KV:', memberData);
                             
                             // Update profile with fresh data
                             if (!currentUser.profile) currentUser.profile = {};
