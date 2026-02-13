@@ -4767,13 +4767,6 @@ function startEventsPolling() {
 
 function stopEventsPolling() {
     if (eventsPollInterval) {
-    fetchEvents();
-}
-    fetchEvents();
-}
-
-function stopEventsPolling() {
-    if (eventsPollInterval) {
         clearInterval(eventsPollInterval);
         eventsPollInterval = null;
     }
@@ -7742,6 +7735,33 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
             window.currentUser = currentUser;  // IMPORTANT: Set window.currentUser so sync functions can access it
             console.log('Loaded saved user:', currentUser);
             if (currentUser.id) {
+                // IMPORTANT: Validate that this profile still exists in backend
+                // If data was cleared, localStorage still has old cached data
+                console.log('[INIT] Validating saved user profile exists in backend...');
+                try {
+                    const profileCheckResponse = await fetch(`${WORKER_URL}/api/user/profile`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        mode: 'cors',
+                        body: JSON.stringify({ discordId: currentUser.id })
+                    });
+                    
+                    if (!profileCheckResponse.ok) {
+                        console.warn('[INIT] ⚠️ Saved profile NOT found in backend (404) - forcing fresh login');
+                        localStorage.removeItem('currentUser');
+                        localStorage.removeItem('lastLogin');
+                        localStorage.removeItem('lastProcessedCode');
+                        // Force Discord OAuth
+                        await handleOAuthRedirect();
+                        return;
+                    }
+                    console.log('[INIT] ✓ Profile validated in backend - proceeding with login');
+                } catch (validationError) {
+                    console.error('[INIT] Error validating profile:', validationError);
+                    // If validation fails (network error), still allow login but log warning
+                    // User can refresh if needed
+                }
+                
                 // Create backup of current user data to prevent loss on sync errors
                 const userDataBackup = JSON.stringify(currentUser);
                 
