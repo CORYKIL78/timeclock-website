@@ -2,8 +2,10 @@ name = "timeclock-backend"
 main = "worker.js"
 compatibility_date = "2025-01-09"
 
-[vars]
-SPREADSHEET_ID = "1_RE6ahFPZ-k5QbxH96JlzvqwRQ34DbZ7ExMuaYJ2-pY"
+# KV Namespaces for data storage
+[[kv_namespaces]]
+binding = "DATA"
+id = "af9db3ed58534d12b8faca9bf294ae44"
 
 [triggers]
 crons = ["*/5 * * * *"]
