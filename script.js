@@ -3397,60 +3397,82 @@ async function handleOAuthRedirect() {
     console.log('[LOGIN] Using member data from KV');
     console.log('[LOGIN] Member data:', member);
     
-    let isFirstTime = false;
-    if (member.name && member.name !== 'User') {
-        console.log('[LOGIN] Existing user detected with name:', member.name);
-        // Existing user: use member data from Google Sheets
+    // Check if profile is complete or just auto-created placeholder
+    const hasStaffId = !!member.staffId;
+    const hasRealEmail = member.email && member.email !== 'Not set';
+    const hasRealDepartment = member.department && member.department !== 'Not set';
+    const isProfileComplete = hasStaffId || (hasRealEmail && hasRealDepartment);
+    
+    console.log('[LOGIN] Profile completeness check:', {
+        staffId: hasStaffId,
+        email: hasRealEmail,
+        department: hasRealDepartment,
+        isComplete: isProfileComplete,
+        memberData: member
+    });
+    
+    // Auto-created profile (from /auth endpoint) is NOT complete
+    // User MUST complete signup before accessing portal
+    if (!isProfileComplete) {
+        console.log('[LOGIN] ⚠️ Profile incomplete - redirecting to profile setup');
+        
+        // Store the Discord user data temporarily for signup form
         currentUser = {
             id: user.id,
             name: user.global_name || user.username,
             avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : '',
             roles: member.roles || [],
             profile: {
-                name: member.name || user.global_name || user.username,
-                email: member.email || 'Not set',
-                department: member.department || 'Not set',
-                discordTag: user.username,
-                staffId: member.staffId || '',
-                timezone: member.timezone || '',
-                country: member.country || ''
-            },
-            absences: [],
-            strikes: [],
-            payslips: [],
-            mail: [],
-            sentMail: [],
-            drafts: [],
-            pendingDeptChange: null,
-            lastLogin: null
-        };
-        console.log('[LOGIN] Current user populated with member data:', currentUser);
-    } else {
-        console.log('[LOGIN] First time user or no profile found, creating new profile');
-        // First time user: use Discord name as placeholder
-        isFirstTime = true;
-        const localEmp = getEmployee(user.id);
-        currentUser = {
-            id: user.id,
-            name: user.global_name || user.username,
-            avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : '',
-            roles: member.roles,
-            profile: {
                 name: user.global_name || user.username,
-                email: 'Not set',
-                department: 'Not set',
-                discordTag: user.username
-            },
-            absences: localEmp.absences || [],
-            strikes: localEmp.strikes || [],
-            payslips: localEmp.payslips || [],
-            mail: localEmp.mail || [],
-            sentMail: localEmp.sentMail || [],
-            drafts: localEmp.drafts || [],
-            pendingDeptChange: localEmp.pendingDeptChange || null,
-            lastLogin: localEmp.lastLogin || null
+                email: member.email || '',
+                department: member.department || '',
+                discordTag: user.username,
+                staffId: member.staffId || ''
+            }
         };
+        
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        localStorage.setItem('lastProcessedCode', code);
+        window.history.replaceState({}, document.title, REDIRECT_URI);
+        
+        // Show modal with setup instructions
+        showModal('alert', 'Welcome! Your account has been created.\n\nPlease complete your profile by updating your email and department on the next screen.\n\nAfter saving, you\'ll have full access to the portal.');
+        
+        // Mark that they need to complete profile before accessing portal
+        sessionStorage.setItem('needsProfileSetup', 'true');
+        
+        // Show profile screen for setup
+        showScreen('myProfile');
+        return;
     }
+    
+    // Profile IS complete - user can login normally
+    console.log('[LOGIN] ✓ Profile complete - allowing login');
+    let isFirstTime = false;
+    currentUser = {
+        id: user.id,
+        name: user.global_name || user.username,
+        avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : '',
+        roles: member.roles || [],
+        profile: {
+            name: member.name || user.global_name || user.username,
+            email: member.email || 'Not set',
+            department: member.department || 'Not set',
+            discordTag: user.username,
+            staffId: member.staffId || '',
+            timezone: member.timezone || '',
+            country: member.country || ''
+        },
+        absences: [],
+        strikes: [],
+        payslips: [],
+        mail: [],
+        sentMail: [],
+        drafts: [],
+        pendingDeptChange: null,
+        lastLogin: null
+    };
+    console.log('[LOGIN] Current user populated with complete profile:', currentUser);
 
     showScreen('cherry');
     await new Promise(r => setTimeout(r, 1000));
@@ -5447,19 +5469,51 @@ if (homeBtn) {
         
         updateMainScreen();
         // Close mobile sidebar after navigation
-        closeMobileSidebar();
-    });
-}
-
-const updateProfileBtn = document.getElementById('updateProfileBtn');
-if (updateProfileBtn) {
-    updateProfileBtn.addEventListener('click', () => {
+        closeMobileSidebar();async () => {
     const name = document.getElementById('updateNameInput').value.trim();
     const email = document.getElementById('updateEmailInput').value.trim();
     if (name && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         const emp = getEmployee(currentUser.id);
         emp.profile.name = name;
         emp.profile.email = email;
+        updateEmployee(emp);
+        currentUser.profile = emp.profile;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        // Also save to backend
+        try {
+            const response = await fetch(`${WORKER_URL}/api/user/profile/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    discordId: currentUser.id,
+                    name: name,
+                    email: email,
+                    department: emp.profile.department || '',
+                    staffId: emp.profile.staffId || '',
+                    timezone: emp.profile.timezone || '',
+                    country: emp.profile.country || ''
+                })
+            });
+            
+            if (response.ok) {
+                console.log('[PROFILE] Successfully saved profile to backend');
+                
+                // If this was a required setup, clear the flag
+                sessionStorage.removeItem('needsProfileSetup');
+                
+                showModal('alert', '<span class="success-tick"></span> Profile updated successfully!');
+                playSuccessSound();
+                addNotification('profile', 'Your profile has been updated!', 'myProfile');
+            } else {
+                console.warn('[PROFILE] Failed to save to backend:', response.status);
+                showModal('alert', 'Profile saved locally but could not reach server. Please try again.');
+            }
+        } catch (e) {
+            console.error('[PROFILE] Error saving to backend:', e);
+            showModal('alert', 'Profile saved locally but encountered an error. Please try again.');
+        }
+        
         updateEmployee(emp);
         currentUser.profile = emp.profile;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));

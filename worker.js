@@ -133,6 +133,58 @@ export default {
         return new Response(JSON.stringify(profile), { headers: corsHeaders });
       }
 
+      // Update user profile (PUT or POST to /api/user/profile/update)
+      if ((url.pathname === '/api/user/profile/update' || url.pathname === '/api/profile/update') && request.method === 'POST') {
+        const body = await request.json();
+        const { discordId, name, email, department, staffId, timezone, country } = body;
+
+        if (!discordId) {
+          return new Response(JSON.stringify({ error: 'Missing discordId' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        const profileKey = `profile:${discordId}`;
+        const existingProfile = await env.DATA.get(profileKey, 'json') || {};
+
+        // Update profile with new values
+        const updatedProfile = {
+          ...existingProfile,
+          id: discordId,
+          name: name || existingProfile.name,
+          email: email || existingProfile.email,
+          department: department || existingProfile.department,
+          staffId: staffId || existingProfile.staffId,
+          timezone: timezone || existingProfile.timezone,
+          country: country || existingProfile.country,
+          discordTag: existingProfile.discordTag,
+          discordId: discordId,
+          avatar: existingProfile.avatar,
+          updatedAt: new Date().toISOString()
+        };
+
+        // Save updated profile to KV
+        await env.DATA.put(profileKey, JSON.stringify(updatedProfile));
+
+        // Also update the user account entry
+        const accountKey = `user:${discordId}`;
+        const existingAccount = await env.DATA.get(accountKey, 'json') || {};
+        const updatedAccount = {
+          ...existingAccount,
+          id: discordId,
+          profile: updatedProfile,
+          updatedAt: new Date().toISOString()
+        };
+        await env.DATA.put(accountKey, JSON.stringify(updatedAccount));
+
+        return new Response(JSON.stringify({
+          success: true,
+          profile: updatedProfile,
+          message: 'Profile updated successfully'
+        }), { headers: corsHeaders });
+      }
+
       // Create absence request
       if (url.pathname === '/api/absence/create' && request.method === 'POST') {
         const body = await request.json();
