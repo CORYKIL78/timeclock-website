@@ -3245,17 +3245,10 @@ async function handleOAuthRedirect() {
                         console.log('[OAUTH-SAVED] Profile completeness:', { staffId: bpHasStaffId, email: bpHasRealEmail, dept: bpHasRealDept, complete: bpIsComplete });
                         
                         if (!bpIsComplete) {
-                            console.log('[OAUTH-SAVED] Profile incomplete - redirecting to signup flow');
-                            currentUser.profile = {
-                                name: backendProfile.name || currentUser.name,
-                                email: backendProfile.email || '',
-                                department: backendProfile.department || '',
-                                discordTag: backendProfile.discordTag || currentUser.name,
-                                staffId: backendProfile.staffId || ''
-                            };
-                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                            sessionStorage.setItem('needsProfileSetup', 'true');
-                            showScreen('setupWelcome');
+                            console.log('[OAUTH-SAVED] Profile incomplete - must login with Discord first');
+                            // Force Discord OAuth - after auth, the code path will redirect to signup
+                            localStorage.removeItem('lastProcessedCode');
+                            showScreen('discord');
                             return;
                         }
                         
@@ -7749,18 +7742,11 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
                     console.log('[INIT] Profile completeness:', { staffId: initHasStaffId, email: initHasRealEmail, dept: initHasRealDept, complete: initProfileComplete });
                     
                     if (!initProfileComplete) {
-                        console.warn('[INIT] ⚠️ Profile exists but is INCOMPLETE - redirecting to signup flow');
-                        // Update currentUser with latest profile data for the setup form
-                        currentUser.profile = {
-                            name: initProfile.name || currentUser.name,
-                            email: initProfile.email || '',
-                            department: initProfile.department || '',
-                            discordTag: initProfile.discordTag || currentUser.name,
-                            staffId: initProfile.staffId || ''
-                        };
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                        sessionStorage.setItem('needsProfileSetup', 'true');
-                        showScreen('setupWelcome');
+                        console.warn('[INIT] ⚠️ Profile exists but is INCOMPLETE - must login with Discord first');
+                        // Don't clear currentUser - keep it so OAuth flow can use it
+                        // But force them through Discord OAuth first, then signup flow
+                        localStorage.removeItem('lastProcessedCode');
+                        showScreen('discord');
                         return;
                     }
                     
