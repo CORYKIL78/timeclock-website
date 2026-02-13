@@ -311,6 +311,7 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
 </style>
 <!-- ====== Load Configuration from environment ====== -->
 <script src="../config-loader.js"></script>
+<script src="../.env-config.js"></script>
 </head>
 <body>
 
@@ -582,8 +583,9 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
 <div class="toast" id="toast"></div>
 
 <script>
-<!-- ====== CONFIG & STATE ====== -->
-<script>
+/* ================================================================
+   CONFIG & STATE
+   ================================================================ */
 // Load API config from environment or use defaults
 const API = window.CONFIG?.WORKER_URL || 'https://timeclock-backend.marcusray.workers.dev';
 const GUILD_ID = window.CONFIG?.GUILD_ID || '1310656642672627752';
@@ -599,15 +601,14 @@ const ADMINS = window.CONFIG?.ADMINS || {
 
 console.warn('[ADMIN PORTAL] Loaded credentials from:', window.CONFIG ? 'environment config' : 'defaults');
 console.log('[ADMIN PORTAL] Admin users:', Object.keys(ADMINS));
-</script>
 
 const REPORT_POINTS = { 'Commendation': 1, 'Negative Behaviour': -1, 'Disruptive': -1, 'Monthly Report': 0 };
 const STRIKE_POINTS = { 'Verbal Warning': -1, 'Formal Warning': -2, 'Suspension': -4 };
 
 let state = {
-  admin: null,       // { id, name, avatar }
-  users: [],         // all users from sheets
-  discordMembers: [],// discord data
+  admin: null,
+  users: [],
+  discordMembers: [],
   absences: [],
   requests: [],
   payslips: [],
