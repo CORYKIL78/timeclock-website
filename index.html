@@ -317,6 +317,12 @@
             </div>
         </div>
     </div>
+    <div id="loadingScreen" class="screen loading-screen">
+        <div class="container black-bg">
+            <h2>Loading...</h2>
+            <div class="spinner"></div>
+        </div>
+    </div>
     <div id="searchingScreen" class="screen loading-screen">
         <div class="container black-bg">
             <h2>Searching...</h2>
@@ -1140,7 +1146,7 @@
     <script src="config-loader.js"></script>
     <script src=".env-config.js"></script>
     <!-- Main application script -->
-    <script src="script.js?v=2.0.2"></script>
+    <script src="script.js?v=2.0.3"></script>
     <script>
         // Force service worker update on every page load
         if ('serviceWorker' in navigator) {
