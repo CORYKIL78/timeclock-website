@@ -7706,6 +7706,16 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
         }, 1000);
     }
 
+    // If there's an OAuth code in the URL, ALWAYS process it first
+    // (user just came back from Discord login - don't get stuck in saved user validation)
+    const hasOAuthCode = new URLSearchParams(window.location.search).has('code');
+    
+    if (hasOAuthCode) {
+        console.log('[INIT] OAuth code detected in URL - processing Discord login first');
+        await handleOAuthRedirect();
+        return;
+    }
+
     if (savedUser) {
         try {
             currentUser = JSON.parse(savedUser);

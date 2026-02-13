@@ -1142,23 +1142,10 @@
     <footer>© Cirkle Development 2024 | Portal V4</footer>
 
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <!-- Load environment configuration -->
+    <!-- Load environment configuration (defaults are hardcoded in script.js) -->
     <script src="config-loader.js"></script>
-    <script>
-        // Try to load .env-config.js but don't block if unavailable
-        // All config values have hardcoded fallbacks in script.js
-        try {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', '.env-config.js', false); // synchronous
-            xhr.send();
-            if (xhr.status === 200 && xhr.responseText.indexOf('ENVIRONMENT_CONFIG') !== -1) {
-                eval(xhr.responseText);
-                if (typeof loadConfig === 'function') loadConfig();
-            }
-        } catch(e) { /* .env-config.js not available - using defaults */ }
-    </script>
     <!-- Main application script -->
-    <script src="script.js?v=2.0.7"></script>
+    <script src="script.js?v=2.0.8"></script>
     <script>
         // Force service worker update on every page load
         if ('serviceWorker' in navigator) {
