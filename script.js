@@ -885,7 +885,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 // --- USER PROFILE & STRIKES BACKEND INTEGRATION ---
-const BACKEND_URL = 'https://timeclock-backend.marcusray.workers.dev';
+// Main backend URL (Cloudflare Workers)
+let BACKEND_URL = localStorage.getItem('BACKEND_URL') || 'https://timeclock-backend.marcusray.workers.dev';
+
+// Accounts API URL (standalone Node.js server) - Can be deployed separately
+// Examples:
+// - Local: http://localhost:3000
+// - Render: https://your-app.onrender.com
+// - Railway: https://your-app.railway.app
+// - Heroku: https://your-app.herokuapp.com
+let ACCOUNTS_API_URL = localStorage.getItem('ACCOUNTS_API_URL') || 'http://localhost:3000';
+
+// Helper function to update API URLs (useful for switching environments)
+function setAPIURLs(backendUrl, accountsUrl) {
+  if (backendUrl) {
+    BACKEND_URL = backendUrl;
+    localStorage.setItem('BACKEND_URL', backendUrl);
+  }
+  if (accountsUrl) {
+    ACCOUNTS_API_URL = accountsUrl;
+    localStorage.setItem('ACCOUNTS_API_URL', accountsUrl);
+  }
+  console.log('[API URLS]', { BACKEND_URL, ACCOUNTS_API_URL });
+}
 
 // API Response Cache - Reduce quota usage
 const apiCache = {
@@ -1091,6 +1113,145 @@ async function submitStrikeAppeal(discordId, strikeIndex, reason) {
     } catch (e) {
         console.error('submitStrikeAppeal error:', e);
         return null;
+    }
+}
+
+// ============================================================================
+// ACCOUNTS API FUNCTIONS - Retrieve account information from standalone API
+// ============================================================================
+
+/**
+ * Fetch complete account information from Accounts API
+ * Includes: profile, absences, payslips, disciplinaries, requests, reports, summary
+ */
+async function fetchAccountInfo(userId) {
+    try {
+        const url = `${ACCOUNTS_API_URL}/api/accounts/${userId}`;
+        console.log('[ACCOUNTS API] Fetching account info from:', url);
+        
+        const res = await fetch(url);
+        if (!res.ok) {
+            console.error('[ACCOUNTS API] Error:', res.status, res.statusText);
+            return null;
+        }
+        
+        const data = await res.json();
+        return data.success ? data.account : null;
+    } catch (e) {
+        console.error('[ACCOUNTS API] Error fetching account:', e.message);
+        return null;
+    }
+}
+
+/**
+ * Fetch just the user profile
+ */
+async function fetchAccountProfile(userId) {
+    try {
+        const url = `${ACCOUNTS_API_URL}/api/user/profile/${userId}`;
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.success ? data.profile : null;
+    } catch (e) {
+        console.error('[ACCOUNTS API] Error fetching profile:', e.message);
+        return null;
+    }
+}
+
+/**
+ * Fetch user absences
+ */
+async function fetchAccountAbsences(userId) {
+    try {
+        const url = `${ACCOUNTS_API_URL}/api/user/absences/${userId}`;
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.success ? data.absences : [];
+    } catch (e) {
+        console.error('[ACCOUNTS API] Error fetching absences:', e.message);
+        return [];
+    }
+}
+
+/**
+ * Fetch user payslips
+ */
+async function fetchAccountPayslips(userId) {
+    try {
+        const url = `${ACCOUNTS_API_URL}/api/user/payslips/${userId}`;
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.success ? data.payslips : [];
+    } catch (e) {
+        console.error('[ACCOUNTS API] Error fetching payslips:', e.message);
+        return [];
+    }
+}
+
+/**
+ * Fetch user disciplinaries
+ */
+async function fetchAccountDisciplinaries(userId) {
+    try {
+        const url = `${ACCOUNTS_API_URL}/api/user/disciplinaries/${userId}`;
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.success ? data.disciplinaries : [];
+    } catch (e) {
+        console.error('[ACCOUNTS API] Error fetching disciplinaries:', e.message);
+        return [];
+    }
+}
+
+/**
+ * Fetch user requests
+ */
+async function fetchAccountRequests(userId) {
+    try {
+        const url = `${ACCOUNTS_API_URL}/api/user/requests/${userId}`;
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.success ? data.requests : [];
+    } catch (e) {
+        console.error('[ACCOUNTS API] Error fetching requests:', e.message);
+        return [];
+    }
+}
+
+/**
+ * Fetch user reports
+ */
+async function fetchAccountReports(userId) {
+    try {
+        const url = `${ACCOUNTS_API_URL}/api/user/reports/${userId}`;
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.success ? data.reports : [];
+    } catch (e) {
+        console.error('[ACCOUNTS API] Error fetching reports:', e.message);
+        return [];
+    }
+}
+
+/**
+ * Check Accounts API health status
+ */
+async function checkAccountsAPIHealth() {
+    try {
+        const url = `${ACCOUNTS_API_URL}/health`;
+        const res = await fetch(url);
+        const data = await res.json();
+        console.log('[ACCOUNTS API] Health:', data);
+        return data;
+    } catch (e) {
+        console.error('[ACCOUNTS API] Health check failed:', e.message);
+        return { status: 'error', error: e.message };
     }
 }
 
