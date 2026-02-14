@@ -2261,9 +2261,10 @@ async function sendAbsenceWebhook(absence) {
 
 const REQUIRED_ROLE = window.CONFIG?.REQUIRED_ROLE || '1315346851616002158';
 const DEPT_ROLES = window.CONFIG?.DEPT_ROLES || {
-    'Development Department': '1315323804528017498',
-    'Customer Relations Department': '1315042036969242704',
-    'Finance Department': '1433453982453338122'
+    '1315323804528017498': '1315323804528017498',
+    '1315042036969242704': '1315042036969242704',
+    '1433453982453338122': '1433453982453338122',
+    '1315041666851274822': '1315041666851274822'
 };
 const GUILD_ID = window.CONFIG?.GUILD_ID || '1310656642672627752';
 const WORKER_URL = window.CONFIG?.WORKER_URL || 'https://timeclock-backend.marcusray.workers.dev';

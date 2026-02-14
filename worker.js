@@ -148,21 +148,26 @@ export default {
         const profileKey = `profile:${discordId}`;
         const existingProfile = await env.DATA.get(profileKey, 'json') || {};
 
-        // Update profile with new values
+        console.log(`[PROFILE UPDATE] Updating profile for ${discordId}`, { name, email, department, staffId });
+        console.log(`[PROFILE UPDATE] Existing profile:`, existingProfile);
+
+        // Update profile with new values (use !== undefined to allow empty strings)
         const updatedProfile = {
           ...existingProfile,
           id: discordId,
-          name: name || existingProfile.name,
-          email: email || existingProfile.email,
-          department: department || existingProfile.department,
-          staffId: staffId || existingProfile.staffId,
-          timezone: timezone || existingProfile.timezone,
-          country: country || existingProfile.country,
+          name: name !== undefined ? name : existingProfile.name,
+          email: email !== undefined ? email : existingProfile.email,
+          department: department !== undefined ? department : existingProfile.department,
+          staffId: staffId !== undefined ? staffId : existingProfile.staffId,
+          timezone: timezone !== undefined ? timezone : existingProfile.timezone,
+          country: country !== undefined ? country : existingProfile.country,
           discordTag: existingProfile.discordTag,
           discordId: discordId,
           avatar: existingProfile.avatar,
           updatedAt: new Date().toISOString()
         };
+
+        console.log(`[PROFILE UPDATE] Updated profile:`, updatedProfile);
 
         // Save updated profile to KV
         await env.DATA.put(profileKey, JSON.stringify(updatedProfile));
