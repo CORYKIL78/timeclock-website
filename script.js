@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('[syncProfileFromSheets] Set baseLevel to:', profile.baseLevel);
             
             // Save to localStorage immediately
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            persistUserData(); // Use persistence layer
             console.log('[syncProfileFromSheets] Saved to localStorage');
             
             // Update employee record
@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             emp.profile.department = profile.department;
             emp.profile.staffId = profile.staffId;
             emp.profile.baseLevel = profile.baseLevel;
-            updateEmployee(emp);
+            updateEmployee(emp); // This calls persistUserData() internally
             
             console.debug('[syncProfileFromSheets] Updated currentUser.profile: ' + JSON.stringify(currentUser.profile));
             
@@ -2428,6 +2428,95 @@ let notificationAudio = null;
 let currentMail = null;
 let currentNotifications = [];
 
+// ============================================================================
+// DATA PERSISTENCE LAYER - Save and restore all user data
+// ============================================================================
+
+/**
+ * Persist all user data to localStorage
+ * Called after ANY modification to currentUser or employees
+ */
+function persistUserData() {
+    try {
+        if (currentUser) {
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            console.log('[PERSIST] Saved currentUser:', currentUser.id);
+        }
+        
+        if (employees && employees.length > 0) {
+            localStorage.setItem('employees', JSON.stringify(employees));
+            console.log('[PERSIST] Saved', employees.length, 'employees');
+        }
+    } catch (e) {
+        console.error('[PERSIST] Error saving data:', e);
+    }
+}
+
+/**
+ * Restore all user data from localStorage
+ * Called on page load to restore previous session
+ */
+function restoreUserData() {
+    try {
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+            console.log('[RESTORE] Loaded currentUser from localStorage:', currentUser.id);
+        }
+        
+        const savedEmployees = localStorage.getItem('employees');
+        if (savedEmployees) {
+            employees = JSON.parse(savedEmployees);
+            console.log('[RESTORE] Loaded', employees.length, 'employees from localStorage');
+        }
+        
+        return { currentUser, employees };
+    } catch (e) {
+        console.error('[RESTORE] Error loading data:', e);
+        return { currentUser: null, employees: [] };
+    }
+}
+
+/**
+ * Shorthand function to update currentUser profile and persist
+ */
+function updateCurrentUserProfile(profileData) {
+    if (!currentUser) currentUser = {};
+    if (!currentUser.profile) currentUser.profile = {};
+    
+    Object.assign(currentUser.profile, profileData);
+    persistUserData();
+    console.log('[UPDATE-PROFILE] Updated profile:', currentUser.profile);
+}
+
+/**
+ * Clear all local data (used on logout/reset)
+ */
+function clearAllLocalData() {
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('employees');
+    localStorage.removeItem('clockInTime');
+    localStorage.removeItem('lastDisciplinaryCheck');
+    localStorage.removeItem('lastPayslipCheck');
+    localStorage.removeItem('lastReportCheck');
+    currentUser = null;
+    employees = [];
+    console.log('[CLEAR] All local data cleared');
+}
+
+// ============================================================================
+// INITIALIZE DATA ON SCRIPT LOAD
+// ============================================================================
+console.log('[INIT] Starting data initialization...');
+const restored = restoreUserData();
+if (restored.currentUser) {
+    console.log('[INIT] ✓ Restored currentUser from localStorage:', restored.currentUser.id);
+}
+if (restored.employees && restored.employees.length > 0) {
+    console.log('[INIT] ✓ Restored', restored.employees.length, 'employees from localStorage');
+}
+
+
 function showScreen(screenId) {
     console.log('%c==> showScreen:', 'color: cyan; font-weight: bold;', screenId);
     
@@ -2746,19 +2835,18 @@ async function syncUserDataFromBackend(userId) {
 
 function saveEmployees() {
     localStorage.setItem('employees', JSON.stringify(employees));
+    console.log('[saveEmployees] Saved', employees.length, 'employees to localStorage');
 }
 
-// Save employees array to localStorage
-function saveEmployees() {
-    try {
-        localStorage.setItem('employees', JSON.stringify(employees));
-        console.log('[saveEmployees] Saved', employees.length, 'employees to localStorage');
-    } catch (e) {
-        console.error('[saveEmployees] Error saving employees:', e);
+function updateEmployee(employee) {
+    const index = employees.findIndex(e => e.id === employee.id);
+    if (index > -1) {
+        employees[index] = employee;
+    } else {
+        employees.push(employee);
     }
-}
-
-function getEmployee(id) {
+    persistUserData(); // Save to localStorage after any employee update
+}function getEmployee(id) {
     return employees.find(e => e.id === id) || { 
         id, 
         profile: {}, 
@@ -3018,9 +3106,10 @@ function updateMainScreen() {
     document.getElementById('greeting').textContent = `Good ${getGreeting()}, ${userName}!`;
     document.getElementById('lastLogin').textContent = `Last Log In: ${emp.lastLogin || 'Never'}`;
     document.getElementById('mainProfilePic').src = currentUser.avatar || 'https://via.placeholder.com/100';
-    document.getElementById('totalAbsences').textContent = emp.absences.length;
+    const absences = emp.absences || [];
+    document.getElementById('totalAbsences').textContent = absences.length;
     let totalDays = 0;
-    emp.absences.forEach(a => {
+    absences.forEach(a => {
         const start = new Date(a.startDate);
         const end = new Date(a.endDate);
         if (end >= start) {
@@ -3266,7 +3355,7 @@ async function handleOAuthRedirect() {
                             discordTag: backendProfile.discordTag || currentUser.name,
                             staffId: backendProfile.staffId
                         };
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        persistUserData(); // Save updated profile to localStorage
                         
                         const emp = getEmployee(currentUser.id);
                         document.getElementById('portalWelcomeName').textContent = currentUser.profile.name;
@@ -3310,7 +3399,7 @@ async function handleOAuthRedirect() {
                             discordTag: backendProfile2.discordTag || currentUser.name,
                             staffId: backendProfile2.staffId || ''
                         };
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        persistUserData(); // Save updated profile to localStorage
                         
                         // Check completeness
                         const bp2HasStaffId = !!backendProfile2.staffId;
@@ -3510,7 +3599,7 @@ async function handleOAuthRedirect() {
             }
         };
         
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        persistUserData(); // Save to localStorage before redirecting
         localStorage.setItem('lastProcessedCode', code);
         window.history.replaceState({}, document.title, REDIRECT_URI);
         
@@ -3572,7 +3661,7 @@ async function handleOAuthRedirect() {
     
     // Set window.currentUser BEFORE checking suspension
     window.currentUser = currentUser;
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    persistUserData(); // Save all data to localStorage after login
     console.log('User session saved with profile:', currentUser.profile);
     console.log('[SUSPEND] About to check suspension status for user:', currentUser.id);
     
@@ -5134,6 +5223,8 @@ if (setupEmailContinueBtn) {
         if (!currentUser) currentUser = {};
         if (!currentUser.profile) currentUser.profile = {};
         currentUser.profile.email = email;
+        persistUserData(); // Save email to localStorage
+        console.log('[SETUP] Email saved:', email);
         showScreen('setupName');
     } else {
         showModal('alert', 'Please enter a valid email with @ and a domain (e.g., example.com)');
@@ -5150,6 +5241,8 @@ if (setupNameContinueBtn) {
             if (!currentUser) currentUser = {};
             if (!currentUser.profile) currentUser.profile = {};
             currentUser.profile.name = name;
+            persistUserData(); // Save name to localStorage
+            console.log('[SETUP] Name saved:', name);
             console.log('[DEBUG] Name saved, redirecting to preferences selection');
             showScreen('setupPreferences');
         } else {
@@ -5171,9 +5264,10 @@ if (setupPreferencesContinueBtn) {
         if (!currentUser) currentUser = {};
         if (!currentUser.profile) currentUser.profile = {};
         currentUser.profile.timezone = timezone;
-        // Note: dateFormat is collected for UI purposes but not stored in backend
         currentUser.profile.dateFormat = dateFormat;
         currentUser.profile.country = country;
+        persistUserData(); // Save preferences to localStorage
+        console.log('[SETUP] Preferences saved:', { timezone, country });
         console.log('[DEBUG] Preferences saved, redirecting to department selection');
         showScreen('setupDepartment');
     } else {
@@ -5191,6 +5285,8 @@ if (setupDepartmentContinueBtn) {
         if (!currentUser) currentUser = {};
         if (!currentUser.profile) currentUser.profile = {};
         currentUser.profile.department = selectedDept.value;
+        persistUserData(); // Save department to localStorage
+        console.log('[SETUP] Department saved:', selectedDept.value);
         console.log('[DEBUG] Department saved, verifying roles...');
         showScreen('setupVerify');
         
@@ -5215,6 +5311,7 @@ if (setupDepartmentContinueBtn) {
                 if (skipRoleCheck || (hasBaseRole && hasDeptRole)) {
                     console.log('[DEBUG] Role check passed (or skipped), saving profile...');
                     updateEmployee(currentUser);
+                    persistUserData(); // Ensure all data is saved
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                     // Save to Google Sheets via backend
                     console.log('[DEBUG] Saving profile to Google Sheets...');
@@ -7588,17 +7685,19 @@ if (logoutBtn) {
         if (goodbyeName) {
             goodbyeName.textContent = emp.profile.name || 'User';
         }
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('lastProcessedCode');
-        localStorage.removeItem('clockInTime');
+        
         if (isClockedIn) {
             clearInterval(clockInInterval);
-        sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()} due to logout`);
-    }
-    playLogoffSound();
-    showScreen('setupVerify'); // show loading spinner screen
-    setTimeout(() => showScreen('discord'), 2000);
-});
+            sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()} due to logout`);
+        }
+        
+        // Clear all local data using persistence layer
+        clearAllLocalData();
+        
+        playLogoffSound();
+        showScreen('setupVerify'); // show loading spinner screen
+        setTimeout(() => showScreen('discord'), 2000);
+    });
 }
 
 const sidebarToggle = document.querySelector('.sidebar-toggle');

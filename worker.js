@@ -83,8 +83,8 @@ export default {
         return new Response(JSON.stringify(fullAccount), { headers: corsHeaders });
       }
 
-      // Get user profile
-      if (url.pathname.startsWith('/api/user/profile/')) {
+      // Get user profile (MUST exclude /api/user/profile/update path)
+      if (url.pathname.startsWith('/api/user/profile/') && !url.pathname.includes('update')) {
         const userId = url.pathname.split('/api/user/profile/')[1];
         const profileKey = `profile:${userId}`;
         const profile = await env.DATA.get(profileKey, 'json');
