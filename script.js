@@ -951,7 +951,6 @@ const apiCache = {
     }
 };
 
-// --- Backend Integration: Upsert User Profile ---
 async function upsertUserProfile() {
     try {
         const payload = {
@@ -974,8 +973,14 @@ async function upsertUserProfile() {
             const data = await res.json();
             console.log('[upsertUserProfile] Profile saved successfully:', data);
             sessionStorage.removeItem('needsProfileSetup');
+            // Force refresh cached profile to ensure next lookup gets fresh data
+            const cacheKey = `profile_${currentUser.id}`;
+            apiCache.delete(cacheKey);
+            console.log('[upsertUserProfile] Cache cleared for next lookup');
         } else {
             console.error('[upsertUserProfile] Backend error:', res.status);
+            const errorText = await res.text();
+            console.error('[upsertUserProfile] Error response:', errorText);
         }
     } catch (e) {
         console.error('[upsertUserProfile] Failed to save profile:', e);
@@ -3345,7 +3350,7 @@ async function handleOAuthRedirect() {
     let user;
     try {
         const authUrl = `${WORKER_URL}/auth?code=${code}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
-        console.log('Fetching user data from Worker:', authUrl);
+        console.log('[OAUTH] Exchanging code with Discord OAuth endpoint:', authUrl);
         const response = await fetch(authUrl, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
@@ -3353,14 +3358,14 @@ async function handleOAuthRedirect() {
         });
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Auth response error:', { status: response.status, errorText });
+            console.error('[OAUTH] Auth response error:', { status: response.status, body: errorText });
             throw new Error(`Auth failed: ${response.status} ${errorText}`);
         }
         user = await response.json();
-        console.log('User data received:', user);
+        console.log('[OAUTH] Discord user data received:', { id: user.id, username: user.username, global_name: user.global_name });
     } catch (e) {
-        console.error('Auth fetch error:', e.message);
-        showModal('alert', `Failed to authenticate: ${e.message}. Please try again.`);
+        console.error('[OAUTH] Code exchange failed:', e.message);
+        showModal('alert', `Failed to authenticate with Discord: ${e.message}. Please try again.`);
         localStorage.removeItem('lastProcessedCode');
         window.history.replaceState({}, document.title, REDIRECT_URI);
         showScreen('discord');
@@ -3382,32 +3387,61 @@ async function handleOAuthRedirect() {
     await new Promise(r => setTimeout(r, 500));
     
     let member;
+    let profileFetchAttempt = 0;
+    const maxAttempts = 3;
+    
     try {
-        const response = await fetch(`${WORKER_URL}/api/user/profile`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors',
-            body: JSON.stringify({ discordId: user.id })
-        });
-        if (!response.ok) {
-            console.warn('User profile not found (404), creating placeholder profile');
-            // User not in KV yet - create placeholder profile
-            member = {
-                id: user.id,
-                name: user.global_name || user.username,
-                email: 'Not set',
-                department: 'Not set',
-                roles: [],
-                baseLevel: '',
-                timezone: '',
-                country: ''
-            };
-        } else {
-            member = await response.json();
-            console.log('Member data received from KV:', member);
+        // Try to fetch profile with retries in case of temporary failures
+        while (profileFetchAttempt < maxAttempts) {
+            profileFetchAttempt++;
+            try {
+                const response = await fetch(`${WORKER_URL}/api/user/profile`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    mode: 'cors',
+                    body: JSON.stringify({ discordId: user.id })
+                });
+                
+                if (response.ok) {
+                    member = await response.json();
+                    console.log('[LOGIN] ✓ Member data received from KV on attempt', profileFetchAttempt, ':', member);
+                    break;
+                } else if (response.status === 404) {
+                    console.warn(`[LOGIN] Attempt ${profileFetchAttempt}: User profile not found (404)`);
+                    if (profileFetchAttempt < maxAttempts) {
+                        // Wait a bit and retry
+                        await new Promise(r => setTimeout(r, 300 * profileFetchAttempt));
+                        continue;
+                    } else {
+                        // Final attempt failed - use placeholder
+                        console.warn('[LOGIN] Profile lookup failed after all attempts, using placeholder');
+                        member = {
+                            id: user.id,
+                            name: user.global_name || user.username,
+                            email: 'Not set',
+                            department: 'Not set',
+                            roles: [],
+                            baseLevel: '',
+                            timezone: '',
+                            country: ''
+                        };
+                        break;
+                    }
+                } else {
+                    throw new Error(`Unexpected status: ${response.status}`);
+                }
+            } catch (attemptError) {
+                console.error(`[LOGIN] Attempt ${profileFetchAttempt} failed:`, attemptError.message);
+                if (profileFetchAttempt < maxAttempts) {
+                    await new Promise(r => setTimeout(r, 300 * profileFetchAttempt));
+                    continue;
+                } else {
+                    throw attemptError;
+                }
+            }
         }
     } catch (e) {
-        console.error('Member fetch error:', e.message);
+        console.error('[LOGIN] Member fetch failed after retries:', e.message);
         // Still allow login with placeholder profile
         member = {
             id: user.id,
@@ -3436,14 +3470,23 @@ async function handleOAuthRedirect() {
     const hasStaffId = !!member.staffId;
     const hasRealEmail = member.email && member.email !== 'Not set';
     const hasRealDepartment = member.department && member.department !== 'Not set';
+    const hasRealName = member.name && member.name !== user.username; // Real name if not just Discord username
+    
+    // A profile is complete if it has a staff ID, OR if it has both email and department populated
     const isProfileComplete = hasStaffId || (hasRealEmail && hasRealDepartment);
     
-    console.log('[LOGIN] Profile completeness check:', {
-        staffId: hasStaffId,
-        email: hasRealEmail,
-        department: hasRealDepartment,
-        isComplete: isProfileComplete,
-        memberData: member
+    console.log('[LOGIN] 📋 Profile Completeness Check:', {
+        discord_username: user.username,
+        profile_name: member.name,
+        has_real_name: hasRealName,
+        email: member.email,
+        has_real_email: hasRealEmail,
+        department: member.department,
+        has_real_department: hasRealDepartment,
+        staffId: member.staffId || '(none)',
+        has_staff_id: hasStaffId,
+        status: isProfileComplete ? '✓ COMPLETE' : '✗ INCOMPLETE',
+        nextStep: isProfileComplete ? 'Login' : 'Signup Flow'
     });
     
     // Auto-created profile (from /auth endpoint) is NOT complete

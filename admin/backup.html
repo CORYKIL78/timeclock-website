@@ -592,15 +592,21 @@ const GUILD_ID = window.CONFIG?.GUILD_ID || '1310656642672627752';
 
 // Load admin credentials from environment config
 // Format: ADMIN_{DISCORD_ID}_PIN and ADMIN_{DISCORD_ID}_NAME
-const ADMINS = window.CONFIG?.ADMINS || {
-  '1088907566844739624': { pin: '', name: 'Marcus Ray' },
-  '1002932344799371354': { pin: '', name: 'Appler Smith' },
-  '1187751127039615086': { pin: '', name: 'Sam Caster' },
-  '926568979747713095':  { pin: '', name: 'Teejay Everil' }
-};
-
-console.warn('[ADMIN PORTAL] Loaded credentials from:', window.CONFIG ? 'environment config' : 'defaults');
-console.log('[ADMIN PORTAL] Admin users:', Object.keys(ADMINS));
+// Wait for config to be loaded if not already available
+let ADMINS = window.CONFIG?.ADMINS;
+if (!ADMINS || Object.keys(ADMINS).every(id => !ADMINS[id].pin)) {
+  // Config not loaded yet or has empty PINs - use defaults as fallback
+  ADMINS = {
+    '1088907566844739624': { pin: '061021', name: 'Marcus Ray' },
+    '1002932344799371354': { pin: '486133', name: 'Appler Smith' },
+    '1187751127039615086': { pin: '638542', name: 'Sam Caster' },
+    '926568979747713095':  { pin: '315793', name: 'Teejay Everil' }
+  };
+  console.warn('[ADMIN PORTAL] Using hardcoded admin credentials (config not loaded or empty)');
+} else {
+  console.warn('[ADMIN PORTAL] Loaded credentials from environment config');
+}
+console.log('[ADMIN PORTAL] Admin users available:', Object.keys(ADMINS));
 
 const REPORT_POINTS = { 'Commendation': 1, 'Negative Behaviour': -1, 'Disruptive': -1, 'Monthly Report': 0 };
 const STRIKE_POINTS = { 'Verbal Warning': -1, 'Formal Warning': -2, 'Suspension': -4 };
