@@ -3353,7 +3353,8 @@ async function handleOAuthRedirect() {
                             email: backendProfile.email || 'Not set',
                             department: backendProfile.department || 'Not set',
                             discordTag: backendProfile.discordTag || currentUser.name,
-                            staffId: backendProfile.staffId
+                            staffId: backendProfile.staffId,
+                            baseLevel: backendProfile.baseLevel || ''
                         };
                         persistUserData(); // Save updated profile to localStorage
                         
@@ -3397,7 +3398,8 @@ async function handleOAuthRedirect() {
                             email: backendProfile2.email || '',
                             department: backendProfile2.department || '',
                             discordTag: backendProfile2.discordTag || currentUser.name,
-                            staffId: backendProfile2.staffId || ''
+                            staffId: backendProfile2.staffId || '',
+                            baseLevel: backendProfile2.baseLevel || ''
                         };
                         persistUserData(); // Save updated profile to localStorage
                         
@@ -5170,7 +5172,7 @@ function initializeSampleMail() {
         inbox: [
             {
                 id: "sample1",
-                senderName: "Marcus Ray",
+                senderName: "System Admin",
                 senderId: "admin",
                 subject: "Welcome to the Portal",
                 content: "Welcome to the Cirkle Development staff portal! This is your inbox where you'll receive important messages from management and colleagues.\n\nFeel free to explore all the features available to you.",
@@ -5830,19 +5832,16 @@ if (myRolesBtn) {
         const list = document.getElementById('rolesList');
         list.innerHTML = '';
         
-        if (!currentUser || !currentUser.roles || currentUser.roles.length === 0) {
-            list.innerHTML = '<li style="color: #999;">No roles assigned</li>';
-            return;
+        // Display baseLevel (job title/role) if available
+        if (currentUser?.profile?.baseLevel) {
+            const li = document.createElement('li');
+            li.textContent = currentUser.profile.baseLevel;
+            li.style.cssText = 'padding: 12px; background: var(--primary); color: white; border-radius: 8px; margin-bottom: 8px; font-weight: 500; list-style: none;';
+            list.appendChild(li);
+        } else {
+            list.innerHTML = '<li style="color: var(--text-secondary); list-style: none;">No roles assigned</li>';
         }
         
-        currentUser.roles.forEach(role => {
-            const li = document.createElement('li');
-            // Role is already a string from the backend (baseLevel)
-            const roleName = typeof role === 'string' ? role : (roleNames[role] || 'Unknown Role');
-            li.textContent = roleName;
-            li.style.cssText = 'padding: 12px; background: #f3f4f6; border-radius: 8px; margin-bottom: 8px; font-weight: 500;';
-            list.appendChild(li);
-        });
         closeMobileSidebar();
     });
 }

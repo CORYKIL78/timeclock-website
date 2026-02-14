@@ -596,7 +596,6 @@ let ADMINS = window.CONFIG?.ADMINS;
 if (!ADMINS || Object.keys(ADMINS).every(id => !ADMINS[id].pin)) {
   // Config not loaded yet or has empty PINs - use defaults as fallback
   ADMINS = {
-    '1088907566844739624': { pin: '061021', name: 'Marcus Ray' },
     '1002932344799371354': { pin: '486133', name: 'Appler Smith' },
     '1187751127039615086': { pin: '638542', name: 'Sam Caster' },
     '926568979747713095':  { pin: '315793', name: 'Teejay Everil' }

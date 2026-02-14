@@ -64,15 +64,13 @@
         
         <div class="info">
             <strong>Discord IDs:</strong><br>
-            Marcus Ray: 1088907566844739624<br>
-            Appler: (enter below if known)
+            Enter a Discord ID to clear its data
         </div>
         
         <label><strong>Enter Discord ID to clear:</strong></label>
         <input type="text" id="discordId" placeholder="e.g., 1088907566844739624">
         
         <button onclick="clearAbsences()">Clear Absences for User</button>
-        <button onclick="clearMarcusRay()" style="background: #FF9800;">Clear Marcus Ray</button>
         <button onclick="clearAll()" style="background: #9c27b0;">Clear ALL Absence Data</button>
         
         <div class="success" id="success"></div>
@@ -116,10 +114,7 @@
             showSuccess(`Cleared absences for Discord ID: ${discordId} (${cleared} items updated)`);
         }
         
-        function clearMarcusRay() {
-            document.getElementById('discordId').value = '1088907566844739624';
-            clearAbsences();
-        }
+
         
         function clearAll() {
             if (!confirm('Are you sure you want to clear ALL absence data from localStorage? This cannot be undone!')) {

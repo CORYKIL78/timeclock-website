@@ -1127,6 +1127,7 @@ body.dark .profile-stat {
 }
 
 :root {
+    /* Light mode colors */
     --bg-color: #f8f9fa;
     --text-color: #212529;
     --primary: #007bff;
@@ -1150,33 +1151,60 @@ body.dark .profile-stat {
 }
 
 body.dark {
-    --bg-color: #0f1419;
-    --text-color: #e8edf4;
-    --primary: #14b8a6;
-    --secondary: #94a3b8;
+    /* Dark mode - OC Portal style colors */
+    --bg-color: #0b0d17;
+    --bg2: #111427;
+    --bg3: #171a2e;
+    --bg4: #1e2140;
+    --text-color: #e2e5f0;
+    --text-secondary: #8890a8;
+    --primary: #6366f1;
+    --primary-light: #818cf8;
+    --secondary: #8890a8;
     --success: #22c55e;
     --danger: #ef4444;
-    --info: #38bdf8;
-    --warning: #eab308;
-    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    --mail-bg: #1a1f28;
-    --mail-border: #2d3748;
-    background: linear-gradient(135deg, #0f1419 0%, #141c24 100%);
-    --tab-active-bg: #14b8a6;
-    --yellow-hazard: #eab308;
-    --card-bg: #1a2332;
-    --input-bg: #0f1419;
-    --border-color: #2d3748;
-    --hover-bg: #243044;
-    --surface-color: #1a2332;
-    --text-secondary: #94a3b8;
-    --accent-gradient: linear-gradient(135deg, #14b8a6, #06b6d4);
+    --info: #3b82f6;
+    --warning: #f59e0b;
+    --shadow: 0 4px 24px rgba(0,0,0,.3);
+    --mail-bg: #171a2e;
+    --mail-border: #252845;
+    background: linear-gradient(135deg, #0b0d17 0%, #0f1129 100%);
+    --tab-active-bg: #6366f1;
+    --yellow-hazard: #f59e0b;
+    --card-bg: #171a2e;
+    --input-bg: #0b0d17;
+    --border-color: #252845;
+    --hover-bg: #1e2140;
+    --surface-color: #111427;
+    --accent-gradient: linear-gradient(135deg, #818cf8, #6366f1);
+    --radius: 10px;
 }
 
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+/* Modern animations for OC portal style */
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 body {
