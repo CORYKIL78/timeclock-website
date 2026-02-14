@@ -177,6 +177,14 @@ export default {
           updatedAt: new Date().toISOString()
         };
         await env.DATA.put(accountKey, JSON.stringify(updatedAccount));
+        
+        // Add user to index if not already there
+        const usersIndex = await env.DATA.get('users:index', 'json') || [];
+        if (!usersIndex.includes(discordId)) {
+          usersIndex.push(discordId);
+          await env.DATA.put('users:index', JSON.stringify(usersIndex));
+          console.log(`[PROFILE UPDATE] Added user ${discordId} to index`);
+        }
 
         return new Response(JSON.stringify({
           success: true,
@@ -480,6 +488,14 @@ export default {
               requests: []
             };
             await env.DATA.put(accountKey, JSON.stringify(newAccount));
+            
+            // Add user to index
+            const usersIndex = await env.DATA.get('users:index', 'json') || [];
+            if (!usersIndex.includes(userId)) {
+              usersIndex.push(userId);
+              await env.DATA.put('users:index', JSON.stringify(usersIndex));
+            }
+            
             console.log(`[AUTH] New user created in KV: ${userId}`);
           } else {
             console.log(`[AUTH] User already exists in KV: ${userId}`);
@@ -602,6 +618,44 @@ export default {
       }
 
       // ============================================================================
+      // DEBUG ENDPOINTS
+      // ============================================================================
+      
+      // Debug: Get all KV keys for a user
+      if (url.pathname.startsWith('/api/debug/user/') && request.method === 'GET') {
+        const userId = url.pathname.split('/api/debug/user/')[1];
+        try {
+          const profileKey = `profile:${userId}`;
+          const accountKey = `user:${userId}`;
+          
+          const profile = await env.DATA.get(profileKey, 'json');
+          const account = await env.DATA.get(accountKey, 'json');
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          
+          return new Response(JSON.stringify({
+            userId,
+            inIndex: usersIndex.includes(userId),
+            profileKey: profileKey,
+            profileExists: !!profile,
+            profile: profile,
+            accountKey: accountKey,
+            accountExists: !!account,
+            account: account
+          }, null, 2), { 
+            headers: { 
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+      
+      // ============================================================================
       // ADMIN DATA OPERATIONS
       // ============================================================================
 
@@ -631,6 +685,14 @@ export default {
           requests: []
         };
         await env.DATA.put(accountKey, JSON.stringify(account));
+        
+        // Add user to index if not already there
+        const usersIndex = await env.DATA.get('users:index', 'json') || [];
+        if (!usersIndex.includes(userId)) {
+          usersIndex.push(userId);
+          await env.DATA.put('users:index', JSON.stringify(usersIndex));
+          console.log(`[ADMIN CREATE] Added user ${userId} to index`);
+        }
 
         return new Response(JSON.stringify({ success: true, userId }), { headers: corsHeaders });
       }
@@ -643,52 +705,422 @@ export default {
       }
 
       // ============================================================================
-      // ADMIN ENDPOINTS (STUB IMPLEMENTATIONS)
+      // ADMIN ENDPOINTS
       // ============================================================================
+      
+      // Get Discord user info
+      if (url.pathname.startsWith('/api/discord/user/') && request.method === 'GET') {
+        const userId = url.pathname.split('/api/discord/user/')[1];
+        if (!userId) {
+          return new Response(JSON.stringify({ error: 'Missing userId' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+        
+        // First try to get from stored profile
+        const profileKey = `profile:${userId}`;
+        const profile = await env.DATA.get(profileKey, 'json');
+        
+        if (profile) {
+          // Return profile data in Discord API format
+          return new Response(JSON.stringify({
+            id: userId,
+            username: profile.discordTag || profile.name,
+            global_name: profile.name,
+            avatar: profile.avatar,
+            avatar_url: profile.avatar ? `https://cdn.discordapp.com/avatars/${userId}/${profile.avatar}.png?size=128` : null
+          }), { headers: corsHeaders });
+        }
+        
+        // If not in KV, return a default response
+        return new Response(JSON.stringify({
+          id: userId,
+          username: 'User',
+          global_name: 'User',
+          avatar: null,
+          avatar_url: null
+        }), { headers: corsHeaders });
+      }
       
       // Get all users for admin dashboard
       if (url.pathname === '/api/admin/users' && request.method === 'GET') {
-        return new Response(JSON.stringify([]), { headers: corsHeaders });
+        try {
+          // Get user index
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          
+          // Fetch each user's profile
+          const users = [];
+          for (const userId of usersIndex) {
+            const accountKey = `user:${userId}`;
+            const account = await env.DATA.get(accountKey, 'json');
+            if (account && account.profile) {
+              users.push({
+                discordId: userId,
+                name: account.profile.name || 'Unknown',
+                email: account.profile.email || 'Not set',
+                department: account.profile.department || 'Not set',
+                staffId: account.profile.staffId || '',
+                timezone: account.profile.timezone || '',
+                country: account.profile.country || '',
+                suspended: account.profile.suspended || false,
+                createdAt: account.profile.createdAt || new Date().toISOString()
+              });
+            }
+          }
+          
+          return new Response(JSON.stringify({ success: true, users }), { headers: corsHeaders });
+        } catch (e) {
+          console.error('[ADMIN] Error fetching users:', e);
+          return new Response(JSON.stringify({ success: false, error: e.message, users: [] }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
       }
 
       // Get all absences for admin dashboard
       if (url.pathname === '/api/admin/absences' && request.method === 'GET') {
-        return new Response(JSON.stringify([]), { headers: corsHeaders });
+        try {
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          const allAbsences = [];
+          
+          for (const userId of usersIndex) {
+            const absencesKey = `absences:${userId}`;
+            const userAbsences = await env.DATA.get(absencesKey, 'json') || [];
+            allAbsences.push(...userAbsences.map(a => ({ ...a, userId })));
+          }
+          
+          return new Response(JSON.stringify({ success: true, absences: allAbsences }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, absences: [] }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
       }
 
       // Get all requests for admin dashboard
       if (url.pathname === '/api/admin/requests' && request.method === 'GET') {
-        return new Response(JSON.stringify([]), { headers: corsHeaders });
+        try {
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          const allRequests = [];
+          
+          for (const userId of usersIndex) {
+            const requestsKey = `requests:${userId}`;
+            const userRequests = await env.DATA.get(requestsKey, 'json') || [];
+            allRequests.push(...userRequests.map(r => ({ ...r, userId })));
+          }
+          
+          return new Response(JSON.stringify({ success: true, requests: allRequests }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, requests: [] }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
       }
 
       // Get all payslips for admin dashboard
       if (url.pathname === '/api/admin/payslips' && request.method === 'GET') {
-        return new Response(JSON.stringify([]), { headers: corsHeaders });
+        try {
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          const allPayslips = [];
+          
+          for (const userId of usersIndex) {
+            const payslipsKey = `payslips:${userId}`;
+            const userPayslips = await env.DATA.get(payslipsKey, 'json') || [];
+            allPayslips.push(...userPayslips.map(p => ({ ...p, userId })));
+          }
+          
+          return new Response(JSON.stringify({ success: true, payslips: allPayslips }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, payslips: [] }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
       }
 
       // Get all reports for admin dashboard
       if (url.pathname === '/api/admin/reports' && request.method === 'GET') {
-        return new Response(JSON.stringify([]), { headers: corsHeaders });
+        try {
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          const allReports = [];
+          
+          for (const userId of usersIndex) {
+            const reportsKey = `reports:${userId}`;
+            const userReports = await env.DATA.get(reportsKey, 'json') || [];
+            allReports.push(...userReports.map(r => ({ ...r, userId })));
+          }
+          
+          return new Response(JSON.stringify({ success: true, reports: allReports }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, reports: [] }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
       }
 
       // Get all disciplinaries/strikes for admin dashboard
       if (url.pathname === '/api/admin/strikes' && request.method === 'GET') {
-        return new Response(JSON.stringify([]), { headers: corsHeaders });
+        try {
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          const allStrikes = [];
+          
+          for (const userId of usersIndex) {
+            const strikesKey = `disciplinaries:${userId}`;
+            const userStrikes = await env.DATA.get(strikesKey, 'json') || [];
+            allStrikes.push(...userStrikes.map(s => ({ ...s, userId })));
+          }
+          
+          return new Response(JSON.stringify({ success: true, strikes: allStrikes }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, strikes: [] }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+      
+      // Get calendar events
+      if (url.pathname === '/api/calendar/events' && request.method === 'GET') {
+        try {
+          const events = await env.DATA.get('calendar:events', 'json') || [];
+          return new Response(JSON.stringify({ success: true, events }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, events: [] }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+      
+      // Create calendar event
+      if (url.pathname === '/api/calendar/events' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const events = await env.DATA.get('calendar:events', 'json') || [];
+          const newEvent = {
+            id: `event_${Date.now()}`,
+            ...body,
+            createdAt: new Date().toISOString()
+          };
+          events.push(newEvent);
+          await env.DATA.put('calendar:events', JSON.stringify(events));
+          return new Response(JSON.stringify({ success: true, event: newEvent }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+      
+      // Get admin logs
+      if (url.pathname === '/api/admin/logs' && request.method === 'GET') {
+        try {
+          const logs = await env.DATA.get('admin:logs', 'json') || [];
+          return new Response(JSON.stringify({ success: true, logs }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, logs: [] }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+      
+      // Create admin log entry
+      if (url.pathname === '/api/admin/logs' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const logs = await env.DATA.get('admin:logs', 'json') || [];
+          const newLog = {
+            id: `log_${Date.now()}`,
+            ...body,
+            timestamp: new Date().toISOString()
+          };
+          logs.push(newLog);
+          // Keep only last 1000 logs to prevent KV storage overflow
+          if (logs.length > 1000) {
+            logs.splice(0, logs.length - 1000);
+          }
+          await env.DATA.put('admin:logs', JSON.stringify(logs));
+          return new Response(JSON.stringify({ success: true, log: newLog }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+      
+      // Get user emails
+      if (url.pathname.startsWith('/api/email/account/') && request.method === 'GET') {
+        const userId = url.pathname.split('/api/email/account/')[1];
+        try {
+          const emailsKey = `emails:${userId}`;
+          const emails = await env.DATA.get(emailsKey, 'json') || [];
+          return new Response(JSON.stringify({ success: true, emails }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, emails: [] }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
       }
 
       // Update user (admin)
       if (url.pathname === '/api/admin/user/update' && request.method === 'POST') {
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        try {
+          const body = await request.json();
+          const { discordId, department, baseLevel, utilisation } = body;
+          
+          if (!discordId) {
+            return new Response(JSON.stringify({ success: false, error: 'Missing discordId' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+          
+          // Update profile
+          const profileKey = `profile:${discordId}`;
+          const profile = await env.DATA.get(profileKey, 'json') || {};
+          
+          if (department !== undefined) profile.department = department;
+          if (baseLevel !== undefined) profile.baseLevel = baseLevel;
+          if (utilisation !== undefined) {
+            profile.suspended = utilisation === 'Suspended';
+            profile.utilisation = utilisation;
+          }
+          
+          profile.updatedAt = new Date().toISOString();
+          await env.DATA.put(profileKey, JSON.stringify(profile));
+          
+          // Update account
+          const accountKey = `user:${discordId}`;
+          const account = await env.DATA.get(accountKey, 'json') || { id: discordId };
+          account.profile = profile;
+          await env.DATA.put(accountKey, JSON.stringify(account));
+          
+          return new Response(JSON.stringify({ success: true, profile }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
       }
 
       // Update absence status (admin)
       if (url.pathname === '/api/admin/absence/update-status' && request.method === 'POST') {
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        try {
+          const body = await request.json();
+          const { userId, absenceId, status, adminName } = body;
+          
+          const absencesKey = `absences:${userId}`;
+          const absences = await env.DATA.get(absencesKey, 'json') || [];
+          
+          const absence = absences.find(a => a.id === absenceId);
+          if (absence) {
+            absence.status = status;
+            absence.approvedBy = adminName;
+            absence.approvedAt = new Date().toISOString();
+            await env.DATA.put(absencesKey, JSON.stringify(absences));
+          }
+          
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
       }
 
       // Update request status (admin)
       if (url.pathname === '/api/admin/requests/update-status' && request.method === 'POST') {
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        try {
+          const body = await request.json();
+          const { userId, requestId, status, adminName } = body;
+          
+          const requestsKey = `requests:${userId}`;
+          const requests = await env.DATA.get(requestsKey, 'json') || [];
+          
+          const request = requests.find(r => r.id === requestId);
+          if (request) {
+            request.status = status;
+            request.approvedBy = adminName;
+            request.approvedAt = new Date().toISOString();
+            await env.DATA.put(requestsKey, JSON.stringify(requests));
+          }
+          
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+      
+      // Create payslip (admin)
+      if (url.pathname === '/api/admin/payslips/create' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { userId, period, link, comment } = body;
+          
+          const payslipsKey = `payslips:${userId}`;
+          const payslips = await env.DATA.get(payslipsKey, 'json') || [];
+          
+          const newPayslip = {
+            id: `payslip_${Date.now()}`,
+            period,
+            link,
+            comment,
+            issuedAt: new Date().toISOString()
+          };
+          
+          payslips.push(newPayslip);
+          await env.DATA.put(payslipsKey, JSON.stringify(payslips));
+          
+          return new Response(JSON.stringify({ success: true, payslip: newPayslip }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+      
+      // Create report (admin)
+      if (url.pathname === '/api/reports/create' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { userId, reportType, description, employer } = body;
+          
+          const reportsKey = `reports:${userId}`;
+          const reports = await env.DATA.get(reportsKey, 'json') || [];
+          
+          const newReport = {
+            id: `report_${Date.now()}`,
+            reportType,
+            description,
+            employer,
+            createdAt: new Date().toISOString()
+          };
+          
+          reports.push(newReport);
+          await env.DATA.put(reportsKey, JSON.stringify(reports));
+          
+          return new Response(JSON.stringify({ success: true, report: newReport }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
       }
 
       // Create payslip (admin)
