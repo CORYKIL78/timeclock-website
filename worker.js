@@ -643,6 +643,114 @@ export default {
       }
 
       // ============================================================================
+      // ADMIN ENDPOINTS (STUB IMPLEMENTATIONS)
+      // ============================================================================
+      
+      // Get all users for admin dashboard
+      if (url.pathname === '/api/admin/users' && request.method === 'GET') {
+        return new Response(JSON.stringify([]), { headers: corsHeaders });
+      }
+
+      // Get all absences for admin dashboard
+      if (url.pathname === '/api/admin/absences' && request.method === 'GET') {
+        return new Response(JSON.stringify([]), { headers: corsHeaders });
+      }
+
+      // Get all requests for admin dashboard
+      if (url.pathname === '/api/admin/requests' && request.method === 'GET') {
+        return new Response(JSON.stringify([]), { headers: corsHeaders });
+      }
+
+      // Get all payslips for admin dashboard
+      if (url.pathname === '/api/admin/payslips' && request.method === 'GET') {
+        return new Response(JSON.stringify([]), { headers: corsHeaders });
+      }
+
+      // Get all reports for admin dashboard
+      if (url.pathname === '/api/admin/reports' && request.method === 'GET') {
+        return new Response(JSON.stringify([]), { headers: corsHeaders });
+      }
+
+      // Get all disciplinaries/strikes for admin dashboard
+      if (url.pathname === '/api/admin/strikes' && request.method === 'GET') {
+        return new Response(JSON.stringify([]), { headers: corsHeaders });
+      }
+
+      // Update user (admin)
+      if (url.pathname === '/api/admin/user/update' && request.method === 'POST') {
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      // Update absence status (admin)
+      if (url.pathname === '/api/admin/absence/update-status' && request.method === 'POST') {
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      // Update request status (admin)
+      if (url.pathname === '/api/admin/requests/update-status' && request.method === 'POST') {
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      // Create payslip (admin)
+      if (url.pathname === '/api/admin/payslips/create' && request.method === 'POST') {
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      // Reset workflow (for users)
+      if (url.pathname === '/api/users/workflow/reset' && request.method === 'POST') {
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      // ============================================================================
+      // CALENDAR ENDPOINTS
+      // ============================================================================
+      
+      // Get calendar events
+      if (url.pathname === '/api/calendar/events' && request.method === 'GET') {
+        return new Response(JSON.stringify([]), { headers: corsHeaders });
+      }
+
+      // Create calendar event
+      if (url.pathname === '/api/calendar/events' && request.method === 'POST') {
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      // ============================================================================
+      // LOGGING ENDPOINTS
+      // ============================================================================
+      
+      // Get admin logs
+      if (url.pathname === '/api/admin/logs' && request.method === 'GET') {
+        return new Response(JSON.stringify([]), { headers: corsHeaders });
+      }
+
+      // Log admin action
+      if (url.pathname === '/api/admin/logs' && request.method === 'POST') {
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      // ============================================================================
+      // EMAIL ENDPOINTS
+      // ============================================================================
+
+      // Get user email/mail account
+      if (url.pathname.startsWith('/api/email/account/') && request.method === 'GET') {
+        return new Response(JSON.stringify([]), { headers: corsHeaders });
+      }
+
+      // ============================================================================
+      // DISCORD ENDPOINTS
+      // ============================================================================
+
+      // Get Discord user info
+      if (url.pathname.match(/^\/api\/discord\/user\/\d+$/) && request.method === 'GET') {
+        return new Response(JSON.stringify({ error: 'Not found' }), { 
+          status: 404,
+          headers: corsHeaders 
+        });
+      }
+
+      // ============================================================================
       // 404 - Endpoint not found
       // ============================================================================
 

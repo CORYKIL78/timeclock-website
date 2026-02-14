@@ -2199,7 +2199,7 @@ document.addEventListener('DOMContentLoaded', () => {
             addNotification('absence', 'Absence request submitted!', 'absences');
             // Ensure pending tab is active and render
             document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
+            document.querySelector('.absence-tab-btn[data-tab="pending"]')?.classList.add('active');
             document.getElementById('pendingFolder').classList.add('active');
             document.getElementById('approvedFolder').classList.remove('active');
             document.getElementById('rejectedFolder').classList.remove('active');
@@ -5997,9 +5997,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 addNotification('absence', 'Absence request submitted!', 'absences');
                 // Ensure pending tab is active and render
                 document.querySelectorAll('.absence-tab-btn').forEach(btn => btn.classList.remove('active'));
-                document.querySelector('.absence-tab-btn[data-tab="pending"]').classList.add('active');
-                document.getElementById('pendingFolder').classList.add('active');
-                document.getElementById('approvedFolder').classList.remove('active');
+                document.querySelector('.absence-tab-btn[data-tab="pending"]')?.classList.add('active');
+                document.getElementById('pendingFolder')?.classList.add('active');
+                document.getElementById('approvedFolder')?.classList.remove('active');
             } catch (error) {
                 console.error('Error submitting absence:', error);
                 showModal('alert', '❌ Failed to submit absence. Please try again.');
@@ -7086,10 +7086,10 @@ document.getElementById('mailBtn').addEventListener('click', async () => {
     await syncMailFromBackend();
     renderMail();
     document.querySelectorAll('.mail-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelector('.mail-tabs .tab-btn[data-tab="inbox"]').classList.add('active');
-    document.getElementById('inboxFolder').classList.add('active');
-    document.getElementById('sentFolder').classList.remove('active');
-    document.getElementById('draftsFolder').classList.remove('active');
+    document.querySelector('.mail-tabs .tab-btn[data-tab="inbox"]')?.classList.add('active');
+    document.getElementById('inboxFolder')?.classList.add('active');
+    document.getElementById('sentFolder')?.classList.remove('active');
+    document.getElementById('draftsFolder')?.classList.remove('active');
     updateTabSlider();
     closeMobileSidebar();
 });
