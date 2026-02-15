@@ -50,6 +50,10 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* ================================================================
@@ -93,6 +97,31 @@ body {
 
 .screen.loading-screen {
   background: radial-gradient(ellipse at center, #0f1424 0%, #060815 100%);
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px 24px 320px;
+}
+
+@media (max-width: 768px) {
+  .screen.loading-screen {
+    padding: 40px 24px 24px 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .screen.loading-screen {
+    padding: 40px 24px;
+  }
+}
+
+#portalWelcomeScreen {
+  align-items: center;
+  justify-content: center;
+}
+
+#sequentialLoadingScreen {
+  align-items: center;
+  justify-content: center;
 }
 
 .container {
@@ -166,6 +195,8 @@ input, select, textarea {
   border-radius: var(--radius);
   color: var(--text);
   font-size: 14px;
+  user-select: text;
+  -webkit-user-select: text;
   font-family: inherit;
   transition: all 0.3s ease;
   margin-bottom: 14px;
@@ -643,11 +674,11 @@ label input[type="radio"]:checked, label input[type="checkbox"]:checked {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 40px 48px;
+  padding: 24px 28px;
   box-shadow: var(--shadow);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   animation: slideInUp 0.4s ease-out;
-  min-height: 200px;
+  min-height: 150px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -655,17 +686,17 @@ label input[type="radio"]:checked, label input[type="checkbox"]:checked {
 
 .stat-card:hover, .user-header-card:hover {
   border-color: var(--primary);
-  box-shadow: 0 12px 40px rgba(99,102,241,0.35);
-  transform: translateY(-6px);
+  box-shadow: 0 8px 24px rgba(99,102,241,0.25);
+  transform: translateY(-3px);
 }
 
 .stat-card h3 {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text2);
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 24px;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
   transition: all 0.3s ease;
 }
 
@@ -684,8 +715,10 @@ label input[type="radio"]:checked, label input[type="checkbox"]:checked {
    ================================================================ */
 #mainMenuScreen.screen.active {
   display: block;
-  padding: 60px 32px 32px 340px;
+  padding: 20px 24px 20px 320px;
   animation: screenFadeIn 0.35s ease-out;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
 }
 
 #mainMenuScreen .container {
@@ -693,7 +726,7 @@ label input[type="radio"]:checked, label input[type="checkbox"]:checked {
   background: transparent;
   border: none;
   box-shadow: none;
-  padding: 0 40px;
+  padding: 0;
   width: 100%;
   margin: 0 auto;
 }

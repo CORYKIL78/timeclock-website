@@ -3069,9 +3069,19 @@ function updateMainScreen() {
     console.log('Updating main screen for user:', currentUser.id);
     const emp = getEmployee(currentUser.id);
     
+    // Department ID to Name mapping
+    const departmentMap = {
+        '1315323804528017498': 'Development',
+        '1315042036969242704': 'Customer Relations',
+        '1433453982453338122': 'Finance and Marketing',
+        '1315041666851274822': 'Oversight and Corporate'
+    };
+    
     // Ensure profile data exists before displaying
     const userName = currentUser.profile?.name || currentUser.name || 'User';
-    const userDept = currentUser.profile?.department || emp.profile?.department || 'N/A';
+    const deptId = currentUser.profile?.department || emp.profile?.department || 'N/A';
+    // Convert department ID to name, or use as-is if it's already a name
+    const userDept = departmentMap[deptId] || deptId;
     
     // Base Level mapping - fetch from currentUser.profile which is synced from Sheets
     // Handles both numeric (1-7), text values, and pipe-separated format "1 | Director Board"
