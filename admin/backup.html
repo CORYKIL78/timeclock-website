@@ -74,6 +74,11 @@ input,select,textarea{font-family:inherit;outline:none}
 .login-btn:hover{background:var(--accent2);transform:translateY(-1px)}
 .login-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .login-error{color:var(--red);font-size:13px;margin-top:12px;min-height:20px}
+.suspension-warning{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:var(--red);padding:12px;border-radius:var(--radius);font-size:13px;margin-bottom:16px;animation:shake .4s ease}
+@keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}100%{transform:translateX(0)}}
+@keyframes slideIn{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+.update-toast{animation:slideIn .3s ease}
 
 /* ====== LOADING SCREEN ====== */
 #loadingScreen{align-items:center;justify-content:center;flex-direction:column;background:var(--bg)}
@@ -223,6 +228,13 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
 .points-display{display:inline-flex;align-items:center;gap:6px;background:var(--bg4);padding:6px 16px;border-radius:20px;font-size:14px;font-weight:600}
 .points-display.positive{color:var(--green)}
 .points-display.negative{color:var(--red)}
+.staff-id-display{background:var(--bg4);padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;color:var(--accent);font-family:monospace}
+.staff-id-btn{padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.staff-id-btn:hover{background:var(--accent2)}
+.director-profile{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border-radius:8px;margin-bottom:16px}
+.director-profile img{width:48px;height:48px;border-radius:50%;border:2px solid var(--accent)}
+.director-profile .info{flex:1}
+.director-profile .title{font-size:12px;color:var(--text2);margin-bottom:2px}
 
 .panel-section{padding:16px 20px;border-bottom:1px solid var(--border)}
 .panel-section h4{font-size:13px;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
@@ -234,6 +246,12 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
 .info-item.editable:hover{border-color:var(--accent)}
 .info-item input{background:transparent;border:none;color:var(--text);font-size:13px;font-weight:500;width:100%}
 .info-item select{background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:13px;padding:4px;border-radius:4px;width:100%}
+.info-item.editable{position:relative;padding-right:36px}
+.edit-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:4px 6px;border-radius:4px;transition:.15s;opacity:0}
+.info-item.editable:hover .edit-btn{opacity:1;color:var(--accent)}
+.panel-list-item-actions{display:flex;gap:6px;margin-top:8px}
+.btn-delete{padding:4px 10px;font-size:11px;background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:6px;cursor:pointer;transition:.15s}
+.btn-delete:hover{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.5)}
 
 .panel-tabs{display:flex;gap:0;border-bottom:1px solid var(--border)}
 .panel-tab{
@@ -593,6 +611,62 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
   </div>
 </div>
 
+<div class="modal-overlay" id="profileEditModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="profileEditTitle">Edit Profile</h3><button class="modal-close" onclick="closeModal('profileEditModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field" id="editFieldContainer"></div>
+      <div class="field"><label>Reason for change</label><textarea id="profileEditReason" placeholder="Explain the change..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('profileEditModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProfileEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="staffIdModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Assign Staff ID</h3><button class="modal-close" onclick="closeModal('staffIdModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Select Department</label>
+        <select id="staffIdDept">
+          <option value="">-- Select Department --</option>
+          <option value="OC">Oversight & Corporate (OC)</option>
+          <option value="FM">Finance & Marketing (FM)</option>
+          <option value="CR">Customer Relations (CR)</option>
+          <option value="DD">Development (DD)</option>
+        </select>
+      </div>
+      <div class="field"><label>Select Tier Level</label>
+        <select id="staffIdTier">
+          <option value="">-- Select Tier --</option>
+          <option value="1">Level 1 - Executive Director</option>
+          <option value="2">Level 2 - Board of Directors</option>
+          <option value="3">Level 3 - Senior Manager</option>
+          <option value="4">Level 4 - Manager</option>
+          <option value="5">Level 5 - Senior Staff</option>
+          <option value="6">Level 6 - Full-time Staff</option>
+          <option value="7">Level 7 - Part-time Staff</option>
+          <option value="8">Level 8 - Specialist</option>
+          <option value="9">Level 9 - Senior Specialist</option>
+          <option value="10">Level 10 - Consultant</option>
+          <option value="11">Level 11 - Coordinator</option>
+          <option value="12">Level 12 - Assistant</option>
+          <option value="13">Level 13 - Junior Staff</option>
+          <option value="14">Level 14 - Intern</option>
+          <option value="15">Level 15 - Customer Relations</option>
+        </select>
+      </div>
+      <div class="field"><label>Generated Staff ID</label><div id="staffIdPreview" class="staff-id-display" style="min-height:36px;display:flex;align-items:center">-- Select above --</div></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('staffIdModal')">Cancel</button>
+      <button class="btn btn-primary" id="assignStaffIdBtn" onclick="assignStaffId()">Assign ID</button>
+    </div>
+  </div>
+</div>
+
 <!-- ====== TOAST ====== -->
 <div class="toast" id="toast"></div>
 
@@ -624,6 +698,42 @@ console.log('[ADMIN PORTAL] Admin users available:', Object.keys(ADMINS));
 
 const REPORT_POINTS = { 'Commendation': 1, 'Negative Behaviour': -1, 'Disruptive': -1, 'Monthly Report': 0 };
 const STRIKE_POINTS = { 'Verbal Warning': -1, 'Formal Warning': -2, 'Suspension': -4 };
+
+function generateStaffId(dept, tier) {
+  if (!dept || !tier) return null;
+  const rand = String(Math.floor(Math.random() * 100000)).padStart(5, '0');
+  return `${dept}${rand}${tier}`;
+}
+
+function previewStaffId() {
+  const dept = document.getElementById('staffIdDept')?.value || '';
+  const tier = document.getElementById('staffIdTier')?.value || '';
+  const preview = document.getElementById('staffIdPreview');
+  if (!dept || !tier) { preview.textContent = '-- Select above --'; return; }
+  const id = generateStaffId(dept, tier);
+  preview.textContent = id || '-- Select above --';
+}
+
+async function assignStaffId() {
+  const user = state.selectedUser;
+  if (!user) return;
+  const dept = document.getElementById('staffIdDept')?.value || '';
+  const tier = document.getElementById('staffIdTier')?.value || '';
+  if (!dept || !tier) { toast('Select department and tier', 'error'); return; }
+  const staffId = generateStaffId(dept, tier);
+  try {
+    await apiPost('/api/admin/user/update', { discordId: user.discordId, staffId });
+    user.staffId = staffId;
+    await sendDiscordDM(user.discordId, { title: '✅ Staff ID Assigned', description: `Your staff ID is: **${staffId}**\n\nDepartment: ${dept}\nTier: ${tier}` });
+    await logAdminAction('staff_id_assigned', `Assigned staff ID ${staffId} to ${user.name}`, user.discordId);
+    toast('Staff ID assigned', 'success');
+    closeModal('staffIdModal');
+    const idx = state.users.findIndex(u => u.discordId === user.discordId);
+    await openUserPanel(idx);
+  } catch (e) {
+    toast('Failed to assign staff ID', 'error');
+  }
+}
 const BASE_LEVELS = [
   { value: '1|Executive Director', label: 'Level 1 - Executive Director' },
   { value: '2|Board of Directors', label: 'Level 2 - Board of Directors' },
@@ -767,6 +877,7 @@ async function doLogin() {
   if (!id || !pin) { err.textContent = 'Please enter both Discord ID and PIN.'; return; }
   if (!ADMINS[id]) { err.textContent = 'Access denied. Unknown Discord ID.'; return; }
   if (ADMINS[id].pin !== pin) { err.textContent = 'Incorrect PIN.'; return; }
+  if (ADMINS[id].suspended) { err.textContent = '🚫 Your account has been suspended.'; return; }
 
   document.getElementById('loginBtn').disabled = true;
   showScreen('loadingScreen');
@@ -1212,11 +1323,26 @@ async function logAdminAction(action, details, targetId = '') {
 function openProfileEdit(field) {
   const user = state.selectedUser;
   if (!user) return;
-  const map = { name: { label: 'Name', value: user.name || '' }, email: { label: 'Email', value: user.email || '' }, department: { label: 'Department', value: user.department || '' }, baseLevel: { label: 'Base Level', value: user.baseLevel || '' } };
-  const cfg = map[field];
+  const fields = { name: { label: 'Name', type: 'text', value: user.name || '' }, email: { label: 'Email', type: 'email', value: user.email || '' }, department: { label: 'Department', type: 'text', value: user.department || '' }, baseLevel: { label: 'Base Level', type: 'select', value: user.baseLevel || '', options: BASE_LEVELS } };
+  const cfg = fields[field];
   if (!cfg) return;
-  state.profileEdit = { field, label: cfg.label, value: cfg.value };
+  state.profileEdit = { field, label: cfg.label };
   document.getElementById('profileEditTitle').textContent = `Edit ${cfg.label}`;
+  let html = '';
+  if (cfg.type === 'select') {
+    html = `<label>${cfg.label}</label><select id="profileEditInput">`;
+    cfg.options.forEach(opt => { 
+      const val = opt.value;
+      const lbl = opt.label;
+      const sel = val === cfg.value ? 'selected' : '';
+      html += `<option value="${esc(val)}" ${sel}>${esc(lbl)}</option>`;
+    });
+    html += `</select>`;
+  } else {
+    html = `<label>${cfg.label}</label><input type="${cfg.type || 'text'}" id="profileEditInput" value="${esc(cfg.value)}" />`;
+  }
+  document.getElementById('editFieldContainer').innerHTML = html;
+  document.getElementById('profileEditReason').value = '';
   openModal('profileEditModal');
 }
 
@@ -1224,21 +1350,23 @@ async function saveProfileEdit() {
   const user = state.selectedUser;
   const edit = state.profileEdit;
   if (!user || !edit) return;
-  const newValue = document.getElementById('profileEditInput')?.value?.trim() || '';
+  const newValue = (document.getElementById('profileEditInput')?.value || '').trim();
   if (!newValue) { toast('Please enter a value', 'error'); return; }
-  const reason = document.getElementById('profileEditReason')?.value?.trim() || '';
+  const reason = (document.getElementById('profileEditReason')?.value || '').trim();
   if (!reason) { toast('Please provide a reason', 'error'); return; }
   try {
     const payload = { discordId: user.discordId };
     payload[edit.field] = newValue;
     await apiPost('/api/admin/user/update', payload);
     user[edit.field] = newValue;
-    await sendDiscordDM(user.discordId, { title: '📌 Profile Updated', description: `${edit.label} was updated. Reason: ${reason}` });
-    await logAdminAction('profile_update', `Updated ${edit.label}`, user.discordId);
-    toast('Profile updated', 'success');
+    await sendDiscordDM(user.discordId, { title: '📌 Profile Updated', description: `${edit.label}: ${newValue}\n\nReason: ${reason}` });
+    await logAdminAction('profile_update', `Updated ${edit.label} to ${newValue}`, user.discordId);
+    toast('Profile updated successfully', 'success');
     closeModal('profileEditModal');
+    const idx = state.users.findIndex(u => u.discordId === user.discordId);
+    await openUserPanel(idx);
   } catch (e) {
-    toast('Failed to update profile', 'error');
+    toast('Failed to update profile: ' + (e.message || ''), 'error');
   }
 }
 
@@ -1321,35 +1449,23 @@ async function openUserPanel(idx) {
     <div class="panel-section">
       <h4>Personal Information</h4>
       <div class="info-grid">
-        <div class="info-item"><div class="label">Name</div><div class="value" id="pi-name">${esc(user.name || '-')}</div></div>
-        <div class="info-item"><div class="label">Email</div><div class="value">${esc(user.email || '-')}</div></div>
-        <div class="info-item"><div class="label">Department</div><div class="value">${esc(user.department || '-')}</div></div>
+        <div class="info-item editable"><div class="label">Name</div><div class="value">${esc(user.name || '-')}</div><button class="edit-btn" onclick="openProfileEdit('name')" title="Edit">✎</button></div>
+        <div class="info-item editable"><div class="label">Email</div><div class="value">${esc(user.email || '-')}</div><button class="edit-btn" onclick="openProfileEdit('email')" title="Edit">✎</button></div>
+        <div class="info-item editable"><div class="label">Department</div><div class="value">${esc(user.department || '-')}</div><button class="edit-btn" onclick="openProfileEdit('department')" title="Edit">✎</button></div>
         <div class="info-item"><div class="label">Discord ID</div><div class="value">${esc(user.discordId || '-')}</div></div>
         <div class="info-item"><div class="label">Timezone</div><div class="value">${esc(user.timezone || '-')}</div></div>
         <div class="info-item"><div class="label">Country</div><div class="value">${esc(user.country || '-')}</div></div>
         <div class="info-item"><div class="label">Date of Signup</div><div class="value">${user.dateOfSignup ? new Date(user.dateOfSignup).toLocaleDateString('en-GB') : '-'}</div></div>
-        <div class="info-item"><div class="label">Base Level</div><div class="value">${esc(user.baseLevel || '-')}</div></div>
+        <div class="info-item editable"><div class="label">Base Level</div><div class="value">${esc(formatBaseLevel(user.baseLevel) || '-')}</div><button class="edit-btn" onclick="openProfileEdit('baseLevel')" title="Edit">✎</button></div>
       </div>
     </div>
 
     <div class="panel-section">
-      <h4>Edit Profile</h4>
-      <div class="info-grid">
-        <div class="info-item"><label class="label" for="edit-dept">Department</label><input id="edit-dept" value="${esc(user.department || '')}" /></div>
-        <div class="info-item"><label class="label" for="edit-level">Base Level</label>
-          <select id="edit-level">
-            <option value="" ${!user.baseLevel ? 'selected' : ''}>None</option>
-            <option value="Trainee" ${user.baseLevel==='Trainee' ? 'selected' : ''}>Trainee</option>
-            <option value="Junior" ${user.baseLevel==='Junior' ? 'selected' : ''}>Junior</option>
-            <option value="Member" ${user.baseLevel==='Member' ? 'selected' : ''}>Member</option>
-            <option value="Senior" ${user.baseLevel==='Senior' ? 'selected' : ''}>Senior</option>
-            <option value="Lead" ${user.baseLevel==='Lead' ? 'selected' : ''}>Lead</option>
-            <option value="Manager" ${user.baseLevel==='Manager' ? 'selected' : ''}>Manager</option>
-            <option value="Director" ${user.baseLevel==='Director' ? 'selected' : ''}>Director</option>
-          </select>
-        </div>
+      <h4>Staff ID</h4>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div class="staff-id-display">${esc(user.staffId || 'Not assigned')}</div>
+        <button class="staff-id-btn" onclick="openModal('staffIdModal')">Assign ID</button>
       </div>
-      <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="saveUserProfile()">Save Changes</button>
     </div>
 
     <div class="panel-tabs">
@@ -1377,11 +1493,12 @@ async function openUserPanel(idx) {
     </div>
 
     <div class="panel-actions">
+      ${!user.staffId ? `<button class="btn btn-primary" onclick="openModal('staffIdModal')">🎫 Assign Staff ID</button>` : ''}
       ${user.suspended
-        ? `<button class="btn btn-green" onclick="toggleSuspend(false)">Unsuspend User</button>`
-        : `<button class="btn btn-red" onclick="toggleSuspend(true)">Suspend User</button>`
+        ? `<button class="btn btn-green" onclick="toggleSuspend(false)">✅ Unsuspend User</button>`
+        : `<button class="btn btn-red" onclick="toggleSuspend(true)">⛔ Suspend User</button>`
       }
-      <button class="btn" style="background:var(--red);color:#fff;opacity:.8" onclick="removeAccount()">Remove Account</button>
+      <button class="btn" style="background:var(--red);color:#fff;opacity:.8" onclick="removeAccount()">🗑️ Remove Account</button>
     </div>`;
 
   // Panel tab switching
@@ -1398,16 +1515,20 @@ async function openUserPanel(idx) {
 
 function renderPanelList(items, type) {
   if (!items || !items.length) return '<div style="padding:16px;color:var(--text2);font-size:13px;text-align:center">No records found.</div>';
-  return items.map(item => {
+  let html = '';
+  items.forEach((item, idx) => {
+    const id = item._id || item.id || idx;
+    let content = '';
     switch(type) {
-      case 'absence': return `<div class="panel-list-item"><div class="row"><span>${esc(item.reason || item.type || '-')}</span><span class="badge ${item.status === 'approved' ? 'badge-approved' : item.status === 'rejected' ? 'badge-rejected' : 'badge-pending'}">${item.status || 'pending'}</span></div><div class="row" style="color:var(--text2);font-size:12px"><span>${esc(item.startDate || '')} → ${esc(item.endDate || '')}</span><span>${item.totalDays || '-'} days</span></div></div>`;
-      case 'payslip': return `<div class="panel-list-item"><div class="row"><span>${esc(item.period || item.payPeriod || '-')}</span><span style="font-size:12px;color:var(--text2)">${item.dateAssigned || item.timestamp || ''}</span></div>${item.link ? `<div class="row"><a href="${esc(item.link)}" target="_blank" style="color:var(--accent);font-size:12px">View Payslip</a></div>` : ''}</div>`;
-      case 'report': return `<div class="panel-list-item"><div class="row"><span>${esc(item.type || '-')}</span><span style="font-weight:600;${(REPORT_POINTS[item.type]||0)>0?'color:var(--green)':'color:var(--red)'}">${(REPORT_POINTS[item.type]||0) > 0 ? '+' : ''}${REPORT_POINTS[item.type]||0}pts</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(item.comment || '-')}</div></div>`;
-      case 'strike': return `<div class="panel-list-item"><div class="row"><span>${esc(item.strikeType || item.type || '-')}</span><span style="font-weight:600;color:var(--red)">${STRIKE_POINTS[item.strikeType || item.type] || 0}pts</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(item.reason || item.comment || item.description || '-')}</div></div>`;
-      case 'request': return `<div class="panel-list-item"><div class="row"><span>${esc(item.type || '-')}</span><span class="badge ${(item.status||'').toLowerCase().includes('approv') ? 'badge-approved' : (item.status||'').toLowerCase().includes('den') || (item.status||'').toLowerCase().includes('reject') ? 'badge-rejected' : 'badge-pending'}">${item.status || 'Pending'}</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(item.comment || '-')}</div></div>`;
-      default: return '';
+      case 'absence': content = `<div class="row"><span>${esc(item.reason || item.type || '-')}</span><span class="badge ${item.status === 'approved' ? 'badge-approved' : item.status === 'rejected' ? 'badge-rejected' : 'badge-pending'}">${item.status || 'pending'}</span></div><div class="row" style="color:var(--text2);font-size:12px"><span>${esc(item.startDate || '')} → ${esc(item.endDate || '')}</span><span>${item.totalDays || '-'} days</span></div>`; break;
+      case 'payslip': content = `<div class="row"><span>${esc(item.period || item.payPeriod || '-')}</span><span style="font-size:12px;color:var(--text2)">${item.dateAssigned || item.timestamp || ''}</span></div>${item.link ? `<div class="row"><a href="${esc(item.link)}" target="_blank" style="color:var(--accent);font-size:12px">View Payslip</a></div>` : ''}`; break;
+      case 'report': content = `<div class="row"><span>${esc(item.type || '-')}</span><span style="font-weight:600;${(REPORT_POINTS[item.type]||0)>0?'color:var(--green)':'color:var(--red)'}">${(REPORT_POINTS[item.type]||0) > 0 ? '+' : ''}${REPORT_POINTS[item.type]||0}pts</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(item.comment || '-')}</div>`; break;
+      case 'strike': content = `<div class="row"><span>${esc(item.strikeType || item.type || '-')}</span><span style="font-weight:600;color:var(--red)">${STRIKE_POINTS[item.strikeType || item.type] || 0}pts</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(item.reason || item.comment || item.description || '-')}</div>`; break;
+      case 'request': content = `<div class="row"><span>${esc(item.type || '-')}</span><span class="badge ${(item.status||'').toLowerCase().includes('approv') ? 'badge-approved' : (item.status||'').toLowerCase().includes('den') || (item.status||'').toLowerCase().includes('reject') ? 'badge-rejected' : 'badge-pending'}">${item.status || 'Pending'}</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(item.comment || '-')}</div>`; break;
     }
-  }).join('');
+    html += `<div class="panel-list-item">${content}<div class="panel-list-item-actions"><button class="btn-delete" onclick="deleteUserRecord('${type}','${id}')">🗑️ Delete</button></div></div>`;
+  });
+  return html + `<div style="margin-top:12px"><button class="btn btn-red btn-small" onclick="eraseAllRecords('${type}')" style="width:100%">Erase All ${type.charAt(0).toUpperCase() + type.slice(1)}</button></div>`;
 }
 
 function closeUserPanel() {
@@ -1664,17 +1785,12 @@ document.getElementById('sendStrikeBtn').addEventListener('click', async () => {
 });
 
 /* ================================================================
-function openProfileEdit(f){const u=state.selectedUser;if(!u)return;state.profileEdit={field:f};openModal('profileEditModal')}async function saveProfileEdit(){const u=state.selectedUser;if(!u)return;const v=document.getElementById('profileEditInput')?.value||'';if(!v){toast('Enter value','error');return}try{const p={discordId:u.discordId};p[state.profileEdit.field]=v;await apiPost('/api/admin/user/update',p);toast('Updated','success');closeModal('profileEditModal')}catch(e){toast('Failed','error')}}async function deleteUserRecord(t,id){if(!await customConfirm('Delete','Delete record?'))return;try{await apiPost('/api/admin/records/delete',{discordId:state.selectedUser.discordId,recordType:t,recordId:id});toast('Deleted','success')}catch(e){toast('Error','error')}}async function eraseAllRecords(t){if(!await customConfirm('Erase All','Erase all records?'))return;try{await apiPost('/api/admin/records/erase-all',{discordId:state.selectedUser.discordId,recordType:t});toast('Erased','success')}catch(e){toast('Error','error')}}
-
    ADD CALENDAR EVENT
    ================================================================ */
-document.getElementById('addCalendarEventBtn').addEventListener('click', async () => {
-/* Profile edit and record deletion */
-function openProfileEdit(field) { const u = state.selectedUser; if (!u) return; state.profileEdit = { field }; openModal('profileEditModal'); }
-async function saveProfileEdit() { const u = state.selectedUser; if (!u) return; const val = document.getElementById('profileEditInput')?.value || ''; if (!val) { toast('Enter value', 'error'); return; } try { const p = { discordId: u.discordId }; p[state.profileEdit.field] = val; await apiPost('/api/admin/user/update', p); toast('Updated', 'success'); closeModal('profileEditModal'); } catch (e) { toast('Failed', 'error'); } }
-async function deleteUserRecord(t, id) { if (!await customConfirm('Delete', 'Delete record?')) return; try { await apiPost('/api/admin/records/delete', { discordId: state.selectedUser.discordId, recordType: t, recordId: id }); toast('Deleted', 'success'); } catch (e) { toast('Error', 'error'); } }
-async function eraseAllRecords(t) { if (!await customConfirm('Erase All', 'Erase all records?')) return; try { await apiPost('/api/admin/records/erase-all', { discordId: state.selectedUser.discordId, recordType: t }); toast('Erased', 'success'); } catch (e) { toast('Error', 'error'); } }
+document.getElementById('staffIdDept')?.addEventListener('change', previewStaffId);
+document.getElementById('staffIdTier')?.addEventListener('change', previewStaffId);
 
+document.getElementById('addCalendarEventBtn').addEventListener('click', async () => {
   const date = document.getElementById('eventDate').value;
   const title = document.getElementById('eventTitle').value.trim();
   const type = document.getElementById('eventType').value;
@@ -1711,6 +1827,7 @@ function toast(msg, type = 'info') {
   t.className = 'toast ' + type + ' show';
   setTimeout(() => t.classList.remove('show'), 4000);
 }
+function formatBaseLevel(value) { if (!value) return '-'; const b = BASE_LEVELS.find(x => x.value === value); return b ? b.label : value; }
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 
 /* ================================================================
