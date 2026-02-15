@@ -3309,6 +3309,7 @@ async function handleOAuthRedirect() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const error = urlParams.get('error');
+    let backendProfile = null; // Declare at function scope
     console.log('OAuth callback received:', { code, error, url: window.location.href });
 
     if (error) {
@@ -3329,7 +3330,7 @@ async function handleOAuthRedirect() {
                     console.log('Found valid session, checking backend for profile...');
                     
                     // Re-fetch from backend to ensure we have latest data
-                    const backendProfile = await fetchUserProfile(currentUser.id);
+                    backendProfile = await fetchUserProfile(currentUser.id);
                     if (backendProfile) {
                         // Check if profile is COMPLETE (not just auto-created placeholder)
                         const bpHasStaffId = !!backendProfile.staffId;
@@ -3391,28 +3392,36 @@ async function handleOAuthRedirect() {
                 currentUser = JSON.parse(savedUser);
                 if (currentUser.id) {
                     // Re-fetch and validate profile completeness
-                    const backendProfile2 = await fetchUserProfile(currentUser.id);
-                    if (backendProfile2) {
+                    backendProfile = await fetchUserProfile(currentUser.id);
+                    if (backendProfile) {
                         currentUser.profile = {
-                            name: backendProfile2.name || currentUser.name,
-                            email: backendProfile2.email || '',
-                            department: backendProfile2.department || '',
-                            discordTag: backendProfile2.discordTag || currentUser.name,
-                            staffId: backendProfile2.staffId || '',
-                            baseLevel: backendProfile2.baseLevel || ''
+                            name: backendProfile.name || currentUser.name,
+                            email: backendProfile.email || '',
+                            department: backendProfile.department || '',
+                            discordTag: backendProfile.discordTag || currentUser.name,
+                            staffId: backendProfile.staffId || '',
+                            baseLevel: backendProfile.baseLevel || ''
                         };
                         persistUserData(); // Save updated profile to localStorage
                         
                         // Check completeness
-                        const bp2HasStaffId = !!backendProfile2.staffId;
-                        const bp2HasRealEmail = backendProfile2.email && backendProfile2.email !== 'Not set';
-                        const bp2HasRealDept = backendProfile2.department && backendProfile2.department !== 'Not set';
+                        const bp2HasStaffId = !!backendProfile.staffId;
+                        const bp2HasRealEmail = backendProfile.email && backendProfile.email !== 'Not set';
+                        const bp2HasRealDept = backendProfile.department && backendProfile.department !== 'Not set';
                         const bp2IsComplete = bp2HasStaffId || (bp2HasRealEmail && bp2HasRealDept);
                         
                         if (!bp2IsComplete) {
                             console.log('[OAUTH-REUSE] Profile incomplete - redirecting to signup flow');
                             sessionStorage.setItem('needsProfileSetup', 'true');
                             showScreen('setupWelcome');
+                            return;
+                        }
+                        
+                        // Check if suspended
+                        if (backendProfile.suspended) {
+                            console.log('[OAUTH-REUSE] User is suspended');
+                            window.currentUser = currentUser;
+                            showScreen('suspended');
                             return;
                         }
                     }
@@ -3610,6 +3619,32 @@ async function handleOAuthRedirect() {
         
         // Send them through the proper signup flow
         showScreen('setupWelcome');
+        return;
+    }
+    
+    // Check if user is suspended BEFORE completing login
+    if (member.suspended === true) {
+        console.log('[LOGIN] ⛔ User is suspended - showing suspended screen');
+        currentUser = {
+            id: user.id,
+            name: user.global_name || user.username,
+            avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : '',
+            roles: member.roles || [],
+            profile: {
+                name: member.name || user.global_name || user.username,
+                email: member.email || 'Not set',
+                department: member.department || 'Not set',
+                discordTag: user.username,
+                staffId: member.staffId || '',
+                timezone: member.timezone || '',
+                country: member.country || ''
+            }
+        };
+        window.currentUser = currentUser;
+        persistUserData();
+        localStorage.setItem('lastProcessedCode', code);
+        window.history.replaceState({}, document.title, REDIRECT_URI);
+        showScreen('suspended');
         return;
     }
     

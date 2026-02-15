@@ -198,6 +198,35 @@ export default {
         }), { headers: corsHeaders });
       }
 
+      // Get user status (suspension check)
+      if (url.pathname === '/api/user-status' && request.method === 'POST') {
+        const body = await request.json();
+        const { discordId } = body;
+
+        if (!discordId) {
+          return new Response(JSON.stringify({ error: 'Missing discordId' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        const profileKey = `profile:${discordId}`;
+        const profile = await env.DATA.get(profileKey, 'json');
+
+        if (!profile) {
+          return new Response(JSON.stringify({ 
+            suspended: false,
+            exists: false  
+          }), { headers: corsHeaders });
+        }
+
+        return new Response(JSON.stringify({
+          suspended: profile.suspended === true,
+          exists: true,
+          utilisation: profile.utilisation || 'Active'
+        }), { headers: corsHeaders });
+      }
+
       // Create absence request
       if (url.pathname === '/api/absence/create' && request.method === 'POST') {
         const body = await request.json();
@@ -401,6 +430,38 @@ export default {
         const requests = await env.DATA.get(requestsKey, 'json') || [];
 
         return new Response(JSON.stringify(requests), { headers: corsHeaders });
+      }
+
+      // Submit request (create new request)
+      if (url.pathname === '/api/requests/submit' && request.method === 'POST') {
+        const body = await request.json();
+        const { userId, type, comment, details } = body;
+
+        if (!userId || !type) {
+          return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        const request_item = {
+          id: `request:${userId}:${Date.now()}`,
+          userId,
+          type,
+          comment: comment || details || '',
+          details: comment || details || '',
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+          reviewedAt: null,
+          reviewedBy: null
+        };
+
+        const requestsKey = `requests:${userId}`;
+        const requests = await env.DATA.get(requestsKey, 'json') || [];
+        requests.push(request_item);
+        await env.DATA.put(requestsKey, JSON.stringify(requests));
+
+        return new Response(JSON.stringify({ success: true, request: request_item }), { headers: corsHeaders });
       }
 
       // ============================================================================
@@ -1010,6 +1071,42 @@ export default {
           await env.DATA.put(accountKey, JSON.stringify(account));
           
           return new Response(JSON.stringify({ success: true, profile }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+
+      // Delete user account (admin)
+      if (url.pathname === '/api/admin/user/delete' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { discordId } = body;
+          
+          if (!discordId) {
+            return new Response(JSON.stringify({ success: false, error: 'Missing discordId' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+          
+          // Delete all user data from KV
+          await env.DATA.delete(`profile:${discordId}`);
+          await env.DATA.delete(`user:${discordId}`);
+          await env.DATA.delete(`absences:${discordId}`);
+          await env.DATA.delete(`payslips:${discordId}`);
+          await env.DATA.delete(`disciplinaries:${discordId}`);
+          await env.DATA.delete(`reports:${discordId}`);
+          await env.DATA.delete(`requests:${discordId}`);
+          
+          // Remove from users index
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          const newIndex = usersIndex.filter(id => id !== discordId);
+          await env.DATA.put('users:index', JSON.stringify(newIndex));
+          
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
         } catch (e) {
           return new Response(JSON.stringify({ success: false, error: e.message }), { 
             status: 500,

@@ -578,6 +578,20 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
   </div>
 </div>
 
+<!-- ====== CONFIRM MODAL (YES/NO) ====== -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head"><h3 id="confirmModalTitle">Confirm</h3><button class="modal-close" onclick="closeModal('confirmModal')">&times;</button></div>
+    <div class="modal-body">
+      <p id="confirmModalText" style="font-size:14px;line-height:1.6"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('confirmModal')">Cancel</button>
+      <button class="btn btn-primary" id="confirmModalBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <!-- ====== TOAST ====== -->
 <div class="toast" id="toast"></div>
 
@@ -671,6 +685,51 @@ function avatarUrl(userId, hash) {
 function defaultAvatar(userId) {
   const idx = Number((BigInt(userId) >> 22n) % 6n);
   return `https://cdn.discordapp.com/embed/avatars/${idx}.png`;
+}
+
+/* ================================================================
+   CUSTOM CONFIRM MODAL
+   ================================================================ */
+function customConfirm(title, message) {
+  return new Promise((resolve) => {
+    document.getElementById('confirmModalTitle').textContent = title;
+    document.getElementById('confirmModalText').textContent = message;
+    document.getElementById('confirmModal').classList.add('active');
+    
+    const btn = document.getElementById('confirmModalBtn');
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    
+    newBtn.addEventListener('click', () => {
+      closeModal('confirmModal');
+      resolve(true);
+    });
+    
+    // Cancel on overlay click
+    const overlay = document.getElementById('confirmModal');
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        closeModal('confirmModal');
+        resolve(false);
+      }
+    }, { once: true });
+  });
+}
+
+async function sendDiscordDM(userId, message) {
+  try {
+    await apiPost('/api/send-dm', {
+      userId,
+      embed: {
+        title: message.title || '📢 Profile Update',
+        description: message.description || '',
+        color: message.color || 6366961, // Indigo
+        fields: message.fields || []
+      }
+    });
+  } catch (e) {
+    console.error('Failed to send DM:', e);
+  }
 }
 
 /* ================================================================
@@ -1285,9 +1344,24 @@ async function saveUserProfile() {
 
 async function toggleSuspend(suspend) {
   const user = state.selectedUser;
-  if (!user || !confirm(`${suspend ? 'Suspend' : 'Unsuspend'} ${user.name || user.discordId}?`)) return;
+  if (!user) return;
+  
+  const action = suspend ? 'Suspend' : 'Unsuspend';
+  const confirmed = await customConfirm(action + ' User', `${action} ${user.name || user.discordId}?`);
+  if (!confirmed) return;
+  
   try {
-    await apiPost('/api/admin/user/update', { discordId: user.discordId, utilisation: suspend ? 'Suspended' : '' });
+    await apiPost('/api/admin/user/update', { discordId: user.discordId, utilisation: suspend ? 'Suspended' : 'Active' });
+    
+    // Send DM to user
+    await sendDiscordDM(user.discordId, {
+      title: suspend ? '🚫 Account Suspended' : '✅ Account Restored',
+      description: suspend 
+        ? `Your account has been suspended by ${state.admin.name}. Please contact OC for more information.`
+        : `Your account has been restored by ${state.admin.name}. You can now access the portal again.`,
+      color: suspend ? 15548997 : 5763719
+    });
+    
     toast(suspend ? 'User suspended' : 'User unsuspended', 'success');
     closeUserPanel();
     await loadUsers();
@@ -1299,10 +1373,24 @@ async function toggleSuspend(suspend) {
 async function removeAccount() {
   const user = state.selectedUser;
   if (!user) return;
-  if (!confirm(`PERMANENTLY remove ${user.name || user.discordId}? This cannot be undone.`)) return;
-  if (!confirm('Are you absolutely sure? All data will be deleted.')) return;
+  
+  const confirmed1 = await customConfirm('⚠️ Delete Account', `PERMANENTLY remove ${user.name || user.discordId}? This cannot be undone.`);
+  if (!confirmed1) return;
+  
+  const confirmed2 = await customConfirm('⚠️ Final Confirmation', 'Are you absolutely sure? All data will be deleted.');
+  if (!confirmed2) return;
+  
   try {
-    await apiPost('/api/users/workflow/reset', { userId: user.discordId, rowIndex: user.rowIndex || 3 });
+    // Delete from KV storage
+    await apiPost('/api/admin/user/delete', { discordId: user.discordId });
+    
+    // Send final DM to user
+    await sendDiscordDM(user.discordId, {
+      title: '🗑️ Account Deleted',
+      description: `Your account has been permanently deleted by ${state.admin.name}. All your data has been removed. If you wish to rejoin, you will need to create a new account.`,
+      color: 15548997
+    });
+    
     toast('Account removed', 'success');
     closeUserPanel();
     await loadUsers();
@@ -1524,7 +1612,7 @@ function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.
    LOGOUT
    ================================================================ */
 document.getElementById('logoutBtn').addEventListener('click', () => {
-  if (confirm('Log out?')) {
+  if (await customConfirm('Log Out', 'Log out?')) {
     state = { admin: null, users: [], discordMembers: [], absences: [], requests: [], payslips: [], reports: [], strikes: [], activeTab: 'users', selectedUser: null, pendingAction: null };
     showScreen('loginScreen');
     document.getElementById('discordIdInput').value = '';
