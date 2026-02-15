@@ -624,6 +624,23 @@ console.log('[ADMIN PORTAL] Admin users available:', Object.keys(ADMINS));
 
 const REPORT_POINTS = { 'Commendation': 1, 'Negative Behaviour': -1, 'Disruptive': -1, 'Monthly Report': 0 };
 const STRIKE_POINTS = { 'Verbal Warning': -1, 'Formal Warning': -2, 'Suspension': -4 };
+const BASE_LEVELS = [
+  { value: '1|Executive Director', label: 'Level 1 - Executive Director' },
+  { value: '2|Board of Directors', label: 'Level 2 - Board of Directors' },
+  { value: '3|Associate Director', label: 'Level 3 - Associate Director' },
+  { value: '4|Department Head', label: 'Level 4 - Department Head' },
+  { value: '5|Senior Manager', label: 'Level 5 - Senior Manager' },
+  { value: '6|Manager', label: 'Level 6 - Manager' },
+  { value: '7|Senior Staff', label: 'Level 7 - Senior Staff' },
+  { value: '8|Staff', label: 'Level 8 - Staff' },
+  { value: '9|Junior Staff', label: 'Level 9 - Junior Staff' },
+  { value: '10|Trainee', label: 'Level 10 - Trainee' },
+  { value: '11|Administrative Support', label: 'Level 11 - Administrative Support' },
+  { value: '12|Technical Support', label: 'Level 12 - Technical Support' },
+  { value: '13|Finance', label: 'Level 13 - Finance' },
+  { value: '14|Human Resources', label: 'Level 14 - Human Resources' },
+  { value: '15|Customer Relations', label: 'Level 15 - Customer Relations' }
+];
 
 let state = {
   admin: null,
@@ -636,7 +653,8 @@ let state = {
   strikes: [],
   activeTab: 'users',
   selectedUser: null,
-  pendingAction: null
+  pendingAction: null,
+  profileEdit: null
 };
 
 /* ================================================================
@@ -1191,6 +1209,69 @@ async function logAdminAction(action, details, targetId = '') {
   }
 }
 
+function openProfileEdit(field) {
+  const user = state.selectedUser;
+  if (!user) return;
+  const map = { name: { label: 'Name', value: user.name || '' }, email: { label: 'Email', value: user.email || '' }, department: { label: 'Department', value: user.department || '' }, baseLevel: { label: 'Base Level', value: user.baseLevel || '' } };
+  const cfg = map[field];
+  if (!cfg) return;
+  state.profileEdit = { field, label: cfg.label, value: cfg.value };
+  document.getElementById('profileEditTitle').textContent = `Edit ${cfg.label}`;
+  openModal('profileEditModal');
+}
+
+async function saveProfileEdit() {
+  const user = state.selectedUser;
+  const edit = state.profileEdit;
+  if (!user || !edit) return;
+  const newValue = document.getElementById('profileEditInput')?.value?.trim() || '';
+  if (!newValue) { toast('Please enter a value', 'error'); return; }
+  const reason = document.getElementById('profileEditReason')?.value?.trim() || '';
+  if (!reason) { toast('Please provide a reason', 'error'); return; }
+  try {
+    const payload = { discordId: user.discordId };
+    payload[edit.field] = newValue;
+    await apiPost('/api/admin/user/update', payload);
+    user[edit.field] = newValue;
+    await sendDiscordDM(user.discordId, { title: '📌 Profile Updated', description: `${edit.label} was updated. Reason: ${reason}` });
+    await logAdminAction('profile_update', `Updated ${edit.label}`, user.discordId);
+    toast('Profile updated', 'success');
+    closeModal('profileEditModal');
+  } catch (e) {
+    toast('Failed to update profile', 'error');
+  }
+}
+
+async function deleteUserRecord(recordType, recordId) {
+  if (!state.selectedUser) return;
+  const ok = await customConfirm('Delete Record', 'Delete this record?');
+  if (!ok) return;
+  try {
+    await apiPost('/api/admin/records/delete', { discordId: state.selectedUser.discordId, recordType, recordId });
+    await logAdminAction('record_deleted', `Deleted ${recordType}`, state.selectedUser.discordId);
+    toast('Record deleted', 'success');
+    const idx = state.users.findIndex(u => u.discordId === state.selectedUser.discordId);
+    await openUserPanel(idx);
+  } catch (e) {
+    toast('Failed to delete record', 'error');
+  }
+}
+
+async function eraseAllRecords(recordType) {
+  if (!state.selectedUser) return;
+  const ok = await customConfirm('Erase All', `Erase all ${recordType}?`);
+  if (!ok) return;
+  try {
+    await apiPost('/api/admin/records/erase-all', { discordId: state.selectedUser.discordId, recordType });
+    await logAdminAction('records_erased', `Erased all ${recordType}`, state.selectedUser.discordId);
+    toast('Records erased', 'success');
+    const idx = state.users.findIndex(u => u.discordId === state.selectedUser.discordId);
+    await openUserPanel(idx);
+  } catch (e) {
+    toast('Failed to erase records', 'error');
+  }
+}
+
 /* ================================================================
    USER PANEL
    ================================================================ */
@@ -1583,9 +1664,17 @@ document.getElementById('sendStrikeBtn').addEventListener('click', async () => {
 });
 
 /* ================================================================
+function openProfileEdit(f){const u=state.selectedUser;if(!u)return;state.profileEdit={field:f};openModal('profileEditModal')}async function saveProfileEdit(){const u=state.selectedUser;if(!u)return;const v=document.getElementById('profileEditInput')?.value||'';if(!v){toast('Enter value','error');return}try{const p={discordId:u.discordId};p[state.profileEdit.field]=v;await apiPost('/api/admin/user/update',p);toast('Updated','success');closeModal('profileEditModal')}catch(e){toast('Failed','error')}}async function deleteUserRecord(t,id){if(!await customConfirm('Delete','Delete record?'))return;try{await apiPost('/api/admin/records/delete',{discordId:state.selectedUser.discordId,recordType:t,recordId:id});toast('Deleted','success')}catch(e){toast('Error','error')}}async function eraseAllRecords(t){if(!await customConfirm('Erase All','Erase all records?'))return;try{await apiPost('/api/admin/records/erase-all',{discordId:state.selectedUser.discordId,recordType:t});toast('Erased','success')}catch(e){toast('Error','error')}}
+
    ADD CALENDAR EVENT
    ================================================================ */
 document.getElementById('addCalendarEventBtn').addEventListener('click', async () => {
+/* Profile edit and record deletion */
+function openProfileEdit(field) { const u = state.selectedUser; if (!u) return; state.profileEdit = { field }; openModal('profileEditModal'); }
+async function saveProfileEdit() { const u = state.selectedUser; if (!u) return; const val = document.getElementById('profileEditInput')?.value || ''; if (!val) { toast('Enter value', 'error'); return; } try { const p = { discordId: u.discordId }; p[state.profileEdit.field] = val; await apiPost('/api/admin/user/update', p); toast('Updated', 'success'); closeModal('profileEditModal'); } catch (e) { toast('Failed', 'error'); } }
+async function deleteUserRecord(t, id) { if (!await customConfirm('Delete', 'Delete record?')) return; try { await apiPost('/api/admin/records/delete', { discordId: state.selectedUser.discordId, recordType: t, recordId: id }); toast('Deleted', 'success'); } catch (e) { toast('Error', 'error'); } }
+async function eraseAllRecords(t) { if (!await customConfirm('Erase All', 'Erase all records?')) return; try { await apiPost('/api/admin/records/erase-all', { discordId: state.selectedUser.discordId, recordType: t }); toast('Erased', 'success'); } catch (e) { toast('Error', 'error'); } }
+
   const date = document.getElementById('eventDate').value;
   const title = document.getElementById('eventTitle').value.trim();
   const type = document.getElementById('eventType').value;

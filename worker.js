@@ -351,7 +351,7 @@ export default {
         const payslipsKey = `payslips:${userId}`;
         const payslips = await env.DATA.get(payslipsKey, 'json') || [];
 
-        return new Response(JSON.stringify(payslips), { headers: corsHeaders });
+        return new Response(JSON.stringify({ success: true, payslips }), { headers: corsHeaders });
       }
 
       if (url.pathname === '/api/payslips/check-pending' && request.method === 'POST') {
@@ -387,12 +387,12 @@ export default {
         const disciplinariesKey = `disciplinaries:${userId}`;
         const disciplinaries = await env.DATA.get(disciplinariesKey, 'json') || [];
 
-        return new Response(JSON.stringify(disciplinaries), { headers: corsHeaders });
+        return new Response(JSON.stringify({ success: true, disciplinaries }), { headers: corsHeaders });
       }
 
       if (url.pathname === '/api/disciplinaries/create' && request.method === 'POST') {
         const body = await request.json();
-        const { userId, reason, severity } = body;
+        const { userId, strikeType, reason, employer, customPoints } = body;
 
         if (!userId || !reason) {
           return new Response(JSON.stringify({ error: 'Missing fields' }), {
@@ -404,9 +404,12 @@ export default {
         const disciplinary = {
           id: `strike:${userId}:${Date.now()}`,
           userId,
+          strikeType: strikeType || 'Disciplinary',
           reason,
-          severity: severity || 'level-1',
-          createdAt: new Date().toISOString(),
+          comment: reason,
+          assignedBy: employer || 'OC Director',
+          dateAssigned: new Date().toISOString(),
+          customPoints: customPoints || null,
           status: 'active'
         };
 
@@ -414,6 +417,13 @@ export default {
         const disciplinaries = await env.DATA.get(disciplinariesKey, 'json') || [];
         disciplinaries.push(disciplinary);
         await env.DATA.put(disciplinariesKey, JSON.stringify(disciplinaries));
+
+        // Ensure user is in the index so admins can see this disciplinary
+        const usersIndex = await env.DATA.get('users:index', 'json') || [];
+        if (!usersIndex.includes(userId)) {
+          usersIndex.push(userId);
+          await env.DATA.put('users:index', JSON.stringify(usersIndex));
+        }
 
         return new Response(JSON.stringify({ success: true, disciplinary }), { headers: corsHeaders });
       }
@@ -451,7 +461,7 @@ export default {
         const reportsKey = `reports:${userId}`;
         const reports = await env.DATA.get(reportsKey, 'json') || [];
 
-        return new Response(JSON.stringify(reports), { headers: corsHeaders });
+        return new Response(JSON.stringify({ success: true, reports }), { headers: corsHeaders });
       }
 
       // ============================================================================
@@ -472,7 +482,7 @@ export default {
         const requestsKey = `requests:${userId}`;
         const requests = await env.DATA.get(requestsKey, 'json') || [];
 
-        return new Response(JSON.stringify(requests), { headers: corsHeaders });
+        return new Response(JSON.stringify({ success: true, requests }), { headers: corsHeaders });
       }
 
       // Submit request (create new request)
@@ -936,11 +946,13 @@ export default {
                 name: account.profile.name || 'Unknown',
                 email: account.profile.email || 'Not set',
                 department: account.profile.department || 'Not set',
+                baseLevel: account.profile.baseLevel || '',
                 staffId: account.profile.staffId || '',
                 timezone: account.profile.timezone || '',
                 country: account.profile.country || '',
                 suspended: account.profile.suspended || false,
-                createdAt: account.profile.createdAt || new Date().toISOString()
+                createdAt: account.profile.createdAt || new Date().toISOString(),
+                dateOfSignup: account.profile.dateOfSignup || account.profile.createdAt || ''
               });
             }
           }
@@ -1151,7 +1163,7 @@ export default {
       if (url.pathname === '/api/admin/user/update' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { discordId, department, baseLevel, utilisation } = body;
+          const { discordId, name, email, department, baseLevel, utilisation } = body;
           
           if (!discordId) {
             return new Response(JSON.stringify({ success: false, error: 'Missing discordId' }), {
@@ -1164,6 +1176,8 @@ export default {
           const profileKey = `profile:${discordId}`;
           const profile = await env.DATA.get(profileKey, 'json') || {};
           
+          if (name !== undefined) profile.name = name;
+          if (email !== undefined) profile.email = email;
           if (department !== undefined) profile.department = department;
           if (baseLevel !== undefined) profile.baseLevel = baseLevel;
           if (utilisation !== undefined) {
@@ -1178,6 +1192,8 @@ export default {
           const accountKey = `user:${discordId}`;
           const account = await env.DATA.get(accountKey, 'json') || { id: discordId };
           account.profile = profile;
+          if (name !== undefined) account.name = name;
+          if (email !== undefined) account.email = email;
           await env.DATA.put(accountKey, JSON.stringify(account));
           
           return new Response(JSON.stringify({ success: true, profile }), { headers: corsHeaders });
@@ -1221,6 +1237,87 @@ export default {
           return new Response(JSON.stringify({ success: false, error: e.message }), { 
             status: 500,
             headers: corsHeaders 
+          });
+        }
+      }
+
+      // Delete single record (admin)
+      if (url.pathname === '/api/admin/records/delete' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { discordId, recordType, recordId } = body;
+
+          if (!discordId || !recordType || !recordId) {
+            return new Response(JSON.stringify({ success: false, error: 'discordId, recordType, and recordId required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const keyMap = {
+            absences: `absences:${discordId}`,
+            requests: `requests:${discordId}`,
+            payslips: `payslips:${discordId}`,
+            reports: `reports:${discordId}`,
+            disciplinaries: `disciplinaries:${discordId}`
+          };
+
+          const dataKey = keyMap[recordType];
+          if (!dataKey) {
+            return new Response(JSON.stringify({ success: false, error: 'Invalid recordType' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const records = await env.DATA.get(dataKey, 'json') || [];
+          const filtered = records.filter(r => r.id !== recordId);
+          await env.DATA.put(dataKey, JSON.stringify(filtered));
+
+          return new Response(JSON.stringify({ success: true, removed: records.length - filtered.length }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // Erase all records for a type (admin)
+      if (url.pathname === '/api/admin/records/erase-all' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { discordId, recordType } = body;
+
+          if (!discordId || !recordType) {
+            return new Response(JSON.stringify({ success: false, error: 'discordId and recordType required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const keyMap = {
+            absences: `absences:${discordId}`,
+            requests: `requests:${discordId}`,
+            payslips: `payslips:${discordId}`,
+            reports: `reports:${discordId}`,
+            disciplinaries: `disciplinaries:${discordId}`
+          };
+
+          const dataKey = keyMap[recordType];
+          if (!dataKey) {
+            return new Response(JSON.stringify({ success: false, error: 'Invalid recordType' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          await env.DATA.put(dataKey, JSON.stringify([]));
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
           });
         }
       }
@@ -1308,8 +1405,11 @@ export default {
           
           const request = requests.find(r => r.id === requestId);
           if (request) {
-            request.status = status.toLowerCase(); // Normalize to lowercase
+            const normalized = (status || '').toLowerCase();
+            request.status = normalized === 'approved' ? 'approved' : normalized === 'rejected' ? 'rejected' : normalized;
             request.approvedBy = adminName;
+            request.approverName = adminName;
+            request.response = reason || request.response || '';
             request.approvedAt = new Date().toISOString();
             if (reason) request.adminNotes = reason;
             await env.DATA.put(requestsKey, JSON.stringify(requests));
@@ -1371,21 +1471,75 @@ export default {
       if (url.pathname === '/api/admin/payslips/create' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { userId, period, link, comment } = body;
+          const { userId, period, link, comment, assignedBy } = body;
+          if (!userId || !link) {
+            return new Response(JSON.stringify({ success: false, error: 'userId and link required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
           
           const payslipsKey = `payslips:${userId}`;
           const payslips = await env.DATA.get(payslipsKey, 'json') || [];
           
           const newPayslip = {
             id: `payslip_${Date.now()}`,
-            period,
+            period: period || '',
             link,
-            comment,
-            issuedAt: new Date().toISOString()
+            comment: comment || '',
+            assignedBy: assignedBy || 'OC Director',
+            dateAssigned: new Date().toISOString(),
+            status: 'issued'
           };
           
           payslips.push(newPayslip);
           await env.DATA.put(payslipsKey, JSON.stringify(payslips));
+
+          // Ensure user is in the index so admins can see this payslip
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          if (!usersIndex.includes(userId)) {
+            usersIndex.push(userId);
+            await env.DATA.put('users:index', JSON.stringify(usersIndex));
+          }
+
+          // Send DM to user with direct link
+          try {
+            const embed = {
+              title: 'New Payslip Available',
+              description: 'You have received a new payslip.',
+              color: 0x0dcaf0,
+              fields: [
+                { name: 'Period', value: period || 'N/A', inline: true },
+                { name: 'Assigned By', value: assignedBy || 'OC Director', inline: true },
+                { name: 'Link', value: link, inline: false }
+              ],
+              footer: { text: 'Cirkle Development HR Portal' },
+              timestamp: new Date().toISOString()
+            };
+
+            const dmResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ recipient_id: userId })
+            });
+
+            if (dmResponse.ok) {
+              const dmChannel = await dmResponse.json();
+              await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ embeds: [embed] })
+              });
+            }
+          } catch (dmError) {
+            console.error('[DM-PAYSLIP]', dmError);
+          }
           
           return new Response(JSON.stringify({ success: true, payslip: newPayslip }), { headers: corsHeaders });
         } catch (e) {
@@ -1400,23 +1554,147 @@ export default {
       if (url.pathname === '/api/reports/create' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { userId, reportType, description, employer } = body;
+          const { userId, type, comment, publishedBy, scale } = body;
+          if (!userId || !type) {
+            return new Response(JSON.stringify({ success: false, error: 'userId and type required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
           
           const reportsKey = `reports:${userId}`;
           const reports = await env.DATA.get(reportsKey, 'json') || [];
           
           const newReport = {
             id: `report_${Date.now()}`,
-            reportType,
-            description,
-            employer,
-            createdAt: new Date().toISOString()
+            type: type || scale || 'Report',
+            comment: comment || '',
+            publishedBy: publishedBy || 'OC Director',
+            timestamp: new Date().toISOString()
           };
           
           reports.push(newReport);
           await env.DATA.put(reportsKey, JSON.stringify(reports));
+
+          // Ensure user is in the index so admins can see this report
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          if (!usersIndex.includes(userId)) {
+            usersIndex.push(userId);
+            await env.DATA.put('users:index', JSON.stringify(usersIndex));
+          }
           
           return new Response(JSON.stringify({ success: true, report: newReport }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+
+      // ==========================================================================
+      // NOTIFICATION ENDPOINTS (DM helpers)
+      // ==========================================================================
+
+      if (url.pathname === '/api/notifications/payslip' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { discordId, payslipData } = body;
+          if (!discordId || !payslipData) {
+            return new Response(JSON.stringify({ success: false, error: 'discordId and payslipData required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const embed = {
+            title: 'New Payslip Available',
+            description: 'You have received a new payslip.',
+            color: 0x0dcaf0,
+            fields: [
+              { name: 'Date', value: payslipData.date || 'N/A', inline: true },
+              { name: 'Link', value: payslipData.link || 'N/A', inline: false }
+            ],
+            footer: { text: 'Cirkle Development HR Portal' },
+            timestamp: new Date().toISOString()
+          };
+
+          const dmResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ recipient_id: discordId })
+          });
+
+          if (dmResponse.ok) {
+            const dmChannel = await dmResponse.json();
+            await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ embeds: [embed] })
+            });
+          }
+
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+
+      if (url.pathname === '/api/notifications/disciplinary' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { discordId, disciplinaryData } = body;
+          if (!discordId || !disciplinaryData) {
+            return new Response(JSON.stringify({ success: false, error: 'discordId and disciplinaryData required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const embed = {
+            title: 'New Disciplinary Notice',
+            description: 'You have received a new disciplinary notice.',
+            color: 0xef4444,
+            fields: [
+              { name: 'Type', value: disciplinaryData.type || 'N/A', inline: true },
+              { name: 'Date', value: disciplinaryData.date || 'N/A', inline: true },
+              { name: 'Reason', value: disciplinaryData.reason || 'See portal for details', inline: false }
+            ],
+            footer: { text: 'Cirkle Development HR Portal' },
+            timestamp: new Date().toISOString()
+          };
+
+          const dmResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ recipient_id: discordId })
+          });
+
+          if (dmResponse.ok) {
+            const dmChannel = await dmResponse.json();
+            await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ embeds: [embed] })
+            });
+          }
+
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
         } catch (e) {
           return new Response(JSON.stringify({ success: false, error: e.message }), { 
             status: 500,

@@ -1290,10 +1290,10 @@ function renderStrikes(strikes) {
         const div = document.createElement('div');
         div.className = 'disciplinary-item';
         
-        const dateAssigned = s.dateAssigned || 'Unknown date';
-        const assignedBy = s.assignedBy || 'Unknown';
-        const strikeType = s.strikeType || 'Disciplinary';
-        const comment = s.comment || s.reason || 'No additional details';
+        const dateAssigned = s.dateAssigned || s.createdAt || s.timestamp || 'Unknown date';
+        const assignedBy = s.assignedBy || 'OC Director';
+        const strikeType = s.strikeType || s.type || 'Disciplinary';
+        const comment = s.comment || s.reason || s.description || 'No additional details';
         
         div.innerHTML = `
             <div class="item-header">
@@ -1322,39 +1322,19 @@ function renderStrikes(strikes) {
 
 function showDisciplinaryDetails(disciplinary) {
     const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.5); display: flex; align-items: center; 
-        justify-content: center; z-index: 10000;
-    `;
+    modal.className = 'portal-modal';
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     
     modal.innerHTML = `
-        <div style="
-            background: white; padding: 30px; border-radius: 8px; 
-            max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        ">
-            <h3 style="margin: 0 0 20px 0; color: #d32f2f;">Disciplinary Details</h3>
-            <div style="margin-bottom: 15px;">
-                <strong>Date:</strong> ${disciplinary.dateAssigned}
-            </div>
-            <div style="margin-bottom: 15px;">
-                <strong>Type:</strong> ${disciplinary.strikeType || 'N/A'}
-            </div>
-            <div style="margin-bottom: 15px;">
-                <strong>Comment:</strong> ${disciplinary.comment || 'No comment provided'}
-            </div>
-            <div style="margin-bottom: 20px;">
-                <strong>Assigned By:</strong> ${disciplinary.assignedBy || 'Unknown'}
-            </div>
-            <div style="background: #fff3cd; padding: 15px; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
-                <strong>To appeal this, please contact the OP.</strong>
-            </div>
-            <div style="text-align: center;">
-                <button onclick="this.closest('[style*=fixed]').remove()" style="
-                    background: #666; color: white; border: none; 
-                    padding: 12px 24px; border-radius: 4px; cursor: pointer;
-                ">Close</button>
+        <div class="portal-modal__panel">
+            <h3 class="portal-modal__title" style="color: #d32f2f;">Disciplinary Details</h3>
+            <div class="portal-modal__kv"><strong>Date:</strong> ${disciplinary.dateAssigned || disciplinary.createdAt || disciplinary.timestamp || 'N/A'}</div>
+            <div class="portal-modal__kv"><strong>Type:</strong> ${disciplinary.strikeType || 'N/A'}</div>
+            <div class="portal-modal__kv"><strong>Comment:</strong> ${disciplinary.comment || disciplinary.reason || 'No comment provided'}</div>
+            <div class="portal-modal__kv"><strong>Director Profile:</strong> ${disciplinary.assignedBy || 'OC Director'}</div>
+            <div class="portal-modal__note">To appeal this, please contact the OP.</div>
+            <div class="portal-modal__actions">
+                <button class="portal-modal__close" onclick="this.closest('.portal-modal').remove()">Close</button>
             </div>
         </div>
     `;
@@ -1408,7 +1388,7 @@ async function fetchEmployeeReports(userId) {
 function calculateStaffPoints(reports) {
     let points = 0;
     reports.forEach(report => {
-        const reportType = report.reportType?.toLowerCase();
+        const reportType = (report.type || report.reportType || '').toLowerCase();
         if (reportType === 'commendation') {
             points += 1;
         } else if (reportType === 'disruptive' || reportType === 'negative behaviour') {
@@ -1534,12 +1514,13 @@ function renderReports(reports) {
         
         const timestamp = report.timestamp ? new Date(report.timestamp).toLocaleDateString() : 'N/A';
         
+        const displayType = report.type || report.reportType || 'Report';
         div.innerHTML = `
             <div style="flex: 1; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 24px;">${icon}</span>
                 <div>
                     <div style="font-weight: 700; color: ${iconColor}; font-size: 16px; margin-bottom: 4px;">
-                        ${report.reportType || 'Report'}
+                        ${displayType}
                     </div>
                     <div style="color: #666; font-size: 13px;">
                         ${timestamp}
@@ -1571,7 +1552,7 @@ function showReportDetails(report) {
     let headerGradient = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
     let icon = '📄';
     
-    const reportType = report.reportType?.toLowerCase();
+    const reportType = (report.type || report.reportType || '').toLowerCase();
     if (reportType === 'commendation') {
         headerGradient = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
         icon = '⭐';
@@ -1602,7 +1583,7 @@ function showReportDetails(report) {
                 <span style="font-size: 32px;">${icon}</span>
                 <div>
                     <h3 style="margin: 0; font-size: 24px; font-weight: 700;">Employee Report</h3>
-                    <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 14px;">${report.reportType || 'Report'}</p>
+                    <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 14px;">${report.type || report.reportType || 'Report'}</p>
                 </div>
             </div>
             
@@ -1614,7 +1595,7 @@ function showReportDetails(report) {
                 
                 <div style="margin-bottom: 20px;">
                     <div style="color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Report Type</div>
-                    <div style="font-weight: 600; color: #333; font-size: 16px;">${report.reportType || 'N/A'}</div>
+                    <div style="font-weight: 600; color: #333; font-size: 16px;">${report.type || report.reportType || 'N/A'}</div>
                 </div>
                 
                 <div style="margin-bottom: 20px;">
@@ -1988,6 +1969,7 @@ setInterval(async () => {
         if (payslips.length > lastCount) {
             // New payslip(s) detected
             const newCount = payslips.length - lastCount;
+            const latestPayslip = payslips[payslips.length - 1];
             
             // Send backend notification to trigger Discord DM
             try {
@@ -1999,8 +1981,8 @@ setInterval(async () => {
                         discordId: window.currentUser.id,
                         staffId: staffId,
                         payslipData: {
-                            date: new Date().toLocaleDateString(),
-                            link: 'portal.cirkledevelopment.co.uk'
+                            date: latestPayslip?.dateAssigned || latestPayslip?.timestamp || new Date().toLocaleDateString(),
+                            link: latestPayslip?.link || latestPayslip?.url || 'N/A'
                         }
                     })
                 });
@@ -2063,9 +2045,9 @@ setInterval(async () => {
                         discordId: window.currentUser.id,
                         staffId: staffId,
                         disciplinaryData: {
-                            type: latestDisciplinary?.strikeType || 'N/A',
+                            type: latestDisciplinary?.strikeType || latestDisciplinary?.type || 'N/A',
                             date: latestDisciplinary?.dateAssigned ? new Date(latestDisciplinary.dateAssigned).toLocaleDateString() : 'N/A',
-                            reason: latestDisciplinary?.reason || 'Check portal for details'
+                            reason: latestDisciplinary?.reason || latestDisciplinary?.comment || 'Check portal for details'
                         }
                     })
                 });
@@ -3313,10 +3295,10 @@ async function checkSuspensionStatus() {
     console.log('[SUSPEND] Checking suspension status for user:', window.currentUser.id);
     
     try {
-        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/user-status', {
+        const response = await fetch(`${BACKEND_URL}/api/user-status`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: window.currentUser.id })
+            body: JSON.stringify({ discordId: window.currentUser.id })
         });
         
         console.log('[SUSPEND] Response status:', response.status);
@@ -3327,9 +3309,10 @@ async function checkSuspensionStatus() {
             
             const wasSuspended = localStorage.getItem('wasSuspended') === 'true';
             
-            if (statusData.status === 'suspended') {
+            if (statusData.suspended === true) {
                 console.log('[SUSPEND] User is suspended! Showing modal...');
                 localStorage.setItem('wasSuspended', 'true');
+                showSuspendedPortal();
                 showSuspensionModal();
                 return true; // User is suspended
             } else if (wasSuspended) {
@@ -6238,18 +6221,18 @@ async function renderHolidayCalendar() {
     
     let html = `
         <div style="text-align: center; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-            <button onclick="changeCalendarMonth(-1)" style="background: #667eea; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600;">← Prev</button>
-            <h3 style="margin: 0; color: #333; font-size: 1.2em;">${monthNames[currentMonth]} ${currentYear}</h3>
-            <button onclick="changeCalendarMonth(1)" style="background: #667eea; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600;">Next →</button>
+            <button onclick="changeCalendarMonth(-1)" style="background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600;">← Prev</button>
+            <h3 style="margin: 0; color: var(--text); font-size: 1.2em;">${monthNames[currentMonth]} ${currentYear}</h3>
+            <button onclick="changeCalendarMonth(1)" style="background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600;">Next →</button>
         </div>
         <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center;">
-            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Sun</div>
-            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Mon</div>
-            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Tue</div>
-            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Wed</div>
-            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Thu</div>
-            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Fri</div>
-            <div style="font-weight: bold; color: #666; padding: 8px; font-size: 0.9em;">Sat</div>
+            <div style="font-weight: bold; color: var(--text2); padding: 8px; font-size: 0.9em;">Sun</div>
+            <div style="font-weight: bold; color: var(--text2); padding: 8px; font-size: 0.9em;">Mon</div>
+            <div style="font-weight: bold; color: var(--text2); padding: 8px; font-size: 0.9em;">Tue</div>
+            <div style="font-weight: bold; color: var(--text2); padding: 8px; font-size: 0.9em;">Wed</div>
+            <div style="font-weight: bold; color: var(--text2); padding: 8px; font-size: 0.9em;">Thu</div>
+            <div style="font-weight: bold; color: var(--text2); padding: 8px; font-size: 0.9em;">Fri</div>
+            <div style="font-weight: bold; color: var(--text2); padding: 8px; font-size: 0.9em;">Sat</div>
     `;
     
     // Get first day of month
@@ -6266,20 +6249,11 @@ async function renderHolidayCalendar() {
         const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const hasHoliday = holidayDates.has(dateStr);
         const isToday = day === now.getDate() && currentMonth === now.getMonth() && currentYear === now.getFullYear();
-        
+        const dayClass = `calendar-day${isToday ? ' today' : ''}`;
         html += `
-            <div onclick="selectCalendarDate('${dateStr}')" style="
-                position: relative;
-                padding: 12px 8px;
-                border-radius: 8px;
-                cursor: pointer;
-                background: ${isToday ? '#e3f2fd' : '#fafafa'};
-                border: 2px solid ${isToday ? '#2196F3' : '#e0e0e0'};
-                transition: all 0.2s ease;
-                font-weight: ${isToday ? 'bold' : 'normal'};
-            " onmouseover="this.style.background='#f5f5f5'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='${isToday ? '#e3f2fd' : '#fafafa'}'; this.style.transform='scale(1)';">
-                ${day}
-                ${hasHoliday ? '<div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 6px; height: 6px; background: #2196F3; border-radius: 50%;"></div>' : ''}
+            <div class="${dayClass}" onclick="selectCalendarDate('${dateStr}')" data-date="${dateStr}">
+                <span class="calendar-day-number">${day}</span>
+                ${hasHoliday ? '<span class="calendar-event-dot" aria-hidden="true"></span>' : ''}
             </div>
         `;
     }
@@ -6783,8 +6757,8 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
         content.innerHTML = `
             <div class="payslips-list" style="display: flex; flex-direction: column; gap: 12px; padding: 20px;">
                 ${payslips.map((payslip, index) => {
-                    const date = payslip.dateAssigned || payslip.timestamp || 'N/A';
-                    const assignedBy = payslip.assignedBy || 'Unknown';
+                    const date = payslip.dateAssigned || payslip.timestamp || payslip.issuedAt || 'N/A';
+                    const assignedBy = payslip.assignedBy || 'OC Director';
                     const link = payslip.link || payslip.url || '';
                     const comment = payslip.comment || 'No additional details';
                     
@@ -6800,12 +6774,12 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
                                 <span class="item-detail-value">${date}</span>
                             </div>
                             <div class="item-detail">
-                                <span class="item-detail-label">Assigned By</span>
+                                <span class="item-detail-label">Director Profile</span>
                                 <span class="item-detail-value">${assignedBy}</span>
                             </div>
                         </div>
                         <div class="item-footer">
-                            <span class="item-date">${comment}</span>
+                            <span class="item-date"><span class="mini-tag">Added Comment</span> ${comment}</span>
                             <button onclick="window.open('${link}', '_blank'); event.stopPropagation();" style="
                                 background: #0d6efd;
                                 color: white;
@@ -6843,43 +6817,22 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
 
 function showPayslipDetails(payslip) {
     const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.5); display: flex; align-items: center; 
-        justify-content: center; z-index: 10000;
-    `;
+    modal.className = 'portal-modal';
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     
     const link = payslip.link || '#';
     
     modal.innerHTML = `
-        <div style="
-            background: white; padding: 30px; border-radius: 8px; 
-            max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        ">
-            <h3 style="margin: 0 0 20px 0; color: #1976d2;">Payslip Details</h3>
-            <div style="margin-bottom: 15px;">
-                <strong>Date Assigned:</strong> ${payslip.dateAssigned || 'N/A'}
-            </div>
-            <div style="margin-bottom: 15px;">
-                <strong>Assigned By:</strong> ${payslip.assignedBy || 'Unknown'}
-            </div>
-            <div style="margin-bottom: 20px;">
-                <strong>Comment:</strong> ${payslip.comment || 'No comment provided'}
-            </div>
-            <div style="display: flex; gap: 10px; justify-content: center;">
+        <div class="portal-modal__panel">
+            <h3 class="portal-modal__title">Payslip Details</h3>
+            <div class="portal-modal__kv"><strong>Date Assigned:</strong> ${payslip.dateAssigned || payslip.timestamp || payslip.issuedAt || 'N/A'}</div>
+            <div class="portal-modal__kv"><strong>Director Profile:</strong> ${payslip.assignedBy || 'OC Director'}</div>
+            <div class="portal-modal__kv"><strong>Comment:</strong> ${payslip.comment || 'No comment provided'}</div>
+            <div class="portal-modal__actions">
                 ${link && link !== '#' ? `
-                <button onclick="window.open('${link}', '_blank')" style="
-                    background: #1976d2; color: white; border: none; 
-                    padding: 12px 24px; border-radius: 6px; cursor: pointer;
-                    font-weight: 600; transition: background 0.2s;
-                " onmouseover="this.style.background='#1565c0'" onmouseout="this.style.background='#1976d2'">View Payslip</button>
+                <button class="portal-modal__primary" onclick="window.open('${link}', '_blank')">View Payslip</button>
                 ` : ''}
-                <button onclick="this.closest('[style*=fixed]').remove()" style="
-                    background: #666; color: white; border: none; 
-                    padding: 12px 24px; border-radius: 6px; cursor: pointer;
-                    font-weight: 600; transition: background 0.2s;
-                " onmouseover="this.style.background='#555'" onmouseout="this.style.background='#666'">Close</button>
+                <button class="portal-modal__close" onclick="this.closest('.portal-modal').remove()">Close</button>
             </div>
         </div>
     `;
@@ -6959,49 +6912,40 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
         
         console.log('[DEBUG] Updated disciplinary counter in localStorage to:', disciplinaries.length);
         
-        // Generate clean row-based list matching payslips design
         listEl.style.cssText = 'display: flex; flex-direction: column; gap: 12px; padding: 20px;';
-        
-        disciplinaries.forEach((disc, index) => {
+
+        disciplinaries.forEach((disc) => {
             const item = document.createElement('div');
-            item.className = 'disciplinary-row';
-            
-            const date = disc.dateAssigned || new Date().toLocaleDateString();
-            
-            item.style.cssText = `
-                display: flex; 
-                justify-content: space-between; 
-                align-items: center; 
-                border: 1px solid #e0e0e0; 
-                padding: 20px 24px; 
-                border-radius: 8px; 
-                background: white; 
-                cursor: pointer;
-                transition: all 0.2s ease;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            `;
-            
-            item.onmouseover = () => {
-                item.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)';
-                item.style.transform = 'translateY(-2px)';
-            };
-            
-            item.onmouseout = () => {
-                item.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
-                item.style.transform = 'translateY(0)';
-            };
-            
+            item.className = 'disciplinary-item';
+
+            const dateSource = disc.dateAssigned || disc.createdAt || disc.timestamp;
+            const date = dateSource ? new Date(dateSource).toLocaleDateString() : 'N/A';
+            const assignedBy = disc.assignedBy || 'OC Director';
+            const strikeType = disc.strikeType || 'Disciplinary';
+            const comment = disc.comment || disc.reason || 'No comment provided';
+
             item.innerHTML = `
-                <div style="flex: 1;">
-                    <span style="font-weight: 600; color: #f44336; font-size: 16px;">DISCIPLINARY: ${date}</span>
+                <div class="item-header">
+                    <div class="item-type">${strikeType}</div>
+                    <div class="item-badge" style="background: #ff6b35; color: #fff;">DISCIPLINARY</div>
                 </div>
-                <div style="flex: 1; text-align: right;">
-                    <span style="color: #888; font-size: 14px;">by ${disc.assignedBy || 'Marcus Ray'}</span>
+                <div class="item-details">
+                    <div class="item-detail">
+                        <span class="item-detail-label">Director Profile</span>
+                        <span class="item-detail-value">${assignedBy}</span>
+                    </div>
+                    <div class="item-detail">
+                        <span class="item-detail-label">Date Assigned</span>
+                        <span class="item-detail-value">${date}</span>
+                    </div>
+                </div>
+                <div class="item-footer">
+                    <span class="item-date"><span class="mini-tag">Added Comment</span> ${comment}</span>
                 </div>
             `;
-            
+
             item.onclick = () => showDisciplinaryDetails(disc);
-            
+
             listEl.appendChild(item);
         });
         
@@ -7015,36 +6959,18 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
 
 function showDisciplinaryDetails(disciplinary) {
     const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.5); display: flex; align-items: center; 
-        justify-content: center; z-index: 10000;
-    `;
+    modal.className = 'portal-modal';
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     
     modal.innerHTML = `
-        <div style="
-            background: white; padding: 30px; border-radius: 8px; 
-            max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        ">
-            <h3 style="margin: 0 0 20px 0; color: #f44336;">Disciplinary Details</h3>
-            <div style="margin-bottom: 15px;">
-                <strong>Date Assigned:</strong> ${disciplinary.dateAssigned || 'N/A'}
-            </div>
-            <div style="margin-bottom: 15px;">
-                <strong>Type:</strong> ${disciplinary.strikeType || 'N/A'}
-            </div>
-            <div style="margin-bottom: 15px;">
-                <strong>Assigned By:</strong> ${disciplinary.assignedBy || 'Unknown'}
-            </div>
-            <div style="margin-bottom: 20px;">
-                <strong>Comment:</strong> ${disciplinary.comment || 'No comment provided'}
-            </div>
-            <div style="text-align: center;">
-                <button onclick="this.closest('[style*=fixed]').remove()" style="
-                    background: #666; color: white; border: none; 
-                    padding: 12px 24px; border-radius: 4px; cursor: pointer;
-                ">Close</button>
+        <div class="portal-modal__panel">
+            <h3 class="portal-modal__title" style="color: #f44336;">Disciplinary Details</h3>
+            <div class="portal-modal__kv"><strong>Date Assigned:</strong> ${disciplinary.dateAssigned || disciplinary.createdAt || disciplinary.timestamp || 'N/A'}</div>
+            <div class="portal-modal__kv"><strong>Type:</strong> ${disciplinary.strikeType || 'N/A'}</div>
+            <div class="portal-modal__kv"><strong>Director Profile:</strong> ${disciplinary.assignedBy || 'OC Director'}</div>
+            <div class="portal-modal__kv"><strong>Comment:</strong> ${disciplinary.comment || disciplinary.reason || 'No comment provided'}</div>
+            <div class="portal-modal__actions">
+                <button class="portal-modal__close" onclick="this.closest('.portal-modal').remove()">Close</button>
             </div>
         </div>
     `;
@@ -7141,7 +7067,7 @@ document.getElementById('submitClockOutBtn').addEventListener('click', async () 
     const activitySummary = activityInput || 'No activity logged';
     
     // Close the activity modal
-    hideModal('clockOutActivity');
+    closeModal('clockOutActivity');
     
     const button = document.getElementById('clockOutBtn');
     button.style.background = '#0056b3';
@@ -7176,7 +7102,7 @@ document.getElementById('submitClockOutBtn').addEventListener('click', async () 
 
 // Handle cancel clock out
 document.getElementById('cancelClockOutBtn').addEventListener('click', () => {
-    hideModal('clockOutActivity');
+    closeModal('clockOutActivity');
 });
 
 // ========== REQUESTS FUNCTIONALITY ==========
@@ -7234,39 +7160,41 @@ async function reloadRequests() {
         
         // Generate clean row-based list
         listEl.style.cssText = 'display: flex; flex-direction: column; gap: 12px; padding: 20px;';
-        
+
+        const statusCacheKey = `requestStatus_${userId}`;
+        const statusCache = JSON.parse(localStorage.getItem(statusCacheKey) || '{}');
+
         requests.forEach((req) => {
             const item = document.createElement('div');
             item.className = 'request-row';
             
             // Ensure all fields have defaults to prevent "undefined"
             const type = req.type || 'Request';
-            // Trim and normalize status to handle whitespace/case issues
-            const status = (req.status || 'Pending').trim();
-            const date = req.timestamp || new Date().toLocaleDateString();
+            const statusValue = (req.status || 'pending').toString().trim().toLowerCase();
+            const date = req.timestamp || req.createdAt || new Date().toLocaleDateString();
             const comment = req.comment || req.details || 'No comment';
-            const approverName = (req.approverName || '').trim();
+            const approverName = (req.approverName || req.approvedBy || '').trim();
             
-            console.log('[DEBUG] Rendering request:', { type, status, date, approverName, rawStatus: req.status });
+            console.log('[DEBUG] Rendering request:', { type, statusValue, date, approverName, rawStatus: req.status });
             
             // Color-coded based on status
             let statusClass, statusText, statusBadge;
-            if (status === 'Pending') {
+            if (statusValue === 'pending' || statusValue === 'submit') {
                 statusClass = 'pending';
                 statusBadge = 'PENDING';
                 statusText = 'Awaiting review';
-            } else if (status === 'Approve' || status === 'Approved') {
+            } else if (statusValue === 'approve' || statusValue === 'approved') {
                 statusClass = 'approved';
                 statusBadge = 'APPROVED';
                 statusText = approverName ? `Approved by ${approverName}` : 'Approved';
-            } else if (status === 'Deny' || status === 'Denied') {
+            } else if (statusValue === 'deny' || statusValue === 'denied' || statusValue === 'rejected') {
                 statusClass = 'rejected';
                 statusBadge = 'DENIED';
                 statusText = approverName ? `Denied by ${approverName}` : 'Denied';
             } else {
                 statusClass = 'pending';
                 statusBadge = 'UNKNOWN';
-                statusText = status;
+                statusText = statusValue;
             }
             
             item.className = 'request-item';
@@ -7294,7 +7222,18 @@ async function reloadRequests() {
             item.onclick = () => showRequestDetails(req);
             
             listEl.appendChild(item);
+
+            if (req.id) {
+                const prev = statusCache[req.id];
+                if (prev && prev !== statusValue && (statusValue === 'approved' || statusValue === 'rejected')) {
+                    const verb = statusValue === 'approved' ? 'approved' : 'rejected';
+                    addNotification('requests', `Request ${verb}: ${type}`, 'requests');
+                }
+                statusCache[req.id] = statusValue;
+            }
         });
+
+        localStorage.setItem(statusCacheKey, JSON.stringify(statusCache));
         
     } catch (error) {
         console.error('[DEBUG] Error in reloadRequests:', error);
@@ -7332,24 +7271,20 @@ document.getElementById('requestsBtn').addEventListener('click', async () => {
 
 function showRequestDetails(request) {
     const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.5); display: flex; align-items: center; 
-        justify-content: center; z-index: 10000;
-    `;
+    modal.className = 'portal-modal';
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     
     let statusColor, statusBg, statusIcon;
-    const normalizedStatus = (request.status || '').trim();
-    if (normalizedStatus === 'Pending') {
+    const normalizedStatus = (request.status || '').trim().toLowerCase();
+    if (normalizedStatus === 'pending' || normalizedStatus === 'submit') {
         statusColor = '#f57c00';
         statusBg = '#fff3e0';
         statusIcon = '⚠️';
-    } else if (normalizedStatus === 'Approve' || normalizedStatus === 'Approved') {
+    } else if (normalizedStatus === 'approve' || normalizedStatus === 'approved') {
         statusColor = '#4CAF50';
         statusBg = '#e8f5e9';
         statusIcon = '✅';
-    } else if (normalizedStatus === 'Deny' || normalizedStatus === 'Denied') {
+    } else if (normalizedStatus === 'deny' || normalizedStatus === 'denied' || normalizedStatus === 'rejected') {
         statusColor = '#f44336';
         statusBg = '#ffebee';
         statusIcon = '❌';
@@ -7360,25 +7295,23 @@ function showRequestDetails(request) {
     }
     
     modal.innerHTML = `
-        <div style="background: white; border-radius: 12px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
-            <h2 style="margin-top: 0; color: ${statusColor};">${statusIcon} ${request.type} Request</h2>
-            <div style="background: ${statusBg}; padding: 15px; border-radius: 8px; border: 2px solid ${statusColor}; margin-bottom: 20px;">
-                <p style="margin: 0; font-weight: 600; color: ${statusColor};">Status: ${request.status}</p>
+        <div class="portal-modal__panel">
+            <h2 class="portal-modal__title" style="color: ${statusColor};">${statusIcon} ${request.type} Request</h2>
+            <div class="portal-modal__status" style="border-color: ${statusColor}; background: ${statusBg}; color: ${statusColor};">
+                Status: ${request.status || 'Pending'}
             </div>
-            <p><strong>Submitted:</strong> ${request.timestamp || 'Unknown'}</p>
+            <p><strong>Submitted:</strong> ${request.timestamp || request.createdAt || 'Unknown'}</p>
             <p><strong>Details:</strong></p>
-            <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; white-space: pre-wrap; margin-bottom: 20px;">
+            <div class="portal-modal__body">
                 ${request.comment || 'No details provided'}
             </div>
             ${request.response ? `
                 <p><strong>Response:</strong></p>
-                <div style="background: ${statusBg}; padding: 15px; border-radius: 8px; border: 1px solid ${statusColor};">
+                <div class="portal-modal__response" style="border-color: ${statusColor}; background: ${statusBg};">
                     ${request.response}
                 </div>
             ` : ''}
-            <button onclick="this.closest('div').parentElement.remove()" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px;">
-                Close
-            </button>
+            <button class="portal-modal__close" onclick="this.closest('.portal-modal').remove()">Close</button>
         </div>
     `;
     

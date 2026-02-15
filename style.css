@@ -20,12 +20,42 @@
   --warning: #f59e0b;
   --danger: #ef4444;
   --info: #3b82f6;
+
+  /* Card colors */
+  --item-text: var(--text);
+  --item-muted: var(--text2);
+  --item-bg-absence: #2a2415;
+  --item-bg-request: #172638;
+  --item-bg-payslip: #11292e;
+  --item-bg-disciplinary: #2b1d12;
+
+  /* Modal colors */
+  --modal-bg: var(--bg2);
+  --modal-border: var(--border);
+  --modal-body-bg: var(--bg3);
+
+  /* Calendar */
+  --calendar-day-bg: #111827;
+  --calendar-day-border: var(--border);
+    --item-divider: rgba(255, 255, 255, 0.08);
+  --calendar-day-today-bg: rgba(99, 102, 241, 0.15);
+  --calendar-day-other-bg: #0f1424;
+
+  /* Timeclock */
+  --timeclock-panel-bg: #0f1424;
+  --timeclock-btn-bg: #2f3647;
+  --timeclock-btn-bg-hover: #3a4154;
+  --timeclock-btn-text: #d9dee8;
+  --timeclock-display-bg: #141a2b;
+  --timeclock-display-text: #d9dee8;
+  --timeclock-session-bg: rgba(255, 255, 255, 0.06);
   
   /* Spacing */
   --radius: 12px;
   --radius-lg: 16px;
   --shadow: 0 4px 24px rgba(0,0,0,0.4);
   --shadow-lg: 0 8px 48px rgba(0,0,0,0.6);
+    --item-divider: rgba(0, 0, 0, 0.1);
 }
 
 /* ================================================================
@@ -34,7 +64,7 @@
 * {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
+    border-top: 1px solid var(--item-divider);
 }
 
 html, body {
@@ -117,6 +147,12 @@ body {
 #portalWelcomeScreen {
   align-items: center;
   justify-content: center;
+}
+
+#discordScreen {
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
 }
 
 #sequentialLoadingScreen {
@@ -1288,7 +1324,7 @@ footer {
    BOX LAYOUTS FOR ABSENCES, REQUESTS, PAYSLIPS, DISCIPLINARIES
    ================================================================ */
 .absence-item, .request-item, .payslip-item, .disciplinary-item {
-  background: #fff8dc;
+  background: var(--item-bg-absence);
   border-left: 4px solid #ffc107;
   border-radius: 10px;
   padding: 16px 20px;
@@ -1307,22 +1343,22 @@ footer {
 }
 
 .absence-item.pending {
-  background: #fff8dc;
+  background: var(--item-bg-absence);
   border-left-color: #ffc107;
 }
 
 .absence-item.approved {
-  background: #d4edda;
+  background: rgba(16, 185, 129, 0.12);
   border-left-color: #28a745;
 }
 
 .absence-item.rejected {
-  background: #f8d7da;
+  background: rgba(239, 68, 68, 0.12);
   border-left-color: #dc3545;
 }
 
 .absence-item.archived {
-  background: #e2e3e5;
+  background: rgba(148, 163, 184, 0.18);
   border-left-color: #6c757d;
   opacity: 0.8;
 }
@@ -1337,7 +1373,7 @@ footer {
 .item-type {
   font-size: 16px;
   font-weight: 700;
-  color: #212529;
+  color: var(--item-text);
 }
 
 .item-badge {
@@ -1369,7 +1405,7 @@ footer {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 8px;
   font-size: 13px;
-  color: #495057;
+  color: var(--item-muted);
 }
 
 .item-detail {
@@ -1381,13 +1417,13 @@ footer {
   font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
-  color: #6c757d;
+  color: var(--item-muted);
   margin-bottom: 2px;
 }
 
 .item-detail-value {
   font-weight: 500;
-  color: #212529;
+  color: var(--item-text);
 }
 
 .item-footer {
@@ -1396,18 +1432,18 @@ footer {
   align-items: center;
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .item-date {
   font-size: 11px;
-  color: #6c757d;
+  color: var(--item-muted);
   font-style: italic;
 }
 
 /* Request specific styling */
 .request-item {
-  background: #e7f3ff;
+  background: var(--item-bg-request);
   border-left-color: #0d6efd;
 }
 
@@ -1418,7 +1454,7 @@ footer {
 
 /* Payslip specific styling */
 .payslip-item {
-  background: #d1ecf1;
+  background: var(--item-bg-payslip);
   border-left-color: #0dcaf0;
 }
 
@@ -1429,7 +1465,7 @@ footer {
 
 /* Disciplinary specific styling */
 .disciplinary-item {
-  background: #fff3cd;
+  background: var(--item-bg-disciplinary);
   border-left-color: #ffc107;
 }
 
@@ -1467,10 +1503,10 @@ footer {
 /* Calendar styling */
 .calendar-day {
   min-height: 80px;
-  border: 2px solid var(--border);
+  border: 2px solid var(--calendar-day-border);
   border-radius: 10px;
   padding: 8px;
-  background: white;
+  background: var(--calendar-day-bg);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -1484,13 +1520,17 @@ footer {
 
 .calendar-day.today {
   border-color: var(--primary);
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(102, 126, 234, 0.05) 100%);
+  background: var(--calendar-day-today-bg);
   font-weight: 700;
 }
 
 .calendar-day.other-month {
   opacity: 0.4;
-  background: #f9f9f9;
+  background: var(--calendar-day-other-bg);
+}
+
+.calendar-day-number {
+  display: inline-block;
 }
 
 .calendar-day-number {
@@ -1507,6 +1547,130 @@ footer {
   background: var(--primary);
   display: inline-block;
   margin: 2px;
+}
+
+.mini-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--text);
+  margin-right: 6px;
+}
+
+.portal-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.portal-modal__panel {
+  background: var(--modal-bg);
+  color: var(--text);
+  border-radius: 12px;
+  border: 1px solid var(--modal-border);
+  padding: 24px;
+  max-width: 520px;
+  width: 90%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.portal-modal__title {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.portal-modal__status {
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.portal-modal__body,
+.portal-modal__response {
+  background: var(--modal-body-bg);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  white-space: pre-wrap;
+}
+
+.portal-modal__kv {
+  margin-bottom: 12px;
+}
+
+.portal-modal__note {
+  background: var(--modal-body-bg);
+  border-left: 4px solid var(--warning);
+  padding: 12px;
+  border-radius: 8px;
+  margin: 12px 0 18px 0;
+  font-weight: 600;
+}
+
+.portal-modal__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.portal-modal__primary {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.portal-modal__close {
+  background: var(--bg4);
+  color: var(--text);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Timeclock styling */
+.timeclock-panel {
+  background: var(--timeclock-panel-bg) !important;
+}
+
+.clock-display {
+  background: var(--timeclock-display-bg) !important;
+  color: var(--timeclock-display-text);
+  border-radius: 8px;
+}
+
+.clock-btn {
+  background: var(--timeclock-btn-bg) !important;
+  color: var(--timeclock-btn-text) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  min-width: auto !important;
+}
+
+.clock-btn:hover {
+  background: var(--timeclock-btn-bg-hover) !important;
+}
+
+.session-info {
+  background: var(--timeclock-session-bg) !important;
 }
 
 .text-center {
@@ -1532,6 +1696,30 @@ body.light {
   --border: #d0d0e0;
   --text: #1a1a2e;
   --text2: #4a4a6a;
+
+  --item-text: #212529;
+  --item-muted: #6c757d;
+  --item-bg-absence: #fff8dc;
+  --item-bg-request: #e7f3ff;
+  --item-bg-payslip: #d1ecf1;
+  --item-bg-disciplinary: #fff3cd;
+
+  --modal-bg: #ffffff;
+  --modal-border: #d0d0e0;
+  --modal-body-bg: #f5f5f5;
+
+  --calendar-day-bg: #ffffff;
+  --calendar-day-border: #e0e0e0;
+  --calendar-day-today-bg: #e3f2fd;
+  --calendar-day-other-bg: #f9f9f9;
+
+  --timeclock-panel-bg: #ffffff;
+  --timeclock-btn-bg: #e5e7eb;
+  --timeclock-btn-bg-hover: #d6d9df;
+  --timeclock-btn-text: #1f2937;
+  --timeclock-display-bg: #f0f0f5;
+  --timeclock-display-text: #1f2937;
+  --timeclock-session-bg: rgba(0, 0, 0, 0.05);
 }
 
 /* Simple screen fade-in animation */
