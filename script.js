@@ -2454,7 +2454,8 @@ const modals = {
     replyMail: document.getElementById('replyMailModal'),
     absenceDetail: document.getElementById('absenceDetailModal'),
     confirmCancelAbsence: document.getElementById('confirmCancelAbsenceModal'),
-    submitRequest: document.getElementById('submitRequestModal')
+    submitRequest: document.getElementById('submitRequestModal'),
+    clockOutActivity: document.getElementById('clockOutActivityModal')
 };
 
 console.log('%c🚀 SCRIPT.JS LOADED', 'color: magenta; font-size: 20px; font-weight: bold;');

@@ -1452,7 +1452,13 @@ async function openUserPanel(idx) {
   try {
     if (user.discordId) {
       const data = await apiGet(`/api/accounts/${user.discordId}`);
-      if (data.success) account = data.account;
+      if (data && data.success === false) {
+        account = null;
+      } else if (data?.account) {
+        account = data.account;
+      } else if (data && typeof data === 'object') {
+        account = data;
+      }
     }
   } catch (e) {}
 
