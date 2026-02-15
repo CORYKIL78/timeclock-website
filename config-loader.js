@@ -4,8 +4,8 @@
  * This file should be loaded FIRST in your HTML before other scripts
  */
 
-// Configuration object - will be populated from environment variables
-window.CONFIG = {
+// Initialize CONFIG object immediately
+window.CONFIG = window.CONFIG || {
   // Discord OAuth
   DISCORD_CLIENT_ID: null,
   
@@ -23,19 +23,24 @@ window.CONFIG = {
 
 /**
  * Load configuration from multiple sources
- * Priority: Query params > localStorage > .env-config.js > defaults
+ * Priority: ENVIRONMENT_CONFIG > localStorage > Query params > defaults
  */
 function loadConfig() {
-  // Try to load from .env-config.js (created by build process)
+  // FIRST: Try to load from ENVIRONMENT_CONFIG (from .env-config.js)
   if (typeof ENVIRONMENT_CONFIG !== 'undefined') {
+    console.log('[CONFIG] Found ENVIRONMENT_CONFIG, merging...');
     Object.assign(window.CONFIG, ENVIRONMENT_CONFIG);
+  } else {
+    console.warn('[CONFIG] ENVIRONMENT_CONFIG not found, using defaults');
   }
   
-  // Try to load from localStorage (for development)
+  // Try to load from localStorage (for development override)
   const stored = localStorage.getItem('config');
   if (stored) {
     try {
-      Object.assign(window.CONFIG, JSON.parse(stored));
+      const parsed = JSON.parse(stored);
+      Object.assign(window.CONFIG, parsed);
+      console.log('[CONFIG] Merged config from localStorage');
     } catch (e) {
       console.warn('[CONFIG] Failed to parse stored config:', e);
     }
@@ -47,6 +52,7 @@ function loadConfig() {
     if (key.startsWith('config_')) {
       const configKey = key.substring(7).toUpperCase();
       window.CONFIG[configKey] = value;
+      console.log('[CONFIG] Override from query param:', configKey);
     }
   }
   
@@ -63,22 +69,27 @@ function loadConfig() {
     WORKER_URL: window.CONFIG.WORKER_URL,
     REDIRECT_URI: window.CONFIG.REDIRECT_URI,
     GUILD_ID: window.CONFIG.GUILD_ID,
+    DISCORD_CLIENT_ID: window.CONFIG.DISCORD_CLIENT_ID,
     ADMINS: Object.keys(window.CONFIG.ADMINS || {})
   });
   
   return window.CONFIG;
 }
 
-// Load config when document is ready
+// Load config immediately
+loadConfig();
+
+// Also load on DOMContentLoaded as a fallback
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', loadConfig);
-} else {
-  loadConfig();
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('[CONFIG] Reloading config on DOMContentLoaded');
+    loadConfig();
+  });
 }
 
 // Helper function to get config value with fallback
 function getConfig(key, defaultValue = null) {
-  return window.CONFIG[key] !== undefined ? window.CONFIG[key] : defaultValue;
+  return window.CONFIG[key] !== undefined && window.CONFIG[key] !== null ? window.CONFIG[key] : defaultValue;
 }
 
 // Export for use in other scripts

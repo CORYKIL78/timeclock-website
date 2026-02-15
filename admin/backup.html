@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OC Portal - Oversight & Corporate</title>
+<link rel="icon" type="image/png" href="../Untitled_design.png">
 <style>
 :root {
   --bg: #0b0d17;
@@ -607,16 +608,17 @@ const GUILD_ID = window.CONFIG?.GUILD_ID || '1310656642672627752';
 // Format: ADMIN_{DISCORD_ID}_PIN and ADMIN_{DISCORD_ID}_NAME
 // Wait for config to be loaded if not already available
 let ADMINS = window.CONFIG?.ADMINS;
-if (!ADMINS || Object.keys(ADMINS).every(id => !ADMINS[id].pin)) {
+if (!ADMINS || Object.keys(ADMINS || {}).length === 0 || Object.keys(ADMINS).every(id => !ADMINS[id]?.pin)) {
   // Config not loaded yet or has empty PINs - use defaults as fallback
   ADMINS = {
+    '1088907566844739624': { pin: '061021', name: 'Marcus Ray' },
     '1002932344799371354': { pin: '486133', name: 'Appler Smith' },
     '1187751127039615086': { pin: '638542', name: 'Sam Caster' },
     '926568979747713095':  { pin: '315793', name: 'Teejay Everil' }
   };
   console.warn('[ADMIN PORTAL] Using hardcoded admin credentials (config not loaded or empty)');
 } else {
-  console.warn('[ADMIN PORTAL] Loaded credentials from environment config');
+  console.log('[ADMIN PORTAL] Loaded credentials from environment config');
 }
 console.log('[ADMIN PORTAL] Admin users available:', Object.keys(ADMINS));
 
@@ -766,6 +768,18 @@ async function doLogin() {
     }
 
     state.admin = { id, name: displayName, avatar: avatarSrc };
+
+    // Send Discord bot notification that admin logged in
+    try {
+      await apiPost('/api/webhooks/admin-login', {
+        adminId: id,
+        adminName: displayName,
+        timestamp: new Date().toISOString()
+      });
+      console.log('[ADMIN PORTAL] Sent login notification to Discord bot');
+    } catch (notifError) {
+      console.warn('[ADMIN PORTAL] Failed to send login notification:', notifError);
+    }
 
     await new Promise(r => setTimeout(r, 1200));
     showScreen('foundScreen');
@@ -1410,10 +1424,11 @@ document.getElementById('actionConfirmBtn').addEventListener('click', async () =
   try {
     if (action.type === 'absence') {
       await apiPost('/api/admin/absence/update-status', {
-        rowIndex: action.item.rowIndex,
+        userId: action.item.userId || action.item.discordId,
+        absenceId: action.item.id,
         status: action.status,
         reason: reason,
-        approver: state.admin.name
+        adminName: state.admin.name
       });
       // Log admin action
       await logAdminAction(
@@ -1425,10 +1440,11 @@ document.getElementById('actionConfirmBtn').addEventListener('click', async () =
       await loadAbsences();
     } else if (action.type === 'request') {
       await apiPost('/api/admin/requests/update-status', {
-        rowIndex: action.item.rowIndex,
-        approved: action.approved,
+        userId: action.item.userId || action.item.discordId,
+        requestId: action.item.id,
+        status: action.approved ? 'approved' : 'rejected',
         reason: reason,
-        approver: state.admin.name
+        adminName: state.admin.name
       });
       // Log admin action
       await logAdminAction(

@@ -227,7 +227,50 @@ export default {
         }), { headers: corsHeaders });
       }
 
-      // Create absence request
+      // Submit absence from staff portal (matches script.js payload format)
+      if (url.pathname === '/api/absence' && request.method === 'POST') {
+        const body = await request.json();
+        const { discordId, name, startDate, endDate, reason, totalDays, comment } = body;
+
+        if (!discordId || !startDate || !reason) {
+          return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        const absence = {
+          id: `absence_${Date.now()}`,
+          userId: discordId,
+          name: name || 'Unknown User',
+          startDate,
+          endDate: endDate || startDate,
+          type: reason, // "reason" field from script.js is actually the type (e.g., "sick")
+          reason: comment || '',
+          comment: comment || '',
+          days: totalDays || '1',
+          status: 'pending',
+          submittedAt: new Date().toISOString(),
+          approvedAt: null,
+          approvedBy: null
+        };
+
+        const absencesKey = `absences:${discordId}`;
+        const absences = await env.DATA.get(absencesKey, 'json') || [];
+        absences.push(absence);
+        await env.DATA.put(absencesKey, JSON.stringify(absences));
+
+        // Ensure user is in the index so admins can see this absence
+        const usersIndex = await env.DATA.get('users:index', 'json') || [];
+        if (!usersIndex.includes(discordId)) {
+          usersIndex.push(discordId);
+          await env.DATA.put('users:index', JSON.stringify(usersIndex));
+        }
+
+        return new Response(JSON.stringify({ success: true, absence }), { headers: corsHeaders });
+      }
+
+      // Create absence request (alternative endpoint for different payload format)
       if (url.pathname === '/api/absence/create' && request.method === 'POST') {
         const body = await request.json();
         const { userId, startDate, endDate, reason, type } = body;
@@ -461,6 +504,13 @@ export default {
         requests.push(request_item);
         await env.DATA.put(requestsKey, JSON.stringify(requests));
 
+        // Ensure user is in the index so admins can see this request
+        const usersIndex = await env.DATA.get('users:index', 'json') || [];
+        if (!usersIndex.includes(userId)) {
+          usersIndex.push(userId);
+          await env.DATA.put('users:index', JSON.stringify(usersIndex));
+        }
+
         return new Response(JSON.stringify({ success: true, request: request_item }), { headers: corsHeaders });
       }
 
@@ -679,6 +729,66 @@ export default {
           return new Response(JSON.stringify({ success: false, error: error.message }), {
             status: 500,
             headers: corsHeaders
+          });
+        }
+      }
+
+      // ============================================================================
+      // WEBHOOKS
+      // ============================================================================
+
+      // Admin login notification webhook
+      if (url.pathname === '/api/webhooks/admin-login' && request.method === 'POST') {
+        const { adminId, adminName, timestamp } = await request.json();
+
+        if (!adminId) {
+          return new Response(JSON.stringify({ success: false, error: 'adminId required' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        try {
+          // Send DM to admin notifying them they've logged in
+          const embed = {
+            title: '🔐 OC Portal Login',
+            description: `You have successfully logged into the OC Portal.`,
+            color: 0x3498db, // Blue
+            fields: [
+              { name: 'Admin', value: adminName || 'Unknown', inline: true },
+              { name: 'Time', value: new Date(timestamp).toLocaleString('en-GB', { timeZone: 'Europe/London' }), inline: true }
+            ],
+            footer: { text: 'Cirkle Development Security' },
+            timestamp: timestamp || new Date().toISOString()
+          };
+
+          const dmResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ recipient_id: adminId })
+          });
+
+          if (dmResponse.ok) {
+            const dmChannel = await dmResponse.json();
+            await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ embeds: [embed] })
+            });
+          }
+
+          return new Response(JSON.stringify({ success: true, message: 'Login notification sent' }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[ADMIN-LOGIN-WEBHOOK]', error);
+          // Don't fail the request if notification fails
+          return new Response(JSON.stringify({ success: true, message: 'Login successful (notification failed)' }), { 
+            headers: corsHeaders 
           });
         }
       }
@@ -1119,17 +1229,63 @@ export default {
       if (url.pathname === '/api/admin/absence/update-status' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { userId, absenceId, status, adminName } = body;
+          const { userId, absenceId, status, adminName, reason } = body;
           
           const absencesKey = `absences:${userId}`;
           const absences = await env.DATA.get(absencesKey, 'json') || [];
           
           const absence = absences.find(a => a.id === absenceId);
           if (absence) {
-            absence.status = status;
+            absence.status = status.toLowerCase(); // Normalize to lowercase (pending/approved/rejected)
             absence.approvedBy = adminName;
             absence.approvedAt = new Date().toISOString();
+            if (reason) absence.adminNotes = reason;
             await env.DATA.put(absencesKey, JSON.stringify(absences));
+            
+            // Send Discord DM notification to user
+            try {
+              const embed = {
+                title: status.toLowerCase() === 'approved' ? '✅ Absence Request Approved' : '❌ Absence Request Denied',
+                description: `Your absence request has been **${status.toLowerCase()}** by ${adminName}.`,
+                color: status.toLowerCase() === 'approved' ? 0x4CAF50 : 0xE74C3C,
+                fields: [
+                  { name: 'Type', value: absence.type || absence.reason || 'N/A', inline: true },
+                  { name: 'Start Date', value: absence.startDate, inline: true },
+                  { name: 'End Date', value: absence.endDate || absence.startDate, inline: true },
+                  { name: 'Days', value: absence.days || absence.totalDays || '1', inline: true }
+                ],
+                footer: { text: 'Cirkle Development HR Portal' },
+                timestamp: new Date().toISOString()
+              };
+              
+              if (reason) {
+                embed.fields.push({ name: 'Note from Admin', value: reason, inline: false });
+              }
+              
+              const dmResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ recipient_id: userId })
+              });
+              
+              if (dmResponse.ok) {
+                const dmChannel = await dmResponse.json();
+                await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ embeds: [embed] })
+                });
+              }
+            } catch (dmError) {
+              console.error('[DM-ABSENCE-UPDATE]', dmError);
+              // Don't fail the request if DM fails
+            }
           }
           
           return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
@@ -1145,17 +1301,61 @@ export default {
       if (url.pathname === '/api/admin/requests/update-status' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { userId, requestId, status, adminName } = body;
+          const { userId, requestId, status, adminName, reason } = body;
           
           const requestsKey = `requests:${userId}`;
           const requests = await env.DATA.get(requestsKey, 'json') || [];
           
           const request = requests.find(r => r.id === requestId);
           if (request) {
-            request.status = status;
+            request.status = status.toLowerCase(); // Normalize to lowercase
             request.approvedBy = adminName;
             request.approvedAt = new Date().toISOString();
+            if (reason) request.adminNotes = reason;
             await env.DATA.put(requestsKey, JSON.stringify(requests));
+            
+            // Send Discord DM notification to user
+            try {
+              const embed = {
+                title: status.toLowerCase() === 'approved' ? '✅ Request Approved' : '❌ Request Denied',
+                description: `Your ${request.type || 'request'} has been **${status.toLowerCase()}** by ${adminName}.`,
+                color: status.toLowerCase() === 'approved' ? 0x4CAF50 : 0xE74C3C,
+                fields: [
+                  { name: 'Request Type', value: request.type || 'General Request', inline: true },
+                  { name: 'Details', value: request.details || request.comment || 'N/A', inline: false }
+                ],
+                footer: { text: 'Cirkle Development HR Portal' },
+                timestamp: new Date().toISOString()
+              };
+              
+              if (reason) {
+                embed.fields.push({ name: 'Note from Admin', value: reason, inline: false });
+              }
+              
+              const dmResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ recipient_id: userId })
+              });
+              
+              if (dmResponse.ok) {
+                const dmChannel = await dmResponse.json();
+                await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ embeds: [embed] })
+                });
+              }
+            } catch (dmError) {
+              console.error('[DM-REQUEST-UPDATE]', dmError);
+              // Don't fail the request if DM fails
+            }
           }
           
           return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
