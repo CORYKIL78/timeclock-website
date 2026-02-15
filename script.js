@@ -3686,7 +3686,8 @@ async function handleOAuthRedirect() {
     console.log('[LOGIN] Current user populated with complete profile:', currentUser);
 
     showScreen('cherry');
-    await new Promise(r => setTimeout(r, 1000));
+    console.log('[CHERRY] Showing verification screen, will proceed in 1.5 seconds...');
+    await new Promise(r => setTimeout(r, 1500));
 
     // TEMPORARILY DISABLED: Role check bypassed for login
     /*
@@ -3787,24 +3788,28 @@ async function handleOAuthRedirect() {
     
     // SAFETY: If backend profile exists with ANY data, ALWAYS skip setup
     if (backendProfile && (backendProfile.name || backendProfile.department || backendProfile.email)) {
-        console.log('[LOGIN] ✅ Backend profile found, user exists - going to portalWelcome');
+        console.log('[LOGIN] ✅ Backend profile found with data, going to portalWelcome');
         const displayName = currentUser.profile.name || currentUser.name || 'User';
         document.getElementById('portalWelcomeName').textContent = displayName;
         document.getElementById('portalLastLogin').textContent = emp.lastLogin || 'Never';
+        console.log('[LOGIN] **TRANSITIONING TO portalWelcome**');
         showScreen('portalWelcome');
     } else if (isFirstTime || !currentUser.profile.name || currentUser.profile.name === 'Not set') {
-        console.log('[LOGIN] ⚠️  No profile/department found, going to setupWelcome');
+        console.log('[LOGIN] ⚠️  No profile/department found, going to setupWelcome to create profile');
+        console.log('[LOGIN] **TRANSITIONING TO setupWelcome**');
         showScreen('setupWelcome');
         // Profile will be saved to Sheets when user completes department selection
     } else {
-        console.log('Profile found, redirecting to portalWelcome');
+        console.log('[LOGIN] Profile found, going to portalWelcome');
         const displayName = currentUser.profile.name || currentUser.name || 'User';
         document.getElementById('portalWelcomeName').textContent = displayName;
         document.getElementById('portalLastLogin').textContent = emp.lastLogin;
+        console.log('[LOGIN] **TRANSITIONING TO portalWelcome**');
         showScreen('portalWelcome');
     }
 
     window.history.replaceState({}, document.title, REDIRECT_URI);
+    console.log('[LOGIN] OAuth redirect complete, clearing code from URL');
 }
 
 // Tutorial and onboarding logic
@@ -5247,8 +5252,9 @@ function initializeSampleMail() {
 const discordLoginBtn = document.getElementById('discordLoginBtn');
 if (discordLoginBtn) {
     discordLoginBtn.addEventListener('click', () => {
-        const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify&prompt=none`;
-        console.log('Initiating OAuth redirect:', oauthUrl);
+        // Remove prompt=none to allow Discord login credentials dialog
+        const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify`;
+        console.log('[OAUTH] Initiating Discord OAuth redirect:', { clientId: CLIENT_ID, redirectUri: REDIRECT_URI });
         window.location.href = oauthUrl;
     });
 }
