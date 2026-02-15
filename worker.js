@@ -3,6 +3,24 @@
  * Uses KV Storage for all data (no external APIs except Discord & Resend)
  */
 
+const GENERAL_LOG_CHANNEL = '1472640182170943812';
+
+async function postDiscordEmbed(env, channelId, embed) {
+  if (!env?.DISCORD_BOT_TOKEN || !channelId) return;
+  try {
+    await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ embeds: [embed] })
+    });
+  } catch (error) {
+    console.error('[DISCORD-LOG]', error);
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -267,6 +285,20 @@ export default {
           await env.DATA.put('users:index', JSON.stringify(usersIndex));
         }
 
+        await postDiscordEmbed(env, GENERAL_LOG_CHANNEL, {
+          title: 'New Absence Request',
+          color: 0xf59e0b,
+          fields: [
+            { name: 'User', value: `${name || 'Unknown'} (${discordId})`, inline: false },
+            { name: 'Type', value: reason || 'N/A', inline: true },
+            { name: 'Start', value: startDate || 'N/A', inline: true },
+            { name: 'End', value: endDate || startDate || 'N/A', inline: true },
+            { name: 'Days', value: totalDays ? String(totalDays) : '1', inline: true },
+            { name: 'Comment', value: comment || 'N/A', inline: false }
+          ],
+          timestamp: new Date().toISOString()
+        });
+
         return new Response(JSON.stringify({ success: true, absence }), { headers: corsHeaders });
       }
 
@@ -392,7 +424,7 @@ export default {
 
       if (url.pathname === '/api/disciplinaries/create' && request.method === 'POST') {
         const body = await request.json();
-        const { userId, strikeType, reason, employer, customPoints } = body;
+        const { userId, strikeType, reason, employer, customPoints, employerId, employerAvatar } = body;
 
         if (!userId || !reason) {
           return new Response(JSON.stringify({ error: 'Missing fields' }), {
@@ -408,6 +440,8 @@ export default {
           reason,
           comment: reason,
           assignedBy: employer || 'OC Director',
+          assignedById: employerId || null,
+          assignedByAvatar: employerAvatar || null,
           dateAssigned: new Date().toISOString(),
           customPoints: customPoints || null,
           status: 'active'
@@ -520,6 +554,17 @@ export default {
           usersIndex.push(userId);
           await env.DATA.put('users:index', JSON.stringify(usersIndex));
         }
+
+        await postDiscordEmbed(env, GENERAL_LOG_CHANNEL, {
+          title: 'New Request Submitted',
+          color: 0x3b82f6,
+          fields: [
+            { name: 'User', value: userId, inline: false },
+            { name: 'Type', value: type || 'N/A', inline: true },
+            { name: 'Details', value: comment || details || 'N/A', inline: false }
+          ],
+          timestamp: new Date().toISOString()
+        });
 
         return new Response(JSON.stringify({ success: true, request: request_item }), { headers: corsHeaders });
       }
@@ -1326,7 +1371,7 @@ export default {
       if (url.pathname === '/api/admin/absence/update-status' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { userId, absenceId, status, adminName, reason } = body;
+          const { userId, absenceId, status, adminName, reason, adminId, adminAvatar } = body;
           
           const absencesKey = `absences:${userId}`;
           const absences = await env.DATA.get(absencesKey, 'json') || [];
@@ -1335,6 +1380,8 @@ export default {
           if (absence) {
             absence.status = status.toLowerCase(); // Normalize to lowercase (pending/approved/rejected)
             absence.approvedBy = adminName;
+            absence.approvedById = adminId || absence.approvedById || null;
+            absence.approvedByAvatar = adminAvatar || absence.approvedByAvatar || null;
             absence.approvedAt = new Date().toISOString();
             if (reason) absence.adminNotes = reason;
             await env.DATA.put(absencesKey, JSON.stringify(absences));
@@ -1398,7 +1445,7 @@ export default {
       if (url.pathname === '/api/admin/requests/update-status' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { userId, requestId, status, adminName, reason } = body;
+          const { userId, requestId, status, adminName, reason, adminId, adminAvatar } = body;
           
           const requestsKey = `requests:${userId}`;
           const requests = await env.DATA.get(requestsKey, 'json') || [];
@@ -1409,6 +1456,8 @@ export default {
             request.status = normalized === 'approved' ? 'approved' : normalized === 'rejected' ? 'rejected' : normalized;
             request.approvedBy = adminName;
             request.approverName = adminName;
+            request.approvedById = adminId || request.approvedById || null;
+            request.approvedByAvatar = adminAvatar || request.approvedByAvatar || null;
             request.response = reason || request.response || '';
             request.approvedAt = new Date().toISOString();
             if (reason) request.adminNotes = reason;
@@ -1471,7 +1520,7 @@ export default {
       if (url.pathname === '/api/admin/payslips/create' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { userId, period, link, comment, assignedBy } = body;
+          const { userId, period, link, comment, assignedBy, assignedById, assignedByAvatar } = body;
           if (!userId || !link) {
             return new Response(JSON.stringify({ success: false, error: 'userId and link required' }), {
               status: 400,
@@ -1488,6 +1537,8 @@ export default {
             link,
             comment: comment || '',
             assignedBy: assignedBy || 'OC Director',
+            assignedById: assignedById || null,
+            assignedByAvatar: assignedByAvatar || null,
             dateAssigned: new Date().toISOString(),
             status: 'issued'
           };
@@ -1554,7 +1605,7 @@ export default {
       if (url.pathname === '/api/reports/create' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { userId, type, comment, publishedBy, scale } = body;
+          const { userId, type, comment, publishedBy, publishedById, publishedByAvatar, scale } = body;
           if (!userId || !type) {
             return new Response(JSON.stringify({ success: false, error: 'userId and type required' }), {
               status: 400,
@@ -1570,6 +1621,8 @@ export default {
             type: type || scale || 'Report',
             comment: comment || '',
             publishedBy: publishedBy || 'OC Director',
+            publishedById: publishedById || null,
+            publishedByAvatar: publishedByAvatar || null,
             timestamp: new Date().toISOString()
           };
           

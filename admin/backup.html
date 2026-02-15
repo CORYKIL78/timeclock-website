@@ -450,6 +450,8 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
         <div class="table-wrap">
           <div class="table-header"><h3>All Disciplinaries</h3></div>
           <div id="strikesTable"><div class="loading-inline">Loading disciplinaries...</div></div>
+        </div>
+      </div>
 
       <!-- CALENDAR TAB -->
       <div class="tab-content" id="tab-calendar">
@@ -698,6 +700,22 @@ console.log('[ADMIN PORTAL] Admin users available:', Object.keys(ADMINS));
 
 const REPORT_POINTS = { 'Commendation': 1, 'Negative Behaviour': -1, 'Disruptive': -1, 'Monthly Report': 0 };
 const STRIKE_POINTS = { 'Verbal Warning': -1, 'Formal Warning': -2, 'Suspension': -4 };
+const DEPARTMENT_LABELS = {
+  '1315323804528017498': 'Development',
+  '1315042036969242704': 'Customer Relations',
+  '1433453982453338122': 'Finance and Marketing',
+  '1315041666851274822': 'Oversight and Corporate',
+  'OC': 'Oversight and Corporate',
+  'FM': 'Finance and Marketing',
+  'CR': 'Customer Relations',
+  'DD': 'Development'
+};
+
+function formatDepartment(value) {
+  if (!value) return '-';
+  const cleaned = String(value).trim();
+  return DEPARTMENT_LABELS[cleaned] || cleaned;
+}
 
 function generateStaffId(dept, tier) {
   if (!dept || !tier) return null;
@@ -898,6 +916,12 @@ async function doLogin() {
 
     state.admin = { id, name: displayName, avatar: avatarSrc };
 
+    try {
+      await logAdminAction('admin_login', `${displayName} logged in`, id);
+    } catch (e) {
+      console.warn('[ADMIN PORTAL] Failed to log admin login:', e);
+    }
+
     // Send Discord bot notification that admin logged in
     try {
       await apiPost('/api/webhooks/admin-login', {
@@ -1006,7 +1030,7 @@ async function loadUsers() {
       const date = u.dateOfSignup ? new Date(u.dateOfSignup).toLocaleDateString('en-GB') : '-';
       html += `<tr class="clickable-row" data-idx="${i}">
         <td><div class="user-cell"><img src="${u.avatar || ''}" alt="" onerror="this.src='${defaultAvatar(u.discordId || '0')}'"/><div><div class="name">${esc(u.name || u.discordName || 'Unknown')}</div><div class="id">${esc(u.discordId || '')}</div></div></div></td>
-        <td>${esc(u.department || '-')}</td>
+        <td>${esc(formatDepartment(u.department))}</td>
         <td>${date}</td>
         <td>${status}</td>
       </tr>`;
@@ -1277,7 +1301,7 @@ async function loadLogs() {
   container.innerHTML = '<div class="loading-inline">Loading logs...</div>';
   try {
     const data = await apiGet('/api/admin/logs');
-    const logs = data.logs || [];
+    const logs = Array.isArray(data) ? data : (data.logs || []);
     state.logs = logs;
 
     const today = new Date().toDateString();
@@ -1442,7 +1466,7 @@ async function openUserPanel(idx) {
     <div class="panel-profile">
       <img src="${avatarSrc}" alt="" onerror="this.src='${defaultAvatar(user.discordId || '0')}'" />
       <h3>${esc(user.name || user.discordName || 'Unknown')}</h3>
-      <div class="dept">${esc(user.department || 'No Department')} ${statusBadge}</div>
+      <div class="dept">${esc(formatDepartment(user.department) || 'No Department')} ${statusBadge}</div>
       <div class="points-display ${ptsClass}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ${pts} points</div>
     </div>
 
@@ -1451,7 +1475,7 @@ async function openUserPanel(idx) {
       <div class="info-grid">
         <div class="info-item editable"><div class="label">Name</div><div class="value">${esc(user.name || '-')}</div><button class="edit-btn" onclick="openProfileEdit('name')" title="Edit">✎</button></div>
         <div class="info-item editable"><div class="label">Email</div><div class="value">${esc(user.email || '-')}</div><button class="edit-btn" onclick="openProfileEdit('email')" title="Edit">✎</button></div>
-        <div class="info-item editable"><div class="label">Department</div><div class="value">${esc(user.department || '-')}</div><button class="edit-btn" onclick="openProfileEdit('department')" title="Edit">✎</button></div>
+        <div class="info-item editable"><div class="label">Department</div><div class="value">${esc(formatDepartment(user.department))}</div><button class="edit-btn" onclick="openProfileEdit('department')" title="Edit">✎</button></div>
         <div class="info-item"><div class="label">Discord ID</div><div class="value">${esc(user.discordId || '-')}</div></div>
         <div class="info-item"><div class="label">Timezone</div><div class="value">${esc(user.timezone || '-')}</div></div>
         <div class="info-item"><div class="label">Country</div><div class="value">${esc(user.country || '-')}</div></div>
@@ -1630,7 +1654,9 @@ document.getElementById('actionConfirmBtn').addEventListener('click', async () =
         absenceId: action.item.id,
         status: action.status,
         reason: reason,
-        adminName: state.admin.name
+        adminName: state.admin.name,
+        adminId: state.admin.id,
+        adminAvatar: state.admin.avatar
       });
       // Log admin action
       await logAdminAction(
@@ -1646,7 +1672,9 @@ document.getElementById('actionConfirmBtn').addEventListener('click', async () =
         requestId: action.item.id,
         status: action.approved ? 'approved' : 'rejected',
         reason: reason,
-        adminName: state.admin.name
+        adminName: state.admin.name,
+        adminId: state.admin.id,
+        adminAvatar: state.admin.avatar
       });
       // Log admin action
       await logAdminAction(
@@ -1681,7 +1709,13 @@ document.getElementById('sendPayslipBtn').addEventListener('click', async () => 
 
   try {
     await apiPost('/api/admin/payslips/create', {
-      userId, period, link, comment, assignedBy: state.admin.name
+      userId,
+      period,
+      link,
+      comment,
+      assignedBy: state.admin.name,
+      assignedById: state.admin.id,
+      assignedByAvatar: state.admin.avatar
     });
     // Log admin action
     await logAdminAction('payslip_sent', `${state.admin.name} sent payslip for ${period || 'N/A'} to ${userName}`, userId);
@@ -1712,7 +1746,13 @@ document.getElementById('sendReportBtn').addEventListener('click', async () => {
 
   try {
     await apiPost('/api/reports/create', {
-      userId, type, comment: desc, publishedBy: state.admin.name, scale: type
+      userId,
+      type,
+      comment: desc,
+      publishedBy: state.admin.name,
+      publishedById: state.admin.id,
+      publishedByAvatar: state.admin.avatar,
+      scale: type
     });
     // Trigger DM notification
     const pts = REPORT_POINTS[type] || 0;
@@ -1759,7 +1799,13 @@ document.getElementById('sendStrikeBtn').addEventListener('click', async () => {
 
   try {
     await apiPost('/api/disciplinaries/create', {
-      userId, strikeType: type, reason: desc, employer: state.admin.name, customPoints: pts
+      userId,
+      strikeType: type,
+      reason: desc,
+      employer: state.admin.name,
+      employerId: state.admin.id,
+      employerAvatar: state.admin.avatar,
+      customPoints: pts
     });
     // Send DM
     await apiPost('/api/send-dm', {

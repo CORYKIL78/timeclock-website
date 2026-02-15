@@ -47,6 +47,23 @@ function setAuthDebug(msg, isError) {
     }
 }
 
+const DEPARTMENT_LABELS = {
+    '1315323804528017498': 'Development',
+    '1315042036969242704': 'Customer Relations',
+    '1433453982453338122': 'Finance and Marketing',
+    '1315041666851274822': 'Oversight and Corporate',
+    'OC': 'Oversight and Corporate',
+    'FM': 'Finance and Marketing',
+    'CR': 'Customer Relations',
+    'DD': 'Development'
+};
+
+function resolveDepartmentName(value) {
+    if (!value) return value;
+    const cleaned = String(value).trim();
+    return DEPARTMENT_LABELS[cleaned] || cleaned;
+}
+
 // Simple profile display update using Discord data - GLOBAL FUNCTION
 
 // Global request deduplicator - prevents duplicate API calls within 30 seconds
@@ -1279,6 +1296,36 @@ async function checkAccountsAPIHealth() {
     }
 }
 
+function getAssignerMeta(record, fallbackName = 'OC Director') {
+    const name = record?.assignedBy || record?.approvedBy || record?.publishedBy || fallbackName;
+    const id = record?.assignedById || record?.approvedById || record?.publishedById || '';
+    const avatar = record?.assignedByAvatar || record?.approvedByAvatar || record?.publishedByAvatar || '';
+    let avatarUrl = '';
+
+    if (avatar) {
+        if (avatar.startsWith('http')) {
+            avatarUrl = avatar;
+        } else if (id) {
+            avatarUrl = `https://cdn.discordapp.com/avatars/${id}/${avatar}.png?size=64`;
+        }
+    }
+
+    if (!avatarUrl && id) {
+        try {
+            const idx = Number((BigInt(id) >> 22n) % 6n);
+            avatarUrl = `https://cdn.discordapp.com/embed/avatars/${idx}.png`;
+        } catch (e) {
+            avatarUrl = 'https://cdn.discordapp.com/embed/avatars/0.png';
+        }
+    }
+
+    if (!avatarUrl) {
+        avatarUrl = 'https://cdn.discordapp.com/embed/avatars/0.png';
+    }
+
+    return { name, avatarUrl };
+}
+
 function renderStrikes(strikes) {
     const content = document.getElementById('disciplinariesContent');
     content.innerHTML = '';
@@ -1291,7 +1338,8 @@ function renderStrikes(strikes) {
         div.className = 'disciplinary-item';
         
         const dateAssigned = s.dateAssigned || s.createdAt || s.timestamp || 'Unknown date';
-        const assignedBy = s.assignedBy || 'OC Director';
+        const assigner = getAssignerMeta(s);
+        const assignedBy = assigner.name;
         const strikeType = s.strikeType || s.type || 'Disciplinary';
         const comment = s.comment || s.reason || s.description || 'No additional details';
         
@@ -1311,7 +1359,10 @@ function renderStrikes(strikes) {
                 </div>
             </div>
             <div class="item-footer">
-                <span class="item-date">${comment.substring(0, 60)}${comment.length > 60 ? '...' : ''}</span>
+                <span class="item-date" style="display:flex;align-items:center;gap:8px">
+                    <img src="${assigner.avatarUrl}" alt="" style="width:20px;height:20px;border-radius:50%" />
+                    ${comment.substring(0, 60)}${comment.length > 60 ? '...' : ''}
+                </span>
             </div>
         `;
         
@@ -1324,14 +1375,16 @@ function showDisciplinaryDetails(disciplinary) {
     const modal = document.createElement('div');
     modal.className = 'portal-modal';
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    const assigner = getAssignerMeta(disciplinary);
     
     modal.innerHTML = `
         <div class="portal-modal__panel">
             <h3 class="portal-modal__title" style="color: #d32f2f;">Disciplinary Details</h3>
             <div class="portal-modal__kv"><strong>Date:</strong> ${disciplinary.dateAssigned || disciplinary.createdAt || disciplinary.timestamp || 'N/A'}</div>
             <div class="portal-modal__kv"><strong>Type:</strong> ${disciplinary.strikeType || 'N/A'}</div>
-            <div class="portal-modal__kv"><strong>Comment:</strong> ${disciplinary.comment || disciplinary.reason || 'No comment provided'}</div>
-            <div class="portal-modal__kv"><strong>Director Profile:</strong> ${disciplinary.assignedBy || 'OC Director'}</div>
+            <div class="portal-modal__kv"><strong>Comment:</strong> <span style="display:inline-flex;align-items:center;gap:8px"><img src="${assigner.avatarUrl}" alt="" style="width:18px;height:18px;border-radius:50%" />${disciplinary.comment || disciplinary.reason || 'No comment provided'}</span></div>
+            <div class="portal-modal__kv"><strong>Assigned By:</strong> ${assigner.name}</div>
             <div class="portal-modal__note">To appeal this, please contact the OP.</div>
             <div class="portal-modal__actions">
                 <button class="portal-modal__close" onclick="this.closest('.portal-modal').remove()">Close</button>
@@ -3178,19 +3231,11 @@ function updateMainScreen() {
     console.log('Updating main screen for user:', currentUser.id);
     const emp = getEmployee(currentUser.id);
     
-    // Department ID to Name mapping
-    const departmentMap = {
-        '1315323804528017498': 'Development',
-        '1315042036969242704': 'Customer Relations',
-        '1433453982453338122': 'Finance and Marketing',
-        '1315041666851274822': 'Oversight and Corporate'
-    };
-    
     // Ensure profile data exists before displaying
     const userName = currentUser.profile?.name || currentUser.name || 'User';
     const deptId = currentUser.profile?.department || emp.profile?.department || 'N/A';
     // Convert department ID to name, or use as-is if it's already a name
-    const userDept = departmentMap[deptId] || deptId;
+    const userDept = resolveDepartmentName(deptId);
     
     // Base Level mapping - fetch from currentUser.profile which is synced from Sheets
     // Handles both numeric (1-7), text values, and pipe-separated format "1 | Director Board"
@@ -6758,7 +6803,8 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
             <div class="payslips-list" style="display: flex; flex-direction: column; gap: 12px; padding: 20px;">
                 ${payslips.map((payslip, index) => {
                     const date = payslip.dateAssigned || payslip.timestamp || payslip.issuedAt || 'N/A';
-                    const assignedBy = payslip.assignedBy || 'OC Director';
+                    const assigner = getAssignerMeta(payslip);
+                    const assignedBy = assigner.name;
                     const link = payslip.link || payslip.url || '';
                     const comment = payslip.comment || 'No additional details';
                     
@@ -6774,12 +6820,12 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
                                 <span class="item-detail-value">${date}</span>
                             </div>
                             <div class="item-detail">
-                                <span class="item-detail-label">Director Profile</span>
+                                <span class="item-detail-label">Assigned By</span>
                                 <span class="item-detail-value">${assignedBy}</span>
                             </div>
                         </div>
                         <div class="item-footer">
-                            <span class="item-date"><span class="mini-tag">Added Comment</span> ${comment}</span>
+                            <span class="item-date" style="display:flex;align-items:center;gap:8px"><img src="${assigner.avatarUrl}" alt="" style="width:20px;height:20px;border-radius:50%" /><span class="mini-tag">Added Comment</span> ${comment}</span>
                             <button onclick="window.open('${link}', '_blank'); event.stopPropagation();" style="
                                 background: #0d6efd;
                                 color: white;
@@ -6821,13 +6867,14 @@ function showPayslipDetails(payslip) {
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     
     const link = payslip.link || '#';
+    const assigner = getAssignerMeta(payslip);
     
     modal.innerHTML = `
         <div class="portal-modal__panel">
             <h3 class="portal-modal__title">Payslip Details</h3>
             <div class="portal-modal__kv"><strong>Date Assigned:</strong> ${payslip.dateAssigned || payslip.timestamp || payslip.issuedAt || 'N/A'}</div>
-            <div class="portal-modal__kv"><strong>Director Profile:</strong> ${payslip.assignedBy || 'OC Director'}</div>
-            <div class="portal-modal__kv"><strong>Comment:</strong> ${payslip.comment || 'No comment provided'}</div>
+            <div class="portal-modal__kv"><strong>Assigned By:</strong> ${assigner.name}</div>
+            <div class="portal-modal__kv"><strong>Comment:</strong> <span style="display:inline-flex;align-items:center;gap:8px"><img src="${assigner.avatarUrl}" alt="" style="width:18px;height:18px;border-radius:50%" />${payslip.comment || 'No comment provided'}</span></div>
             <div class="portal-modal__actions">
                 ${link && link !== '#' ? `
                 <button class="portal-modal__primary" onclick="window.open('${link}', '_blank')">View Payslip</button>
@@ -6920,7 +6967,8 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
 
             const dateSource = disc.dateAssigned || disc.createdAt || disc.timestamp;
             const date = dateSource ? new Date(dateSource).toLocaleDateString() : 'N/A';
-            const assignedBy = disc.assignedBy || 'OC Director';
+            const assigner = getAssignerMeta(disc);
+            const assignedBy = assigner.name;
             const strikeType = disc.strikeType || 'Disciplinary';
             const comment = disc.comment || disc.reason || 'No comment provided';
 
@@ -6931,7 +6979,7 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
                 </div>
                 <div class="item-details">
                     <div class="item-detail">
-                        <span class="item-detail-label">Director Profile</span>
+                        <span class="item-detail-label">Assigned By</span>
                         <span class="item-detail-value">${assignedBy}</span>
                     </div>
                     <div class="item-detail">
@@ -6940,7 +6988,7 @@ document.getElementById('disciplinariesBtn').addEventListener('click', async () 
                     </div>
                 </div>
                 <div class="item-footer">
-                    <span class="item-date"><span class="mini-tag">Added Comment</span> ${comment}</span>
+                    <span class="item-date" style="display:flex;align-items:center;gap:8px"><img src="${assigner.avatarUrl}" alt="" style="width:20px;height:20px;border-radius:50%" /><span class="mini-tag">Added Comment</span> ${comment}</span>
                 </div>
             `;
 
@@ -6961,14 +7009,16 @@ function showDisciplinaryDetails(disciplinary) {
     const modal = document.createElement('div');
     modal.className = 'portal-modal';
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    const assigner = getAssignerMeta(disciplinary);
     
     modal.innerHTML = `
         <div class="portal-modal__panel">
             <h3 class="portal-modal__title" style="color: #f44336;">Disciplinary Details</h3>
             <div class="portal-modal__kv"><strong>Date Assigned:</strong> ${disciplinary.dateAssigned || disciplinary.createdAt || disciplinary.timestamp || 'N/A'}</div>
             <div class="portal-modal__kv"><strong>Type:</strong> ${disciplinary.strikeType || 'N/A'}</div>
-            <div class="portal-modal__kv"><strong>Director Profile:</strong> ${disciplinary.assignedBy || 'OC Director'}</div>
-            <div class="portal-modal__kv"><strong>Comment:</strong> ${disciplinary.comment || disciplinary.reason || 'No comment provided'}</div>
+            <div class="portal-modal__kv"><strong>Assigned By:</strong> ${assigner.name}</div>
+            <div class="portal-modal__kv"><strong>Comment:</strong> <span style="display:inline-flex;align-items:center;gap:8px"><img src="${assigner.avatarUrl}" alt="" style="width:18px;height:18px;border-radius:50%" />${disciplinary.comment || disciplinary.reason || 'No comment provided'}</span></div>
             <div class="portal-modal__actions">
                 <button class="portal-modal__close" onclick="this.closest('.portal-modal').remove()">Close</button>
             </div>
