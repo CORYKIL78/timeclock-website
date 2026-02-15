@@ -1804,6 +1804,195 @@ export default {
       }
 
       // ============================================================================
+      // ADMIN AUTHENTICATION & VALIDATION
+      // ============================================================================
+
+      // Validate admin credentials securely
+      if (url.pathname === '/api/admin/validate' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { discordId, pin } = body;
+
+          if (!discordId || !pin) {
+            return new Response(JSON.stringify({ success: false, error: 'Missing credentials' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          // Get admin credentials from environment variables
+          // Format: ADMIN_{DISCORD_ID}_PIN and ADMIN_{DISCORD_ID}_NAME
+          const adminPinKey = `ADMIN_${discordId}_PIN`;
+          const adminNameKey = `ADMIN_${discordId}_NAME`;
+          const adminPin = env[adminPinKey];
+          const adminName = env[adminNameKey];
+
+          if (!adminPin || adminPin !== pin) {
+            return new Response(JSON.stringify({ success: false, error: 'Invalid credentials' }), {
+              status: 401,
+              headers: corsHeaders
+            });
+          }
+
+          // Check if account is suspended (stored in KV)
+          const adminAccountKey = `admin:${discordId}`;
+          const adminAccount = await env.DATA.get(adminAccountKey, 'json');
+
+          if (adminAccount?.suspended) {
+            return new Response(JSON.stringify({ success: false, error: 'Account suspended' }), {
+              status: 403,
+              headers: corsHeaders
+            });
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            adminId: discordId,
+            adminName: adminName || 'Admin'
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // ============================================================================
+      // STAFF PROFILE FIELDS (Description, Notes, Alt Accounts, Promotion History)
+      // ============================================================================
+
+      // Get staff profile extra fields
+      if (url.pathname.startsWith('/api/staff/profile/') && request.method === 'GET') {
+        try {
+          const userId = url.pathname.split('/api/staff/profile/')[1];
+          const staffProfileKey = `staff:profile:${userId}`;
+          const profile = await env.DATA.get(staffProfileKey, 'json') || {
+            description: null,
+            notes: null,
+            altAccounts: [],
+            promotionHistory: []
+          };
+          return new Response(JSON.stringify(profile), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // Update staff profile fields
+      if (url.pathname.startsWith('/api/staff/profile/') && request.method === 'POST') {
+        try {
+          const userId = url.pathname.split('/api/staff/profile/')[1];
+          const body = await request.json();
+          const { description, notes, altAccounts } = body;
+
+          const staffProfileKey = `staff:profile:${userId}`;
+          const profile = await env.DATA.get(staffProfileKey, 'json') || {
+            description: null,
+            notes: null,
+            altAccounts: [],
+            promotionHistory: []
+          };
+
+          if (description !== undefined) profile.description = description;
+          if (notes !== undefined) profile.notes = notes;
+          if (altAccounts !== undefined) profile.altAccounts = Array.isArray(altAccounts) ? altAccounts : [];
+
+          await env.DATA.put(staffProfileKey, JSON.stringify(profile));
+          return new Response(JSON.stringify({ success: true, profile }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // Add promotion record
+      if (url.pathname === '/api/staff/promotion' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { userId, newBaseLevel, reason, promotedBy, promotedById, timestamp } = body;
+
+          if (!userId || !newBaseLevel) {
+            return new Response(JSON.stringify({ success: false, error: 'Missing required fields' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const staffProfileKey = `staff:profile:${userId}`;
+          const profile = await env.DATA.get(staffProfileKey, 'json') || {
+            description: null,
+            notes: null,
+            altAccounts: [],
+            promotionHistory: []
+          };
+
+          const promotion = {
+            id: `promo_${Date.now()}`,
+            newBaseLevel,
+            reason: reason || '',
+            promotedBy: promotedBy || 'System',
+            promotedById: promotedById || null,
+            timestamp: timestamp || new Date().toISOString(),
+            previousLevel: null
+          };
+
+          profile.promotionHistory = profile.promotionHistory || [];
+          profile.promotionHistory.push(promotion);
+
+          // Update user's actual base level
+          const userKey = `user:${userId}`;
+          const user = await env.DATA.get(userKey, 'json');
+          if (user) {
+            promotion.previousLevel = user.baseLevel;
+            user.baseLevel = newBaseLevel;
+            user.promotionHistory = user.promotionHistory || [];
+            user.promotionHistory.push(promotion);
+            await env.DATA.put(userKey, JSON.stringify(user));
+          }
+
+          await env.DATA.put(staffProfileKey, JSON.stringify(profile));
+
+          // Send Discord DM notification
+          await apiPost(`/api/send-dm`, {
+            userId,
+            embed: {
+              title: '🎉 Promotion!',
+              description: `Congratulations! You have been promoted to **${newBaseLevel}**\n\n**Reason:** ${reason || 'N/A'}\n\n**Promoted by:** ${promotedBy || 'System'}`,
+              color: 0x22c55e
+            }
+          });
+
+          return new Response(JSON.stringify({ success: true, promotion }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // Get promotion history
+      if (url.pathname.startsWith('/api/staff/promotions/') && request.method === 'GET') {
+        try {
+          const userId = url.pathname.split('/api/staff/promotions/')[1];
+          const staffProfileKey = `staff:profile:${userId}`;
+          const profile = await env.DATA.get(staffProfileKey, 'json') || {};
+          return new Response(JSON.stringify({ promotions: profile.promotionHistory || [] }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // ============================================================================
       // LOGGING ENDPOINTS
       // ============================================================================
       

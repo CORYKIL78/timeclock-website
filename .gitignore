@@ -4,6 +4,8 @@
 *.pem
 secrets/
 credentials/
+admin-credentials.json
+.env-config.js
 
 # API keys and tokens
 *secret*
