@@ -977,6 +977,12 @@ export default {
       // Get all users for admin dashboard
       if (url.pathname === '/api/admin/users' && request.method === 'GET') {
         try {
+          const fixedStaffIds = {
+            'Marcus Ray': 'OC061021',
+            'Appler Smith': 'OC486133',
+            'Sam Caster': 'OC638542'
+          };
+
           // Get user index
           const usersIndex = await env.DATA.get('users:index', 'json') || [];
           
@@ -986,13 +992,30 @@ export default {
             const accountKey = `user:${userId}`;
             const account = await env.DATA.get(accountKey, 'json');
             if (account && account.profile) {
+              const desiredStaffId = fixedStaffIds[account.profile.name] || '';
+              if (desiredStaffId && account.profile.staffId !== desiredStaffId) {
+                account.profile.staffId = desiredStaffId;
+                await env.DATA.put(`profile:${userId}`, JSON.stringify(account.profile));
+                await env.DATA.put(accountKey, JSON.stringify(account));
+              }
+
+              let avatarUrl = '';
+              if (account.profile.avatar) {
+                if (account.profile.avatar.startsWith('http')) {
+                  avatarUrl = account.profile.avatar;
+                } else {
+                  avatarUrl = `https://cdn.discordapp.com/avatars/${userId}/${account.profile.avatar}.png?size=128`;
+                }
+              }
+
               users.push({
                 discordId: userId,
                 name: account.profile.name || 'Unknown',
                 email: account.profile.email || 'Not set',
                 department: account.profile.department || 'Not set',
                 baseLevel: account.profile.baseLevel || '',
-                staffId: account.profile.staffId || '',
+                staffId: account.profile.staffId || desiredStaffId || '',
+                avatar: avatarUrl || null,
                 timezone: account.profile.timezone || '',
                 country: account.profile.country || '',
                 suspended: account.profile.suspended || false,

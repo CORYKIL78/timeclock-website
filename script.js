@@ -352,8 +352,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.debug('[syncProfileFromSheets] Could not set profileEmail:', { hasEmail: !!profile.email, hasElement: !!profileEmailEl });
             }
             if (profile.department && profileDepartmentEl) {
-                profileDepartmentEl.textContent = profile.department;
-                console.debug('[syncProfileFromSheets] Set profileDepartment to:', profile.department);
+                const resolvedDept = resolveDepartmentName(profile.department);
+                profileDepartmentEl.textContent = resolvedDept;
+                console.debug('[syncProfileFromSheets] Set profileDepartment to:', resolvedDept);
             } else {
                 console.debug('[syncProfileFromSheets] Could not set profileDepartment:', { hasDepartment: !!profile.department, hasElement: !!profileDepartmentEl });
             }
@@ -379,8 +380,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.debug('[syncProfileFromSheets] Used local email:', currentUser.profile.email);
                 }
                 if (currentUser.profile.department && profileDepartmentEl) {
-                    profileDepartmentEl.textContent = currentUser.profile.department;
-                    console.debug('[syncProfileFromSheets] Used local department:', currentUser.profile.department);
+                    const resolvedDept = resolveDepartmentName(currentUser.profile.department);
+                    profileDepartmentEl.textContent = resolvedDept;
+                    console.debug('[syncProfileFromSheets] Used local department:', resolvedDept);
                 }
                 updateProfilePictures();
             } else {
@@ -504,9 +506,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h3 style="margin-top:0">Request Department Change</h3>
                 <label for="deptSelect">Select new department:</label>
                 <select id="deptSelect" style="width:100%;margin:1em 0 1.5em 0;font-size:1.1em">
-                    <option value="Customer Relations Department">Customer Relations</option>
-                    <option value="Development Department">Development</option>
-                    <option value="Finance Department">Finance</option>
+                    <option value="Oversight and Corporate">Oversight and Corporate</option>
+                    <option value="Finance and Marketing">Finance and Marketing</option>
+                    <option value="Customer Relations">Customer Relations</option>
+                    <option value="Development">Development</option>
                 </select>
                 <button id="deptRequestBtn" style="width:100%;font-size:1.1em">Request Change</button>
                 <button id="deptCancelBtn" style="width:100%;margin-top:0.5em;background:#eee;color:#333">Cancel</button>
@@ -2314,7 +2317,11 @@ const DEPT_ROLES = window.CONFIG?.DEPT_ROLES || {
     '1315323804528017498': '1315323804528017498',
     '1315042036969242704': '1315042036969242704',
     '1433453982453338122': '1433453982453338122',
-    '1315041666851274822': '1315041666851274822'
+    '1315041666851274822': '1315041666851274822',
+    'Development': '1315323804528017498',
+    'Customer Relations': '1315042036969242704',
+    'Finance and Marketing': '1433453982453338122',
+    'Oversight and Corporate': '1315041666851274822'
 };
 const GUILD_ID = window.CONFIG?.GUILD_ID || '1310656642672627752';
 const WORKER_URL = window.CONFIG?.WORKER_URL || 'https://timeclock-backend.marcusray.workers.dev';

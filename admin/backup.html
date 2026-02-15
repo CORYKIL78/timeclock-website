@@ -711,6 +711,13 @@ const DEPARTMENT_LABELS = {
   'DD': 'Development'
 };
 
+const DEPARTMENT_OPTIONS = [
+  { value: 'Oversight and Corporate', label: 'Oversight and Corporate' },
+  { value: 'Finance and Marketing', label: 'Finance and Marketing' },
+  { value: 'Customer Relations', label: 'Customer Relations' },
+  { value: 'Development', label: 'Development' }
+];
+
 function formatDepartment(value) {
   if (!value) return '-';
   const cleaned = String(value).trim();
@@ -1347,7 +1354,7 @@ async function logAdminAction(action, details, targetId = '') {
 function openProfileEdit(field) {
   const user = state.selectedUser;
   if (!user) return;
-  const fields = { name: { label: 'Name', type: 'text', value: user.name || '' }, email: { label: 'Email', type: 'email', value: user.email || '' }, department: { label: 'Department', type: 'text', value: user.department || '' }, baseLevel: { label: 'Base Level', type: 'select', value: user.baseLevel || '', options: BASE_LEVELS } };
+  const fields = { name: { label: 'Name', type: 'text', value: user.name || '' }, email: { label: 'Email', type: 'email', value: user.email || '' }, department: { label: 'Department', type: 'select', value: formatDepartment(user.department || ''), options: DEPARTMENT_OPTIONS }, baseLevel: { label: 'Base Level', type: 'select', value: user.baseLevel || '', options: BASE_LEVELS } };
   const cfg = fields[field];
   if (!cfg) return;
   state.profileEdit = { field, label: cfg.label };
