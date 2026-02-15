@@ -59,8 +59,8 @@
             <button id="handbooksBtn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Handbooks</button>
         </div>
         <div class="sidebar-footer">
-            <button id="logoutBtn" class="action-btn logout-btn" title="Log Out">
-                <span class="logout-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></span>
+            <button id="logoutBtn" class="logout-btn" title="Log Out">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                 <span>Log Out</span>
             </button>
         </div>
@@ -272,6 +272,24 @@
                 <button id="cancelEmailChangeBtn" class="cancel-request-btn">Cancel</button>
             </div>
             <div id="emailChangeSuccess" class="request-success hidden">Request submitted successfully!</div>
+        </div>
+    </div>
+
+    <!-- Clock Out Activity Modal -->
+    <div id="clockOutActivityModal" class="modal">
+        <div class="modal-content request-modal">
+            <span class="close">&times;</span>
+            <h2>Clock Out - Log Your Activity</h2>
+            <p style="color: #666; margin-bottom: 20px;">Before clocking out, please briefly describe what you worked on during this shift:</p>
+            <div class="request-field">
+                <label for="clockActivityInput">Activity Summary:</label>
+                <textarea id="clockActivityInput" placeholder="e.g., Handled customer support tickets, worked on website bug fixes, attended team meeting..." rows="6" maxlength="500" style="resize: vertical;"></textarea>
+                <small style="color: #888; font-size: 12px;">Mandatory - Maximum 500 characters</small>
+            </div>
+            <div class="request-buttons">
+                <button id="submitClockOutBtn" class="submit-request-btn">Clock Out</button>
+                <button id="cancelClockOutBtn" class="cancel-request-btn">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -505,7 +523,7 @@
         </div>
     </div>
     <div id="portalWelcomeScreen" class="screen">
-        <div class="container">
+        <div class="container" style="text-align: center; display: flex; align-items: center; justify-content: center; min-height: 100vh; flex-direction: column;">
             <img id="portalWelcomeProfilePic" class="profile-img" src="" alt="Profile" style="display:block;margin:0 auto 1em auto;width:100px;height:100px;border-radius:50%;object-fit:cover;">
             <h2>Welcome back, <span id="portalWelcomeName"></span>!</h2>
             <p>Previous login: <span id="portalLastLogin"></span></p>
@@ -515,7 +533,7 @@
     
     <!-- Sequential Loading Screen -->
     <div id="sequentialLoadingScreen" class="screen">
-        <div class="container" style="text-align: center; max-width: 500px;">
+        <div class="container" style="text-align: center; max-width: 500px; display: flex; align-items: center; justify-content: center; min-height: 100vh; flex-direction: column;">
             <div class="loading-spinner" style="width: 80px; height: 80px; border: 8px solid #f3f3f3; border-top: 8px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 30px;"></div>
             <h2 style="font-size: 28px; margin-bottom: 15px;">Welcome back, <span id="loadingUserName">User</span>!</h2>
             <p style="font-size: 16px; color: #666; margin-bottom: 40px;">Just one moment whilst we load everything for you.</p>
@@ -594,7 +612,8 @@
     </style>
     
     <div id="mainMenuScreen" class="screen">
-        <div class="container" style="max-width: 1200px; margin: 0 auto; padding-left: 24px; padding-right: 24px;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 40px 24px; display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+            <div style="width: 100%;">
             <!-- Greeting section (compressed) -->
             <div class="user-header-card" style="padding: 24px 32px; margin-bottom: 16px; margin-left: 0; margin-right: 0; min-height: 100px; display: flex; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 20px; width: 100%;">
@@ -645,9 +664,10 @@
                     <p id="baseLevel" style="font-size: 38px; font-weight: 800; margin: 0; color: var(--primary);">Not Set</p>
                 </div>
             </div>
+            </div>
         </div>
     </div>
-        <div id="myProfileScreen" class="screen">
+    <div id="myProfileScreen" class="screen">
             <div class="container" style="max-width: 1000px;">
                 <div style="display: flex; flex-direction: column; gap: 24px;">
                     <!-- Header -->
@@ -939,6 +959,9 @@
             
             <!-- Disciplinaries Section -->
             <div id="disciplinariesSection" class="content-section active" style="width: 100%; flex: 1; background: var(--bg2); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow-y: auto; padding: 12px;">
+                <div id="disciplinariesLoading" class="loading-state">
+                    <p style="font-size: 12px; text-align: center; padding: 20px;">Loading disciplinaries...</p>
+                </div>
                 <div id="disciplinariesList" class="disciplinaries-list"></div>
                 <div id="disciplinariesEmpty" class="empty-state hidden">
                     <p style="font-size: 12px;">No disciplinaries found.</p>
@@ -968,6 +991,9 @@
             </div>
             <div style="width: 100%; flex: 1; background: var(--bg2); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow-y: auto;">
                 <div id="requestsContent" style="padding: 12px;">
+                    <div id="requestsLoading" class="loading-state">
+                        <p style="font-size: 12px; text-align: center; padding: 20px;">Loading requests...</p>
+                    </div>
                     <div id="requestsList" class="requests-list"></div>
                     <div id="requestsEmpty" class="empty-state hidden">
                         <p style="font-size: 12px;">No requests found. Create one to get started.</p>
@@ -1109,26 +1135,26 @@
                     <h2 style="margin: 0 0 4px 0; font-size: 28px;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>Calendar</h2>
                     <p style="color: var(--text2); font-size: 12px; margin: 0;">Scheduled events for your team</p>
                 </div>
-                <div style="flex: 1; background: var(--bg2); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; flex-direction: column;">
+                <div style="flex: 1; background: var(--bg2); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.12); display: flex; flex-direction: column;">
                     <!-- Calendar header -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border);">
-                        <button id="calendarPrevMonth" style="padding: 6px 10px; border: none; background: var(--bg3); border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px;">←</button>
-                        <h3 id="calendarMonthYear" style="margin: 0; font-size: 14px; font-weight: 600;"></h3>
-                        <button id="calendarNextMonth" style="padding: 6px 10px; border: none; background: var(--bg3); border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px;">→</button>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 2px solid var(--border); background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);">
+                        <button id="calendarPrevMonth" style="padding: 8px 14px; border: none; background: var(--primary); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">← Previous</button>
+                        <h3 id="calendarMonthYear" style="margin: 0; font-size: 18px; font-weight: 700; color: var(--primary);"></h3>
+                        <button id="calendarNextMonth" style="padding: 8px 14px; border: none; background: var(--primary); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">Next →</button>
                     </div>
                     <!-- Calendar grid -->
-                    <div style="flex: 1; overflow-y: auto; padding: 12px;">
-                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;">
+                    <div style="flex: 1; overflow-y: auto; padding: 20px;">
+                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;">
                             <!-- Day headers -->
-                            <div style="text-align: center; font-weight: 600; color: var(--text2); padding: 6px; font-size: 10px;">MON</div>
-                            <div style="text-align: center; font-weight: 600; color: var(--text2); padding: 6px; font-size: 10px;">TUE</div>
-                            <div style="text-align: center; font-weight: 600; color: var(--text2); padding: 6px; font-size: 10px;">WED</div>
-                            <div style="text-align: center; font-weight: 600; color: var(--text2); padding: 6px; font-size: 10px;">THU</div>
-                            <div style="text-align: center; font-weight: 600; color: var(--text2); padding: 6px; font-size: 10px;">FRI</div>
-                            <div style="text-align: center; font-weight: 600; color: var(--text2); padding: 6px; font-size: 10px;">SAT</div>
-                            <div style="text-align: center; font-weight: 600; color: var(--text2); padding: 6px; font-size: 10px;">SUN</div>
+                            <div style="text-align: center; font-weight: 700; color: var(--primary); padding: 10px; font-size: 12px; background: var(--bg3); border-radius: 6px;">MON</div>
+                            <div style="text-align: center; font-weight: 700; color: var(--primary); padding: 10px; font-size: 12px; background: var(--bg3); border-radius: 6px;">TUE</div>
+                            <div style="text-align: center; font-weight: 700; color: var(--primary); padding: 10px; font-size: 12px; background: var(--bg3); border-radius: 6px;">WED</div>
+                            <div style="text-align: center; font-weight: 700; color: var(--primary); padding: 10px; font-size: 12px; background: var(--bg3); border-radius: 6px;">THU</div>
+                            <div style="text-align: center; font-weight: 700; color: var(--primary); padding: 10px; font-size: 12px; background: var(--bg3); border-radius: 6px;">FRI</div>
+                            <div style="text-align: center; font-weight: 700; color: var(--primary); padding: 10px; font-size: 12px; background: var(--bg3); border-radius: 6px;">SAT</div>
+                            <div style="text-align: center; font-weight: 700; color: var(--primary); padding: 10px; font-size: 12px; background: var(--bg3); border-radius: 6px;">SUN</div>
                             <!-- Calendar days -->
-                            <div id="calendarDays" style="grid-column: 1 / -1; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;"></div>
+                            <div id="calendarDays" style="grid-column: 1 / -1; display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;"></div>
                         </div>
                     </div>
                 </div>

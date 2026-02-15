@@ -196,6 +196,9 @@ window.addEventListener('beforeinstallprompt', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[DEBUG] DOMContentLoaded fired');
     
+    // Initialize routing for direct URL access
+    initializeRoute();
+    
     // Setup disciplinaries/reports tabs
     setupDisciplinariesTabs();
     
@@ -1280,36 +1283,39 @@ function renderStrikes(strikes) {
     const content = document.getElementById('disciplinariesContent');
     content.innerHTML = '';
     if (!strikes.length) {
-        content.innerHTML = '<div class="no-data">No disciplinaries found.</div>';
+        content.innerHTML = '<div class="no-data empty-state"><p>No disciplinaries found.</p></div>';
         return;
     }
     strikes.forEach((s, i) => {
         const div = document.createElement('div');
         div.className = 'disciplinary-item';
-        div.style.cssText = `
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border: 1px solid #ddd; 
-            padding: 15px; 
-            margin: 10px 0; 
-            border-radius: 8px; 
-            background: #f9f9f9; 
-            cursor: pointer;
-            transition: background 0.2s;
-        `;
-        div.onmouseover = () => div.style.background = '#ffe8e8';
-        div.onmouseout = () => div.style.background = '#f9f9f9';
-        div.onclick = () => showDisciplinaryDetails(s);
+        
+        const dateAssigned = s.dateAssigned || 'Unknown date';
+        const assignedBy = s.assignedBy || 'Unknown';
+        const strikeType = s.strikeType || 'Disciplinary';
+        const comment = s.comment || s.reason || 'No additional details';
         
         div.innerHTML = `
-            <div style="flex: 1;">
-                <span style="font-weight: bold; color: #d32f2f;">New Disciplinary</span>
+            <div class="item-header">
+                <div class="item-type">${strikeType}</div>
+                <div class="item-badge" style="background: #ff6b35; color: #fff;">DISCIPLINARY</div>
             </div>
-            <div style="flex: 1; text-align: right;">
-                <span style="color: #666;">By ${s.assignedBy || 'Unknown'}</span>
+            <div class="item-details">
+                <div class="item-detail">
+                    <span class="item-detail-label">Assigned By</span>
+                    <span class="item-detail-value">${assignedBy}</span>
+                </div>
+                <div class="item-detail">
+                    <span class="item-detail-label">Date</span>
+                    <span class="item-detail-value">${dateAssigned}</span>
+                </div>
+            </div>
+            <div class="item-footer">
+                <span class="item-date">${comment.substring(0, 60)}${comment.length > 60 ? '...' : ''}</span>
             </div>
         `;
+        
+        div.onclick = () => showDisciplinaryDetails(s);
         content.appendChild(div);
     });
 }
@@ -2540,7 +2546,28 @@ function showScreen(screenId) {
         setTimeout(() => {
             screens[screenId].style.opacity = '1';
         }, 10);
-        window.location.hash = screenId;
+        
+        // Update URL using pushState instead of hash
+        const routeMap = {
+            'mainMenu': '/dashboard',
+            'myProfile': '/profile',
+            'absences': '/absences',
+            'payslips': '/payslips',
+            'disciplinaries': '/disciplinaries',
+            'requests': '/requests',
+            'timeclock': '/timeclock',
+            'calendarScreen': '/calendar',
+            'mail': '/mail',
+            'clickup': '/clickup',
+            'handbooks': '/handbooks',
+            'tasks': '/tasks'
+        };
+        
+        const route = routeMap[screenId] || '/';
+        if (window.history.pushState) {
+            window.history.pushState({ screen: screenId }, '', route);
+        }
+        
         const sidebar = document.getElementById('sidebar');
         const notificationPanel = document.getElementById('notificationPanel');
         const notificationBtn = document.getElementById('notificationBtn');
@@ -2572,6 +2599,55 @@ function showScreen(screenId) {
         console.error('Screen not found:', screenId);
         console.warn('Screen not found, staying on current screen');
         return;
+    }
+}
+
+// Route mapping for URL paths to screen IDs
+const pathToScreenMap = {
+    '/dashboard': 'mainMenu',
+    '/profile': 'myProfile',
+    '/absences': 'absences',
+    '/payslips': 'payslips',
+    '/disciplinaries': 'disciplinaries',
+    '/requests': 'requests',
+    '/timeclock': 'timeclock',
+    '/calendar': 'calendarScreen',
+    '/mail': 'mail',
+    '/clickup': 'clickup',
+    '/handbooks': 'handbooks',
+    '/tasks': 'tasks',
+    '/': 'mainMenu'
+};
+
+// Handle browser back/forward buttons
+window.addEventListener('popstate', (event) => {
+    if (event.state && event.state.screen) {
+        const screenId = event.state.screen;
+        // Update screen without pushing to history (already handled by back/forward)
+        Object.values(screens).forEach(s => {
+            if (s) s.classList.remove('active');
+        });
+        if (screens[screenId]) {
+            screens[screenId].classList.add('active');
+            updateActiveNavButton(screenId);
+        }
+    } else {
+        // Handle direct URL access or page refresh
+        const path = window.location.pathname;
+        const screenId = pathToScreenMap[path] || 'mainMenu';
+        if (currentUser && currentUser.id) {
+            showScreen(screenId);
+        }
+    }
+});
+
+// Initialize routing on page load for direct URL access
+function initializeRoute() {
+    const path = window.location.pathname;
+    const screenId = pathToScreenMap[path];
+    if (screenId && currentUser && currentUser.id) {
+        // Don't use showScreen during auth flow, just note the intended route
+        window.initialRoute = screenId;
     }
 }
 
@@ -3026,19 +3102,69 @@ function renderPreviousSessions() {
     if (!list) return;
     list.innerHTML = '';
     previousSessions = JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`)) || [];
+    
+    if (previousSessions.length === 0) {
+        list.innerHTML = '<div class="empty-state" style="padding: 30px 10px;"><p style="font-size: 13px;">No previous clock-in sessions yet.</p></div>';
+        return;
+    }
+    
     previousSessions.forEach(session => {
         const div = document.createElement('div');
-        div.className = 'session-item';
-        div.innerHTML = `
-            <p>Clock In: ${session.clockIn}</p>
-            <p>Clock Out: ${session.clockOut}</p>
-            <p>Duration: ${session.duration}</p>
-            <p>Actions: ${session.actions || 'None'}</p>
-            <a href="#" data-session-id="${session.id}">Download</a>
+        div.className = 'clockin-item';
+        div.style.cssText = `
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: all 0.3s ease;
         `;
-        div.querySelector('a').addEventListener('click', (e) => {
-            e.preventDefault();
-            const txt = `Clock in: ${session.clockIn}\nClock out: ${session.clockOut}\nDuration: ${session.duration}\nActions: ${session.actions || 'None'}`;
+        
+        div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="font-weight: 700; font-size: 13px; color: #2e7d32;">Shift Session</div>
+                <div style="font-size: 11px; color: #666; font-weight: 600;">${session.duration}</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; color: #555; margin-bottom: 8px;">
+                <div>
+                    <span style="color: #888; font-weight: 600;">In:</span> ${session.clockIn}
+                </div>
+                <div>
+                    <span style="color: #888; font-weight: 600;">Out:</span> ${session.clockOut}
+                </div>
+            </div>
+            <div style="font-size: 11px; color: #666; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 4px; margin-top: 8px;">
+                <strong>Activity:</strong> ${session.actions || 'No activity logged'}
+            </div>
+            <button class="download-session-btn" data-session-id="${session.id}" style="
+                margin-top: 10px;
+                background: #4caf50;
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 11px;
+                font-weight: 600;
+                cursor: pointer;
+                width: 100%;
+            ">Download Session Report</button>
+        `;
+        
+        div.onmouseover = () => {
+            div.style.transform = 'translateY(-2px)';
+            div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)';
+        };
+        
+        div.onmouseout = () => {
+            div.style.transform = 'translateY(0)';
+            div.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
+        };
+        
+        div.querySelector('.download-session-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const txt = `Clock in: ${session.clockIn}\nClock out: ${session.clockOut}\nDuration: ${session.duration}\nActivity: ${session.actions || 'None'}`;
             const blob = new Blob([txt], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -3047,6 +3173,7 @@ function renderPreviousSessions() {
             a.click();
             URL.revokeObjectURL(url);
         });
+        
         list.appendChild(div);
     });
 }
@@ -3825,7 +3952,8 @@ async function handleOAuthRedirect() {
 // Tutorial and onboarding logic
 function startTutorial() {
     console.log('Starting tutorial');
-    showScreen('mainMenu');
+    const targetScreen = window.initialRoute || 'mainMenu';
+    showScreen(targetScreen);
     updateSidebarProfile();
     updateMainScreen();
     
@@ -5476,6 +5604,9 @@ if (portalLoginBtn) {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
                 mode: 'cors'
+            }).catch(err => {
+                console.warn('[Sequential Loading] Members endpoint not available:', err);
+                return { ok: false };
             });
             if (membersResponse.ok) {
                 const allMembers = await membersResponse.json();
@@ -5535,8 +5666,9 @@ if (portalLoginBtn) {
             completeStep('success');
             await new Promise(r => setTimeout(r, 800));
             
-            // Transition to main menu
-            showScreen('mainMenu');
+            // Transition to main menu or initialRoute if direct URL access
+            const targetScreen = window.initialRoute || 'mainMenu';
+            showScreen(targetScreen);
             updateMainScreen();
             
         } catch (error) {
@@ -6389,26 +6521,35 @@ function renderAbsences(tab) {
         }
         const li = document.createElement('li');
         li.className = `absence-item ${status}`;
-        let bg = '';
-        if (status === 'pending') bg = 'background: var(--yellow-hazard); color: #212529;';
-        if (status === 'approved' && !isEnded) bg = 'background: #d4edda; color: #155724;';
-        if (isEnded) bg = 'background: #0d5c1d; color: #fff;'; // Dark green for ended
-        if (isVoided) bg = 'background: #555; color: #fff; opacity: 0.8;'; // Dark gray for voided
-        if (status === 'rejected') bg = 'background: #f8d7da; color: #721c24;';
-        if (status === 'archived') bg = 'background: #e2e3e5; color: #41464b; opacity: 0.7;';
-        li.setAttribute('style', bg);
         
         const statusDisplay = isVoided ? 'VOIDED' : (isEnded ? 'ENDED' : (status || 'pending').toUpperCase());
+        const totalDays = Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+        const submittedDate = a.submittedDate || a.startDate; // Use submitted date if available
         
         li.innerHTML = `
-            <span>Type: ${a.type}</span>
-            <span>Start: ${a.startDate}</span>
-            <span>End: ${a.endDate}</span>
-            <span style="background:rgba(255,255,0,0.2);padding:2px 6px;border-radius:4px;">Total Days: ${Math.ceil((new Date(a.endDate) - new Date(a.startDate)) / (1000 * 60 * 60 * 24)) + 1}</span>
-            <span style="font-weight: bold;">${statusDisplay}</span>
-            ${status === 'rejected' ? `<span>Reason: ${a.reason || 'N/A'}</span>` : ''}
-            ${status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}">Cancel Absence</button>` : ''}
-            ${status === 'archived' ? `<button class="delete-absence-btn" data-id="${a.id}">Delete Absence</button>` : ''}
+            <div class="item-header">
+                <div class="item-type">${a.type || 'Absence'}</div>
+                <div class="item-badge ${status}">${statusDisplay}</div>
+            </div>
+            <div class="item-details">
+                <div class="item-detail">
+                    <span class="item-detail-label">Days</span>
+                    <span class="item-detail-value">${totalDays} ${totalDays === 1 ? 'day' : 'days'}</span>
+                </div>
+                <div class="item-detail">
+                    <span class="item-detail-label">Start Date</span>
+                    <span class="item-detail-value">${a.startDate}</span>
+                </div>
+                <div class="item-detail">
+                    <span class="item-detail-label">End Date</span>
+                    <span class="item-detail-value">${a.endDate}</span>
+                </div>
+            </div>
+            <div class="item-footer">
+                <span class="item-date">Submitted: ${submittedDate}</span>
+                ${status === 'pending' ? `<button class="cancel-absence-btn" data-id="${a.id}" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">Cancel</button>` : ''}
+                ${status === 'archived' ? `<button class="delete-absence-btn" data-id="${a.id}" style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">Delete</button>` : ''}
+            </div>
         `;
         li.addEventListener('click', (e) => {
             if (e.target.classList.contains('cancel-absence-btn') || e.target.classList.contains('delete-absence-btn')) return;
@@ -6638,44 +6779,43 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
             return;
         }
         
-        // Display payslips in clean row format
+        // Display payslips in clean box format
         content.innerHTML = `
             <div class="payslips-list" style="display: flex; flex-direction: column; gap: 12px; padding: 20px;">
                 ${payslips.map((payslip, index) => {
                     const date = payslip.dateAssigned || payslip.timestamp || 'N/A';
                     const assignedBy = payslip.assignedBy || 'Unknown';
                     const link = payslip.link || payslip.url || '';
+                    const comment = payslip.comment || 'No additional details';
                     
                     return `
-                    <div class="payslip-row" data-index="${index}" data-link="${link}" style="
-                        display: flex; 
-                        justify-content: space-between; 
-                        align-items: center; 
-                        border: 1px solid #e0e0e0; 
-                        padding: 20px 24px; 
-                        border-radius: 8px; 
-                        background: white; 
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-                    " onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.08)'; this.style.transform='translateY(0)'">
-                        <div style="flex: 1;">
-                            <span style="font-weight: 600; color: #1976d2; font-size: 16px;">Date Assigned: ${date}</span>
+                    <div class="payslip-item" data-index="${index}" data-link="${link}">
+                        <div class="item-header">
+                            <div class="item-type">Payslip</div>
+                            <div class="item-badge" style="background: #0dcaf0; color: #000;">View</div>
                         </div>
-                        <div style="flex: 1; text-align: center;">
-                            <span style="color: #666; font-size: 14px;">Assigned By: ${assignedBy}</span>
+                        <div class="item-details">
+                            <div class="item-detail">
+                                <span class="item-detail-label">Date Assigned</span>
+                                <span class="item-detail-value">${date}</span>
+                            </div>
+                            <div class="item-detail">
+                                <span class="item-detail-label">Assigned By</span>
+                                <span class="item-detail-value">${assignedBy}</span>
+                            </div>
                         </div>
-                        <div style="flex: 0 0 auto;">
-                            <button onclick="window.open('${link}', '_blank')" style="
-                                background: #1976d2;
+                        <div class="item-footer">
+                            <span class="item-date">${comment}</span>
+                            <button onclick="window.open('${link}', '_blank'); event.stopPropagation();" style="
+                                background: #0d6efd;
                                 color: white;
                                 border: none;
-                                padding: 10px 20px;
+                                padding: 6px 12px;
                                 border-radius: 6px;
+                                font-size: 12px;
                                 font-weight: 600;
                                 cursor: pointer;
-                                transition: background 0.2s;
-                            " onmouseover="this.style.background='#1565c0'" onmouseout="this.style.background='#1976d2'">View Payslip</button>
+                            ">View Payslip</button>
                         </div>
                     </div>
                 `;
@@ -6683,11 +6823,11 @@ document.getElementById('payslipsBtn').addEventListener('click', async () => {
             </div>
         `;
         
-        // Add click handlers to each payslip row to show details modal
-        const rows = content.querySelectorAll('.payslip-row');
-        rows.forEach((row) => {
-            row.addEventListener('click', () => {
-                const index = parseInt(row.getAttribute('data-index'));
+        // Add click handlers to each payslip to show details modal
+        const items = content.querySelectorAll('.payslip-item');
+        items.forEach((item) => {
+            item.addEventListener('click', () => {
+                const index = parseInt(item.getAttribute('data-index'));
                 const payslip = payslips[index];
                 if (payslip) {
                     showPayslipDetails(payslip);
@@ -6990,6 +7130,19 @@ document.getElementById('clockInBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('clockOutBtn').addEventListener('click', async () => {
+    // Show the activity log modal instead of immediately clocking out
+    document.getElementById('clockActivityInput').value = '';
+    showModal('clockOutActivity');
+});
+
+// Handle the actual clock out after activity is logged
+document.getElementById('submitClockOutBtn').addEventListener('click', async () => {
+    const activityInput = document.getElementById('clockActivityInput').value.trim();
+    const activitySummary = activityInput || 'No activity logged';
+    
+    // Close the activity modal
+    hideModal('clockOutActivity');
+    
     const button = document.getElementById('clockOutBtn');
     button.style.background = '#0056b3';
     button.disabled = true;
@@ -7002,7 +7155,12 @@ document.getElementById('clockOutBtn').addEventListener('click', async () => {
     button.style.background = '';
     updateMainScreen();
     const emp = getEmployee(currentUser.id);
-    await sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()}`);
+    
+    // Add activity summary to the webhook message
+    await sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()}\n**Activity:** ${activitySummary}`);
+    
+    // Include activity in the session data
+    clockInActions.push(activitySummary);
     const session = downloadTXT(currentUser, clockInTime, clockOutTime, clockInActions);
     previousSessions = JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`)) || [];
     previousSessions.unshift(session);
@@ -7014,6 +7172,11 @@ document.getElementById('clockOutBtn').addEventListener('click', async () => {
     playSuccessSound();
     addNotification('timeclock', 'You have clocked out!', 'timeclock');
     renderPreviousSessions();
+});
+
+// Handle cancel clock out
+document.getElementById('cancelClockOutBtn').addEventListener('click', () => {
+    hideModal('clockOutActivity');
 });
 
 // ========== REQUESTS FUNCTIONALITY ==========
@@ -7081,73 +7244,50 @@ async function reloadRequests() {
             // Trim and normalize status to handle whitespace/case issues
             const status = (req.status || 'Pending').trim();
             const date = req.timestamp || new Date().toLocaleDateString();
-            const comment = req.comment || 'No comment';
+            const comment = req.comment || req.details || 'No comment';
             const approverName = (req.approverName || '').trim();
             
             console.log('[DEBUG] Rendering request:', { type, status, date, approverName, rawStatus: req.status });
             
             // Color-coded based on status
-            let statusColor, statusBg, statusIcon;
+            let statusClass, statusText, statusBadge;
             if (status === 'Pending') {
-                statusColor = '#f57c00';
-                statusBg = '#fff3e0';
-                statusIcon = '⚠️';
+                statusClass = 'pending';
+                statusBadge = 'PENDING';
+                statusText = 'Awaiting review';
             } else if (status === 'Approve' || status === 'Approved') {
-                statusColor = '#4CAF50';
-                statusBg = '#e8f5e9';
-                statusIcon = '✅';
+                statusClass = 'approved';
+                statusBadge = 'APPROVED';
+                statusText = approverName ? `Approved by ${approverName}` : 'Approved';
             } else if (status === 'Deny' || status === 'Denied') {
-                statusColor = '#f44336';
-                statusBg = '#ffebee';
-                statusIcon = '❌';
+                statusClass = 'rejected';
+                statusBadge = 'DENIED';
+                statusText = approverName ? `Denied by ${approverName}` : 'Denied';
             } else {
-                // Unknown status
-                statusColor = '#666';
-                statusBg = '#f5f5f5';
-                statusIcon = '❓';
+                statusClass = 'pending';
+                statusBadge = 'UNKNOWN';
+                statusText = status;
             }
             
-            item.style.cssText = `
-                display: flex; 
-                justify-content: space-between; 
-                align-items: center; 
-                border: 2px solid ${statusColor}; 
-                padding: 20px 24px; 
-                border-radius: 8px; 
-                background: ${statusBg}; 
-                cursor: pointer;
-                transition: all 0.2s ease;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            `;
-            
-            item.onmouseover = () => {
-                item.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)';
-                item.style.transform = 'translateY(-2px)';
-            };
-            
-            item.onmouseout = () => {
-                item.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
-                item.style.transform = 'translateY(0)';
-            };
-            
-            // Build status text with approver name if available
-            let statusText = status;
-            if ((status === 'Approve' || status === 'Approved') && approverName) {
-                statusText = `Approved by: ${approverName}`;
-            } else if ((status === 'Deny' || status === 'Denied') && approverName) {
-                statusText = `Denied by: ${approverName}`;
-            } else if (status === 'Approve') {
-                statusText = 'Approved';
-            } else if (status === 'Deny') {
-                statusText = 'Denied';
-            }
+            item.className = 'request-item';
             
             item.innerHTML = `
-                <div style="flex: 1;">
-                    <span style="font-weight: 600; color: ${statusColor}; font-size: 16px;">${statusIcon} ${type}: ${date}</span>
+                <div class="item-header">
+                    <div class="item-type">${type}</div>
+                    <div class="item-badge ${statusClass}">${statusBadge}</div>
                 </div>
-                <div style="flex: 1; text-align: right;">
-                    <span style="color: ${statusColor}; font-size: 14px; font-weight: 600;">${statusText}</span>
+                <div class="item-details">
+                    <div class="item-detail">
+                        <span class="item-detail-label">Status</span>
+                        <span class="item-detail-value">${statusText}</span>
+                    </div>
+                    <div class="item-detail">
+                        <span class="item-detail-label">Submitted</span>
+                        <span class="item-detail-value">${date}</span>
+                    </div>
+                </div>
+                <div class="item-footer">
+                    <span class="item-date">${comment.substring(0, 60)}${comment.length > 60 ? '...' : ''}</span>
                 </div>
             `;
             
@@ -7298,6 +7438,15 @@ document.getElementById('submitRequestFormBtn').addEventListener('click', async 
         
         const data = await res.json();
         console.log('[DEBUG] Request submitted successfully:', data);
+        
+        // Send webhook notification to Discord
+        try {
+            const emp = getEmployee(currentUser.id);
+            const userName = emp?.profile?.name || currentUser.username || 'Unknown User';
+            await sendWebhook(`📋 **New Request Submitted**\n<@${currentUser.id}> (${userName})\n**Type:** ${type}\n**Details:** ${details.substring(0, 200)}${details.length > 200 ? '...' : ''}\n**Time:** ${new Date().toLocaleString()}`);
+        } catch (webhookError) {
+            console.error('[DEBUG] Failed to send request webhook:', webhookError);
+        }
         
         // Add notification
         addNotification('requests', `✅ ${type} request submitted successfully!`, 'requests');
