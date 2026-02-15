@@ -1611,7 +1611,7 @@ function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.
 /* ================================================================
    LOGOUT
    ================================================================ */
-document.getElementById('logoutBtn').addEventListener('click', () => {
+document.getElementById('logoutBtn').addEventListener('click', async () => {
   if (await customConfirm('Log Out', 'Log out?')) {
     state = { admin: null, users: [], discordMembers: [], absences: [], requests: [], payslips: [], reports: [], strikes: [], activeTab: 'users', selectedUser: null, pendingAction: null };
     showScreen('loginScreen');

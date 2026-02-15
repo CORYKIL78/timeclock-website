@@ -40,7 +40,7 @@
 </head>
 <body>
     <!-- Sidebar (desktop) / Topbar (mobile) -->
-    <div id="sidebar" class="sidebar hidden">
+    <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <img id="sidebarProfilePic" class="profile-img" src="" alt="Profile">
         </div>
@@ -65,6 +65,11 @@
             </button>
         </div>
     </div>
+
+    <!-- Mobile navigation toggle (visible on small screens) -->
+    <button id="mobileNavBtn" class="mobile-nav-btn" aria-label="Toggle navigation">
+        ☰
+    </button>
 
     <!-- Notification Button (Bottom Left Circle) -->
     <button id="notificationBtn" class="notification-btn" aria-label="Notifications">
@@ -410,35 +415,64 @@
             </div>
             <div class="preference-group">
                 <h3>Country</h3>
-                <select id="setupCountrySelect">
-                    <option value="US">United States</option>
-                    <option value="UK">United Kingdom</option>
-                    <option value="IE">Ireland</option>
-                    <option value="CA">Canada</option>
-                    <option value="AU">Australia</option>
-                    <option value="DE">Germany</option>
-                    <option value="FR">France</option>
-                    <option value="IT">Italy</option>
-                    <option value="ES">Spain</option>
-                    <option value="NL">Netherlands</option>
-                    <option value="BE">Belgium</option>
-                    <option value="PL">Poland</option>
-                    <option value="SE">Sweden</option>
-                    <option value="NO">Norway</option>
-                    <option value="DK">Denmark</option>
-                    <option value="FI">Finland</option>
-                    <option value="PT">Portugal</option>
-                    <option value="GR">Greece</option>
-                    <option value="AT">Austria</option>
-                    <option value="CH">Switzerland</option>
-                    <option value="JP">Japan</option>
-                    <option value="CN">China</option>
-                    <option value="IN">India</option>
-                    <option value="BR">Brazil</option>
-                    <option value="MX">Mexico</option>
-                    <option value="ZA">South Africa</option>
-                    <option value="NZ">New Zealand</option>
-                    <option value="Other">Other</option>
+                <select id="setupCountrySelect" onchange="updateSetupLanguageOptions()">
+                    <option value="">Select Country</option>
+                    <option value="US">🇺🇸 United States</option>
+                    <option value="GB">🇬🇧 United Kingdom</option>
+                    <option value="IE">🇮🇪 Ireland</option>
+                    <option value="CA">🇨🇦 Canada</option>
+                    <option value="AU">🇦🇺 Australia</option>
+                    <option value="NZ">🇳🇿 New Zealand</option>
+                    <option value="DE">🇩🇪 Germany</option>
+                    <option value="FR">🇫🇷 France</option>
+                    <option value="IT">🇮🇹 Italy</option>
+                    <option value="ES">🇪🇸 Spain</option>
+                    <option value="NL">🇳🇱 Netherlands</option>
+                    <option value="BE">🇧🇪 Belgium</option>
+                    <option value="PL">🇵🇱 Poland</option>
+                    <option value="SE">🇸🇪 Sweden</option>
+                    <option value="NO">🇳🇴 Norway</option>
+                    <option value="DK">🇩🇰 Denmark</option>
+                    <option value="FI">🇫🇮 Finland</option>
+                    <option value="PT">🇵🇹 Portugal</option>
+                    <option value="GR">🇬🇷 Greece</option>
+                    <option value="AT">🇦🇹 Austria</option>
+                    <option value="CH">🇨🇭 Switzerland</option>
+                    <option value="JP">🇯🇵 Japan</option>
+                    <option value="CN">🇨🇳 China</option>
+                    <option value="IN">🇮🇳 India</option>
+                    <option value="BR">🇧🇷 Brazil</option>
+                    <option value="MX">🇲🇽 Mexico</option>
+                    <option value="ZA">🇿🇦 South Africa</option>
+                    <option value="OTHER">🌍 Other</option>
+                </select>
+            </div>
+            <div class="preference-group">
+                <h3>Language</h3>
+                <select id="setupLanguageSelect">
+                    <option value="">Select Language</option>
+                    <option value="en">English</option>
+                    <option value="de">Deutsch (German)</option>
+                    <option value="fr">Français (French)</option>
+                    <option value="es">Español (Spanish)</option>
+                    <option value="it">Italiano (Italian)</option>
+                    <option value="nl">Nederlands (Dutch)</option>
+                    <option value="pt">Português (Portuguese)</option>
+                    <option value="pl">Polski (Polish)</option>
+                    <option value="sv">Svenska (Swedish)</option>
+                    <option value="da">Dansk (Danish)</option>
+                    <option value="fi">Suomi (Finnish)</option>
+                    <option value="no">Norsk (Norwegian)</option>
+                    <option value="el">Ελληνικά (Greek)</option>
+                    <option value="tr">Türkçe (Turkish)</option>
+                    <option value="ru">Русский (Russian)</option>
+                    <option value="ja">日本語 (Japanese)</option>
+                    <option value="zh">中文 (Chinese)</option>
+                    <option value="hi">हिंदी (Hindi)</option>
+                    <option value="pt-br">Português Brasileiro (Brazilian Portuguese)</option>
+                    <option value="es-mx">Español Mexicano (Mexican Spanish)</option>
+                    <option value="ko">한국어 (Korean)</option>
+                    <option value="th">ไทย (Thai)</option>
                 </select>
             </div>
             <button id="setupPreferencesContinueBtn">Continue</button>
@@ -560,7 +594,7 @@
     </style>
     
     <div id="mainMenuScreen" class="screen">
-        <div class="container" style="max-width: 350%; margin: 0 auto; padding-left: 0; padding-right: 0;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding-left: 24px; padding-right: 24px;">
             <!-- Enlarged greeting section (full width rectangle) -->
             <div class="user-header-card" style="padding: 30px; margin-bottom: 24px; margin-left: 1; margin-right: 1;">
                 <div style="display: flex; align-items: center; gap: 20px;">
@@ -628,139 +662,201 @@
         </div>
     </div>
         <div id="myProfileScreen" class="screen">
-        <div class="container" style="max-width: 300%; margin: 0 auto;">
-            <div style="display: flex; flex-direction: column; gap: 20px; height: 100%;">
-                <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                    <h2 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 600;">Profile Settings</h2>
-                    <p style="margin: 0; color: #666; font-size: 15px; line-height: 1.5;">
-                        Manage your profile information, theme preferences, and request changes to your account settings. To make a request, click the edit button beside a relevant field and follow further instructions.
-                    </p>
-                </div>
-                
-                <div style="flex: 1; background: white; border-radius: 12px; overflow: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 30px;">
-                    <div style="max-width: 100%; display: flex; flex-direction: column; gap: 24px;">
+            <div class="container" style="max-width: 1000px;">
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <!-- Header -->
+                    <div class="profile-section" style="margin-bottom: 0;">
+                        <h2 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 600;">Profile Settings</h2>
+                        <p style="margin: 0; color: var(--text2); font-size: 15px; line-height: 1.5;">
+                            Manage your personal information, preferences, and account settings.
+                        </p>
+                    </div>
+
+                    <!-- Debug Panel -->
+                    <div id="profileDebugPanel" class="profile-section" style="display: none; background: rgba(239,68,68,0.1); border: 1px solid var(--danger);">
+                        <strong style="color: var(--danger);">⚠️ Profile Loading Issue:</strong>
+                        <div id="profileDebug" style="margin-top: 4px; font-size: 14px; color: var(--danger);"></div>
+                        <button id="retryProfileBtn" style="margin-top: 10px; background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">🔄 Retry</button>
+                    </div>
+
+                    <!-- Profile Information Section -->
+                    <div class="profile-section">
+                        <h3 class="profile-section-header">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>Personal Information
+                        </h3>
                         
-                        <!-- Profile Debug/Error Panel -->
-                        <div id="profileDebugPanel" style="display: none; padding: 12px 16px; background: #fee; border: 1px solid #fcc; border-radius: 8px; color: #c00;">
-                            <strong>⚠️ Profile Loading Issue:</strong>
-                            <div id="profileDebug" style="margin-top: 4px; font-size: 14px;"></div>
-                            <button id="retryProfileBtn" style="margin-top: 10px; background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">🔄 Retry</button>
+                        <div class="profile-info-row">
+                            <label>Full Name</label>
+                            <span id="profileName">Not set</span>
+                            <button class="pencil-btn" id="editNameBtn" title="Request Name Change">✎ Edit</button>
                         </div>
-                        
-                        <!-- Profile Information Section -->
-                        <div style="display: flex; flex-direction: column; gap: 16px;">
-                            <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #111827; border-bottom: 2px solid #7c3aed; padding-bottom: 8px;">Profile Information</h3>
-                            
-                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
-                                <span style="font-weight: 600; color: #6b7280;">Name:</span>
-                                <span id="profileName" style="color: #111827; flex: 1; margin: 0 20px; text-align: right;">Not set</span>
-                                <button class="pencil-btn" id="editNameBtn" title="Request Name Change" style="background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">✎ Edit</button>
-                            </div>
-                            
-                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
-                                <span style="font-weight: 600; color: #6b7280;">Department:</span>
-                                <span id="profileDepartment" style="color: #111827; flex: 1; margin: 0 20px; text-align: right;">Not set</span>
-                                <button class="pencil-btn" id="editDeptBtn" title="Request Department Change" style="background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">✎ Edit</button>
-                            </div>
-                            
-                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
-                                <span style="font-weight: 600; color: #6b7280;">Email:</span>
-                                <span id="profileEmail" style="color: #111827; flex: 1; margin: 0 20px; text-align: right;">Not set</span>
-                                <button class="pencil-btn" id="editEmailBtn" title="Request Email Change" style="background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">✎ Edit</button>
-                            </div>
-                            
-                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
-                                <span style="font-weight: 600; color: #6b7280;">Country:</span>
-                                <select id="profileCountrySelect" style="flex: 1; margin: 0 20px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #111827; font-size: 14px; cursor: pointer;">
-                                    <option value="">Select Country</option>
-                                    <option value="United Kingdom">🇬🇧 United Kingdom</option>
-                                    <option value="Ireland">🇮🇪 Ireland</option>
-                                    <option value="United States">🇺🇸 United States</option>
-                                    <option value="Canada">🇨🇦 Canada</option>
-                                    <option value="Australia">🇦🇺 Australia</option>
-                                    <option value="Germany">🇩🇪 Germany</option>
-                                    <option value="France">🇫🇷 France</option>
-                                    <option value="Spain">🇪🇸 Spain</option>
-                                    <option value="Italy">🇮🇹 Italy</option>
-                                    <option value="Netherlands">🇳🇱 Netherlands</option>
-                                    <option value="Belgium">🇧🇪 Belgium</option>
-                                    <option value="Poland">🇵🇱 Poland</option>
-                                    <option value="Sweden">🇸🇪 Sweden</option>
-                                    <option value="Norway">🇳🇴 Norway</option>
-                                    <option value="Denmark">🇩🇰 Denmark</option>
-                                    <option value="Finland">🇫🇮 Finland</option>
-                                    <option value="Portugal">🇵🇹 Portugal</option>
-                                    <option value="Greece">🇬🇷 Greece</option>
-                                    <option value="Austria">🇦🇹 Austria</option>
-                                    <option value="Switzerland">🇨🇭 Switzerland</option>
-                                    <option value="Japan">🇯🇵 Japan</option>
-                                    <option value="China">🇨🇳 China</option>
-                                    <option value="India">🇮🇳 India</option>
-                                    <option value="Brazil">🇧🇷 Brazil</option>
-                                    <option value="Mexico">🇲🇽 Mexico</option>
-                                    <option value="South Africa">🇿🇦 South Africa</option>
-                                    <option value="New Zealand">🇳🇿 New Zealand</option>
-                                    <option value="Other">🌍 Other</option>
-                                </select>
-                            </div>
-                            
-                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
-                                <span style="font-weight: 600; color: #6b7280;">Timezone:</span>
-                                <select id="profileTimezoneSelect" style="flex: 1; margin: 0 20px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #111827; font-size: 14px; cursor: pointer;">
-                                    <option value="">Select Timezone</option>
-                                    <option value="UTC">UTC (Coordinated Universal Time)</option>
-                                    <option value="Europe/London">GMT/BST (London, Dublin)</option>
-                                    <option value="Europe/Paris">CET/CEST (Paris, Madrid, Rome)</option>
-                                    <option value="Europe/Berlin">CET/CEST (Berlin, Amsterdam, Brussels)</option>
-                                    <option value="Europe/Warsaw">CET/CEST (Warsaw, Prague)</option>
-                                    <option value="Europe/Athens">EET/EEST (Athens, Bucharest)</option>
-                                    <option value="Europe/Istanbul">TRT (Istanbul)</option>
-                                    <option value="Europe/Moscow">MSK (Moscow)</option>
-                                    <option value="America/New_York">EST/EDT (New York, Toronto)</option>
-                                    <option value="America/Chicago">CST/CDT (Chicago, Mexico City)</option>
-                                    <option value="America/Denver">MST/MDT (Denver, Phoenix)</option>
-                                    <option value="America/Los_Angeles">PST/PDT (Los Angeles, Vancouver)</option>
-                                    <option value="America/Anchorage">AKST/AKDT (Alaska)</option>
-                                    <option value="Pacific/Honolulu">HST (Hawaii)</option>
-                                    <option value="America/Sao_Paulo">BRT (São Paulo, Rio)</option>
-                                    <option value="Asia/Dubai">GST (Dubai, Abu Dhabi)</option>
-                                    <option value="Asia/Kolkata">IST (India)</option>
-                                    <option value="Asia/Shanghai">CST (Beijing, Shanghai)</option>
-                                    <option value="Asia/Tokyo">JST (Tokyo)</option>
-                                    <option value="Asia/Seoul">KST (Seoul)</option>
-                                    <option value="Asia/Singapore">SGT (Singapore)</option>
-                                    <option value="Australia/Sydney">AEDT (Sydney, Melbourne)</option>
-                                    <option value="Australia/Perth">AWST (Perth)</option>
-                                    <option value="Pacific/Auckland">NZDT (Auckland)</option>
-                                </select>
+
+                        <div class="profile-info-row">
+                            <label>Email Address</label>
+                            <span id="profileEmail">Not set</span>
+                            <button class="pencil-btn" id="editEmailBtn" title="Request Email Change">✎ Edit</button>
+                        </div>
+
+                        <div class="profile-info-row">
+                            <label>Department</label>
+                            <span id="profileDepartment">Not set</span>
+                            <button class="pencil-btn" id="editDeptBtn" title="Request Department Change">✎ Edit</button>
+                        </div>
+                    </div>
+
+                    <!-- Location & Language Section -->
+                    <div class="profile-section">
+                        <h3 class="profile-section-header">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="2" y1="12" x2="22" y2="12"></line>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                            </svg>Location & Language
+                        </h3>
+
+                        <div class="profile-info-row">
+                            <label>Country</label>
+                            <select id="profileCountrySelect" onchange="updateLanguageOptions()">
+                                <option value="">Select Country</option>
+                                <option value="GB">🇬🇧 United Kingdom</option>
+                                <option value="IE">🇮🇪 Ireland</option>
+                                <option value="US">🇺🇸 United States</option>
+                                <option value="CA">🇨🇦 Canada</option>
+                                <option value="AU">🇦🇺 Australia</option>
+                                <option value="DE">🇩🇪 Germany</option>
+                                <option value="FR">🇫🇷 France</option>
+                                <option value="ES">🇪🇸 Spain</option>
+                                <option value="IT">🇮🇹 Italy</option>
+                                <option value="NL">🇳🇱 Netherlands</option>
+                                <option value="BE">🇧🇪 Belgium</option>
+                                <option value="PL">🇵🇱 Poland</option>
+                                <option value="SE">🇸🇪 Sweden</option>
+                                <option value="NO">🇳🇴 Norway</option>
+                                <option value="DK">🇩🇰 Denmark</option>
+                                <option value="FI">🇫🇮 Finland</option>
+                                <option value="PT">🇵🇹 Portugal</option>
+                                <option value="GR">🇬🇷 Greece</option>
+                                <option value="AT">🇦🇹 Austria</option>
+                                <option value="CH">🇨🇭 Switzerland</option>
+                                <option value="JP">🇯🇵 Japan</option>
+                                <option value="CN">🇨🇳 China</option>
+                                <option value="IN">🇮🇳 India</option>
+                                <option value="BR">🇧🇷 Brazil</option>
+                                <option value="MX">🇲🇽 Mexico</option>
+                                <option value="ZA">🇿🇦 South Africa</option>
+                                <option value="NZ">🇳🇿 New Zealand</option>
+                                <option value="OTHER">🌍 Other</option>
+                            </select>
+                        </div>
+
+                        <div class="profile-info-row">
+                            <label>Timezone</label>
+                            <select id="profileTimezoneSelect">
+                                <option value="">Select Timezone</option>
+                                <option value="UTC">UTC (Coordinated Universal Time)</option>
+                                <option value="Europe/London">GMT/BST (London, Dublin)</option>
+                                <option value="Europe/Paris">CET/CEST (Paris, Madrid, Rome)</option>
+                                <option value="Europe/Berlin">CET/CEST (Berlin, Amsterdam, Brussels)</option>
+                                <option value="Europe/Warsaw">CET/CEST (Warsaw, Prague)</option>
+                                <option value="Europe/Athens">EET/EEST (Athens, Bucharest)</option>
+                                <option value="Europe/Istanbul">TRT (Istanbul)</option>
+                                <option value="Europe/Moscow">MSK (Moscow)</option>
+                                <option value="America/New_York">EST/EDT (New York, Toronto)</option>
+                                <option value="America/Chicago">CST/CDT (Chicago, Mexico City)</option>
+                                <option value="America/Denver">MST/MDT (Denver, Phoenix)</option>
+                                <option value="America/Los_Angeles">PST/PDT (Los Angeles, Vancouver)</option>
+                                <option value="America/Anchorage">AKST/AKDT (Alaska)</option>
+                                <option value="Pacific/Honolulu">HST (Hawaii)</option>
+                                <option value="America/Sao_Paulo">BRT (São Paulo, Rio)</option>
+                                <option value="Asia/Dubai">GST (Dubai, Abu Dhabi)</option>
+                                <option value="Asia/Kolkata">IST (India)</option>
+                                <option value="Asia/Shanghai">CST (Beijing, Shanghai)</option>
+                                <option value="Asia/Tokyo">JST (Tokyo)</option>
+                                <option value="Asia/Seoul">KST (Seoul)</option>
+                                <option value="Asia/Singapore">SGT (Singapore)</option>
+                                <option value="Australia/Sydney">AEDT (Sydney, Melbourne)</option>
+                                <option value="Australia/Perth">AWST (Perth)</option>
+                                <option value="Pacific/Auckland">NZDT (Auckland)</option>
+                            </select>
+                        </div>
+
+                        <div class="profile-info-row">
+                            <label>Language</label>
+                            <select id="profileLanguageSelect">
+                                <option value="">Select Language</option>
+                                <option value="en">English</option>
+                                <option value="de">Deutsch (German)</option>
+                                <option value="fr">Français (French)</option>
+                                <option value="es">Español (Spanish)</option>
+                                <option value="it">Italiano (Italian)</option>
+                                <option value="nl">Nederlands (Dutch)</option>
+                                <option value="pt">Português (Portuguese)</option>
+                                <option value="pl">Polski (Polish)</option>
+                                <option value="sv">Svenska (Swedish)</option>
+                                <option value="da">Dansk (Danish)</option>
+                                <option value="fi">Suomi (Finnish)</option>
+                                <option value="no">Norsk (Norwegian)</option>
+                                <option value="el">Ελληνικά (Greek)</option>
+                                <option value="tr">Türkçe (Turkish)</option>
+                                <option value="ru">Русский (Russian)</option>
+                                <option value="ja">日本語 (Japanese)</option>
+                                <option value="zh">中文 (Chinese)</option>
+                                <option value="hi">हिंदी (Hindi)</option>
+                                <option value="pt-br">Português Brasileiro (Brazilian Portuguese)</option>
+                                <option value="es-mx">Español Mexicano (Mexican Spanish)</option>
+                                <option value="ko">한국어 (Korean)</option>
+                                <option value="th">ไทย (Thai)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Appearance Section -->
+                    <div class="profile-section">
+                        <h3 class="profile-section-header">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <line x1="12" y1="1" x2="12" y2="3"></line>
+                                <line x1="12" y1="21" x2="12" y2="23"></line>
+                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                                <line x1="1" y1="12" x2="3" y2="12"></line>
+                                <line x1="21" y1="12" x2="23" y2="12"></line>
+                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                            </svg>Appearance
+                        </h3>
+
+                        <div class="profile-info-row">
+                            <label style="flex: 1; margin: 0;">Theme</label>
+                            <div style="display: flex; align-items: center; gap: 12px; margin: 0;">
+                                <label class="toggle-switch" style="margin: 0; padding: 0; background: transparent; border: none;">
+                                    <input type="checkbox" id="modeToggle">
+                                    <span class="slider">🌙</span>
+                                </label>
+                                <span id="themeText" style="color: var(--text2); margin: 0;">Dark Mode</span>
                             </div>
                         </div>
-                        
-                        <!-- Theme Section -->
-                        <div style="display: flex; flex-direction: column; gap: 16px;">
-                            <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #111827; border-bottom: 2px solid #7c3aed; padding-bottom: 8px;">Appearance</h3>
-                            
-                            <div class="profile-info-row" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: #f9fafb; border-radius: 8px;">
-                                <span style="font-weight: 600; color: #6b7280;">Theme:</span>
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="modeToggle">
-                                        <span class="slider">🌙</span>
-                                    </label>
-                                    <span id="themeText" style="color: #6b7280;">Light Mode</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Actions Section -->
-                        <div style="padding-top: 8px;">
-                            <button id="resetProfileBtn" style="width: 100%; background: #ef4444; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">Reset Profile</button>
-                        </div>
+                    </div>
+
+                    <!-- Account Actions Section -->
+                    <div class="profile-section">
+                        <h3 class="profile-section-header">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+                                <polyline points="3 6 5 4 21 4 23 6 23 20 1 20 1 6"></polyline>
+                                <line x1="10" y1="12" x2="14" y2="12"></line>
+                            </svg>Account Actions
+                        </h3>
+
+                        <button id="resetProfileBtn" style="width: 100%; background: var(--danger); color: white; border: none; padding: 14px; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                            🔄 Reset Profile
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
                     </div>
                 </div>
                 

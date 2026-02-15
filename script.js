@@ -130,11 +130,20 @@ function updateProfileDisplay() {
     const profileCountrySelect = document.getElementById('profileCountrySelect');
     if (profileCountrySelect && currentUser.profile?.country) {
         profileCountrySelect.value = currentUser.profile.country;
+        // Update language options for the selected country
+        if (typeof updateLanguageOptions === 'function') {
+            updateLanguageOptions();
+        }
     }
     
     const profileTimezoneSelect = document.getElementById('profileTimezoneSelect');
     if (profileTimezoneSelect && currentUser.profile?.timezone) {
         profileTimezoneSelect.value = currentUser.profile.timezone;
+    }
+    
+    const profileLanguageSelect = document.getElementById('profileLanguageSelect');
+    if (profileLanguageSelect && currentUser.profile?.language) {
+        profileLanguageSelect.value = currentUser.profile.language;
     }
     
     if (typeof updateProfilePictures === 'function') {
@@ -3812,10 +3821,10 @@ function startTutorial() {
     let tutorialClickHandler = null;
 
     const steps = [
-        // Step 1: Side menu button
+        // Step 1: Navigation button (mobile sidebar)
         {
-            element: () => document.querySelector('.sidebar-toggle'),
-            text: 'Welcome! This is the side menu button. Click it to expand and access different pages.',
+            element: () => document.getElementById('mobileNavBtn') || document.querySelector('.sidebar-toggle'),
+            text: 'Welcome! This is the navigation button. Tap it to open the side menu and access different pages.',
             waitForClick: true
         },
         // Step 2: Profile button in sidebar
@@ -5294,21 +5303,23 @@ if (setupPreferencesContinueBtn) {
     const timezone = document.getElementById('setupTimezoneSelect').value;
     const dateFormat = document.querySelector('input[name="dateFormat"]:checked')?.value;
     const country = document.getElementById('setupCountrySelect').value;
+    const language = document.getElementById('setupLanguageSelect').value;
     
-    console.log('[DEBUG] setupPreferencesContinueBtn clicked, timezone:', timezone, 'dateFormat:', dateFormat, 'country:', country);
+    console.log('[DEBUG] setupPreferencesContinueBtn clicked, timezone:', timezone, 'dateFormat:', dateFormat, 'country:', country, 'language:', language);
     
-    if (timezone && country) {
+    if (timezone && country && language) {
         if (!currentUser) currentUser = {};
         if (!currentUser.profile) currentUser.profile = {};
         currentUser.profile.timezone = timezone;
         currentUser.profile.dateFormat = dateFormat;
         currentUser.profile.country = country;
+        currentUser.profile.language = language;
         persistUserData(); // Save preferences to localStorage
-        console.log('[SETUP] Preferences saved:', { timezone, country });
+        console.log('[SETUP] Preferences saved:', { timezone, country, language });
         console.log('[DEBUG] Preferences saved, redirecting to department selection');
         showScreen('setupDepartment');
     } else {
-        showModal('alert', 'Please select timezone and country');
+        showModal('alert', 'Please select timezone, country, and language');
     }
 });
 }
@@ -5816,10 +5827,124 @@ async function saveProfile() {
     }
 }
 
+// ===== LANGUAGE & COUNTRY MAPPING =====
+const countryLanguageMap = {
+    'GB': ['en'],
+    'IE': ['en'],
+    'US': ['en'],
+    'CA': ['en', 'fr'],
+    'AU': ['en'],
+    'NZ': ['en'],
+    'DE': ['de', 'en'],
+    'FR': ['fr', 'en'],
+    'ES': ['es', 'en'],
+    'IT': ['it', 'en'],
+    'NL': ['nl', 'en'],
+    'BE': ['nl', 'fr', 'en'],
+    'PL': ['pl', 'en'],
+    'SE': ['sv', 'en'],
+    'NO': ['no', 'en'],
+    'DK': ['da', 'en'],
+    'FI': ['fi', 'en'],
+    'PT': ['pt', 'en'],
+    'GR': ['el', 'en'],
+    'AT': ['de', 'en'],
+    'CH': ['de', 'fr', 'it', 'en'],
+    'JP': ['ja', 'en'],
+    'CN': ['zh', 'en'],
+    'IN': ['hi', 'en'],
+    'BR': ['pt-br', 'en'],
+    'MX': ['es-mx', 'en'],
+    'ZA': ['en'],
+    'OTHER': ['en']
+};
+
+const languageNames = {
+    'en': 'English',
+    'de': 'Deutsch (German)',
+    'fr': 'Français (French)',
+    'es': 'Español (Spanish)',
+    'it': 'Italiano (Italian)',
+    'nl': 'Nederlands (Dutch)',
+    'pt': 'Português (Portuguese)',
+    'pl': 'Polski (Polish)',
+    'sv': 'Svenska (Swedish)',
+    'da': 'Dansk (Danish)',
+    'fi': 'Suomi (Finnish)',
+    'no': 'Norsk (Norwegian)',
+    'el': 'Ελληνικά (Greek)',
+    'tr': 'Türkçe (Turkish)',
+    'ru': 'Русский (Russian)',
+    'ja': '日本語 (Japanese)',
+    'zh': '中文 (Chinese)',
+    'hi': 'हिंदी (Hindi)',
+    'pt-br': 'Português Brasileiro (Brazilian Portuguese)',
+    'es-mx': 'Español Mexicano (Mexican Spanish)',
+    'ko': '한국어 (Korean)',
+    'th': 'ไทย (Thai)'
+};
+
+// Update language options based on selected country
+function updateLanguageOptions() {
+    const countrySelect = document.getElementById('profileCountrySelect');
+    const languageSelect = document.getElementById('profileLanguageSelect');
+    
+    if (!countrySelect || !languageSelect) return;
+    
+    const selectedCountry = countrySelect.value;
+    const allowedLanguages = countryLanguageMap[selectedCountry] || ['en'];
+    
+    // Clear and rebuild language options
+    const currentValue = languageSelect.value;
+    languageSelect.innerHTML = '<option value="">Select Language</option>';
+    
+    allowedLanguages.forEach(langCode => {
+        const option = document.createElement('option');
+        option.value = langCode;
+        option.textContent = languageNames[langCode] || langCode;
+        languageSelect.appendChild(option);
+    });
+    
+    // Restore selection if it's still available, otherwise select first option
+    if (allowedLanguages.includes(currentValue)) {
+        languageSelect.value = currentValue;
+    } else if (allowedLanguages.length > 0) {
+        languageSelect.value = allowedLanguages[0];
+    }
+}
+
+// Update language options for setup form
+function updateSetupLanguageOptions() {
+    const countrySelect = document.getElementById('setupCountrySelect');
+    const languageSelect = document.getElementById('setupLanguageSelect');
+    
+    if (!countrySelect || !languageSelect) return;
+    
+    const selectedCountry = countrySelect.value;
+    const allowedLanguages = countryLanguageMap[selectedCountry] || ['en'];
+    
+    // Clear and rebuild language options
+    const currentValue = languageSelect.value;
+    languageSelect.innerHTML = '<option value="">Select Language</option>';
+    
+    allowedLanguages.forEach(langCode => {
+        const option = document.createElement('option');
+        option.value = langCode;
+        option.textContent = languageNames[langCode] || langCode;
+        languageSelect.appendChild(option);
+    });
+    
+    // Auto-select first available language
+    if (allowedLanguages.length > 0) {
+        languageSelect.value = allowedLanguages[0];
+    }
+}
+
 // Country and Timezone dropdowns - auto-save on change
 const profileCountrySelect = document.getElementById('profileCountrySelect');
 if (profileCountrySelect) {
     profileCountrySelect.addEventListener('change', async () => {
+        updateLanguageOptions(); // Update language options when country changes
         const country = profileCountrySelect.value;
         if (country && currentUser) {
             if (!currentUser.profile) currentUser.profile = {};
@@ -5854,6 +5979,28 @@ if (profileTimezoneSelect) {
             } catch (error) {
                 console.error('Failed to update timezone:', error);
                 showModal('alert', '⚠️ Failed to update timezone. Please try again.');
+            }
+        }
+    });
+}
+
+// Language select - auto-save on change
+const profileLanguageSelect = document.getElementById('profileLanguageSelect');
+if (profileLanguageSelect) {
+    profileLanguageSelect.addEventListener('change', async () => {
+        const language = profileLanguageSelect.value;
+        if (language && currentUser) {
+            if (!currentUser.profile) currentUser.profile = {};
+            currentUser.profile.language = language;
+            
+            // Save to localStorage immediately
+            try {
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                showModal('alert', '<span class="success-tick"></span> Language updated successfully!');
+                playSuccessSound();
+            } catch (error) {
+                console.error('Failed to update language:', error);
+                showModal('alert', '⚠️ Failed to update language. Please try again.');
             }
         }
     });
@@ -7837,28 +7984,29 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
     console.log('Initializing Staff Portal');
     preloadAudio();
     
-    // Initialize dark mode from localStorage
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    // Initialize theme mode (light/dark) from localStorage
+    const savedLightMode = localStorage.getItem('lightMode') === 'true';
     let modeToggle = document.getElementById('modeToggle');
     const themeText = document.getElementById('themeText');
-    
-    if (savedDarkMode) {
-        document.body.classList.add('dark');
+
+    if (savedLightMode) {
+        document.body.classList.add('light');
         if (modeToggle) modeToggle.checked = true;
-        if (themeText) themeText.textContent = 'Dark Mode';
-    } else {
         if (themeText) themeText.textContent = 'Light Mode';
+    } else {
+        if (themeText) themeText.textContent = 'Dark Mode';
     }
-    
-    // Setup dark mode toggle listener
+
+    // Setup theme toggle listener
     if (modeToggle) {
         modeToggle.addEventListener('change', (e) => {
-            document.body.classList.toggle('dark', e.target.checked);
-            localStorage.setItem('darkMode', e.target.checked);
-            
+            const isLight = e.target.checked;
+            document.body.classList.toggle('light', isLight);
+            localStorage.setItem('lightMode', isLight);
+
             // Update theme text
             if (themeText) {
-                themeText.textContent = e.target.checked ? 'Dark Mode' : 'Light Mode';
+                themeText.textContent = isLight ? 'Light Mode' : 'Dark Mode';
             }
         });
     }
