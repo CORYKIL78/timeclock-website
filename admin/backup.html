@@ -157,6 +157,10 @@ input,select,textarea{font-family:inherit;outline:none}
 .btn-green:hover{background:#16a34a}
 .btn-red{background:var(--red);color:#fff}
 .btn-red:hover{background:#dc2626}
+.btn-orange{background:var(--orange);color:#fff}
+.btn-orange:hover{background:#d97706}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-blue:hover{background:#2563eb}
 .btn-small{padding:5px 10px;font-size:12px}
 
 .content{padding:24px 28px;flex:1;position:relative;overflow:hidden;min-height:0}
@@ -175,6 +179,7 @@ input,select,textarea{font-family:inherit;outline:none}
 .stat-card .value.orange{color:var(--orange)}
 .stat-card .value.red{color:var(--red)}
 .stat-card .value.blue{color:var(--blue)}
+.stat-card .value.gray{color:#6b7280}
 
 /* Tables */
 .table-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;min-height:0;flex:1}
@@ -206,6 +211,7 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
 .badge-suspended{background:rgba(239,68,68,.12);color:var(--red)}
 .badge-active{background:rgba(34,197,94,.12);color:var(--green)}
 .badge-issued{background:rgba(59,130,246,.12);color:var(--blue)}
+.badge-voided{background:rgba(107,114,128,.12);color:#6b7280}
 
 .clickable-row{cursor:pointer}
 .clickable-row:hover{background:rgba(99,102,241,.06)!important}
@@ -446,6 +452,7 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
       <!-- ABSENCES TAB -->
       <div class="tab-content" id="tab-absences">
         <div class="stats-row" id="absencesStats"></div>
+        <div style="margin-bottom:16px"><button class="btn btn-primary" onclick="openModal('manualLoaModal')">+ Manual LOA Set</button></div>
         <div class="table-wrap">
           <div class="table-header"><h3>All Absence Requests</h3></div>
           <div id="absencesTable" class="table-body"><div class="loading-inline">Loading absences...</div></div>
@@ -593,6 +600,37 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
     <div class="modal-foot">
       <button class="btn btn-outline" onclick="closeModal('strikeModal')">Cancel</button>
       <button class="btn btn-red" id="sendStrikeBtn">Issue Disciplinary</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MANUAL LOA MODAL ====== -->
+<div class="modal-overlay" id="manualLoaModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Set Manual LOA</h3><button class="modal-close" onclick="closeModal('manualLoaModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Select User</label><select id="manualLoaUser"></select></div>
+      <div class="field"><label>LOA Type</label>
+        <select id="manualLoaType">
+          <option value="">Select type...</option>
+          <option value="Sick Leave">Sick Leave</option>
+          <option value="Personal Leave">Personal Leave</option>
+          <option value="Holiday">Holiday</option>
+          <option value="Compassionate Leave">Compassionate Leave</option>
+          <option value="Maternity Leave">Maternity Leave</option>
+          <option value="Paternity Leave">Paternity Leave</option>
+          <option value="Parental Leave">Parental Leave</option>
+          <option value="Unpaid Leave">Unpaid Leave</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Start Date</label><input type="date" id="manualLoaStartDate" /></div>
+      <div class="field"><label>End Date</label><input type="date" id="manualLoaEndDate" /></div>
+      <div class="field"><label>Comment (optional)</label><textarea id="manualLoaComment" placeholder="Add optional comment..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('manualLoaModal')">Cancel</button>
+      <button class="btn btn-primary" id="confirmManualLoaBtn">Confirm</button>
     </div>
   </div>
 </div>
@@ -1124,7 +1162,7 @@ async function loadUsers() {
 }
 
 function populateUserSelects(users) {
-  const selects = ['payslipUser', 'reportUser', 'strikeUser'];
+  const selects = ['payslipUser', 'reportUser', 'strikeUser', 'manualLoaUser'];
   selects.forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
@@ -1149,22 +1187,33 @@ async function loadAbsences() {
     const pending = absences.filter(a => a.status === 'pending').length;
     const approved = absences.filter(a => a.status === 'approved').length;
     const rejected = absences.filter(a => a.status === 'rejected').length;
+    const voided = absences.filter(a => a.status === 'voided').length;
     document.getElementById('absencesStats').innerHTML = `
       <div class="stat-card"><div class="label">Total</div><div class="value blue">${absences.length}</div></div>
       <div class="stat-card"><div class="label">Pending</div><div class="value orange">${pending}</div></div>
       <div class="stat-card"><div class="label">Approved</div><div class="value green">${approved}</div></div>
-      <div class="stat-card"><div class="label">Rejected</div><div class="value red">${rejected}</div></div>`;
+      <div class="stat-card"><div class="label">Rejected</div><div class="value red">${rejected}</div></div>
+      <div class="stat-card"><div class="label">Voided</div><div class="value gray">${voided}</div></div>`;
 
     if (!absences.length) { container.innerHTML = '<div class="empty-state"><p>No absences found.</p></div>'; return; }
 
-    let html = `<table><thead><tr><th>Name</th><th>Start</th><th>End</th><th>Reason</th><th>Days</th><th>Comment</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
+    let html = `<table><thead><tr><th>Name</th><th>Type</th><th>Start</th><th>End</th><th>Reason</th><th>Days</th><th>Comment</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
     absences.forEach((a, i) => {
-      const badge = a.status === 'approved' ? 'badge-approved' : a.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
-      const actions = a.status === 'pending'
-        ? `<button class="btn btn-green btn-small" onclick="absenceAction(${i},'Approved')">Approve</button> <button class="btn btn-red btn-small" onclick="absenceAction(${i},'Rejected')">Deny</button>`
-        : `<span style="font-size:11px;color:var(--text2)">${a.status}</span>`;
-      html += `<tr>
-        <td>${esc(a.name)}</td><td>${esc(a.startDate)}</td><td>${esc(a.endDate)}</td>
+      const badge = a.status === 'approved' ? 'badge-approved' : a.status === 'rejected' ? 'badge-rejected' : a.status === 'voided' ? 'badge-voided' : 'badge-pending';
+      const isManual = a.isManual ? ' style="background: rgba(59, 130, 246, 0.2);"' : '';
+      const type = a.isManual ? 'Manual LOA' : 'Normal';
+      let actions = '';
+      
+      if (a.status === 'pending') {
+        actions = `<button class="btn btn-green btn-small" onclick="absenceAction(${i},'Approved')">Approve</button> <button class="btn btn-red btn-small" onclick="absenceAction(${i},'Rejected')">Deny</button>`;
+      } else if (a.status !== 'voided') {
+        actions = `<button class="btn btn-orange btn-small" onclick="voidAbsence(${i})">Void</button> <button class="btn btn-blue btn-small" onclick="extendAbsence(${i})">Extend</button>`;
+      } else {
+        actions = `<span style="font-size:11px;color:var(--text2);">VOIDED</span>`;
+      }
+      
+      html += `<tr${isManual}>
+        <td>${esc(a.name)}</td><td>${esc(type)}</td><td>${esc(a.startDate)}</td><td>${esc(a.endDate)}</td>
         <td>${esc(a.reason)}</td><td>${a.totalDays}</td><td>${esc(a.comment)}</td>
         <td><span class="badge ${badge}">${a.status}</span></td><td>${actions}</td>
       </tr>`;
@@ -1184,6 +1233,85 @@ function absenceAction(idx, status) {
   document.getElementById('actionModalText').textContent = `${status === 'Approved' ? 'Approve' : 'Deny'} absence for ${a.name} (${a.startDate} - ${a.endDate})?`;
   document.getElementById('actionReason').value = '';
   openModal('actionModal');
+}
+
+function voidAbsence(idx) {
+  const a = state.absences[idx];
+  if (!a) return;
+  state.pendingAction = { type: 'voidAbsence', item: a, index: idx };
+  document.getElementById('actionModalTitle').textContent = 'Void Absence';
+  document.getElementById('actionModalText').textContent = `Mark absence for ${a.name} (${a.startDate} - ${a.endDate}) as VOIDED? This absence will be marked complete and voided but not deleted.`;
+  document.getElementById('actionReason').value = '';
+  openModal('actionModal');
+}
+
+function extendAbsence(idx) {
+  const a = state.absences[idx];
+  if (!a) return;
+  state.pendingAction = { type: 'extendAbsence', item: a, index: idx };
+  document.getElementById('actionModalTitle').textContent = 'Extend Absence';
+  document.getElementById('actionModalText').textContent = `Extend absence for ${a.name}. Current end date: ${a.endDate}`;
+  
+  // Replace the reason textarea with a date input for extension
+  const reasonField = document.getElementById('actionReason');
+  reasonField.parentElement.innerHTML = `<label>New End Date</label><input type="date" id="extendAbsenceDate" value="${a.endDate}" />`;
+  reasonField.style.display = 'none';
+  
+  openModal('actionModal');
+}
+
+async function submitManualLoa() {
+  const userId = document.getElementById('manualLoaUser')?.value;
+  const loaType = document.getElementById('manualLoaType')?.value;
+  const startDate = document.getElementById('manualLoaStartDate')?.value;
+  const endDate = document.getElementById('manualLoaEndDate')?.value;
+  const comment = document.getElementById('manualLoaComment')?.value;
+  
+  if (!userId || !loaType || !startDate || !endDate) {
+    toast('Please fill in all required fields', 'error');
+    return;
+  }
+  
+  if (new Date(startDate) > new Date(endDate)) {
+    toast('Start date must be before end date', 'error');
+    return;
+  }
+  
+  try {
+    const user = state.users.find(u => u.discordId === userId);
+    const userName = user ? user.name : userId;
+    
+    // Calculate total days
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    
+    const payload = {
+      discordId: userId,
+      startDate,
+      endDate,
+      reason: loaType,
+      comment: comment || '',
+      isManual: true,
+      status: 'approved',
+      totalDays,
+      submittedBy: state.admin?.discordId || 'admin'
+    };
+    
+    await apiPost('/api/admin/absences/manual', payload);
+    
+    // Send DM to user
+    await sendDiscordDM(userId, {
+      title: '📋 Manual LOA Set',
+      description: `A manual LOA has been placed on your account.\n\nType: ${loaType}\nStart: ${startDate}\nEnd: ${endDate}\nDays: ${totalDays}\n${comment ? `Comment: ${comment}` : ''}`
+    });
+    
+    toast('User has been placed on a manual LOA', 'success');
+    closeModal('manualLoaModal');
+    await loadAbsences();
+  } catch (e) {
+    toast('Failed to create manual LOA: ' + (e.message || ''), 'error');
+  }
 }
 
 /* ================================================================
@@ -2047,7 +2175,7 @@ async function removeAccount() {
 document.getElementById('actionConfirmBtn').addEventListener('click', async () => {
   const action = state.pendingAction;
   if (!action) return;
-  const reason = document.getElementById('actionReason').value.trim();
+  let reason = document.getElementById('actionReason')?.value?.trim() || '';
 
   try {
     if (action.type === 'absence') {
@@ -2067,6 +2195,43 @@ document.getElementById('actionConfirmBtn').addEventListener('click', async () =
         action.item.userId || action.item.discordId
       );
       toast(`Absence ${action.status.toLowerCase()} for ${action.item.name}${reason ? ' — Reason: ' + reason : ''}`, action.status === 'Approved' ? 'success' : 'info');
+      await loadAbsences();
+    } else if (action.type === 'voidAbsence') {
+      await apiPost('/api/admin/absence/void', {
+        absenceId: action.item.id,
+        userId: action.item.userId || action.item.discordId,
+        adminName: state.admin.name,
+        adminId: state.admin.id
+      });
+      // Log admin action
+      await logAdminAction(
+        'absence_voided',
+        `${state.admin.name} voided ${action.item.name}'s absence`,
+        action.item.userId || action.item.discordId
+      );
+      toast(`Absence voided for ${action.item.name}`, 'success');
+      await loadAbsences();
+    } else if (action.type === 'extendAbsence') {
+      const newEndDate = document.getElementById('extendAbsenceDate')?.value;
+      if (!newEndDate) {
+        toast('Please select a new end date', 'error');
+        return;
+      }
+      
+      await apiPost('/api/admin/absence/extend', {
+        absenceId: action.item.id,
+        userId: action.item.userId || action.item.discordId,
+        newEndDate: newEndDate,
+        adminName: state.admin.name,
+        adminId: state.admin.id
+      });
+      // Log admin action
+      await logAdminAction(
+        'absence_extended',
+        `${state.admin.name} extended ${action.item.name}'s absence to ${newEndDate}`,
+        action.item.userId || action.item.discordId
+      );
+      toast(`Absence extended for ${action.item.name} to ${newEndDate}`, 'success');
       await loadAbsences();
     } else if (action.type === 'request') {
       await apiPost('/api/admin/requests/update-status', {
@@ -2131,6 +2296,11 @@ document.getElementById('sendPayslipBtn').addEventListener('click', async () => 
     toast('Failed to send payslip', 'error');
   }
 });
+
+/* ================================================================
+   MANUAL LOA
+   ================================================================ */
+document.getElementById('confirmManualLoaBtn')?.addEventListener('click', submitManualLoa);
 
 /* ================================================================
    ISSUE REPORT
