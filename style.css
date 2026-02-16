@@ -1,3 +1,8 @@
+/* Sequential loading success state: use gray background instead of white */
+.sequential-loading-success, #sequentialLoadingScreen.success {
+  background: #23273a !important; /* dark gray for contrast */
+  color: var(--text) !important;
+}
 /* ================================================================
    CIRKLE STAFF PORTAL - MODERN DARK THEME
    Complete redesign for 2026 - Mobile-first, responsive, beautiful
