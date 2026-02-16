@@ -1,13 +1,13 @@
 // Service Worker for PWA offline support
 const CACHE_NAME = 'staff-portal-v' + new Date().getTime();
-const STATIC_CACHE = 'staff-portal-static-v2';
-const DYNAMIC_CACHE = 'staff-portal-dynamic-v2';
+const STATIC_CACHE = 'staff-portal-static-v3';
+const DYNAMIC_CACHE = 'staff-portal-dynamic-v3';
 
 const urlsToCache = [
   '/',
   '/index.html',
-  '/style.css',
-  '/script.js'
+  '/style.css?v=3.0.2',
+  '/script.js?v=2.0.9'
 ];
 
 self.addEventListener('install', event => {

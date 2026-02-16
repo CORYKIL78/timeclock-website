@@ -3,12 +3,80 @@
  * Uses KV Storage for all data (no external APIs except Discord & Resend)
  */
 
-const GENERAL_LOG_CHANNEL = '1472640182170943812';
+const ABSENCE_LOG_CHANNEL = '1472640182170943812';
+const REQUEST_LOG_CHANNEL = '1472954759525957652';
+const TIMECLOCK_CHANNEL = '1472956106753183919';
+const STAFF_ALERT_ROLE = '1472955487099289706';
+const STAFF_SERVER_GUILD_ID = '1460025375655723283';
+const OC_ADMIN_URL = 'https://portal.cirkledevelopment.co.uk/admin';
 
-async function postDiscordEmbed(env, channelId, embed) {
-  if (!env?.DISCORD_BOT_TOKEN || !channelId) return;
+async function postDiscordMessage(env, channelId, payload) {
+  if (!env?.DISCORD_BOT_TOKEN || !channelId) return null;
   try {
-    await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+    const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+      throw new Error(`Discord message failed: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('[DISCORD-LOG]', error);
+    return null;
+  }
+}
+
+async function postDiscordEmbed(env, channelId, embed, content = '', allowedMentions = null) {
+  const payload = { embeds: [embed] };
+  if (content) payload.content = content;
+  if (allowedMentions) payload.allowed_mentions = allowedMentions;
+  return await postDiscordMessage(env, channelId, payload);
+}
+
+async function updateDiscordMessage(env, channelId, messageId, payload) {
+  if (!env?.DISCORD_BOT_TOKEN || !channelId || !messageId) return false;
+  try {
+    const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+      throw new Error(`Discord update failed: ${response.status}`);
+    }
+    return true;
+  } catch (error) {
+    console.error('[DISCORD-UPDATE]', error);
+    return false;
+  }
+}
+
+async function sendDiscordDM(env, userId, embed) {
+  if (!env?.DISCORD_BOT_TOKEN || !userId || !embed) return false;
+  try {
+    const dmResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ recipient_id: userId })
+    });
+
+    if (!dmResponse.ok) {
+      throw new Error(`DM creation failed: ${dmResponse.status}`);
+    }
+
+    const dmChannel = await dmResponse.json();
+    const messageResponse = await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
       method: 'POST',
       headers: {
         'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
@@ -16,8 +84,11 @@ async function postDiscordEmbed(env, channelId, embed) {
       },
       body: JSON.stringify({ embeds: [embed] })
     });
+
+    return messageResponse.ok;
   } catch (error) {
-    console.error('[DISCORD-LOG]', error);
+    console.error('[DISCORD-DM]', error);
+    return false;
   }
 }
 
@@ -285,19 +356,26 @@ export default {
           await env.DATA.put('users:index', JSON.stringify(usersIndex));
         }
 
-        await postDiscordEmbed(env, GENERAL_LOG_CHANNEL, {
-          title: 'New Absence Request',
-          color: 0xf59e0b,
-          fields: [
-            { name: 'User', value: `${name || 'Unknown'} (${discordId})`, inline: false },
-            { name: 'Type', value: reason || 'N/A', inline: true },
-            { name: 'Start', value: startDate || 'N/A', inline: true },
-            { name: 'End', value: endDate || startDate || 'N/A', inline: true },
-            { name: 'Days', value: totalDays ? String(totalDays) : '1', inline: true },
-            { name: 'Comment', value: comment || 'N/A', inline: false }
-          ],
-          timestamp: new Date().toISOString()
-        });
+        await postDiscordEmbed(
+          env,
+          ABSENCE_LOG_CHANNEL,
+          {
+            title: 'New Absence Request',
+            description: `Review in OC Portal: ${OC_ADMIN_URL}`,
+            color: 0xf59e0b,
+            fields: [
+              { name: 'User', value: `${name || 'Unknown'} (${discordId})`, inline: false },
+              { name: 'Type', value: reason || 'N/A', inline: true },
+              { name: 'Start', value: startDate || 'N/A', inline: true },
+              { name: 'End', value: endDate || startDate || 'N/A', inline: true },
+              { name: 'Total Days', value: totalDays ? String(totalDays) : '1', inline: true },
+              { name: 'Reason', value: comment || 'N/A', inline: false }
+            ],
+            timestamp: new Date().toISOString()
+          },
+          `<@&${STAFF_ALERT_ROLE}>`,
+          { roles: [STAFF_ALERT_ROLE] }
+        );
 
         return new Response(JSON.stringify({ success: true, absence }), { headers: corsHeaders });
       }
@@ -555,18 +633,98 @@ export default {
           await env.DATA.put('users:index', JSON.stringify(usersIndex));
         }
 
-        await postDiscordEmbed(env, GENERAL_LOG_CHANNEL, {
-          title: 'New Request Submitted',
-          color: 0x3b82f6,
-          fields: [
-            { name: 'User', value: userId, inline: false },
-            { name: 'Type', value: type || 'N/A', inline: true },
-            { name: 'Details', value: comment || details || 'N/A', inline: false }
-          ],
-          timestamp: new Date().toISOString()
-        });
+        const profile = await env.DATA.get(`profile:${userId}`, 'json');
+        const userLabel = profile?.name ? `${profile.name} (${userId})` : userId;
+
+        await postDiscordEmbed(
+          env,
+          REQUEST_LOG_CHANNEL,
+          {
+            title: 'New Request Submitted',
+            description: `Review in OC Portal: ${OC_ADMIN_URL}`,
+            color: 0x3b82f6,
+            fields: [
+              { name: 'User', value: userLabel, inline: false },
+              { name: 'Type', value: type || 'N/A', inline: true },
+              { name: 'Details', value: comment || details || 'N/A', inline: false }
+            ],
+            timestamp: new Date().toISOString()
+          },
+          `<@&${STAFF_ALERT_ROLE}>`,
+          { roles: [STAFF_ALERT_ROLE] }
+        );
 
         return new Response(JSON.stringify({ success: true, request: request_item }), { headers: corsHeaders });
+      }
+
+      // Submit change request (department/name/email)
+      if (url.pathname === '/api/change-request/submit' && request.method === 'POST') {
+        const body = await request.json();
+        const { discordId, requestType, currentValue, requestedValue, reason, staffName, email, department, staffId } = body;
+
+        if (!discordId || !requestType || !requestedValue || !reason) {
+          return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        const normalizedType = String(requestType).toLowerCase();
+        const typeLabel = normalizedType === 'department'
+          ? 'Department Change'
+          : normalizedType === 'name'
+          ? 'Name Change'
+          : normalizedType === 'email'
+          ? 'Email Change'
+          : 'Change Request';
+
+        const requestItem = {
+          id: `request:${discordId}:${Date.now()}`,
+          userId: discordId,
+          type: typeLabel,
+          comment: reason,
+          details: reason,
+          currentValue: currentValue || '',
+          requestedValue,
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        };
+
+        const requestsKey = `requests:${discordId}`;
+        const requests = await env.DATA.get(requestsKey, 'json') || [];
+        requests.push(requestItem);
+        await env.DATA.put(requestsKey, JSON.stringify(requests));
+
+        const usersIndex = await env.DATA.get('users:index', 'json') || [];
+        if (!usersIndex.includes(discordId)) {
+          usersIndex.push(discordId);
+          await env.DATA.put('users:index', JSON.stringify(usersIndex));
+        }
+
+        const userLabel = staffName ? `${staffName} (${discordId})` : discordId;
+        await postDiscordEmbed(
+          env,
+          REQUEST_LOG_CHANNEL,
+          {
+            title: `New ${typeLabel}`,
+            description: `Review in OC Portal: ${OC_ADMIN_URL}`,
+            color: 0x3b82f6,
+            fields: [
+              { name: 'User', value: userLabel, inline: false },
+              { name: 'Reason', value: reason, inline: false },
+              { name: 'Old', value: currentValue || 'N/A', inline: true },
+              { name: 'New', value: requestedValue || 'N/A', inline: true },
+              { name: 'Staff ID', value: staffId || 'Not assigned', inline: true },
+              { name: 'Email', value: email || 'Not set', inline: true },
+              { name: 'Department', value: department || 'Not set', inline: true }
+            ],
+            timestamp: new Date().toISOString()
+          },
+          `<@&${STAFF_ALERT_ROLE}>`,
+          { roles: [STAFF_ALERT_ROLE] }
+        );
+
+        return new Response(JSON.stringify({ success: true, request: requestItem }), { headers: corsHeaders });
       }
 
       // ============================================================================
@@ -846,6 +1004,151 @@ export default {
             headers: corsHeaders 
           });
         }
+      }
+
+      // Timeclock webhook (clock in/out embeds)
+      if (url.pathname === '/api/webhooks/timeclock' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { action, userId, userName, staffId, timestamp, messageId, activity, duration } = body;
+
+          if (!userId || !action) {
+            return new Response(JSON.stringify({ success: false, error: 'userId and action required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const actionLower = String(action).toLowerCase();
+          const displayName = userName || 'Unknown User';
+          const timeText = timestamp ? new Date(timestamp).toLocaleString('en-GB') : new Date().toLocaleString('en-GB');
+
+          if (actionLower === 'clock_in') {
+            const embed = {
+              title: 'Timeclock: Clocked In',
+              color: 0x22c55e,
+              fields: [
+                { name: 'User', value: `${displayName} (${userId})`, inline: false },
+                { name: 'Staff ID', value: staffId || 'Not assigned', inline: true },
+                { name: 'Clocked In At', value: timeText, inline: true }
+              ],
+              timestamp: new Date().toISOString()
+            };
+
+            const message = await postDiscordMessage(env, TIMECLOCK_CHANNEL, {
+              embeds: [embed],
+              allowed_mentions: { parse: [] }
+            });
+
+            if (message?.id) {
+              await env.DATA.put(`timeclock:message:${userId}`, message.id);
+            }
+
+            return new Response(JSON.stringify({ success: true, messageId: message?.id || null }), { headers: corsHeaders });
+          }
+
+          if (actionLower === 'clock_out') {
+            const storedMessageId = messageId || await env.DATA.get(`timeclock:message:${userId}`);
+            const embed = {
+              title: 'Timeclock: Clocked Out',
+              color: 0xef4444,
+              fields: [
+                { name: 'User', value: `${displayName} (${userId})`, inline: false },
+                { name: 'Staff ID', value: staffId || 'Not assigned', inline: true },
+                { name: 'Clocked Out At', value: timeText, inline: true },
+                { name: 'Work Completed', value: activity || 'No activity logged', inline: false }
+              ],
+              timestamp: new Date().toISOString()
+            };
+
+            let updated = false;
+            if (storedMessageId) {
+              updated = await updateDiscordMessage(env, TIMECLOCK_CHANNEL, storedMessageId, {
+                embeds: [embed],
+                allowed_mentions: { parse: [] }
+              });
+            }
+
+            if (!updated) {
+              const replyPayload = {
+                embeds: [embed],
+                allowed_mentions: { parse: [] }
+              };
+              if (storedMessageId) {
+                replyPayload.message_reference = { message_id: storedMessageId };
+              }
+              await postDiscordMessage(env, TIMECLOCK_CHANNEL, replyPayload);
+            }
+
+            return new Response(JSON.stringify({ success: true, updated }), { headers: corsHeaders });
+          }
+
+          return new Response(JSON.stringify({ success: false, error: 'Invalid action' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        } catch (error) {
+          console.error('[TIMELOCK-WEBHOOK]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // Staff server membership status (verification)
+      if (url.pathname === '/api/discord/member-status' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { userId, guildId } = body;
+
+          if (!userId) {
+            return new Response(JSON.stringify({ success: false, error: 'userId required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const targetGuild = guildId || STAFF_SERVER_GUILD_ID;
+          const memberResponse = await fetch(`https://discord.com/api/v10/guilds/${targetGuild}/members/${userId}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          const isMember = memberResponse.ok;
+          const statusKey = `staff-server:verified:${userId}`;
+          const previousStatus = await env.DATA.get(statusKey);
+
+          if (isMember && previousStatus !== 'true') {
+            await env.DATA.put(statusKey, 'true');
+            await sendDiscordDM(env, userId, {
+              title: 'Verification Complete',
+              description: 'You have been verified as you have joined the staff server. Your status has been updated automatically.',
+              color: 0x22c55e,
+              timestamp: new Date().toISOString()
+            });
+          }
+
+          if (!isMember && previousStatus !== 'false') {
+            await env.DATA.put(statusKey, 'false');
+          }
+
+          return new Response(JSON.stringify({ success: true, isMember }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[STAFF-SERVER-STATUS]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // Absence webhook compatibility (no-op to avoid duplicates)
+      if (url.pathname === '/api/webhooks/absence' && request.method === 'POST') {
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
 
       // ============================================================================

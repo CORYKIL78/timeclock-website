@@ -2228,9 +2228,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Failed to save absence to Sheets:', e);
             }
             
-            // Send webhook notification
-            await sendAbsenceWebhook(absence);
-            
             // Send DM to user
             await sendDiscordDM(currentUser.id, {
                 title: '✅ Absence Request Submitted',
@@ -2324,9 +2321,55 @@ const DEPT_ROLES = window.CONFIG?.DEPT_ROLES || {
     'Oversight and Corporate': '1315041666851274822'
 };
 const GUILD_ID = window.CONFIG?.GUILD_ID || '1310656642672627752';
+const STAFF_SERVER_ID = window.CONFIG?.STAFF_SERVER_ID || '1460025375655723283';
 const WORKER_URL = window.CONFIG?.WORKER_URL || 'https://timeclock-backend.marcusray.workers.dev';
 const CLIENT_ID = window.CONFIG?.DISCORD_CLIENT_ID || '1417915896634277888';
 const REDIRECT_URI = window.CONFIG?.REDIRECT_URI || 'https://portal.cirkledevelopment.co.uk';
+
+const staffServerStatusCache = {
+    lastChecked: 0,
+    status: null
+};
+
+async function updateStaffServerStatus(force = false) {
+    const statusEl = document.getElementById('staffServerStatus');
+    if (!statusEl || !currentUser?.id) return;
+
+    const now = Date.now();
+    if (!force && staffServerStatusCache.lastChecked && now - staffServerStatusCache.lastChecked < 60000) {
+        const cached = staffServerStatusCache.status;
+        if (cached !== null) {
+            statusEl.textContent = cached ? 'tick Verified' : 'x Unverified';
+            statusEl.className = cached ? 'status-badge verified' : 'status-badge unverified';
+        }
+        return;
+    }
+
+    statusEl.textContent = 'Checking...';
+    statusEl.className = 'status-badge pending';
+
+    try {
+        const response = await fetch(`${WORKER_URL}/api/discord/member-status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id, guildId: STAFF_SERVER_ID })
+        });
+
+        if (!response.ok) throw new Error(`Status check failed: ${response.status}`);
+        const data = await response.json();
+        const isMember = data?.isMember === true;
+
+        staffServerStatusCache.lastChecked = now;
+        staffServerStatusCache.status = isMember;
+
+        statusEl.textContent = isMember ? 'tick Verified' : 'x Unverified';
+        statusEl.className = isMember ? 'status-badge verified' : 'status-badge unverified';
+    } catch (e) {
+        console.error('[STAFF SERVER STATUS] Failed:', e);
+        statusEl.textContent = 'x Unverified';
+        statusEl.className = 'status-badge unverified';
+    }
+}
 
 // Discord DM utility functions
 async function sendDiscordDM(userId, embed) {
@@ -2826,18 +2869,18 @@ function formatTime(ms) {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-async function sendWebhook(content) {
-    // SENTINEL Security: Route through secure backend
+async function sendTimeclockWebhook(payload) {
     try {
         const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/webhooks/timeclock', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content })
+            body: JSON.stringify(payload)
         });
         if (!response.ok) throw new Error(`Webhook failed: ${response.status}`);
-        console.log('[SENTINEL] Webhook sent successfully');
+        return await response.json();
     } catch (e) {
-        console.error('[SENTINEL] Webhook error:', e);
+        console.error('[SENTINEL] Timeclock webhook error:', e);
+        return null;
     }
 }
 
@@ -3245,41 +3288,31 @@ function updateMainScreen() {
     // Convert department ID to name, or use as-is if it's already a name
     const userDept = resolveDepartmentName(deptId);
     
-    // Base Level mapping - fetch from currentUser.profile which is synced from Sheets
-    // Handles both numeric (1-7), text values, and pipe-separated format "1 | Director Board"
-    const baseLevelMap = {
-        // Numeric values
-        '1': 'Director Board',
-        '2': 'Director Board',
-        '3': 'Development',
-        '4': 'Finance',
-        '5': 'Customer Relations',
-        '6': 'Seniors',
-        '7': 'General',
-        // Text values from dropdown menu
-        'Director Board': 'Director Board',
-        'Development': 'Development',
-        'Finance': 'Finance',
-        'Customer Relations': 'Customer Relations',
-        'Seniors': 'Seniors',
-        'General': 'General'
+    // Base Level number display
+    const baseLevelNumberMap = {
+        'Director Board': '1',
+        'Development': '3',
+        'Finance': '4',
+        'Customer Relations': '5',
+        'Seniors': '6',
+        'General': '7'
     };
-    
-    // Get base level from profile, trim whitespace
-    let baseLevelValue = (currentUser.profile?.baseLevel || '').toString().trim();
+
+    const baseLevelValue = (currentUser.profile?.baseLevel || '').toString().trim();
     console.log('[updateMainScreen] Raw baseLevel value from profile:', baseLevelValue);
-    
-    // Check if value contains pipe separator (e.g., "1 | Director Board")
+
     let baseLevelDisplay = 'Not Set';
     if (baseLevelValue) {
         if (baseLevelValue.includes('|')) {
-            // Extract the part after the pipe and trim
             const parts = baseLevelValue.split('|');
-            baseLevelDisplay = parts[1] ? parts[1].trim() : parts[0].trim();
-            console.log('[updateMainScreen] Parsed from pipe format:', baseLevelDisplay);
+            baseLevelDisplay = (parts[0] || '').trim() || 'Not Set';
         } else {
-            // Use mapping or the value itself
-            baseLevelDisplay = baseLevelMap[baseLevelValue] || baseLevelValue;
+            const match = baseLevelValue.match(/\b(\d{1,2})\b/);
+            if (match) {
+                baseLevelDisplay = match[1];
+            } else {
+                baseLevelDisplay = baseLevelNumberMap[baseLevelValue] || baseLevelValue;
+            }
         }
     }
     console.log('[updateMainScreen] Base Level display:', baseLevelDisplay);
@@ -3313,6 +3346,7 @@ function updateMainScreen() {
     }
     loadNotifications();
     renderPreviousSessions();
+    updateStaffServerStatus();
 }
 
 async function fetchRoleNames() {
@@ -5636,24 +5670,7 @@ if (portalLoginBtn) {
             // Step 1: Loading Discord data
             activateStep('discord');
             await new Promise(r => setTimeout(r, 800));
-            const membersResponse = await fetch(`${WORKER_URL}/members/${GUILD_ID}`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
-                mode: 'cors'
-            }).catch(err => {
-                console.warn('[Sequential Loading] Members endpoint not available:', err);
-                return { ok: false };
-            });
-            if (membersResponse.ok) {
-                const allMembers = await membersResponse.json();
-                const discordMember = allMembers.find(m => m.user.id === currentUser.id);
-                if (discordMember) {
-                    currentUser.roles = discordMember.roles || [];
-                    currentUser.avatar = discordMember.user.avatar 
-                        ? `https://cdn.discordapp.com/avatars/${currentUser.id}/${discordMember.user.avatar}.png?size=128` 
-                        : currentUser.avatar;
-                }
-            }
+            await updateStaffServerStatus(true);
             completeStep('discord');
             
             // Step 2: Loading database data
@@ -7099,7 +7116,16 @@ document.getElementById('clockInBtn').addEventListener('click', async () => {
     button.style.background = '';
     updateMainScreen();
     const emp = getEmployee(currentUser.id);
-    await sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked in at ${new Date().toLocaleString()}`);
+    const clockInResult = await sendTimeclockWebhook({
+        action: 'clock_in',
+        userId: currentUser.id,
+        userName: emp.profile?.name || currentUser.name || 'User',
+        staffId: emp.profile?.staffId || 'Not assigned',
+        timestamp: new Date().toISOString()
+    });
+    if (clockInResult?.messageId) {
+        localStorage.setItem(`timeclockMessageId_${currentUser.id}`, clockInResult.messageId);
+    }
     showModal('alert', '<span class="success-tick"></span> You have clocked in!');
     playSuccessSound();
     addNotification('timeclock', 'You have clocked in!', 'timeclock');
@@ -7140,8 +7166,18 @@ document.getElementById('submitClockOutBtn').addEventListener('click', async () 
     updateMainScreen();
     const emp = getEmployee(currentUser.id);
     
-    // Add activity summary to the webhook message
-    await sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()}\n**Activity:** ${activitySummary}`);
+    const duration = formatTime(clockOutTime - clockInTime);
+    const storedMessageId = localStorage.getItem(`timeclockMessageId_${currentUser.id}`);
+    await sendTimeclockWebhook({
+        action: 'clock_out',
+        userId: currentUser.id,
+        userName: emp.profile?.name || currentUser.name || 'User',
+        staffId: emp.profile?.staffId || 'Not assigned',
+        timestamp: new Date().toISOString(),
+        activity: activitySummary,
+        duration,
+        messageId: storedMessageId || null
+    });
     
     // Include activity in the session data
     clockInActions.push(activitySummary);
@@ -7150,6 +7186,7 @@ document.getElementById('submitClockOutBtn').addEventListener('click', async () 
     previousSessions.unshift(session);
     localStorage.setItem(`previousSessions_${currentUser.id}`, JSON.stringify(previousSessions));
     localStorage.removeItem('clockInTime');
+    localStorage.removeItem(`timeclockMessageId_${currentUser.id}`);
     clockInTime = null;
     clockInActions = [];
     showModal('alert', '<span class="success-tick"></span> You have clocked out. Please remember to clock back in again tomorrow!');
@@ -7429,15 +7466,6 @@ document.getElementById('submitRequestFormBtn').addEventListener('click', async 
         
         const data = await res.json();
         console.log('[DEBUG] Request submitted successfully:', data);
-        
-        // Send webhook notification to Discord
-        try {
-            const emp = getEmployee(currentUser.id);
-            const userName = emp?.profile?.name || currentUser.username || 'Unknown User';
-            await sendWebhook(`📋 **New Request Submitted**\n<@${currentUser.id}> (${userName})\n**Type:** ${type}\n**Details:** ${details.substring(0, 200)}${details.length > 200 ? '...' : ''}\n**Time:** ${new Date().toLocaleString()}`);
-        } catch (webhookError) {
-            console.error('[DEBUG] Failed to send request webhook:', webhookError);
-        }
         
         // Add notification
         addNotification('requests', `✅ ${type} request submitted successfully!`, 'requests');
@@ -8025,7 +8053,16 @@ if (logoutBtn) {
         
         if (isClockedIn) {
             clearInterval(clockInInterval);
-            sendWebhook(`<@${currentUser.id}> (${emp.profile.name}) clocked out at ${new Date().toLocaleString()} due to logout`);
+            const storedMessageId = localStorage.getItem(`timeclockMessageId_${currentUser.id}`);
+            sendTimeclockWebhook({
+                action: 'clock_out',
+                userId: currentUser.id,
+                userName: emp.profile?.name || currentUser.name || 'User',
+                staffId: emp.profile?.staffId || 'Not assigned',
+                timestamp: new Date().toISOString(),
+                activity: 'Clocked out due to logout',
+                messageId: storedMessageId || null
+            });
         }
         
         // Clear all local data using persistence layer

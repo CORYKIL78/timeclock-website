@@ -114,7 +114,7 @@ Add these to your Cloudflare Worker environment (wrangler.toml or dashboard)
 3. **Authentication:** Local validation in browser
 4. **Typical Usage:**
    - Run `node setup-admins.js dev` after editing credentials
-   - Login to `admin/backup.html` with your local Discord ID and PIN
+  - Login to `/admin` with your local Discord ID and PIN
    - Backend not required for authentication
 
 ### Production (Deployed)

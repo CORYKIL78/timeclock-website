@@ -665,6 +665,12 @@
                     <p id="baseLevel" style="font-size: 38px; font-weight: 800; margin: 0; color: var(--primary);">Not Set</p>
                 </div>
             </div>
+            <div class="status-row">
+                <div class="status-card">
+                    <span>Is in Staff Server:</span>
+                    <span id="staffServerStatus" class="status-badge pending">Checking...</span>
+                </div>
+            </div>
             </div>
         </div>
     </div>
@@ -1201,7 +1207,7 @@
     <!-- Load environment configuration (defaults are hardcoded in script.js) -->
     <script src="config-loader.js"></script>
     <!-- Main application script -->
-    <script src="script.js?v=2.0.8"></script>
+    <script src="script.js?v=2.0.9"></script>
     <script>
         // Force service worker update on every page load
         if ('serviceWorker' in navigator) {

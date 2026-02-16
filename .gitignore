@@ -6,6 +6,7 @@ secrets/
 credentials/
 admin-credentials.json
 .env-config.js
+admins.js
 
 # API keys and tokens
 *secret*
