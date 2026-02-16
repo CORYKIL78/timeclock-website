@@ -9349,19 +9349,19 @@ async function loadTaskTrackData() {
     const contentScreen = document.getElementById('tasktrackContent');
 
     try {
-        // Get current user ID
-        const userStr = localStorage.getItem('users');
-        if (!userStr) {
-            console.warn('No user found in localStorage');
-            throw new Error('User not found');
+        // Get current user from localStorage
+        const currentUserStr = localStorage.getItem('currentUser');
+        if (!currentUserStr) {
+            console.warn('No currentUser found in localStorage');
+            throw new Error('User not found - please log in');
         }
 
-        const users = JSON.parse(userStr);
-        const userId = Object.keys(users)[0]; // Get first user
+        const currentUser = JSON.parse(currentUserStr);
+        const userId = currentUser.id;
 
         if (!userId) {
-            console.warn('User ID not found in parsed users');
-            throw new Error('User ID not found');
+            console.warn('User ID not found in currentUser object');
+            throw new Error('User ID not found in profile');
         }
 
         // Fetch tasks from API
