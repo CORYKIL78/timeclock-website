@@ -9315,9 +9315,9 @@ function setupTaskTrackSystem() {
         showTaskTrackScreen();
     });
 
-    // Setup tab buttons
-    document.querySelectorAll('.tasktrack-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => switchTaskTab(btn.dataset.tab));
+    // Setup main tab buttons
+    document.querySelectorAll('.tasktrack-main-tab').forEach(btn => {
+        btn.addEventListener('click', () => switchTaskTrackTab(btn.dataset.tab));
     });
 }
 
@@ -9328,19 +9328,25 @@ async function showTaskTrackScreen() {
 
     const tasktrackScreen = document.getElementById('tasktrackScreen');
     if (tasktrackScreen) {
-        tasktrackScreen.style.display = 'block';
+        tasktrackScreen.style.display = 'flex';
     }
+
+    // Show loading screen
+    const loadingScreen = document.getElementById('tasktrackLoadingScreen');
+    const contentScreen = document.getElementById('tasktrackContent');
+    if (loadingScreen) loadingScreen.style.display = 'flex';
+    if (contentScreen) contentScreen.style.display = 'none';
+
+    // Wait 2 seconds for loading animation
+    await new Promise(r => setTimeout(r, 2000));
 
     // Load tasks
     await loadTaskTrackData();
 }
 
 async function loadTaskTrackData() {
-    const loading = document.getElementById('tasktrackLoading');
-    const content = document.getElementById('tasktrackContent');
-
-    if (loading) loading.style.display = 'block';
-    if (content) content.style.display = 'none';
+    const loadingScreen = document.getElementById('tasktrackLoadingScreen');
+    const contentScreen = document.getElementById('tasktrackContent');
 
     try {
         // Get current user ID
@@ -9362,15 +9368,41 @@ async function loadTaskTrackData() {
 
         // Process and render tasks
         renderTaskTrackAnalytics(tasks);
-        renderTaskCards(tasks);
+        renderOverviewTasks(tasks);
+        renderMyTasks(tasks);
+        renderHistoryTasks(tasks);
         
-        if (loading) loading.style.display = 'none';
-        if (content) content.style.display = 'flex';
+        if (loadingScreen) loadingScreen.style.display = 'none';
+        if (contentScreen) contentScreen.style.display = 'flex';
 
     } catch (error) {
         console.error('Error loading TaskTrack data:', error);
-        if (loading) loading.style.display = 'none';
-        if (content) content.style.display = 'flex';
+        if (loadingScreen) loadingScreen.style.display = 'none';
+        if (contentScreen) contentScreen.style.display = 'flex';
+    }
+}
+
+function switchTaskTrackTab(tabName) {
+    // Update button styles
+    document.querySelectorAll('.tasktrack-main-tab').forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+            btn.style.color = 'var(--accent)';
+            btn.style.borderBottom = '2px solid var(--accent)';
+        } else {
+            btn.style.color = 'var(--text2)';
+            btn.style.borderBottom = 'none';
+        }
+    });
+
+    // Hide all tabs
+    document.querySelectorAll('.tasktrack-tab').forEach(tab => {
+        tab.style.display = 'none';
+    });
+
+    // Show selected tab
+    const tab = document.getElementById(tabName + 'Tab');
+    if (tab) {
+        tab.style.display = 'flex';
     }
 }
 
@@ -9400,7 +9432,7 @@ function renderTaskTrackAnalytics(tasks) {
                 datasets: [{
                     data: [completed, inProgress, overdue],
                     backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
-                    borderColor: '#ffffff',
+                    borderColor: 'var(--bg2)',
                     borderWidth: 2
                 }]
             },
@@ -9419,17 +9451,15 @@ function renderTaskTrackAnalytics(tasks) {
     // Update weekly comparison
     const weeklyText = document.getElementById('weeklyComparison');
     if (weeklyText) {
-        // TODO: Implement actual comparison with previous week
-        weeklyText.textContent = 'Your tasks have remained the same this week as was last week';
+        weeklyText.textContent = 'Your tasks have remained the same this week as last week';
     }
 }
 
-function renderTaskCards(tasks) {
+function renderOverviewTasks(tasks) {
     const container = document.getElementById('upcomingTasksContainer');
-    const noTasksMsg = document.getElementById('noTasksMessage');
-    const upcomingTasksList = document.getElementById('upcomingTasksList');
+    const noTasksMsg = document.getElementById('noTasksOverviewMessage');
 
-    if (!container || !upcomingTasksList) return;
+    if (!container) return;
 
     // Filter upcoming tasks (next 14 days)
     const now = new Date();
@@ -9440,72 +9470,170 @@ function renderTaskCards(tasks) {
         return dueDate >= now && dueDate <= twoWeeksFromNow && t.status !== 'complete';
     }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
-    // Clear containers
+    // Clear container
     container.innerHTML = '';
-    upcomingTasksList.innerHTML = '';
 
     if (upcomingTasks.length === 0) {
         if (noTasksMsg) noTasksMsg.style.display = 'block';
-        container.style.display = 'none';
         return;
     }
 
     if (noTasksMsg) noTasksMsg.style.display = 'none';
-    container.style.display = 'grid';
 
     upcomingTasks.forEach(task => {
-        // Card in grid
         const card = document.createElement('div');
         card.style.cssText = `
-            background: white;
-            border: 1px solid #e5e7eb;
+            background: var(--bg3);
+            border: 1px solid var(--border);
             border-radius: 8px;
             padding: 16px;
             cursor: pointer;
             transition: all 0.3s ease;
         `;
-        card.onmouseover = () => card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-        card.onmouseout = () => card.style.boxShadow = 'none';
+        card.onmouseover = () => {
+            card.style.borderColor = 'var(--accent)';
+            card.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.2)';
+        };
+        card.onmouseout = () => {
+            card.style.borderColor = 'var(--border)';
+            card.style.boxShadow = 'none';
+        };
 
         card.innerHTML = `
-            <h4 style="margin: 0 0 8px 0; font-weight: 600; color: #1f2937;">${task.title}</h4>
-            <p style="margin: 0 0 12px 0; color: #666; font-size: 13px; line-height: 1.4;">${task.description?.substring(0, 60)}...</p>
+            <h4 style="margin: 0 0 8px 0; font-weight: 600; color: var(--text);">${task.title}</h4>
+            <p style="margin: 0 0 12px 0; color: var(--text2); font-size: 13px; line-height: 1.4;">${task.description?.substring(0, 60)}...</p>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 12px;">
-                <span style="color: #667eea; font-weight: 600;">${task.department}</span>
-                <span style="color: #999;">Due: ${new Date(task.dueDate).toLocaleDateString()}</span>
+                <span style="color: var(--accent); font-weight: 600;">${task.department}</span>
+                <span style="color: var(--text2);">Due: ${new Date(task.dueDate).toLocaleDateString()}</span>
             </div>
-            <button style="width: 100%; padding: 8px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
-                Complete
+            <button style="width: 100%; padding: 8px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: background 0.2s ease;">
+                View Details
             </button>
+        `;
+
+        const btn = card.querySelector('button');
+        btn.onmouseover = () => btn.style.background = 'var(--accent2)';
+        btn.onmouseout = () => btn.style.background = 'var(--accent)';
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showTaskDetail(task);
+        });
+
+        card.addEventListener('click', () => showTaskDetail(task));
+        container.appendChild(card);
+    });
+}
+
+function renderMyTasks(tasks) {
+    const container = document.getElementById('myTasksList');
+    const noMsg = document.getElementById('noMyTasksMessage');
+
+    if (!container) return;
+
+    // Filter user's active tasks
+    const myTasks = tasks.filter(t => t.status !== 'complete').sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+    container.innerHTML = '';
+
+    if (myTasks.length === 0) {
+        if (noMsg) noMsg.style.display = 'block';
+        return;
+    }
+
+    if (noMsg) noMsg.style.display = 'none';
+
+    myTasks.forEach(task => {
+        const card = document.createElement('div');
+        const priorityColor = task.priority === 'high' ? '#ef4444' : task.priority === 'medium' ? '#f59e0b' : '#3b82f6';
+        const statusColor = task.status === 'claimed' ? '#10b981' : task.status === 'overdue' ? '#ef4444' : '#f59e0b';
+
+        card.style.cssText = `
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        `;
+        card.onmouseover = () => {
+            card.style.borderColor = 'var(--accent)';
+            card.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.2)';
+        };
+        card.onmouseout = () => {
+            card.style.borderColor = 'var(--border)';
+            card.style.boxShadow = 'none';
+        };
+
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                <h4 style="margin: 0; font-weight: 600; color: var(--text); flex: 1;">${task.title}</h4>
+                <span style="font-size: 12px; color: white; background: ${priorityColor}; padding: 4px 8px; border-radius: 4px; white-space: nowrap; margin-left: 8px;">${task.priority || 'normal'}</span>
+            </div>
+            <p style="margin: 0 0 12px 0; color: var(--text2); font-size: 13px;">${task.description?.substring(0, 80)}...</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 12px;">
+                <span style="color: var(--text2);">${task.department}</span>
+                <span style="color: white; background: ${statusColor}; padding: 3px 10px; border-radius: 3px; text-transform: capitalize;">${task.status}</span>
+            </div>
+            <div style="font-size: 12px; color: var(--text2);">Due: ${new Date(task.dueDate).toLocaleDateString()}</div>
         `;
 
         card.addEventListener('click', () => showTaskDetail(task));
         container.appendChild(card);
+    });
+}
 
-        // Card in list view
-        const listItem = document.createElement('div');
-        listItem.style.cssText = `
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
+function renderHistoryTasks(tasks) {
+    const container = document.getElementById('completedTasksList');
+    const noMsg = document.getElementById('noHistoryMessage');
+
+    if (!container) return;
+
+    // Filter completed tasks
+    const completed = tasks.filter(t => t.status === 'complete').sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+
+    container.innerHTML = '';
+
+    if (completed.length === 0) {
+        if (noMsg) noMsg.style.display = 'block';
+        return;
+    }
+
+    if (noMsg) noMsg.style.display = 'none';
+
+    completed.forEach(task => {
+        const item = document.createElement('div');
+        item.style.cssText = `
+            background: var(--bg3);
+            border: 1px solid var(--border);
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 12px;
             cursor: pointer;
+            transition: all 0.3s ease;
         `;
+        item.onmouseover = () => {
+            item.style.borderColor = 'var(--accent)';
+            item.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.2)';
+        };
+        item.onmouseout = () => {
+            item.style.borderColor = 'var(--border)';
+            item.style.boxShadow = 'none';
+        };
 
-        listItem.innerHTML = `
+        item.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                <h4 style="margin: 0; font-weight: 600; color: #1f2937;">${task.title}</h4>
-                <span style="font-size: 12px; color: #999;">${new Date(task.dueDate).toLocaleDateString()}</span>
+                <h4 style="margin: 0; font-weight: 600; color: var(--text); flex: 1;">✓ ${task.title}</h4>
+                <span style="font-size: 12px; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 4px 10px; border-radius: 3px; white-space: nowrap;">Completed</span>
             </div>
-            <p style="margin: 0 0 12px 0; color: #666; font-size: 13px;">${task.description?.substring(0, 100)}...</p>
-            <button style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
-                Complete Task
-            </button>
+            <p style="margin: 0 0 12px 0; color: var(--text2); font-size: 13px;">${task.description?.substring(0, 80)}...</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                <span style="color: var(--text2);">${task.department}</span>
+                <span style="color: var(--text2);">Completed: ${new Date(task.completedAt || task.createdAt).toLocaleDateString()}</span>
+            </div>
         `;
 
-        listItem.addEventListener('click', () => showTaskDetail(task));
-        upcomingTasksList.appendChild(listItem);
+        item.addEventListener('click', () => showTaskDetail(task));
+        container.appendChild(item);
     });
 }
 
@@ -9516,59 +9644,59 @@ function showTaskDetail(task) {
     if (!modal || !content) return;
 
     content.innerHTML = `
-        <h2 style="margin: 0 0 16px 0; color: #1f2937;">${task.title}</h2>
+        <h2 style="margin: 0 0 16px 0; color: var(--text);">${task.title}</h2>
         
         <div style="margin-bottom: 20px;">
-            <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Description</h3>
-            <p style="margin: 0; color: #374151; line-height: 1.6;">${task.description}</p>
+            <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Description</h3>
+            <p style="margin: 0; color: var(--text); line-height: 1.6;">${task.description}</p>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
             <div>
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Due Date</h3>
-                <p style="margin: 0; color: #374151; font-weight: 600;">${new Date(task.dueDate).toLocaleDateString()}</p>
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Due Date</h3>
+                <p style="margin: 0; color: var(--text); font-weight: 600;">${new Date(task.dueDate).toLocaleDateString()}</p>
             </div>
             <div>
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Status</h3>
-                <p style="margin: 0; color: #374151; font-weight: 600;">${task.status?.toUpperCase()}</p>
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Status</h3>
+                <p style="margin: 0; color: var(--text); font-weight: 600;">${task.status?.toUpperCase()}</p>
             </div>
             <div>
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Department</h3>
-                <p style="margin: 0; color: #374151; font-weight: 600;">${task.department}</p>
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Department</h3>
+                <p style="margin: 0; color: var(--text); font-weight: 600;">${task.department}</p>
             </div>
             <div>
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Priority</h3>
-                <p style="margin: 0; color: #374151; font-weight: 600;">${task.priority?.toUpperCase()}</p>
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Priority</h3>
+                <p style="margin: 0; color: var(--text); font-weight: 600;">${task.priority?.toUpperCase()}</p>
             </div>
         </div>
 
         ${task.extraInfo ? `
             <div style="margin-bottom: 20px;">
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Extra Information</h3>
-                <p style="margin: 0; color: #374151;">${task.extraInfo}</p>
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Extra Information</h3>
+                <p style="margin: 0; color: var(--text);">${task.extraInfo}</p>
             </div>
         ` : ''}
 
         <div style="margin-bottom: 20px;">
-            <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Assigned By</h3>
-            <p style="margin: 0; color: #374151;">${task.createdByName || 'Unknown'}</p>
+            <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Assigned By</h3>
+            <p style="margin: 0; color: var(--text);">${task.createdByName || 'Unknown'}</p>
         </div>
 
         ${task.updates && task.updates.length > 0 ? `
             <div style="margin-bottom: 20px;">
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Progress Updates</h3>
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Progress Updates</h3>
                 <div style="display: flex; flex-direction: column; gap: 12px;">
                     ${task.updates.map(update => `
-                        <div style="background: #f9fafb; padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
-                            <p style="margin: 0 0 4px 0; color: #374151;">${update.content}</p>
-                            <p style="margin: 0; font-size: 12px; color: #999;">${new Date(update.createdAt).toLocaleString()}</p>
+                        <div style="background: var(--bg3); padding: 12px; border-radius: 6px; border-left: 3px solid var(--accent);">
+                            <p style="margin: 0 0 4px 0; color: var(--text);">${update.content}</p>
+                            <p style="margin: 0; font-size: 12px; color: var(--text2);">${new Date(update.createdAt).toLocaleString()}</p>
                         </div>
                     `).join('')}
                 </div>
             </div>
         ` : ''}
 
-        <button style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; margin-top: 20px;">
+        <button style="width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; margin-top: 20px; transition: background 0.2s ease;" onmouseover="this.style.background='#a78bfa'" onmouseout="this.style.background='var(--accent)'">
             Mark as Complete
         </button>
     `;
@@ -9576,29 +9704,6 @@ function showTaskDetail(task) {
     modal.classList.add('active');
 }
 
-function switchTaskTab(tab) {
-    // Hide all tabs
-    document.querySelectorAll('.tasktrack-tab-content').forEach(t => t.style.display = 'none');
-    document.querySelectorAll('.tasktrack-tab-btn').forEach(b => {
-        b.style.color = '#9ca3af';
-        b.style.borderBottom = 'none';
-    });
-
-    // Show selected tab
-    const tabElement = document.getElementById(tab + 'Tab');
-    if (tabElement) {
-        tabElement.style.display = 'block';
-    }
-
-    // Highlight button
-    const btn = document.querySelector(`[data-tab="${tab}"]`);
-    if (btn) {
-        btn.style.color = '#667eea';
-        btn.style.borderBottom = '2px solid #667eea';
-    }
-}
-
-// Initialize all systems on DOM ready
 function setupModalCloseButtons() {
     // Setup close buttons for all modals
     document.querySelectorAll('.modal .close').forEach(closeBtn => {

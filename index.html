@@ -1288,99 +1288,114 @@
     
     <!-- TaskTrack Screen -->
     <div id="tasktrackScreen" class="screen">
-        <div style="padding: 20px 24px 20px 0; height: 100%; display: flex; flex-direction: column; width: 100%; gap: 20px; overflow-y: auto;">
-            <!-- Loading Screen for TaskTrack -->
-            <div id="tasktrackLoading" style="display: none; text-align: center; padding: 80px 20px;">
-                <div style="width: 80px; height: 80px; border: 8px solid #f3f3f3; border-top: 8px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 30px;"></div>
-                <h2 style="font-size: 28px; margin-bottom: 15px;">Loading TaskTrack</h2>
-                <p style="font-size: 16px; color: #666;">Just one moment whilst we fetch your tasks...</p>
+        <!-- Loading Screen with Spinning Logo -->
+        <div id="tasktrackLoadingScreen" style="display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px; height: 100%; background: var(--bg); width: 100%;">
+            <div style="width: 100px; height: 100px; animation: spin-logo 2s linear infinite;">
+                <img src="logotransparent.png" alt="Loading..." style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.3));" />
+            </div>
+            <div style="text-align: center;">
+                <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 600; color: var(--text);">Loading TaskTrack</h2>
+                <p style="margin: 0; color: var(--text2); font-size: 14px;">Just one moment while we fetch your tasks...</p>
+            </div>
+        </div>
+
+        <!-- Main TaskTrack Content -->
+        <div id="tasktrackContent" style="display: none; padding: 20px 24px 20px 0; height: 100%; display: flex; flex-direction: column; width: 100%; gap: 0; overflow: hidden;">
+            <!-- Tab Navigation -->
+            <div style="display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; background: var(--bg2);">
+                <button class="tasktrack-main-tab active" data-tab="overview" style="flex: 0 0 auto; padding: 16px 24px; border: none; background: none; font-size: 14px; font-weight: 600; color: var(--accent); border-bottom: 2px solid var(--accent); cursor: pointer; transition: all 0.2s ease;">📊 Overview</button>
+                <button class="tasktrack-main-tab" data-tab="mytasks" style="flex: 0 0 auto; padding: 16px 24px; border: none; background: none; font-size: 14px; font-weight: 600; color: var(--text2); cursor: pointer; transition: all 0.2s ease;">✓ My Tasks</button>
+                <button class="tasktrack-main-tab" data-tab="history" style="flex: 0 0 auto; padding: 16px 24px; border: none; background: none; font-size: 14px; font-weight: 600; color: var(--text2); cursor: pointer; transition: all 0.2s ease;">📜 History</button>
             </div>
 
-            <!-- Main TaskTrack Content -->
-            <div id="tasktrackContent" style="display: flex; flex-direction: column; gap: 20px;">
-                <!-- Welcome Header -->
-                <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                    <h2 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 600;">Welcome to TaskTrack</h2>
-                    <p style="margin: 0; color: #666; font-size: 15px;">Let's see your current analytics.</p>
+            <!-- Tab Content Container -->
+            <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; min-height: 0;">
+                <!-- OVERVIEW TAB -->
+                <div id="overviewTab" class="tasktrack-tab" style="display: flex; flex-direction: column; gap: 20px; overflow-y: auto;">
+                    <!-- Welcome Header -->
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                        <h2 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 600; color: var(--text);">Welcome to TaskTrack</h2>
+                        <p style="margin: 0; color: var(--text2); font-size: 15px;">Let's see your current analytics and upcoming tasks.</p>
+                    </div>
+
+                    <!-- Analytics Section -->
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                        <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: var(--text);">📊 Task Analytics</h3>
+                        
+                        <!-- Charts & Stats -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; justify-content: center;">
+                                <canvas id="taskEfficiencyChart" width="200" height="200"></canvas>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: var(--text);">Task Efficiency</h4>
+                                <div style="display: flex; flex-direction: column; gap: 12px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--bg3); border-radius: 8px;">
+                                        <div style="display: flex; align-items: center; gap: 8px; color: var(--text);">
+                                            <div style="width: 12px; height: 12px; background: #10b981; border-radius: 2px;"></div>
+                                            <span>Completed</span>
+                                        </div>
+                                        <strong id="completedTasksCount" style="color: #10b981;">0</strong>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--bg3); border-radius: 8px;">
+                                        <div style="display: flex; align-items: center; gap: 8px; color: var(--text);">
+                                            <div style="width: 12px; height: 12px; background: #f59e0b; border-radius: 2px;"></div>
+                                            <span>In Progress</span>
+                                        </div>
+                                        <strong id="inProgressCount" style="color: #f59e0b;">0</strong>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--bg3); border-radius: 8px;">
+                                        <div style="display: flex; align-items: center; gap: 8px; color: var(--text);">
+                                            <div style="width: 12px; height: 12px; background: #ef4444; border-radius: 2px;"></div>
+                                            <span>Overdue</span>
+                                        </div>
+                                        <strong id="overdueTasksCount" style="color: #ef4444;">0</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Weekly Comparison -->
+                        <div style="padding-top: 20px; border-top: 1px solid var(--border);">
+                            <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: var(--text);">📈 Weekly Comparison</h4>
+                            <p id="weeklyComparison" style="margin: 0; color: var(--text2); font-size: 14px;">Your tasks have remained the same this week as last week</p>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Tasks Section -->
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                        <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: var(--text);">Tasks for This Fortnight</h3>
+                        <div id="upcomingTasksContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                            <!-- Task cards will be rendered here -->
+                        </div>
+                        <div id="noTasksOverviewMessage" style="text-align: center; padding: 40px 20px; color: var(--text2);">
+                            <p style="margin: 0; font-size: 16px;">You have no upcoming tasks for this fortnight</p>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Analytics Section -->
-                <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                    <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600;">📊 Analytics</h3>
-                    
-                    <!-- Pie Chart -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                        <div style="display: flex; align-items: center; justify-content: center;">
-                            <canvas id="taskEfficiencyChart" width="200" height="200"></canvas>
+                <!-- MY TASKS TAB -->
+                <div id="mytasksTab" class="tasktrack-tab" style="display: none; overflow-y: auto;">
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                        <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: var(--text);">✓ Your Active Tasks</h3>
+                        <div id="myTasksList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                            <!-- User's tasks will be rendered here -->
                         </div>
-                        <div>
-                            <h4 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Task Efficiency</h4>
-                            <div style="display: flex; flex-direction: column; gap: 12px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <div style="width: 12px; height: 12px; background: #10b981; border-radius: 2px;"></div>
-                                        <span>Completed</span>
-                                    </div>
-                                    <strong id="completedTasksCount">0</strong>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <div style="width: 12px; height: 12px; background: #f59e0b; border-radius: 2px;"></div>
-                                        <span>In Progress</span>
-                                    </div>
-                                    <strong id="inProgressCount">0</strong>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <div style="width: 12px; height: 12px; background: #ef4444; border-radius: 2px;"></div>
-                                        <span>Overdue</span>
-                                    </div>
-                                    <strong id="overdueTasksCount">0</strong>
-                                </div>
-                            </div>
+                        <div id="noMyTasksMessage" style="text-align: center; padding: 40px 20px; color: var(--text2); display: none;">
+                            <p style="margin: 0; font-size: 16px;">You have no active tasks at the moment</p>
                         </div>
-                    </div>
-
-                    <!-- Weekly Comparison -->
-                    <div style="padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                        <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600;">📈 Weekly Comparison</h4>
-                        <p id="weeklyComparison" style="margin: 0; color: #666; font-size: 14px;">Your tasks have remained the same this week as was last week</p>
                     </div>
                 </div>
 
-                <!-- Upcoming Tasks Section -->
-                <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                    <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600;">Tasks for This Fortnight</h3>
-                    <div id="upcomingTasksContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-                        <!-- Task cards will be rendered here -->
-                    </div>
-                    <div id="noTasksMessage" style="text-align: center; padding: 40px 20px; color: #666;">
-                        <p style="margin: 0; font-size: 16px;">You have no upcoming tasks for this fortnight</p>
-                    </div>
-                </div>
-
-                <!-- Tabs for History -->
-                <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                    <div style="display: flex; border-bottom: 1px solid #e5e7eb; background: #f9fafb;">
-                        <button class="tasktrack-tab-btn active" data-tab="upcoming" style="flex: 1; padding: 16px; border: none; background: none; font-size: 14px; font-weight: 600; color: #667eea; border-bottom: 2px solid #667eea; cursor: pointer;">Upcoming</button>
-                        <button class="tasktrack-tab-btn" data-tab="progress" style="flex: 1; padding: 16px; border: none; background: none; font-size: 14px; font-weight: 600; color: #9ca3af; cursor: pointer;">Progress Updates</button>
-                        <button class="tasktrack-tab-btn" data-tab="history" style="flex: 1; padding: 16px; border: none; background: none; font-size: 14px; font-weight: 600; color: #9ca3af; cursor: pointer;">History</button>
-                    </div>
-                    <div style="padding: 20px;">
-                        <div id="upcomingTab" class="tasktrack-tab-content" style="display: block;">
-                            <div id="upcomingTasksList">
-                                <!-- Task cards will be rendered here -->
-                            </div>
+                <!-- HISTORY TAB -->
+                <div id="historyTab" class="tasktrack-tab" style="display: none; overflow-y: auto;">
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                        <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: var(--text);">📜 Completed Tasks History</h3>
+                        <div id="completedTasksList" style="display: flex; flex-direction: column; gap: 12px;">
+                            <!-- Completed tasks will be rendered here -->
                         </div>
-                        <div id="progressTab" class="tasktrack-tab-content" style="display: none;">
-                            <div id="progressUpdatesList">
-                                <!-- Progress updates will be rendered here -->
-                            </div>
-                        </div>
-                        <div id="historyTab" class="tasktrack-tab-content" style="display: none;">
-                            <div id="completedTasksList">
-                                <!-- Completed tasks will be rendered here -->
-                            </div>
+                        <div id="noHistoryMessage" style="text-align: center; padding: 40px 20px; color: var(--text2); display: none;">
+                            <p style="margin: 0; font-size: 16px;">You have no completed tasks yet</p>
                         </div>
                     </div>
                 </div>
