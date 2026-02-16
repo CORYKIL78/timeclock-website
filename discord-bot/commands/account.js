@@ -78,17 +78,22 @@ async function showAccountInformation(interaction, profile) {
     try {
         // Create account info embed with banner
         const embed = new EmbedBuilder()
-            .setTitle('Staff Portal Account')
-            .setDescription('Here\'s your account information')
+            .setTitle('📋 Staff Portal Account')
+            .setDescription('Here\'s your account information on the TimeClock Portal')
             .setColor('#667eea')
             .setThumbnail(interaction.user.displayAvatarURL({ size: 256 }))
             .addFields(
-                { name: 'Name', value: profile.name || 'Not set', inline: true },
-                { name: 'Staff ID', value: profile.staffId || 'Not set', inline: true },
-                { name: 'Department', value: profile.department || 'Not set', inline: true },
-                { name: 'Email', value: profile.email || 'Not set', inline: false }
+                { name: '👤 Name', value: profile.name || 'Not set', inline: true },
+                { name: '🆔 Staff ID', value: profile.staffId || 'Not set', inline: true },
+                { name: '🏢 Department', value: profile.department || 'Not set', inline: true },
+                { name: '📧 Email', value: profile.email || 'Not set', inline: false }
             )
-            .setImage('https://via.placeholder.com/1200x300?text=Staff+Portal');
+            .setImage('https://via.placeholder.com/1200x100?text=TimeClock+Staff+Portal&txtsize=40')
+            .setFooter({
+                text: '🔐 Secure Portal Access',
+                iconURL: interaction.client.user.displayAvatarURL({ size: 256 })
+            })
+            .setTimestamp();
 
         await interaction.editReply({
             embeds: [embed],

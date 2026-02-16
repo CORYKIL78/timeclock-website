@@ -141,51 +141,66 @@ async function handleDepartmentSelection(interaction) {
 
     const department = interaction.values[0];
 
-    // Store department in interaction for later use
-    if (!interaction.client.taskTrackData) {
-        interaction.client.taskTrackData = new Map();
+    try {
+        // Store department in interaction for later use
+        if (!interaction.client.taskTrackData) {
+            interaction.client.taskTrackData = new Map();
+        }
+        interaction.client.taskTrackData.set(interaction.user.id, { department });
+
+        // Show task form modal
+        const modal = new ModalBuilder()
+            .setCustomId('tasktrack_form_modal')
+            .setTitle(`New Task - ${department}`)
+            .addComponents(
+                new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId('task_title_input')
+                        .setLabel('Task Title')
+                        .setStyle(TextInputStyle.Short)
+                        .setRequired(true)
+                        .setMaxLength(100)
+                ),
+                new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId('task_description_input')
+                        .setLabel('Task Description')
+                        .setStyle(TextInputStyle.Paragraph)
+                        .setRequired(true)
+                        .setMaxLength(1000)
+                ),
+                new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId('task_duedate_input')
+                        .setLabel('Due Date (YYYY-MM-DD)')
+                        .setStyle(TextInputStyle.Short)
+                        .setRequired(true)
+                ),
+                new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId('task_extrainfo_input')
+                        .setLabel('Extra Information (Optional)')
+                        .setStyle(TextInputStyle.Paragraph)
+                        .setRequired(false)
+                        .setMaxLength(500)
+                )
+            );
+
+        await interaction.showModal(modal);
+    } catch (error) {
+        console.error('Error showing modal:', error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: '❌ Error opening form. Please try again.',
+                ephemeral: true
+            });
+        } else {
+            await interaction.followUp({
+                content: '❌ Error opening form. Please try again.',
+                ephemeral: true
+            });
+        }
     }
-    interaction.client.taskTrackData.set(interaction.user.id, { department });
-
-    // Show task form modal
-    const modal = new ModalBuilder()
-        .setCustomId('tasktrack_form_modal')
-        .setTitle(`New Task - ${department}`)
-        .addComponents(
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder()
-                    .setCustomId('task_title_input')
-                    .setLabel('Task Title')
-                    .setStyle(TextInputStyle.Short)
-                    .setRequired(true)
-                    .setMaxLength(100)
-            ),
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder()
-                    .setCustomId('task_description_input')
-                    .setLabel('Task Description')
-                    .setStyle(TextInputStyle.Paragraph)
-                    .setRequired(true)
-                    .setMaxLength(1000)
-            ),
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder()
-                    .setCustomId('task_duedate_input')
-                    .setLabel('Due Date (YYYY-MM-DD)')
-                    .setStyle(TextInputStyle.Short)
-                    .setRequired(true)
-            ),
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder()
-                    .setCustomId('task_extrainfo_input')
-                    .setLabel('Extra Information (Optional)')
-                    .setStyle(TextInputStyle.Paragraph)
-                    .setRequired(false)
-                    .setMaxLength(500)
-            )
-        );
-
-    await interaction.showModal(modal);
 }
 
 // Handle task form submission
@@ -336,6 +351,16 @@ async function handleTaskPublish(interaction) {
                 threadId: thread.id
             })
         });
+
+        if (!createTaskResponse.ok) {
+            console.error('Task creation API error:', createTaskResponse.status, createTaskResponse.statusText);
+            const errorText = await createTaskResponse.text();
+            console.error('Error response:', errorText);
+            return await interaction.followUp({
+                content: `❌ Failed to create task in backend: ${createTaskResponse.status} ${createTaskResponse.statusText}`,
+                ephemeral: true
+            });
+        }
 
         const createdTask = await createTaskResponse.json();
         const taskId = createdTask.task?.id;
