@@ -3280,6 +3280,12 @@ function getGreeting() {
 
 function updateMainScreen() {
     console.log('Updating main screen for user:', currentUser.id);
+    
+    // Clear cache on every main screen update to get fresh data from backend
+    // This ensures deletions from admin portal are reflected immediately
+    apiCache.clear();
+    console.log('[updateMainScreen] Cache cleared to ensure fresh data from backend');
+    
     const emp = getEmployee(currentUser.id);
     
     // Ensure profile data exists before displaying

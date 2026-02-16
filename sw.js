@@ -1,13 +1,13 @@
 // Service Worker for PWA offline support
 const CACHE_NAME = 'staff-portal-v' + new Date().getTime();
-const STATIC_CACHE = 'staff-portal-static-v3';
-const DYNAMIC_CACHE = 'staff-portal-dynamic-v3';
+const STATIC_CACHE = 'staff-portal-static-v4';
+const DYNAMIC_CACHE = 'staff-portal-dynamic-v4';
 
 const urlsToCache = [
   '/',
   '/index.html',
-  '/style.css?v=3.0.2',
-  '/script.js?v=2.0.9'
+  '/style.css?v=3.0.3',
+  '/script.js?v=2.1.0'
 ];
 
 self.addEventListener('install', event => {
@@ -15,11 +15,12 @@ self.addEventListener('install', event => {
     Promise.all([
       caches.open(STATIC_CACHE)
         .then(cache => cache.addAll(urlsToCache)),
-      // Delete old caches
+      // Delete old caches on every update
       caches.keys().then(cacheNames => {
         return Promise.all(
           cacheNames.map(cacheName => {
             if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE && !cacheName.includes('staff-portal-v')) {
+              console.log('[SW] Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
           })
@@ -32,14 +33,29 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.filter(cacheName => {
-          return cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE && 
-                 !cacheName.startsWith('staff-portal-v');
-        }).map(cacheName => caches.delete(cacheName))
-      );
-    })
+    Promise.all([
+      // Cleanup old caches
+      caches.keys().then(cacheNames => {
+        return Promise.all(
+          cacheNames.filter(cacheName => {
+            return cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE && 
+                   !cacheName.startsWith('staff-portal-v');
+          }).map(cacheName => {
+            console.log('[SW] Deleting cache during activation:', cacheName);
+            return caches.delete(cacheName);
+          })
+        );
+      }),
+      // Notify all clients to refresh
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'CACHE_UPDATE',
+            message: 'New version available. Refresh your page to update.'
+          });
+        });
+      })
+    ])
   );
   self.clients.claim();
 });

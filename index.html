@@ -1207,14 +1207,33 @@
     <!-- Load environment configuration (defaults are hardcoded in script.js) -->
     <script src="config-loader.js"></script>
     <!-- Main application script -->
-    <script src="script.js?v=2.0.9"></script>
+    <script src="script.js?v=2.1.0"></script>
     <script>
-        // Force service worker update on every page load
+        // Auto-update service worker and clear old caches
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(registrations => {
                 registrations.forEach(reg => reg.update());
             });
+            
+            // Listen for SW cache updates
+            navigator.serviceWorker.addEventListener('message', event => {
+                if (event.data.type === 'CACHE_UPDATE') {
+                    console.log('[APP] Service worker cache updated:', event.data.message);
+                    // Automatically reload the page to get fresh assets
+                    setTimeout(() => {
+                        window.location.reload(true); // Force hard refresh
+                    }, 1000);
+                }
+            });
         }
+        
+        // Clear localStorage cache on page load to prevent stale data
+        window.addEventListener('load', () => {
+            if (typeof apiCache !== 'undefined' && apiCache.clear) {
+                apiCache.clear();
+                console.log('[APP] API cache cleared on page load');
+            }
+        });
     </script>
 </body>
 </html>
