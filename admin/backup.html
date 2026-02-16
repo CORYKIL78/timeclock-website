@@ -1700,8 +1700,19 @@ async function deleteUserRecord(recordType, recordId) {
   if (!state.selectedUser) return;
   const ok = await customConfirm('Delete Record', 'Delete this record?');
   if (!ok) return;
+  
+  // Map singular types to backend plural types
+  const typeMap = {
+    'absence': 'absences',
+    'payslip': 'payslips',
+    'report': 'reports',
+    'strike': 'disciplinaries',
+    'request': 'requests'
+  };
+  const backendType = typeMap[recordType] || recordType;
+  
   try {
-    await apiPost('/api/admin/records/delete', { discordId: state.selectedUser.discordId, recordType, recordId });
+    await apiPost('/api/admin/records/delete', { discordId: state.selectedUser.discordId, recordType: backendType, recordId });
     await logAdminAction('record_deleted', `Deleted ${recordType}`, state.selectedUser.discordId);
     toast('Record deleted', 'success');
     const idx = state.users.findIndex(u => u.discordId === state.selectedUser.discordId);
@@ -1715,8 +1726,19 @@ async function eraseAllRecords(recordType) {
   if (!state.selectedUser) return;
   const ok = await customConfirm('Erase All', `Erase all ${recordType}?`);
   if (!ok) return;
+  
+  // Map singular types to backend plural types
+  const typeMap = {
+    'absence': 'absences',
+    'payslip': 'payslips',
+    'report': 'reports',
+    'strike': 'disciplinaries',
+    'request': 'requests'
+  };
+  const backendType = typeMap[recordType] || recordType;
+  
   try {
-    await apiPost('/api/admin/records/erase-all', { discordId: state.selectedUser.discordId, recordType });
+    await apiPost('/api/admin/records/erase-all', { discordId: state.selectedUser.discordId, recordType: backendType });
     await logAdminAction('records_erased', `Erased all ${recordType}`, state.selectedUser.discordId);
     toast('Records erased', 'success');
     const idx = state.users.findIndex(u => u.discordId === state.selectedUser.discordId);

@@ -1367,6 +1367,8 @@ export default {
                 department: account.profile.department || 'Not set',
                 baseLevel: account.profile.baseLevel || '',
                 staffId: account.profile.staffId || desiredStaffId || '',
+                robloxId: account.profile.robloxId || '',
+                robloxUsername: account.profile.robloxUsername || '',
                 avatar: avatarUrl || null,
                 timezone: account.profile.timezone || '',
                 country: account.profile.country || '',

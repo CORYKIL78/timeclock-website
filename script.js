@@ -2544,6 +2544,7 @@ const screens = {
     setupWelcome: document.getElementById('setupWelcomeScreen'),
     setupEmail: document.getElementById('setupEmailScreen'),
     setupName: document.getElementById('setupNameScreen'),
+    setupRoblox: document.getElementById('setupRobloxScreen'),
     setupPreferences: document.getElementById('setupPreferencesScreen'),
     setupDepartment: document.getElementById('setupDepartmentScreen'),
     setupVerify: document.getElementById('setupVerifyScreen'),
