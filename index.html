@@ -394,6 +394,23 @@
             <button id="setupNameContinueBtn">Continue</button>
         </div>
     </div>
+    <div id="setupRobloxScreen" class="screen">
+        <div class="container">
+            <h2>What's your Roblox ID?</h2>
+            <p>We need this to verify your Roblox profile</p>
+            <input type="text" id="setupRobloxInput" placeholder="Enter your Roblox ID (numbers only)">
+            <div id="robloxVerifyMessage" style="margin-top: 12px; font-size: 13px; color: var(--text2); min-height: 20px;"></div>
+            <button id="setupRobloxVerifyBtn" style="margin-top: 12px;">Verify Profile</button>
+            <button id="setupRobloxRetryBtn" style="display: none; margin-top: 8px; background: var(--primary); cursor: pointer;">Try Again</button>
+            <div id="robloxProfileConfirm" style="display: none; margin-top: 16px; padding: 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius);">
+                <p style="margin: 0 0 8px 0; color: var(--success); font-weight: 600;">✓ Profile Found!</p>
+                <p style="margin: 0 0 12px 0; color: var(--text);">Username: <strong id="robloxFoundUsername"></strong></p>
+                <p style="margin: 0 0 12px 0; color: var(--text2); font-size: 12px;">Is this you?</p>
+                <button id="setupRobloxConfirmBtn" style="width: 100%; background: var(--success); margin-bottom: 8px;">Continue</button>
+                <button id="setupRobloxCancelBtn" style="width: 100%; background: var(--border); color: var(--text);">Retry</button>
+            </div>
+        </div>
+    </div>
     <div id="setupPreferencesScreen" class="screen">
         <div class="container">
             <h2>Let's set up your preferences</h2>
@@ -626,6 +643,41 @@
                     <p id="dateTime" class="datetime-display" style="font-size: 18px; font-weight: 700;"></p>
                 </div>
             </div>
+
+            <!-- Your Details Card -->
+            <div style="background: var(--bg2); border: 1px solid var(--primary); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; box-shadow: 0 0 20px rgba(99,102,241,.1);">
+                <h3 style="font-size: 14px; font-weight: 700; margin: 0 0 16px 0; color: var(--primary-light); text-transform: uppercase; letter-spacing: .5px;">Your Details</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
+                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Staff ID</label>
+                        <span id="yourDetailsStaffId" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">Not Set</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
+                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Full Name</label>
+                        <span id="yourDetailsName" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">-</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
+                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Email</label>
+                        <span id="yourDetailsEmail" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">-</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
+                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Discord ID</label>
+                        <span id="yourDetailsDiscordId" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">-</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
+                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Discord User</label>
+                        <span id="yourDetailsDiscordUser" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">-</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
+                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Roblox ID</label>
+                        <span id="yourDetailsRobloxId" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">Not Set</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
+                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Roblox User</label>
+                        <span id="yourDetailsRobloxUser" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">-</span>
+                    </div>
+                </div>
+            </div>
             
             <!-- Three-column dashboard (absences, department, base level) -->
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; width: 100%;">
@@ -851,6 +903,26 @@
                                 </label>
                                 <span id="themeText" style="color: var(--text2); margin: 0;">Dark Mode</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Account Actions Section -->
+                    <div class="profile-section">
+                        <h3 class="profile-section-header">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>Game Accounts
+                        </h3>
+
+                        <div class="profile-info-row">
+                            <label>Roblox ID</label>
+                            <span id="profileRobloxId">Not set</span>
+                            <button class="pencil-btn" id="editRobloxBtn" title="Update Roblox ID">✎ Edit</button>
+                        </div>
+
+                        <div class="profile-info-row">
+                            <label>Roblox Username</label>
+                            <span id="profileRobloxUsername">-</span>
                         </div>
                     </div>
 

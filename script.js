@@ -332,11 +332,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const profileNameEl = document.getElementById('profileName');
             const profileEmailEl = document.getElementById('profileEmail');
             const profileDepartmentEl = document.getElementById('profileDepartment');
+            const profileRobloxIdEl = document.getElementById('profileRobloxId');
+            const profileRobloxUsernameEl = document.getElementById('profileRobloxUsername');
             
             console.debug('[syncProfileFromSheets] DOM elements found:', {
                 profileNameEl: !!profileNameEl,
                 profileEmailEl: !!profileEmailEl,
-                profileDepartmentEl: !!profileDepartmentEl
+                profileDepartmentEl: !!profileDepartmentEl,
+                profileRobloxIdEl: !!profileRobloxIdEl
             });
             
             if (profile.name && profileNameEl) {
@@ -358,6 +361,14 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.debug('[syncProfileFromSheets] Could not set profileDepartment:', { hasDepartment: !!profile.department, hasElement: !!profileDepartmentEl });
             }
+            if (profile.robloxId && profileRobloxIdEl) {
+                profileRobloxIdEl.textContent = profile.robloxId;
+                console.debug('[syncProfileFromSheets] Set profileRobloxId to:', profile.robloxId);
+            }
+            if (profile.robloxUsername && profileRobloxUsernameEl) {
+                profileRobloxUsernameEl.textContent = profile.robloxUsername;
+                console.debug('[syncProfileFromSheets] Set profileRobloxUsername to:', profile.robloxUsername);
+            }
             
             // Update profile pictures after getting name
             updateProfilePictures();
@@ -369,6 +380,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const profileNameEl = document.getElementById('profileName');
             const profileEmailEl = document.getElementById('profileEmail');
             const profileDepartmentEl = document.getElementById('profileDepartment');
+            const profileRobloxIdEl = document.getElementById('profileRobloxId');
+            const profileRobloxUsernameEl = document.getElementById('profileRobloxUsername');
             
             if (currentUser.profile) {
                 if (currentUser.profile.name && profileNameEl) {
@@ -383,6 +396,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const resolvedDept = resolveDepartmentName(currentUser.profile.department);
                     profileDepartmentEl.textContent = resolvedDept;
                     console.debug('[syncProfileFromSheets] Used local department:', resolvedDept);
+                }
+                if (currentUser.profile.robloxId && profileRobloxIdEl) {
+                    profileRobloxIdEl.textContent = currentUser.profile.robloxId;
+                    console.debug('[syncProfileFromSheets] Used local robloxId:', currentUser.profile.robloxId);
+                }
+                if (currentUser.profile.robloxUsername && profileRobloxUsernameEl) {
+                    profileRobloxUsernameEl.textContent = currentUser.profile.robloxUsername;
+                    console.debug('[syncProfileFromSheets] Used local robloxUsername:', currentUser.profile.robloxUsername);
                 }
                 updateProfilePictures();
             } else {
@@ -623,6 +644,13 @@ document.addEventListener('DOMContentLoaded', () => {
         editDeptBtn.onclick = () => {
             document.getElementById('deptChangeModal').style.display = 'block';
             document.getElementById('deptChangeSuccess').style.display = 'none';
+        };
+    }
+
+    const editRobloxBtn = document.getElementById('editRobloxBtn');
+    if (editRobloxBtn) {
+        editRobloxBtn.onclick = () => {
+            editRobloxId();
         };
     }
 
@@ -982,6 +1010,57 @@ const apiCache = {
         this.inFlight = {};
     }
 };
+
+async function editRobloxId() {
+    const currentRobloxId = currentUser?.profile?.robloxId || '';
+    const newRobloxId = prompt('Enter your Roblox ID:', currentRobloxId);
+    
+    if (newRobloxId === null || newRobloxId === '') return;
+    
+    if (!newRobloxId.match(/^\d+$/)) {
+        showModal('alert', 'Please enter a valid Roblox ID (numbers only)');
+        return;
+    }
+    
+    try {
+        // Verify the Roblox ID exists
+        const verifyRes = await fetch(`${WORKER_URL}/api/roblox/lookup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ robloxId: newRobloxId })
+        });
+        
+        const verifyData = await verifyRes.json();
+        if (!verifyData.success) {
+            showModal('alert', 'Roblox profile not found. Please check your ID.');
+            return;
+        }
+        
+        // Update profile with new Roblox ID
+        const response = await fetch(`${WORKER_URL}/api/user/profile/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                discordId: currentUser.id,
+                robloxId: newRobloxId,
+                robloxUsername: verifyData.profile.username
+            })
+        });
+        
+        if (response.ok) {
+            currentUser.profile.robloxId = newRobloxId;
+            currentUser.profile.robloxUsername = verifyData.profile.username;
+            persistUserData();
+            document.getElementById('profileRobloxId').textContent = newRobloxId;
+            document.getElementById('profileRobloxUsername').textContent = verifyData.profile.username;
+            showModal('alert', `✓ Roblox ID updated! Username: ${verifyData.profile.username}`);
+            console.log('[PROFILE] Roblox ID updated:', newRobloxId);
+        }
+    } catch (e) {
+        showModal('alert', 'Failed to update Roblox ID: ' + e.message);
+        console.error('[PROFILE] Roblox update error:', e);
+    }
+}
 
 async function upsertUserProfile() {
     try {
@@ -3286,6 +3365,18 @@ function updateMainScreen() {
     apiCache.clear();
     console.log('[updateMainScreen] Cache cleared to ensure fresh data from backend');
     
+    // Populate Your Details card
+    document.getElementById('yourDetailsDiscordId').textContent = currentUser.id || '-';
+    document.getElementById('yourDetailsDiscordUser').textContent = currentUser.name || currentUser.username || '-';
+    
+    if (currentUser.profile) {
+        document.getElementById('yourDetailsStaffId').textContent = currentUser.profile.staffId || 'Not Set';
+        document.getElementById('yourDetailsName').textContent = currentUser.profile.name || '-';
+        document.getElementById('yourDetailsEmail').textContent = currentUser.profile.email || '-';
+        document.getElementById('yourDetailsRobloxId').textContent = currentUser.profile.robloxId || 'Not Set';
+        document.getElementById('yourDetailsRobloxUser').textContent = currentUser.profile.robloxUsername || '-';
+    }
+    
     const emp = getEmployee(currentUser.id);
     
     // Ensure profile data exists before displaying
@@ -3310,12 +3401,15 @@ function updateMainScreen() {
     let baseLevelDisplay = 'Not Set';
     if (baseLevelValue) {
         if (baseLevelValue.includes('|')) {
+            // Format: "1|Executive Director" -> display as "Level 1 - Executive Director"
             const parts = baseLevelValue.split('|');
-            baseLevelDisplay = (parts[0] || '').trim() || 'Not Set';
+            const levelNum = (parts[0] || '').trim();
+            const levelName = (parts[1] || '').trim();
+            baseLevelDisplay = levelNum && levelName ? `Level ${levelNum} - ${levelName}` : (levelNum || 'Not Set');
         } else {
             const match = baseLevelValue.match(/\b(\d{1,2})\b/);
             if (match) {
-                baseLevelDisplay = match[1];
+                baseLevelDisplay = `Level ${match[1]}`;
             } else {
                 baseLevelDisplay = baseLevelNumberMap[baseLevelValue] || baseLevelValue;
             }
@@ -5509,12 +5603,105 @@ if (setupNameContinueBtn) {
             currentUser.profile.name = name;
             persistUserData(); // Save name to localStorage
             console.log('[SETUP] Name saved:', name);
-            console.log('[DEBUG] Name saved, redirecting to preferences selection');
-            showScreen('setupPreferences');
+            console.log('[DEBUG] Name saved, redirecting to Roblox verification');
+            showScreen('setupRoblox');
         } else {
             showModal('alert', 'Please enter your name');
         }
     });
+}
+
+// Roblox verification flow
+let verifiedRobloxProfile = null;
+
+const setupRobloxVerifyBtn = document.getElementById('setupRobloxVerifyBtn');
+if (setupRobloxVerifyBtn) {
+    setupRobloxVerifyBtn.addEventListener('click', verifyRobloxProfile);
+}
+
+const setupRobloxRetryBtn = document.getElementById('setupRobloxRetryBtn');
+if (setupRobloxRetryBtn) {
+    setupRobloxRetryBtn.addEventListener('click', () => {
+        document.getElementById('setupRobloxInput').value = '';
+        document.getElementById('robloxProfileConfirm').style.display = 'none';
+        document.getElementById('robloxVerifyMessage').textContent = '';
+        document.getElementById('setupRobloxVerifyBtn').style.display = 'block';
+        document.getElementById('setupRobloxRetryBtn').style.display = 'none';
+        document.getElementById('setupRobloxInput').focus();
+    });
+}
+
+const setupRobloxConfirmBtn = document.getElementById('setupRobloxConfirmBtn');
+if (setupRobloxConfirmBtn) {
+    setupRobloxConfirmBtn.addEventListener('click', () => {
+        if (verifiedRobloxProfile) {
+            if (!currentUser) currentUser = {};
+            if (!currentUser.profile) currentUser.profile = {};
+            currentUser.profile.robloxId = verifiedRobloxProfile.id;
+            currentUser.profile.robloxUsername = verifiedRobloxProfile.username;
+            persistUserData();
+            console.log('[SETUP] Roblox ID saved:', verifiedRobloxProfile.id);
+            showScreen('setupPreferences');
+        }
+    });
+}
+
+const setupRobloxCancelBtn = document.getElementById('setupRobloxCancelBtn');
+if (setupRobloxCancelBtn) {
+    setupRobloxCancelBtn.addEventListener('click', () => {
+        verifiedRobloxProfile = null;
+        document.getElementById('setupRobloxInput').value = '';
+        document.getElementById('robloxProfileConfirm').style.display = 'none';
+        document.getElementById('robloxVerifyMessage').textContent = '';
+        document.getElementById('setupRobloxVerifyBtn').style.display = 'block';
+        document.getElementById('setupRobloxRetryBtn').style.display = 'none';
+        document.getElementById('setupRobloxInput').focus();
+    });
+}
+
+async function verifyRobloxProfile() {
+    const robloxId = document.getElementById('setupRobloxInput').value.trim();
+    const msgEl = document.getElementById('robloxVerifyMessage');
+    
+    if (!robloxId || !robloxId.match(/^\d+$/)) {
+        msgEl.textContent = '❌ Please enter a valid Roblox ID (numbers only)';
+        msgEl.style.color = 'var(--danger)';
+        return;
+    }
+    
+    msgEl.textContent = '🔍 Searching for profile...';
+    msgEl.style.color = 'var(--text2)';
+    document.getElementById('setupRobloxVerifyBtn').disabled = true;
+    
+    try {
+        const response = await fetch(`${WORKER_URL}/api/roblox/lookup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ robloxId: robloxId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.profile) {
+            verifiedRobloxProfile = { id: robloxId, username: data.profile.username };
+            msgEl.textContent = '✓ Profile found!';
+            msgEl.style.color = 'var(--success)';
+            document.getElementById('robloxFoundUsername').textContent = data.profile.username;
+            document.getElementById('robloxProfileConfirm').style.display = 'block';
+            document.getElementById('setupRobloxVerifyBtn').style.display = 'none';
+            document.getElementById('setupRobloxRetryBtn').style.display = 'none';
+        } else {
+            msgEl.textContent = '❌ ' + (data.error || 'Roblox profile not found');
+            msgEl.style.color = 'var(--danger)';
+            document.getElementById('setupRobloxRetryBtn').style.display = 'block';
+        }
+    } catch (e) {
+        msgEl.textContent = '❌ Failed to verify profile: ' + e.message;
+        msgEl.style.color = 'var(--danger)';
+        document.getElementById('setupRobloxRetryBtn').style.display = 'block';
+    }
+    
+    document.getElementById('setupRobloxVerifyBtn').disabled = false;
 }
 
 const setupPreferencesContinueBtn = document.getElementById('setupPreferencesContinueBtn');

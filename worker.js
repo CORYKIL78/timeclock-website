@@ -225,7 +225,7 @@ export default {
       // Update user profile (PUT or POST to /api/user/profile/update)
       if ((url.pathname === '/api/user/profile/update' || url.pathname === '/api/profile/update') && request.method === 'POST') {
         const body = await request.json();
-        const { discordId, name, email, department, staffId, timezone, country } = body;
+        const { discordId, name, email, department, staffId, timezone, country, robloxId, robloxUsername } = body;
 
         if (!discordId) {
           return new Response(JSON.stringify({ error: 'Missing discordId' }), {
@@ -237,7 +237,7 @@ export default {
         const profileKey = `profile:${discordId}`;
         const existingProfile = await env.DATA.get(profileKey, 'json') || {};
 
-        console.log(`[PROFILE UPDATE] Updating profile for ${discordId}`, { name, email, department, staffId });
+        console.log(`[PROFILE UPDATE] Updating profile for ${discordId}`, { name, email, department, staffId, robloxId });
         console.log(`[PROFILE UPDATE] Existing profile:`, existingProfile);
 
         // Update profile with new values (use !== undefined to allow empty strings)
@@ -250,6 +250,8 @@ export default {
           staffId: staffId !== undefined ? staffId : existingProfile.staffId,
           timezone: timezone !== undefined ? timezone : existingProfile.timezone,
           country: country !== undefined ? country : existingProfile.country,
+          robloxId: robloxId !== undefined ? robloxId : existingProfile.robloxId,
+          robloxUsername: robloxUsername !== undefined ? robloxUsername : existingProfile.robloxUsername,
           discordTag: existingProfile.discordTag,
           discordId: discordId,
           avatar: existingProfile.avatar,
@@ -1275,6 +1277,53 @@ export default {
           avatar: null,
           avatar_url: null
         }), { headers: corsHeaders });
+      }
+
+      // Verify and lookup Roblox profile
+      if (url.pathname === '/api/roblox/lookup' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { robloxId } = body;
+
+          if (!robloxId) {
+            return new Response(JSON.stringify({ success: false, error: 'Missing robloxId' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          // Call Roblox API to verify user exists
+          const robloxResponse = await fetch(`https://users.roblox.com/v1/users/${robloxId}`);
+          
+          if (!robloxResponse.ok) {
+            return new Response(JSON.stringify({ 
+              success: false, 
+              error: 'Roblox profile not found. Please check your ID.' 
+            }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+
+          const robloxUser = await robloxResponse.json();
+          
+          return new Response(JSON.stringify({
+            success: true,
+            profile: {
+              id: robloxUser.id,
+              username: robloxUser.name,
+              displayName: robloxUser.displayName
+            }
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ 
+            success: false, 
+            error: 'Failed to verify Roblox profile: ' + e.message 
+          }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
       }
       
       // Get all users for admin dashboard
