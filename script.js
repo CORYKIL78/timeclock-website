@@ -9352,6 +9352,7 @@ async function loadTaskTrackData() {
         // Get current user ID
         const userStr = localStorage.getItem('users');
         if (!userStr) {
+            console.warn('No user found in localStorage');
             throw new Error('User not found');
         }
 
@@ -9359,12 +9360,31 @@ async function loadTaskTrackData() {
         const userId = Object.keys(users)[0]; // Get first user
 
         if (!userId) {
+            console.warn('User ID not found in parsed users');
             throw new Error('User ID not found');
         }
 
         // Fetch tasks from API
         const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/tasks/user/${userId}`);
-        const tasks = await response.json() || [];
+        
+        if (!response.ok) {
+            throw new Error(`API returned status ${response.status}`);
+        }
+        
+        let tasks = [];
+        try {
+            const responseText = await response.text();
+            tasks = responseText ? JSON.parse(responseText) : [];
+        } catch (parseError) {
+            console.error('Error parsing response:', parseError);
+            tasks = [];
+        }
+
+        // Ensure tasks is an array
+        if (!Array.isArray(tasks)) {
+            console.warn('Tasks response is not an array, treating as empty');
+            tasks = [];
+        }
 
         // Process and render tasks
         renderTaskTrackAnalytics(tasks);
@@ -9377,8 +9397,15 @@ async function loadTaskTrackData() {
 
     } catch (error) {
         console.error('Error loading TaskTrack data:', error);
+        // Show empty state on error
         if (loadingScreen) loadingScreen.style.display = 'none';
         if (contentScreen) contentScreen.style.display = 'flex';
+        
+        // Render empty states so at least the UI shows something
+        renderTaskTrackAnalytics([]);
+        renderOverviewTasks([]);
+        renderMyTasks([]);
+        renderHistoryTasks([]);
     }
 }
 

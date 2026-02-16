@@ -73,7 +73,17 @@ self.addEventListener('fetch', event => {
       url.includes('sheets.googleapis.com')) {
     // Don't intercept - let browser handle these requests naturally
     // These have CORS restrictions and need to bypass the SW
-    return event.respondWith(fetch(request));
+    event.respondWith(
+      fetch(request).catch(() => {
+        // If external API fails, return a basic offline response
+        return new Response(JSON.stringify({ error: 'API request failed' }), {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: { 'Content-Type': 'application/json' }
+        });
+      })
+    );
+    return;
   }
   
   // Always fetch HTML fresh
