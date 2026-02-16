@@ -1619,7 +1619,14 @@ async function logAdminAction(action, details, targetId = '') {
 function openProfileEdit(field) {
   const user = state.selectedUser;
   if (!user) return;
-  const fields = { name: { label: 'Name', type: 'text', value: user.name || '' }, email: { label: 'Email', type: 'email', value: user.email || '' }, department: { label: 'Department', type: 'select', value: formatDepartment(user.department || ''), options: DEPARTMENT_OPTIONS }, baseLevel: { label: 'Base Level', type: 'select', value: user.baseLevel || '', options: BASE_LEVELS } };
+  const fields = { 
+    name: { label: 'Name', type: 'text', value: user.name || '' }, 
+    email: { label: 'Email', type: 'email', value: user.email || '' }, 
+    department: { label: 'Department', type: 'select', value: formatDepartment(user.department || ''), options: DEPARTMENT_OPTIONS }, 
+    baseLevel: { label: 'Base Level', type: 'select', value: user.baseLevel || '', options: BASE_LEVELS },
+    robloxId: { label: 'Roblox ID', type: 'text', value: user.robloxId || '' },
+    robloxUsername: { label: 'Roblox Username', type: 'text', value: user.robloxUsername || '' }
+  };
   const cfg = fields[field];
   if (!cfg) return;
   state.profileEdit = { field, label: cfg.label };
@@ -1750,15 +1757,17 @@ async function openUserPanel(idx) {
 
     <div class="panel-section">
       <h4>Personal Information</h4>
-      <div class="info-grid">
+      <div class="info-grid" style="grid-template-columns: 1fr 1fr; gap: 12px">
         <div class="info-item editable"><div class="label">Name</div><div class="value">${esc(user.name || '-')}</div><button class="edit-btn" onclick="openProfileEdit('name')" title="Edit">✎</button></div>
         <div class="info-item editable"><div class="label">Email</div><div class="value">${esc(user.email || '-')}</div><button class="edit-btn" onclick="openProfileEdit('email')" title="Edit">✎</button></div>
         <div class="info-item editable"><div class="label">Department</div><div class="value">${esc(formatDepartment(user.department))}</div><button class="edit-btn" onclick="openProfileEdit('department')" title="Edit">✎</button></div>
-        <div class="info-item"><div class="label">Discord ID</div><div class="value">${esc(user.discordId || '-')}</div></div>
+        <div class="info-item editable"><div class="label">Base Level</div><div class="value">${esc(formatBaseLevel(user.baseLevel) || '-')}</div><button class="edit-btn" onclick="openProfileEdit('baseLevel')" title="Edit">✎</button></div>
+        <div class="info-item editable"><div class="label">Roblox ID</div><div class="value">${esc(user.robloxId || '-')}</div><button class="edit-btn" onclick="openProfileEdit('robloxId')" title="Edit">✎</button></div>
+        <div class="info-item editable"><div class="label">Roblox Username</div><div class="value">${esc(user.robloxUsername || '-')}</div><button class="edit-btn" onclick="openProfileEdit('robloxUsername')" title="Edit">✎</button></div>
         <div class="info-item"><div class="label">Timezone</div><div class="value">${esc(user.timezone || '-')}</div></div>
         <div class="info-item"><div class="label">Country</div><div class="value">${esc(user.country || '-')}</div></div>
-        <div class="info-item"><div class="label">Date of Signup</div><div class="value">${user.dateOfSignup ? new Date(user.dateOfSignup).toLocaleDateString('en-GB') : '-'}</div></div>
-        <div class="info-item editable"><div class="label">Base Level</div><div class="value">${esc(formatBaseLevel(user.baseLevel) || '-')}</div><button class="edit-btn" onclick="openProfileEdit('baseLevel')" title="Edit">✎</button></div>
+        <div class="info-item"><div class="label">Discord ID</div><div class="value" style="font-size:11px">${esc(user.discordId || '-')}</div></div>
+        <div class="info-item"><div class="label">Joined</div><div class="value">${user.dateOfSignup ? new Date(user.dateOfSignup).toLocaleDateString('en-GB') : '-'}</div></div>
       </div>
     </div>
 
@@ -1766,7 +1775,7 @@ async function openUserPanel(idx) {
       <h4>Staff ID</h4>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
         <div class="staff-id-display">${esc(user.staffId || 'Not assigned')}</div>
-        <button class="staff-id-btn" onclick="openModal('staffIdModal')">Assign ID</button>
+        ${!user.staffId ? `<button class="staff-id-btn" onclick="openModal('staffIdModal')">Assign ID</button>` : ''}
       </div>
     </div>
 
@@ -1843,19 +1852,19 @@ async function loadStaffDetails(userId) {
     let html = `
       <div class="panel-section" style="border-bottom:none">
         <h4>Staff Description</h4>
-        <div style="background:var(--bg3);padding:12px;border-radius:8px;margin-bottom:16px">
-          <div style="font-size:13px;color:${profile.description ? 'var(--text)' : 'var(--text2)'};line-height:1.5">
-            ${profile.description ? esc(profile.description) : '<em>No description set</em>'}
+        <div style="background:var(--bg3);padding:12px;border-radius:8px;margin-bottom:16px;cursor:pointer;position:relative;group" onmouseenter="this.querySelector('.edit-btn').style.opacity='1'" onmouseleave="this.querySelector('.edit-btn').style.opacity='0'">
+          <div style="font-size:13px;color:${profile.description ? 'var(--text)' : 'var(--text2)'};line-height:1.5;padding-right:28px">
+            ${profile.description ? esc(profile.description) : '<em>No description set - click to add</em>'}
           </div>
-          <button class="edit-btn" onclick="editStaffDetail('description', '${esc(profile.description || '')}')" style="position:relative;margin-top:8px;margin-left:0" title="Edit">✎ Edit</button>
+          <button class="edit-btn" onclick="editStaffDetail('description', '${esc(profile.description || '')}')" style="position:absolute;top:12px;right:12px;opacity:0;transition:opacity .2s;background:none;border:none;color:var(--accent2);font-size:16px;cursor:pointer" title="Edit">✎</button>
         </div>
 
         <h4>Notes</h4>
-        <div style="background:var(--bg3);padding:12px;border-radius:8px;margin-bottom:16px">
-          <div style="font-size:13px;color:${profile.notes ? 'var(--text)' : 'var(--text2)'};line-height:1.5">
-            ${profile.notes ? esc(profile.notes) : '<em>No notes set</em>'}
+        <div style="background:var(--bg3);padding:12px;border-radius:8px;margin-bottom:16px;cursor:pointer;position:relative" onmouseenter="this.querySelector('.edit-btn').style.opacity='1'" onmouseleave="this.querySelector('.edit-btn').style.opacity='0'">
+          <div style="font-size:13px;color:${profile.notes ? 'var(--text)' : 'var(--text2)'};line-height:1.5;padding-right:28px">
+            ${profile.notes ? esc(profile.notes) : '<em>No notes - click to add</em>'}
           </div>
-          <button class="edit-btn" onclick="editStaffDetail('notes', '${esc(profile.notes || '')}')" style="position:relative;margin-top:8px;margin-left:0" title="Edit">✎ Edit</button>
+          <button class="edit-btn" onclick="editStaffDetail('notes', '${esc(profile.notes || '')}')" style="position:absolute;top:12px;right:12px;opacity:0;transition:opacity .2s;background:none;border:none;color:var(--accent2);font-size:16px;cursor:pointer" title="Edit">✎</button>
         </div>
 
         <h4>Alternative Accounts</h4>
@@ -1873,7 +1882,7 @@ async function loadStaffDetails(userId) {
               `).join('')}
             </div>
           ` : '<em style="color:var(--text2)">No alternative accounts linked</em>'}
-          <button class="edit-btn" onclick="editAltAccounts('${userId}')" style="position:relative;margin-top:8px;margin-left:0" title="Edit">✎ Manage</button>
+          <button class="btn btn-primary" onclick="editAltAccounts('${userId}')" style="margin-top:8px;width:100%">+ Add/Manage Alt Accounts</button>
         </div>
       </div>
     `;
