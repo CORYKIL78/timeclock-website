@@ -2380,6 +2380,167 @@ export default {
       }
 
       // ============================================================================
+      // EVENTS ENDPOINTS (Staff Events with RSVP)
+      // ============================================================================
+
+      // Get all staff events (for both admin and staff)
+      if (url.pathname === '/api/events' && request.method === 'GET') {
+        try {
+          const eventsIndex = await env.DATA.get('events:index', 'json') || [];
+          const events = [];
+          
+          for (const eventId of eventsIndex) {
+            const eventKey = `events:${eventId}`;
+            const event = await env.DATA.get(eventKey, 'json');
+            if (event) events.push({ id: eventId, ...event });
+          }
+          
+          return new Response(JSON.stringify({ success: true, events }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, events: [] }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+
+      // Get admin staff events (same as above but for admin dashboard)
+      if (url.pathname === '/api/admin/events' && request.method === 'GET') {
+        try {
+          const eventsIndex = await env.DATA.get('events:index', 'json') || [];
+          const events = [];
+          
+          for (const eventId of eventsIndex) {
+            const eventKey = `events:${eventId}`;
+            const event = await env.DATA.get(eventKey, 'json');
+            if (event) events.push({ _id: eventId, ...event });
+          }
+          
+          return new Response(JSON.stringify({ success: true, events }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, events: [] }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+
+      // Create a new staff event (admin only)
+      if (url.pathname === '/api/admin/events' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { category, date, startTime, endTime, title, description, mandatory, createdBy, createdByName } = body;
+          
+          if (!category || !date || !startTime || !endTime || !title) {
+            return new Response(JSON.stringify({ success: false, error: 'Missing required fields' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+          
+          const eventId = `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const eventData = {
+            id: eventId,
+            category,
+            date,
+            startTime,
+            endTime,
+            title,
+            description: description || '',
+            mandatory: mandatory || 'optional',
+            createdBy,
+            createdByName,
+            createdAt: new Date().toISOString(),
+            responses: []
+          };
+          
+          // Save event
+          await env.DATA.put(`events:${eventId}`, JSON.stringify(eventData));
+          
+          // Update index
+          const eventsIndex = await env.DATA.get('events:index', 'json') || [];
+          eventsIndex.push(eventId);
+          await env.DATA.put('events:index', JSON.stringify(eventsIndex));
+          
+          return new Response(JSON.stringify({ success: true, eventId, event: eventData }), { headers: corsHeaders });
+        } catch (e) {
+          console.error('[EVENTS] Error creating event:', e);
+          return new Response(JSON.stringify({ success: false, error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+
+      // Record user RSVP response to an event
+      if (url.pathname === '/api/events/respond' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { eventId, userId, userName, status, comment, respondedAt } = body;
+          
+          if (!eventId || !userId || !status) {
+            return new Response(JSON.stringify({ success: false, error: 'Missing required fields' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+          
+          const eventKey = `events:${eventId}`;
+          const event = await env.DATA.get(eventKey, 'json');
+          
+          if (!event) {
+            return new Response(JSON.stringify({ success: false, error: 'Event not found' }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+          
+          // Remove existing response from this user
+          event.responses = event.responses?.filter(r => r.userId !== userId) || [];
+          
+          // Add new response
+          event.responses.push({
+            userId,
+            userName,
+            status,
+            comment: comment || '',
+            respondedAt: respondedAt || new Date().toISOString()
+          });
+          
+          // Update event
+          await env.DATA.put(eventKey, JSON.stringify(event));
+          
+          return new Response(JSON.stringify({ success: true, event }), { headers: corsHeaders });
+        } catch (e) {
+          console.error('[EVENTS] Error recording response:', e);
+          return new Response(JSON.stringify({ success: false, error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+
+      // Send event notifications to all staff
+      if (url.pathname === '/api/admin/events/notify' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { eventId, eventTitle, eventDate, eventTime } = body;
+          
+          // TODO: Send Discord DMs to all staff about the event
+          // This would typically integrate with Discord bot API
+          // For now, we'll just return success
+          
+          return new Response(JSON.stringify({ success: true, message: 'Notifications queued' }), { headers: corsHeaders });
+        } catch (e) {
+          console.error('[EVENTS] Error sending notifications:', e);
+          return new Response(JSON.stringify({ success: false, error: e.message }), { 
+            status: 500,
+            headers: corsHeaders 
+          });
+        }
+      }
+
+      // ============================================================================
       // 404 - Endpoint not found
       // ============================================================================
 

@@ -683,6 +683,38 @@ label input[type="radio"]:checked, label input[type="checkbox"]:checked {
   justify-content: center;
 }
 
+#eventRsvpModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+#eventRsvpModal.active {
+  display: flex;
+}
+
+#eventRsvpModal .modal-content {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  max-width: 540px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: slideInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .modal-content {
   background: var(--bg2);
   border: 1px solid var(--border);
@@ -1284,22 +1316,104 @@ footer {
   }
 
   #mainMenuScreen.screen.active {
-    padding: 80px 16px 16px 16px;
+    padding: 80px 12px 16px 12px;
+    height: 100vh;
+    overflow-y: auto;
   }
 
   #mainMenuScreen .container {
-    padding: 20px 0;
+    padding: 0;
+    margin: 0;
+  }
+
+  .user-header-card {
+    padding: 14px 12px !important;
+    margin-bottom: 10px !important;
+    gap: 12px !important;
+  }
+
+  .user-header-card img {
+    width: 50px !important;
+    height: 50px !important;
+  }
+
+  .user-header-card h2 {
+    font-size: 18px !important;
+    margin: 0 !important;
+  }
+
+  .user-header-card p {
+    font-size: 10px !important;
+  }
+
+  /* Your Details Card - responsive grid */
+  #mainMenuScreen > div > div:nth-child(2) {
+    padding: 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  #mainMenuScreen > div > div:nth-child(2) h3 {
+    font-size: 11px !important;
+    margin-bottom: 8px !important;
+  }
+
+  #mainMenuScreen > div > div:nth-child(2) > div {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+  }
+
+  #mainMenuScreen > div > div:nth-child(2) > div > div {
+    padding: 6px 8px !important;
+  }
+
+  #mainMenuScreen > div > div:nth-child(2) > div label {
+    font-size: 9px !important;
+    margin-bottom: 2px !important;
+  }
+
+  #mainMenuScreen > div > div:nth-child(2) > div span {
+    font-size: 10px !important;
+  }
+
+  /* Three-column dashboard becomes single column on tablet */
+  #mainMenuScreen > div > div:nth-child(3) {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    margin-top: 0 !important;
   }
 
   .stat-card {
-    padding: 20px 16px;
-    animation-delay: 0s;
+    padding: 14px 12px !important;
+    min-height: 140px !important;
+    animation-delay: 0s !important;
   }
 
-  .stat-card:nth-child(1),
-  .stat-card:nth-child(2),
-  .stat-card:nth-child(3) {
-    animation-delay: 0s;
+  .stat-card h3 {
+    font-size: 12px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .stat-card p {
+    font-size: 14px !important;
+  }
+
+  #totalAbsences, #currentDepartment, #baseLevel {
+    font-size: 28px !important;
+  }
+
+  #totalAbsenceDays {
+    font-size: 22px !important;
+  }
+
+  .stat-card button {
+    font-size: 11px !important;
+    padding: 8px !important;
+    margin-top: 6px !important;
+  }
+
+  .status-row {
+    margin-top: 8px !important;
+    padding: 0 1px !important;
   }
 
   .modal-content {
@@ -1316,6 +1430,117 @@ footer {
   .notification-btn {
     right: 12px;
     bottom: 12px;
+  }
+}
+
+/* ================================================================
+   RESPONSIVE - SMALL MOBILE (480px and below)
+   ================================================================ */
+@media (max-width: 480px) {
+  #mainMenuScreen.screen.active {
+    padding: 70px 10px 12px 10px;
+  }
+
+  #mainMenuScreen .container {
+    padding: 0;
+  }
+
+  .user-header-card {
+    padding: 12px 8px !important;
+    margin-bottom: 8px !important;
+    flex-wrap: wrap;
+    gap: 10px !important;
+  }
+
+  .user-header-card img {
+    width: 45px !important;
+    height: 45px !important;
+  }
+
+  .user-header-card h2 {
+    font-size: 16px !important;
+  }
+
+  .user-header-card p {
+    font-size: 9px !important;
+  }
+
+  .user-header-card #dateTime {
+    display: none;
+  }
+
+  #mainMenuScreen > div > div:nth-child(2) {
+    padding: 10px !important;
+    margin-bottom: 10px !important;
+  }
+
+  #mainMenuScreen > div > div:nth-child(2) h3 {
+    font-size: 10px !important;
+    margin-bottom: 6px !important;
+  }
+
+  #mainMenuScreen > div > div:nth-child(2) > div {
+    grid-template-columns: 1fr !important;
+    gap: 5px !important;
+  }
+
+  #mainMenuScreen > div > div:nth-child(2) > div > div {
+    padding: 5px 6px !important;
+  }
+
+  #mainMenuScreen > div > div:nth-child(2) > div label {
+    font-size: 8px !important;
+    margin-bottom: 1px !important;
+  }
+
+  #mainMenuScreen > div > div:nth-child(2) > div span {
+    font-size: 9px !important;
+  }
+
+  #mainMenuScreen > div > div:nth-child(3) {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .stat-card {
+    padding: 12px 10px !important;
+    min-height: 130px !important;
+  }
+
+  .stat-card h3 {
+    font-size: 11px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .stat-card p {
+    font-size: 12px !important;
+  }
+
+  #totalAbsences, #currentDepartment, #baseLevel {
+    font-size: 24px !important;
+  }
+
+  #totalAbsenceDays {
+    font-size: 18px !important;
+  }
+
+  .stat-card button {
+    font-size: 10px !important;
+    padding: 6px !important;
+    margin-top: 4px !important;
+  }
+
+  .status-row {
+    padding: 0 !important;
+  }
+
+  .status-card {
+    padding: 8px 6px !important;
+    font-size: 10px !important;
+  }
+
+  .status-badge {
+    font-size: 9px !important;
   }
 }
 
@@ -1338,12 +1563,14 @@ footer {
 
   /* All screens account for fixed sidebar */
   .screen {
-    padding: 40px 24px 24px 320px;
+    padding: 20px 24px 24px 320px;
   }
 
   #mainMenuScreen.screen.active {
     display: block;
-    padding: 40px 24px 24px 320px;
+    padding: 20px 24px 24px 320px;
+    height: 100vh;
+    overflow-y: auto;
   }
 
   /* Full width container on desktop */

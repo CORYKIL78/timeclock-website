@@ -9071,6 +9071,210 @@ function sendNotificationToAll(type, message, link) {
     }
 }
 
+/* ================================================================
+   STAFF EVENTS (with RSVP)
+   ================================================================ */
+
+let currentSelectedEvent = null;
+let currentUserResponse = null;
+
+// Load and display staff events
+async function loadStaffEvents() {
+    try {
+        const data = await apiGet('/api/events');
+        const events = data.events || [];
+        const container = document.getElementById('eventsContainer');
+        
+        // Filter to show only upcoming events
+        const now = new Date();
+        const upcomingEvents = events.filter(e => new Date(`${e.date}T${e.endTime}`) > now);
+        
+        if (upcomingEvents.length === 0) {
+            container.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 40px 20px;">No upcoming events scheduled</div>';
+            return;
+        }
+        
+        let html = '';
+        upcomingEvents.forEach(event => {
+            const eventDateTime = new Date(`${event.date}T${event.startTime}`);
+            const userResponse = event.responses?.find(r => r.userId === userData.id);
+            const statusColor = userResponse ? {
+                'attending': '#10b981',
+                'not_attending': '#ef4444',
+                'unsure': '#f59e0b'
+            }[userResponse.status] || '#3b82f6' : '#3b82f6';
+            
+            const statusText = userResponse ? {
+                'attending': 'You can attend ✓',
+                'not_attending': 'You cannot attend ✗',
+                'unsure': 'You are unsure ?'
+            }[userResponse.status] || 'No response' : 'No response';
+            
+            html += `
+                <div style="background: var(--bg3); padding: 16px; margin-bottom: 12px; border-radius: 8px; border-left: 4px solid ${statusColor}; cursor: pointer; transition: all 0.3s;" onclick="openEventDetails(this)" data-event='${JSON.stringify(event).replace(/'/g, "&apos;")}'>
+                    <div style="display: flex; justify-content: space-between; align-items: start; gap: 12px;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: 700;">${event.title}</h4>
+                            <p style="margin: 0 0 8px 0; font-size: 12px; color: var(--text-secondary);">${event.category} • ${event.date} ${event.startTime}-${event.endTime}</p>
+                            <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">${event.description}</p>
+                        </div>
+                        <div style="text-align: right; white-space: nowrap;">
+                            <div style="font-size: 12px; color: ${statusColor}; font-weight: 600;">${statusText}</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+                                <span style="color: #10b981">✓ ${event.responses?.filter(r => r.status === 'attending').length || 0}</span>
+                                <span style="margin: 0 4px;">|</span>
+                                <span style="color: #ef4444">✗ ${event.responses?.filter(r => r.status === 'not_attending').length || 0}</span>
+                                <span style="margin: 0 4px;">|</span>
+                                <span style="color: #f59e0b">? ${event.responses?.filter(r => r.status === 'unsure').length || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    } catch (e) {
+        console.error('Error loading events:', e);
+        document.getElementById('eventsContainer').innerHTML = `<div style="color: red; padding: 20px;">Error loading events</div>`;
+    }
+}
+
+function openEventDetails(element) {
+    const eventStr = element.getAttribute('data-event');
+    const event = JSON.parse(eventStr);
+    currentSelectedEvent = event;
+    
+    const modal = document.getElementById('eventRsvpModal');
+    const titleEl = document.getElementById('eventRsvpTitle');
+    const contentEl = document.getElementById('eventRsvpContent');
+    
+    titleEl.textContent = event.title;
+    
+    const userResponse = event.responses?.find(r => r.userId === userData.id);
+    const durationMs = new Date(`2000-01-01T${event.endTime}`) - new Date(`2000-01-01T${event.startTime}`);
+    const hours = Math.floor(durationMs / 3600000);
+    const minutes = Math.floor((durationMs % 3600000) / 60000);
+    const durationStr = `${hours}h ${minutes}m`;
+    
+    contentEl.innerHTML = `
+        <div style="background: var(--bg3); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+                <div><strong>Date:</strong> ${event.date}</div>
+                <div><strong>Time:</strong> ${event.startTime} - ${event.endTime}</div>
+                <div><strong>Duration:</strong> ${durationStr}</div>
+                <div><strong>Category:</strong> ${event.category}</div>
+                <div span style="grid-column: 1 / -1;"><strong>Attendance:</strong> <span style="color: ${event.mandatory === 'mandatory' ? '#ef4444' : '#10b981'};">${event.mandatory}</span></div>
+                <div style="grid-column: 1 / -1;"><strong>Description:</strong><br>${event.description}</div>
+            </div>
+        </div>
+    `;
+    
+    // Show comment section if user selected "unsure"
+    const commentSection = document.getElementById('commentSection');
+    if (userResponse && userResponse.status === 'unsure') {
+        commentSection.style.display = 'block';
+        document.getElementById('eventComment').value = userResponse.comment || '';
+    } else {
+        commentSection.style.display = 'none';
+    }
+    
+    currentUserResponse = userResponse;
+    modal.classList.add('active');
+}
+
+function respondToEvent(status) {
+    const commentSection = document.getElementById('commentSection');
+    const commentInput = document.getElementById('eventComment');
+    
+    currentUserResponse = { status, comment: '' };
+    
+    if (status === 'unsure') {
+        commentSection.style.display = 'block';
+        commentInput.focus();
+    } else {
+        commentSection.style.display = 'none';
+        submitEventResponse();
+    }
+}
+
+async function submitEventResponse() {
+    if (!currentSelectedEvent || !currentUserResponse) return;
+    
+    const comment = document.getElementById('eventComment').value.trim() || '';
+    const responseData = {
+        eventId: currentSelectedEvent._id || currentSelectedEvent.id,
+        userId: userData.id,
+        userName: `${userData.firstName} ${userData.lastName}`,
+        status: currentUserResponse.status,
+        comment,
+        respondedAt: new Date().toISOString()
+    };
+    
+    try {
+        await apiPost('/api/events/respond', responseData);
+        
+        // Show success message
+        const toastEl = document.getElementById('toast') || createToastElement();
+        toastEl.textContent = `Response recorded: ${currentUserResponse.status}`;
+        toastEl.style.background = '#10b981';
+        toastEl.classList.add('show');
+        setTimeout(() => toastEl.classList.remove('show'), 3000);
+        
+        // Close modal and reload events
+        document.getElementById('eventRsvpModal').classList.remove('active');
+        setTimeout(loadStaffEvents, 500);
+    } catch (e) {
+        console.error('Error responding to event:', e);
+        const toastEl = document.getElementById('toast') || createToastElement();
+        toastEl.textContent = 'Failed to submit response';
+        toastEl.style.background = '#ef4444';
+        toastEl.classList.add('show');
+        setTimeout(() => toastEl.classList.remove('show'), 3000);
+    }
+}
+
+function createToastElement() {
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        background: #10b981;
+        color: white;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10000;
+        opacity: 0;
+        transition: opacity 0.3s;
+    `;
+    document.body.appendChild(toast);
+    return toast;
+}
+
+// Modified setupCalendarControls to load events
+const originalSetupCalendarControls = setupCalendarControls;
+function setupCalendarControls() {
+    originalSetupCalendarControls();
+    
+    // Load staff events when calendar screen is shown
+    const calendarScreen = document.getElementById('calendarScreen');
+    if (calendarScreen) {
+        const observer = new MutationObserver(() => {
+            if (calendarScreen.style.display !== 'none' && calendarScreen.offsetParent !== null) {
+                loadStaffEvents();
+                observer.disconnect();
+            }
+        });
+        observer.observe(calendarScreen, { attributes: true });
+    }
+    
+    // Initial load
+    setTimeout(loadStaffEvents, 1000);
+}
+
 // Initialize all systems on DOM ready
 function setupModalCloseButtons() {
     // Setup close buttons for all modals
@@ -9091,6 +9295,16 @@ function setupModalCloseButtons() {
             }
         });
     });
+    
+    // Close event RSVP modal
+    const eventModal = document.getElementById('eventRsvpModal');
+    if (eventModal) {
+        eventModal.addEventListener('click', (e) => {
+            if (e.target === eventModal) {
+                eventModal.classList.remove('active');
+            }
+        });
+    }
 }
 
 if (document.readyState === 'loading') {
@@ -9098,9 +9312,11 @@ if (document.readyState === 'loading') {
         setTimeout(initCalendar, 500);
         setTimeout(fetchAndDisplayRoleNames, 1000);
         setTimeout(setupModalCloseButtons, 300);
+        setTimeout(loadStaffEvents, 1500);
     });
 } else {
     initCalendar();
     fetchAndDisplayRoleNames();
     setupModalCloseButtons();
+    loadStaffEvents();
 }
