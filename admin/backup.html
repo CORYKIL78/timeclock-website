@@ -427,6 +427,7 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
       <button class="nav-btn" data-tab="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="14" r="1"/><circle cx="12" cy="14" r="1"/><circle cx="16" cy="14" r="1"/></svg><span>Calendar</span></button>
       <button class="nav-btn" data-tab="events"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><path d="M12 1v6m8.66-1.34l-4.24 4.24M21 12h-6m1.34 8.66l-4.24-4.24M12 21v-6m-8.66 1.34l4.24-4.24M3 12h6m-1.34-8.66l4.24 4.24"/></svg><span>Events</span></button>
       <button class="nav-btn" data-tab="logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg><span>Logs</span></button>
+      <button class="nav-btn" data-tab="tasktrack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>TaskTrack</span></button>
     </nav>
     <div class="sidebar-user">
       <img id="sidebarAvatar" src="" alt="" />
@@ -539,6 +540,22 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
         <div class="table-wrap">
           <div class="table-header"><h3>Admin Activity Logs</h3></div>
           <div id="logsTable" class="table-body"><div class="loading-inline">Loading logs...</div></div>
+        </div>
+      </div>
+
+      <!-- TASKTRACK LOGS TAB -->
+      <div class="tab-content" id="tab-tasktrack">
+        <div class="stats-row">
+          <div class="stat-card"><div class="label">Total Task Logs</div><div class="value" id="taskLogsCount">-</div></div>
+          <div class="stat-card"><div class="label">Created Today</div><div class="value" id="taskLogsToday">-</div></div>
+          <div class="stat-card"><div class="label">This Week</div><div class="value" id="taskLogsThisWeek">-</div></div>
+        </div>
+        <div style="margin-bottom:16px">
+          <input type="text" id="taskFilterSearch" placeholder="Search by task name or user..." style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:var(--text);font-size:13px;width:250px;max-width:100%">
+        </div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>Task Activity History</h3></div>
+          <div id="taskLogsTable" class="table-body"><div class="loading-inline">Loading task logs...</div></div>
         </div>
       </div>
         </div>
@@ -1077,6 +1094,18 @@ async function doLogin() {
         };
         isLocalAuth = true;
         console.log('[AUTH] Using local configuration for authentication');
+        
+        // Sync admin config to KV for later use by bot and other endpoints
+        try {
+          await apiPost('/api/admin/verify-pin', {
+            discordId: id,
+            pin: pin,
+            admins: window.CONFIG.ADMINS
+          });
+          console.log('[AUTH] Admin config synced to backend');
+        } catch (e) {
+          console.warn('[AUTH] Could not sync admin config to backend:', e);
+        }
       }
     }
     
@@ -1188,6 +1217,7 @@ async function loadTab(tab) {
     case 'calendar': await loadCalendar(); break;
     case 'events': await loadEvents(); break;
     case 'logs': await loadLogs(); break;
+    case 'tasktrack': await loadTaskTrackLogs(); break;
   }
 }
 
@@ -1637,6 +1667,113 @@ async function logAdminAction(action, details, targetId = '') {
   } catch (e) {
     console.error('Failed to log admin action:', e);
   }
+}
+
+// Load TaskTrack Logs
+async function loadTaskTrackLogs() {
+  const container = document.getElementById('taskLogsTable');
+  container.innerHTML = '<div class="loading-inline">Loading task logs...</div>';
+  try {
+    const data = await apiGet('/api/tasks/logs');
+    const taskLogs = Array.isArray(data) ? data : (data.logs || []);
+    state.taskLogs = taskLogs;
+
+    const today = new Date().toDateString();
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const logsToday = taskLogs.filter(l => new Date(l.timestamp).toDateString() === today);
+    const logsThisWeek = taskLogs.filter(l => new Date(l.timestamp) >= weekAgo);
+
+    document.getElementById('taskLogsCount').textContent = taskLogs.length;
+    document.getElementById('taskLogsToday').textContent = logsToday.length;
+    document.getElementById('taskLogsThisWeek').textContent = logsThisWeek.length;
+
+    if (!taskLogs.length) { 
+      container.innerHTML = '<div class="empty-state"><p>No task activity logs found.</p></div>'; 
+      return; 
+    }
+
+    // Build table with task names, actions, users, and timestamps
+    let html = `<table><thead><tr><th>Task Name</th><th>Action</th><th>User</th><th>Timestamp</th><th>Details</th></tr></thead><tbody>`;
+    taskLogs.slice(0, 200).forEach(l => {
+      const time = l.timestamp ? new Date(l.timestamp).toLocaleString('en-GB') : '-';
+      const actionColor = l.action === 'created' ? 'var(--green)' : 
+                          l.action === 'completed' ? 'var(--green)' :
+                          l.action === 'overdue' ? 'var(--red)' :
+                          l.action === 'claimed' ? 'var(--blue)' :
+                          l.action === 'priority_set' ? 'var(--orange)' :
+                          'var(--text)';
+      const taskName = l.details?.title || l.taskId || '-';
+      const userName = l.userName || l.userId || '-';
+      const details = l.details ? JSON.stringify(l.details).substring(0, 100) : '-';
+      html += `<tr><td><strong>${esc(taskName)}</strong></td><td style="color:${actionColor};white-space:nowrap">${esc(l.action || '-')}</td><td>${esc(userName)}</td><td style="white-space:nowrap">${esc(time)}</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;font-size:12px">${esc(details)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+
+    // Add search filter
+    const searchInput = document.getElementById('taskFilterSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => filterTaskLogs(e.target.value, taskLogs));
+    }
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Error loading task logs: ${esc(e.message)}</p></div>`;
+  }
+}
+
+// Filter TaskTrack logs by search term
+function filterTaskLogs(searchTerm, logs) {
+  const container = document.getElementById('taskLogsTable');
+  if (!searchTerm.trim()) {
+    // Reload without filter
+    let html = `<table><thead><tr><th>Task Name</th><th>Action</th><th>User</th><th>Timestamp</th><th>Details</th></tr></thead><tbody>`;
+    logs.slice(0, 200).forEach(l => {
+      const time = l.timestamp ? new Date(l.timestamp).toLocaleString('en-GB') : '-';
+      const actionColor = l.action === 'created' ? 'var(--green)' : 
+                          l.action === 'completed' ? 'var(--green)' :
+                          l.action === 'overdue' ? 'var(--red)' :
+                          l.action === 'claimed' ? 'var(--blue)' :
+                          l.action === 'priority_set' ? 'var(--orange)' :
+                          'var(--text)';
+      const taskName = l.details?.title || l.taskId || '-';
+      const userName = l.userName || l.userId || '-';
+      const details = l.details ? JSON.stringify(l.details).substring(0, 100) : '-';
+      html += `<tr><td><strong>${esc(taskName)}</strong></td><td style="color:${actionColor};white-space:nowrap">${esc(l.action || '-')}</td><td>${esc(userName)}</td><td style="white-space:nowrap">${esc(time)}</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;font-size:12px">${esc(details)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+    return;
+  }
+
+  const filtered = logs.filter(l => {
+    const taskName = (l.details?.title || l.taskId || '').toLowerCase();
+    const userName = (l.userName || l.userId || '').toLowerCase();
+    const action = (l.action || '').toLowerCase();
+    return taskName.includes(searchTerm.toLowerCase()) || 
+           userName.includes(searchTerm.toLowerCase()) ||
+           action.includes(searchTerm.toLowerCase());
+  });
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty-state"><p>No logs match your search.</p></div>';
+    return;
+  }
+
+  let html = `<table><thead><tr><th>Task Name</th><th>Action</th><th>User</th><th>Timestamp</th><th>Details</th></tr></thead><tbody>`;
+  filtered.slice(0, 200).forEach(l => {
+    const time = l.timestamp ? new Date(l.timestamp).toLocaleString('en-GB') : '-';
+    const actionColor = l.action === 'created' ? 'var(--green)' : 
+                        l.action === 'completed' ? 'var(--green)' :
+                        l.action === 'overdue' ? 'var(--red)' :
+                        l.action === 'claimed' ? 'var(--blue)' :
+                        l.action === 'priority_set' ? 'var(--orange)' :
+                        'var(--text)';
+    const taskName = l.details?.title || l.taskId || '-';
+    const userName = l.userName || l.userId || '-';
+    const details = l.details ? JSON.stringify(l.details).substring(0, 100) : '-';
+    html += `<tr><td><strong>${esc(taskName)}</strong></td><td style="color:${actionColor};white-space:nowrap">${esc(l.action || '-')}</td><td>${esc(userName)}</td><td style="white-space:nowrap">${esc(time)}</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;font-size:12px">${esc(details)}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
 }
 
 function openProfileEdit(field) {

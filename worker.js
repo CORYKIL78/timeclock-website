@@ -1154,6 +1154,136 @@ export default {
       }
 
       // ============================================================================
+      // ADMIN PIN VERIFICATION
+      // ============================================================================
+
+      if (url.pathname === '/api/admin/verify-pin' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { discordId, pin, admins } = body;
+
+          if (!discordId || !pin) {
+            return new Response(JSON.stringify({ valid: false, error: 'Missing fields' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          // Try to get admin config from KV storage first
+          let adminConfig = await env.DATA.get('config:admins', 'json');
+          
+          // If provided in request, use that (for browser-based verification)
+          if (admins && !adminConfig) {
+            adminConfig = admins;
+            // Also store in KV for future use
+            try {
+              await env.DATA.put('config:admins', JSON.stringify(admins));
+            } catch (e) {
+              console.error('[ADMIN PIN] Could not cache admins to KV:', e);
+            }
+          }
+
+          // If still no config, return invalid
+          if (!adminConfig || !adminConfig[discordId]) {
+            return new Response(JSON.stringify({ valid: false }), { headers: corsHeaders });
+          }
+
+          const adminData = adminConfig[discordId];
+          const isValid = adminData.pin === pin;
+
+          return new Response(JSON.stringify({ 
+            valid: isValid,
+            admin: isValid ? adminData.name : undefined
+          }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[ADMIN PIN]', error);
+          return new Response(JSON.stringify({ valid: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // ============================================================================
+      // TASK LOGGING ENDPOINTS
+      // ============================================================================
+
+      // Get task logs
+      if (url.pathname.startsWith('/api/tasks/logs/')) {
+        const taskId = url.pathname.split('/api/tasks/logs/')[1];
+        const logsKey = `task:logs:${taskId}`;
+        const logs = await env.DATA.get(logsKey, 'json') || [];
+
+        return new Response(JSON.stringify(logs), { headers: corsHeaders });
+      }
+
+      // Create task log entry
+      if (url.pathname === '/api/tasks/log' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { taskId, action, details, userId, userName } = body;
+
+          if (!taskId || !action) {
+            return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const logsKey = `task:logs:${taskId}`;
+          const logs = await env.DATA.get(logsKey, 'json') || [];
+
+          const logEntry = {
+            id: `log_${Date.now()}`,
+            taskId,
+            action, // 'created', 'claimed', 'priority_set', 'completed', 'overdue', 'closed', etc.
+            details: details || {},
+            userId: userId || 'system',
+            userName: userName || 'System',
+            timestamp: new Date().toISOString()
+          };
+
+          logs.push(logEntry);
+          await env.DATA.put(logsKey, JSON.stringify(logs));
+
+          // Also add to global task activity log
+          const globalKey = 'tasks:activity:all';
+          const globalLogs = await env.DATA.get(globalKey, 'json') || [];
+          globalLogs.push(logEntry);
+          // Keep only last 1000 entries
+          if (globalLogs.length > 1000) {
+            globalLogs.shift();
+          }
+          await env.DATA.put(globalKey, JSON.stringify(globalLogs));
+
+          return new Response(JSON.stringify({ success: true, log: logEntry }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[TASK LOG]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // Get all task activity logs
+      if (url.pathname === '/api/tasks/logs' && request.method === 'GET') {
+        try {
+          const globalKey = 'tasks:activity:all';
+          const logs = await env.DATA.get(globalKey, 'json') || [];
+
+          // Return most recent first
+          return new Response(JSON.stringify(logs.reverse()), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[TASK LOGS]', error);
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // ============================================================================
       // DEBUG ENDPOINTS
       // ============================================================================
       
@@ -2544,6 +2674,249 @@ export default {
           return new Response(JSON.stringify({ success: false, error: e.message }), { 
             status: 500,
             headers: corsHeaders 
+          });
+        }
+      }
+
+      // ============================================================================
+      // CALENDAR ENDPOINTS
+      // ============================================================================
+
+      // Get user calendar events
+      if (url.pathname.startsWith('/api/user/calendar/') && !url.pathname.includes('/create')) {
+        const userId = url.pathname.split('/api/user/calendar/')[1];
+        const calendarKey = `calendar:${userId}`;
+        const events = await env.DATA.get(calendarKey, 'json') || [];
+
+        return new Response(JSON.stringify(events), { headers: corsHeaders });
+      }
+
+      // Create calendar event
+      if (url.pathname === '/api/user/calendar/create' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { userId, title, date, startDate, description, createdBy } = body;
+
+          if (!userId || !title || !date && !startDate) {
+            return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const calendarKey = `calendar:${userId}`;
+          const events = await env.DATA.get(calendarKey, 'json') || [];
+
+          const newEvent = {
+            id: `event_${Date.now()}`,
+            title,
+            date: date || startDate,
+            description: description || '',
+            createdBy: createdBy || userId,
+            createdAt: new Date().toISOString()
+          };
+
+          events.push(newEvent);
+          await env.DATA.put(calendarKey, JSON.stringify(events));
+
+          return new Response(JSON.stringify({ success: true, event: newEvent }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[CALENDAR]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // ============================================================================
+      // TASKTRACK ENDPOINTS
+      // ============================================================================
+
+      // Get user tasks
+      if (url.pathname.startsWith('/api/tasks/user/')) {
+        const userId = url.pathname.split('/api/tasks/user/')[1];
+        const tasksKey = `tasks:${userId}`;
+        const tasks = await env.DATA.get(tasksKey, 'json') || [];
+
+        return new Response(JSON.stringify(tasks), { headers: corsHeaders });
+      }
+
+      // Create task
+      if (url.pathname === '/api/tasks/create' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { title, description, dueDate, extraInfo, department, createdBy, createdByName } = body;
+
+          if (!title || !department || !createdBy) {
+            return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const taskId = `task_${Date.now()}`;
+          const task = {
+            id: taskId,
+            title,
+            description: description || '',
+            dueDate: dueDate || '',
+            extraInfo: extraInfo || '',
+            department,
+            createdBy,
+            createdByName: createdByName || 'Unknown',
+            status: 'open',
+            priority: 'medium',
+            claimedBy: null,
+            claimedAt: null,
+            completedAt: null,
+            createdAt: new Date().toISOString(),
+            updates: []
+          };
+
+          // Store task in general tasks index
+          const tasksIndexKey = 'tasks:index';
+          const tasksIndex = await env.DATA.get(tasksIndexKey, 'json') || [];
+          tasksIndex.push(taskId);
+          await env.DATA.put(tasksIndexKey, JSON.stringify(tasksIndex));
+
+          // Store task details
+          const taskKey = `task:${taskId}`;
+          await env.DATA.put(taskKey, JSON.stringify(task));
+
+          return new Response(JSON.stringify({ success: true, task }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[TASKS]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // Claim task
+      if (url.pathname === '/api/tasks/claim' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { taskId, userId, userName } = body;
+
+          if (!taskId || !userId) {
+            return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const taskKey = `task:${taskId}`;
+          const task = await env.DATA.get(taskKey, 'json');
+
+          if (!task) {
+            return new Response(JSON.stringify({ error: 'Task not found' }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+
+          task.claimedBy = userId;
+          task.claimedByName = userName || 'Unknown';
+          task.claimedAt = new Date().toISOString();
+
+          await env.DATA.put(taskKey, JSON.stringify(task));
+
+          // Add to user's claimed tasks
+          const userTasksKey = `tasks:${userId}`;
+          const userTasks = await env.DATA.get(userTasksKey, 'json') || [];
+          if (!userTasks.find(t => t.id === taskId)) {
+            userTasks.push(task);
+            await env.DATA.put(userTasksKey, JSON.stringify(userTasks));
+          }
+
+          return new Response(JSON.stringify({ success: true, task }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[TASKS]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // Complete task
+      if (url.pathname === '/api/tasks/complete' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { taskId } = body;
+
+          if (!taskId) {
+            return new Response(JSON.stringify({ error: 'Missing task ID' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const taskKey = `task:${taskId}`;
+          const task = await env.DATA.get(taskKey, 'json');
+
+          if (!task) {
+            return new Response(JSON.stringify({ error: 'Task not found' }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+
+          task.status = 'complete';
+          task.completedAt = new Date().toISOString();
+
+          await env.DATA.put(taskKey, JSON.stringify(task));
+
+          return new Response(JSON.stringify({ success: true, task }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[TASKS]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // Update task
+      if (url.pathname === '/api/tasks/update' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { taskId, update } = body;
+
+          if (!taskId || !update) {
+            return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const taskKey = `task:${taskId}`;
+          const task = await env.DATA.get(taskKey, 'json');
+
+          if (!task) {
+            return new Response(JSON.stringify({ error: 'Task not found' }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+
+          task.updates = task.updates || [];
+          task.updates.push({
+            id: `update_${Date.now()}`,
+            content: update,
+            createdAt: new Date().toISOString()
+          });
+
+          await env.DATA.put(taskKey, JSON.stringify(task));
+
+          return new Response(JSON.stringify({ success: true, task }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[TASKS]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
           });
         }
       }

@@ -9300,6 +9300,302 @@ function setupCalendarControls() {
     
     // Load staff events on first load
     loadStaffEvents();
+    setupTaskTrackSystem();
+}
+
+// ============================================================================
+// TASKTRACK SYSTEM
+// ============================================================================
+
+function setupTaskTrackSystem() {
+    const tasktrackBtn = document.getElementById('tasktrackBtn');
+    if (!tasktrackBtn) return;
+
+    tasktrackBtn.addEventListener('click', () => {
+        showTaskTrackScreen();
+    });
+
+    // Setup tab buttons
+    document.querySelectorAll('.tasktrack-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTaskTab(btn.dataset.tab));
+    });
+}
+
+async function showTaskTrackScreen() {
+    // Show TaskTrack screen
+    const screens = document.querySelectorAll('.screen');
+    screens.forEach(s => s.style.display = 'none');
+
+    const tasktrackScreen = document.getElementById('tasktrackScreen');
+    if (tasktrackScreen) {
+        tasktrackScreen.style.display = 'block';
+    }
+
+    // Load tasks
+    await loadTaskTrackData();
+}
+
+async function loadTaskTrackData() {
+    const loading = document.getElementById('tasktrackLoading');
+    const content = document.getElementById('tasktrackContent');
+
+    if (loading) loading.style.display = 'block';
+    if (content) content.style.display = 'none';
+
+    try {
+        // Get current user ID
+        const userStr = localStorage.getItem('users');
+        if (!userStr) {
+            throw new Error('User not found');
+        }
+
+        const users = JSON.parse(userStr);
+        const userId = Object.keys(users)[0]; // Get first user
+
+        if (!userId) {
+            throw new Error('User ID not found');
+        }
+
+        // Fetch tasks from API
+        const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/tasks/user/${userId}`);
+        const tasks = await response.json() || [];
+
+        // Process and render tasks
+        renderTaskTrackAnalytics(tasks);
+        renderTaskCards(tasks);
+        
+        if (loading) loading.style.display = 'none';
+        if (content) content.style.display = 'flex';
+
+    } catch (error) {
+        console.error('Error loading TaskTrack data:', error);
+        if (loading) loading.style.display = 'none';
+        if (content) content.style.display = 'flex';
+    }
+}
+
+function renderTaskTrackAnalytics(tasks) {
+    const completed = tasks.filter(t => t.status === 'complete').length;
+    const inProgress = tasks.filter(t => t.status === 'claimed' || t.status === 'in_progress').length;
+    const overdue = tasks.filter(t => t.status === 'overdue' || (new Date(t.dueDate) < new Date() && t.status !== 'complete')).length;
+
+    // Update counters
+    document.getElementById('completedTasksCount').textContent = completed;
+    document.getElementById('inProgressCount').textContent = inProgress;
+    document.getElementById('overdueTasksCount').textContent = overdue;
+
+    // Render pie chart
+    const chartCanvas = document.getElementById('taskEfficiencyChart');
+    if (chartCanvas && typeof Chart !== 'undefined') {
+        const ctx = chartCanvas.getContext('2d');
+        
+        if (window.taskChart) {
+            window.taskChart.destroy();
+        }
+
+        window.taskChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'In Progress', 'Overdue'],
+                datasets: [{
+                    data: [completed, inProgress, overdue],
+                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                    borderColor: '#ffffff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    // Update weekly comparison
+    const weeklyText = document.getElementById('weeklyComparison');
+    if (weeklyText) {
+        // TODO: Implement actual comparison with previous week
+        weeklyText.textContent = 'Your tasks have remained the same this week as was last week';
+    }
+}
+
+function renderTaskCards(tasks) {
+    const container = document.getElementById('upcomingTasksContainer');
+    const noTasksMsg = document.getElementById('noTasksMessage');
+    const upcomingTasksList = document.getElementById('upcomingTasksList');
+
+    if (!container || !upcomingTasksList) return;
+
+    // Filter upcoming tasks (next 14 days)
+    const now = new Date();
+    const twoWeeksFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+    
+    const upcomingTasks = tasks.filter(t => {
+        const dueDate = new Date(t.dueDate);
+        return dueDate >= now && dueDate <= twoWeeksFromNow && t.status !== 'complete';
+    }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+    // Clear containers
+    container.innerHTML = '';
+    upcomingTasksList.innerHTML = '';
+
+    if (upcomingTasks.length === 0) {
+        if (noTasksMsg) noTasksMsg.style.display = 'block';
+        container.style.display = 'none';
+        return;
+    }
+
+    if (noTasksMsg) noTasksMsg.style.display = 'none';
+    container.style.display = 'grid';
+
+    upcomingTasks.forEach(task => {
+        // Card in grid
+        const card = document.createElement('div');
+        card.style.cssText = `
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        `;
+        card.onmouseover = () => card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+        card.onmouseout = () => card.style.boxShadow = 'none';
+
+        card.innerHTML = `
+            <h4 style="margin: 0 0 8px 0; font-weight: 600; color: #1f2937;">${task.title}</h4>
+            <p style="margin: 0 0 12px 0; color: #666; font-size: 13px; line-height: 1.4;">${task.description?.substring(0, 60)}...</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 12px;">
+                <span style="color: #667eea; font-weight: 600;">${task.department}</span>
+                <span style="color: #999;">Due: ${new Date(task.dueDate).toLocaleDateString()}</span>
+            </div>
+            <button style="width: 100%; padding: 8px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
+                Complete
+            </button>
+        `;
+
+        card.addEventListener('click', () => showTaskDetail(task));
+        container.appendChild(card);
+
+        // Card in list view
+        const listItem = document.createElement('div');
+        listItem.style.cssText = `
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+        `;
+
+        listItem.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                <h4 style="margin: 0; font-weight: 600; color: #1f2937;">${task.title}</h4>
+                <span style="font-size: 12px; color: #999;">${new Date(task.dueDate).toLocaleDateString()}</span>
+            </div>
+            <p style="margin: 0 0 12px 0; color: #666; font-size: 13px;">${task.description?.substring(0, 100)}...</p>
+            <button style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
+                Complete Task
+            </button>
+        `;
+
+        listItem.addEventListener('click', () => showTaskDetail(task));
+        upcomingTasksList.appendChild(listItem);
+    });
+}
+
+function showTaskDetail(task) {
+    const modal = document.getElementById('taskDetailModal');
+    const content = document.getElementById('taskDetailContent');
+
+    if (!modal || !content) return;
+
+    content.innerHTML = `
+        <h2 style="margin: 0 0 16px 0; color: #1f2937;">${task.title}</h2>
+        
+        <div style="margin-bottom: 20px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Description</h3>
+            <p style="margin: 0; color: #374151; line-height: 1.6;">${task.description}</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+            <div>
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Due Date</h3>
+                <p style="margin: 0; color: #374151; font-weight: 600;">${new Date(task.dueDate).toLocaleDateString()}</p>
+            </div>
+            <div>
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Status</h3>
+                <p style="margin: 0; color: #374151; font-weight: 600;">${task.status?.toUpperCase()}</p>
+            </div>
+            <div>
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Department</h3>
+                <p style="margin: 0; color: #374151; font-weight: 600;">${task.department}</p>
+            </div>
+            <div>
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Priority</h3>
+                <p style="margin: 0; color: #374151; font-weight: 600;">${task.priority?.toUpperCase()}</p>
+            </div>
+        </div>
+
+        ${task.extraInfo ? `
+            <div style="margin-bottom: 20px;">
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Extra Information</h3>
+                <p style="margin: 0; color: #374151;">${task.extraInfo}</p>
+            </div>
+        ` : ''}
+
+        <div style="margin-bottom: 20px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Assigned By</h3>
+            <p style="margin: 0; color: #374151;">${task.createdByName || 'Unknown'}</p>
+        </div>
+
+        ${task.updates && task.updates.length > 0 ? `
+            <div style="margin-bottom: 20px;">
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #666;">Progress Updates</h3>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    ${task.updates.map(update => `
+                        <div style="background: #f9fafb; padding: 12px; border-radius: 6px; border-left: 3px solid #667eea;">
+                            <p style="margin: 0 0 4px 0; color: #374151;">${update.content}</p>
+                            <p style="margin: 0; font-size: 12px; color: #999;">${new Date(update.createdAt).toLocaleString()}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        ` : ''}
+
+        <button style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; margin-top: 20px;">
+            Mark as Complete
+        </button>
+    `;
+
+    modal.classList.add('active');
+}
+
+function switchTaskTab(tab) {
+    // Hide all tabs
+    document.querySelectorAll('.tasktrack-tab-content').forEach(t => t.style.display = 'none');
+    document.querySelectorAll('.tasktrack-tab-btn').forEach(b => {
+        b.style.color = '#9ca3af';
+        b.style.borderBottom = 'none';
+    });
+
+    // Show selected tab
+    const tabElement = document.getElementById(tab + 'Tab');
+    if (tabElement) {
+        tabElement.style.display = 'block';
+    }
+
+    // Highlight button
+    const btn = document.querySelector(`[data-tab="${tab}"]`);
+    if (btn) {
+        btn.style.color = '#667eea';
+        btn.style.borderBottom = '2px solid #667eea';
+    }
 }
 
 // Initialize all systems on DOM ready
@@ -9322,6 +9618,16 @@ function setupModalCloseButtons() {
             }
         });
     });
+
+    // Close task detail modal
+    const taskDetailModal = document.getElementById('taskDetailModal');
+    if (taskDetailModal) {
+        taskDetailModal.addEventListener('click', (e) => {
+            if (e.target === taskDetailModal) {
+                taskDetailModal.classList.remove('active');
+            }
+        });
+    }
     
     // Close event RSVP modal
     const eventModal = document.getElementById('eventRsvpModal');
