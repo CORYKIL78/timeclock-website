@@ -823,10 +823,11 @@ label input[type="radio"]:checked, label input[type="checkbox"]:checked {
    ================================================================ */
 #mainMenuScreen.screen.active {
   display: block;
-  padding: 0px 24px 24px 320px;
+  padding: 20px 24px 24px 320px;
   animation: screenFadeIn 0.35s ease-out;
-  height: auto;
-  overflow: visible;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 #mainMenuScreen .container {
@@ -840,8 +841,6 @@ label input[type="radio"]:checked, label input[type="checkbox"]:checked {
   height: auto;
   display: flex;
   flex-direction: column;
-  overflow-y: visible;
-  overflow-x: hidden;
   padding-right: 8px;
 }
 

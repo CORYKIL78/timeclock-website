@@ -551,34 +551,34 @@
     
     <!-- Sequential Loading Screen -->
     <div id="sequentialLoadingScreen" class="screen">
-        <div class="container" style="text-align: center; max-width: 500px; display: flex; align-items: center; justify-content: center; min-height: 100vh; flex-direction: column;">
+        <div class="container" style="text-align: center; max-width: 400px; display: flex; align-items: center; justify-content: center; min-height: 100vh; flex-direction: column;">
             <div class="loading-spinner" style="width: 80px; height: 80px; border: 8px solid #f3f3f3; border-top: 8px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 30px;"></div>
             <h2 style="font-size: 28px; margin-bottom: 15px;">Welcome back, <span id="loadingUserName">User</span>!</h2>
             <p style="font-size: 16px; color: #666; margin-bottom: 40px;">Just one moment whilst we load everything for you.</p>
             
             <div id="loadingSteps" style="text-align: left; max-width: 400px; margin: 0 auto;">
                 <div class="loading-step" data-step="discord" style="padding: 12px 20px; margin-bottom: 10px; background: #4d5358; border-radius: 8px; display: flex; align-items: center; gap: 15px; opacity: 0.3; transition: all 0.3s;">
-                    <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #e0e0e0; flex-shrink: 0;"></div>
+                    <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #292828; flex-shrink: 0;"></div>
                     <span style="font-size: 15px; font-weight: 500;">Loading Discord data...</span>
                 </div>
                 <div class="loading-step" data-step="database" style="padding: 12px 20px; margin-bottom: 10px; background: #4d5358; border-radius: 8px; display: flex; align-items: center; gap: 15px; opacity: 0.3; transition: all 0.3s;">
-                    <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #e0e0e0; flex-shrink: 0;"></div>
+                    <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #292828; flex-shrink: 0;"></div>
                     <span style="font-size: 15px; font-weight: 500;">Loading database data...</span>
                 </div>
                 <div class="loading-step" data-step="backend" style="padding: 12px 20px; margin-bottom: 10px; background: #4d5358; border-radius: 8px; display: flex; align-items: center; gap: 15px; opacity: 0.3; transition: all 0.3s;">
-                    <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #e0e0e0; flex-shrink: 0;"></div>
+                    <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #292828; flex-shrink: 0;"></div>
                     <span style="font-size: 15px; font-weight: 500;">Loading backend and Cloudflare...</span>
                 </div>
                 <div class="loading-step" data-step="sentinel" style="padding: 12px 20px; margin-bottom: 10px; background: #4d5358; border-radius: 8px; display: flex; align-items: center; gap: 15px; opacity: 0.3; transition: all 0.3s;">
-                    <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #e0e0e0; flex-shrink: 0;"></div>
+                    <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #292828; flex-shrink: 0;"></div>
                     <span style="font-size: 15px; font-weight: 500;">Loading Sentinel...</span>
                 </div>
                 <div class="loading-step" data-step="contents" style="padding: 12px 20px; margin-bottom: 10px; background: #4d5358; border-radius: 8px; display: flex; align-items: center; gap: 15px; opacity: 0.3; transition: all 0.3s;">
-                    <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #e0e0e0; flex-shrink: 0;"></div>
+                    <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #292828; flex-shrink: 0;"></div>
                     <span style="font-size: 15px; font-weight: 500;">Loading contents...</span>
                 </div>
                 <div class="loading-step" data-step="success" style="padding: 12px 20px; margin-bottom: 10px; background: #4d5358; border-radius: 8px; display: flex; align-items: center; gap: 15px; opacity: 0.3; transition: all 0.3s;">
-                    <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #e0e0e0; flex-shrink: 0;"></div>
+                    <div class="step-icon" style="width: 24px; height: 24px; border-radius: 50%; background: #292828; flex-shrink: 0;"></div>
                     <span style="font-size: 15px; font-weight: 500; color: #4caf50;">Success! ✓</span>
                 </div>
             </div>
@@ -630,8 +630,8 @@
     </style>
     
     <div id="mainMenuScreen" class="screen">
-        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0px 24px; display: flex; align-items: flex-start; justify-content: center; min-height: auto;">
-            <div style="width: 100%; padding-top: 12px;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0px 24px; display: flex; align-items: flex-start; justify-content: center;">
+            <div style="width: 100%;">
             <!-- Greeting section (compressed) -->
             <div class="user-header-card" style="padding: 16px 32px; margin-bottom: 8px; margin-left: 0; margin-right: 0; min-height: auto; display: flex; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 20px; width: 100%;">
