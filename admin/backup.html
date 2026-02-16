@@ -116,7 +116,7 @@ input,select,textarea{font-family:inherit;outline:none}
 .sidebar-logo .tag{font-size:10px;background:var(--accent);color:#fff;padding:2px 8px;border-radius:20px;font-weight:600}
 .sidebar nav{flex:1;padding:8px 12px;display:flex;flex-direction:column;gap:2px;position:relative}
 .nav-indicator{
-  position:absolute;left:8px;right:8px;height:38px;border-radius:8px;
+  position:absolute;left:0;top:0;border-radius:8px;
   background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);
   transition:transform .25s ease;pointer-events:none
 }
@@ -949,8 +949,13 @@ function showScreen(id) {
 function updateNavIndicator(targetBtn) {
   const indicator = document.getElementById('navIndicator');
   if (!indicator || !targetBtn) return;
+  const nav = document.querySelector('.sidebar nav');
+  const navPaddingLeft = parseInt(window.getComputedStyle(nav).paddingLeft);
+  const navPaddingRight = parseInt(window.getComputedStyle(nav).paddingRight);
+  const btnOffsetLeft = targetBtn.offsetLeft - navPaddingLeft;
+  indicator.style.width = `${targetBtn.offsetWidth}px`;
   indicator.style.height = `${targetBtn.offsetHeight}px`;
-  indicator.style.transform = `translateY(${targetBtn.offsetTop}px)`;
+  indicator.style.transform = `translateY(${targetBtn.offsetTop}px) translateX(${btnOffsetLeft}px)`;
 }
 
 /* ================================================================

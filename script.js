@@ -2418,7 +2418,7 @@ async function updateStaffServerStatus(force = false) {
     if (!force && staffServerStatusCache.lastChecked && now - staffServerStatusCache.lastChecked < 60000) {
         const cached = staffServerStatusCache.status;
         if (cached !== null) {
-            statusEl.textContent = cached ? 'tick Verified' : 'x Unverified';
+            statusEl.textContent = cached ? 'Verified' : 'Unverified';
             statusEl.className = cached ? 'status-badge verified' : 'status-badge unverified';
         }
         return;
@@ -9081,9 +9081,18 @@ let currentUserResponse = null;
 // Load and display staff events
 async function loadStaffEvents() {
     try {
-        const data = await apiGet('/api/events');
+        const backendUrl = typeof WORKER_URL !== 'undefined' ? WORKER_URL : 'https://timeclock-backend.marcusray.workers.dev';
+        const response = await fetch(`${backendUrl}/api/events`);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
         const events = data.events || [];
         const container = document.getElementById('eventsContainer');
+        
+        if (!container) return; // Element doesn't exist yet
         
         // Filter to show only upcoming events
         const now = new Date();
@@ -9097,7 +9106,7 @@ async function loadStaffEvents() {
         let html = '';
         upcomingEvents.forEach(event => {
             const eventDateTime = new Date(`${event.date}T${event.startTime}`);
-            const userResponse = event.responses?.find(r => r.userId === userData.id);
+            const userResponse = event.responses?.find(r => r.userId === (typeof currentUser !== 'undefined' ? currentUser.id : userData?.id));
             const statusColor = userResponse ? {
                 'attending': '#10b981',
                 'not_attending': '#ef4444',
@@ -9136,7 +9145,10 @@ async function loadStaffEvents() {
         container.innerHTML = html;
     } catch (e) {
         console.error('Error loading events:', e);
-        document.getElementById('eventsContainer').innerHTML = `<div style="color: red; padding: 20px;">Error loading events</div>`;
+        const container = document.getElementById('eventsContainer');
+        if (container) {
+            container.innerHTML = `<div style="color: var(--text-secondary); padding: 20px;">Events will appear here when created</div>`;
+        }
     }
 }
 
@@ -9202,36 +9214,48 @@ async function submitEventResponse() {
     if (!currentSelectedEvent || !currentUserResponse) return;
     
     const comment = document.getElementById('eventComment').value.trim() || '';
+    const userId = typeof currentUser !== 'undefined' ? currentUser.id : userData?.id;
+    const userName = typeof currentUser !== 'undefined' ? 
+        `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() : 
+        `${userData?.firstName || ''} ${userData?.lastName || ''}`.trim();
+    
     const responseData = {
         eventId: currentSelectedEvent._id || currentSelectedEvent.id,
-        userId: userData.id,
-        userName: `${userData.firstName} ${userData.lastName}`,
+        userId,
+        userName,
         status: currentUserResponse.status,
         comment,
         respondedAt: new Date().toISOString()
     };
     
     try {
-        await apiPost('/api/events/respond', responseData);
+        const backendUrl = typeof WORKER_URL !== 'undefined' ? WORKER_URL : 'https://timeclock-backend.marcusray.workers.dev';
+        const response = await fetch(`${backendUrl}/api/events/respond`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(responseData)
+        });
         
-        // Show success message
-        const toastEl = document.getElementById('toast') || createToastElement();
-        toastEl.textContent = `Response recorded: ${currentUserResponse.status}`;
-        toastEl.style.background = '#10b981';
-        toastEl.classList.add('show');
-        setTimeout(() => toastEl.classList.remove('show'), 3000);
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
         
-        // Close modal and reload events
+        showToast(`Response recorded: ${currentUserResponse.status}`, 'success');
         document.getElementById('eventRsvpModal').classList.remove('active');
         setTimeout(loadStaffEvents, 500);
     } catch (e) {
         console.error('Error responding to event:', e);
-        const toastEl = document.getElementById('toast') || createToastElement();
-        toastEl.textContent = 'Failed to submit response';
-        toastEl.style.background = '#ef4444';
-        toastEl.classList.add('show');
-        setTimeout(() => toastEl.classList.remove('show'), 3000);
+        showToast('Failed to submit response', 'error');
     }
+}
+
+// Helper to show toast messages
+function showToast(message, type = 'info') {
+    const toastEl = document.getElementById('toast') || createToastElement();
+    toastEl.textContent = message;
+    toastEl.style.background = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
+    toastEl.className = 'show';
+    setTimeout(() => toastEl.classList.remove('show'), 3000);
 }
 
 function createToastElement() {
@@ -9254,25 +9278,27 @@ function createToastElement() {
     return toast;
 }
 
-// Modified setupCalendarControls to load events
-const originalSetupCalendarControls = setupCalendarControls;
+// Setup calendar controls and events
 function setupCalendarControls() {
-    originalSetupCalendarControls();
+    const prevBtn = document.getElementById('calendarPrevMonth');
+    const nextBtn = document.getElementById('calendarNextMonth');
     
-    // Load staff events when calendar screen is shown
-    const calendarScreen = document.getElementById('calendarScreen');
-    if (calendarScreen) {
-        const observer = new MutationObserver(() => {
-            if (calendarScreen.style.display !== 'none' && calendarScreen.offsetParent !== null) {
-                loadStaffEvents();
-                observer.disconnect();
-            }
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() - 1);
+            renderCalendar();
         });
-        observer.observe(calendarScreen, { attributes: true });
     }
     
-    // Initial load
-    setTimeout(loadStaffEvents, 1000);
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + 1);
+            renderCalendar();
+        });
+    }
+    
+    // Load staff events on first load
+    loadStaffEvents();
 }
 
 // Initialize all systems on DOM ready

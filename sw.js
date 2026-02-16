@@ -65,12 +65,14 @@ self.addEventListener('fetch', event => {
   const url = request.url;
   
   // Skip CORS requests to external APIs - CRITICAL for backend/Discord
+  // Let these go through without any service worker interception
   if (url.includes('timeclock-backend.marcusray.workers.dev') ||
       url.includes('discord.com') ||
       url.includes('cdn.discordapp.com') ||
       url.includes('googleapis.com') ||
       url.includes('sheets.googleapis.com')) {
-    return; // Let browser handle these
+    // Don't intercept - let browser handle these requests
+    return;
   }
   
   // Always fetch HTML fresh

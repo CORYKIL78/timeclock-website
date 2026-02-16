@@ -445,6 +445,39 @@ label input[type="radio"]:checked, label input[type="checkbox"]:checked {
   transform: translateX(2px);
 }
 
+/* ================================================================
+   MOBILE NAVIGATION BUTTON
+   ================================================================ */
+#mobileNavBtn {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 999;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  align-items: center;
+  justify-content: center;
+}
+
+#mobileNavBtn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(99,102,241,0.5);
+}
+
+#mobileNavBtn:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+
 .profile-img {
   width: 48px;
   height: 48px;
@@ -1050,6 +1083,9 @@ footer {
   transform: translateY(0) !important;
 }
 
+/* ================================================================
+   PROFILE DEBUG PANEL
+   ================================================================ */
 #profileDebugPanel {
   background: rgba(239,68,68,0.1);
   border: 1px solid var(--danger);
