@@ -86,7 +86,8 @@ async function showAccountInformation(interaction, profile) {
                 { name: '👤 Name', value: profile.name || 'Not set', inline: true },
                 { name: '🆔 Staff ID', value: profile.staffId || 'Not set', inline: true },
                 { name: '🏢 Department', value: profile.department || 'Not set', inline: true },
-                { name: '📧 Email', value: profile.email || 'Not set', inline: false }
+                { name: '📧 Email', value: profile.email || 'Not set', inline: false },
+                { name: '💪 Status', value: profile.status || 'Active', inline: true }
             )
             .setImage('https://via.placeholder.com/1200x100?text=TimeClock+Staff+Portal&txtsize=40')
             .setFooter({
