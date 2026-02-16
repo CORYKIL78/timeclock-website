@@ -344,6 +344,9 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
 }
 </style>
 <!-- ====== Load Configuration from environment ====== -->
+<!-- Load environment config FIRST before config-loader.js -->
+<script src="../.env-config.js"></script>
+<!-- Load config loader AFTER environment config is defined -->
 <script src="../config-loader.js"></script>
 <!-- Load local admin credentials only in local/dev contexts -->
 <script>
@@ -366,10 +369,7 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
   (async () => {
     const adminsLoaded = await loadScript('../admins.js', 'admins.js');
     if (!adminsLoaded) {
-      const envLoaded = await loadScript('../.env-config.js', '.env-config.js');
-      if (!envLoaded) {
-        console.warn('[ADMIN CONFIG] No local admin credentials found');
-      }
+      console.log('[ADMIN CONFIG] Using credentials from .env-config.js');
     }
   })();
 })();
@@ -383,9 +383,11 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
   <div class="login-card">
     <h1>OC Portal</h1>
     <p class="subtitle">Oversight & Corporate Administration</p>
-    <input type="text" id="discordIdInput" placeholder="Discord ID" autocomplete="off" />
-    <input type="password" id="pinInput" placeholder="PIN" maxlength="6" autocomplete="off" />
-    <button class="login-btn" id="loginBtn">Sign In</button>
+    <form id="loginForm" onsubmit="event.preventDefault(); doLogin();">
+      <input type="text" id="discordIdInput" placeholder="Discord ID" autocomplete="off" />
+      <input type="password" id="pinInput" placeholder="PIN" maxlength="6" autocomplete="off" />
+      <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+    </form>
     <div class="login-error" id="loginError"></div>
   </div>
 </div>

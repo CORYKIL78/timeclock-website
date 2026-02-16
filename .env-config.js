@@ -5,7 +5,7 @@
 // Environment Configuration (for config-loader.js)
 window.ENVIRONMENT_CONFIG = window.ENVIRONMENT_CONFIG || {
   DISCORD_CLIENT_ID: null,
-  WORKER_URL: null,
+  WORKER_URL: 'https://timeclock-backend.marcusray.workers.dev',
   REDIRECT_URI: null,
   GUILD_ID: null,
   REQUIRED_ROLE: null,
