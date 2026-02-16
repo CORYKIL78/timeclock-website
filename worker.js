@@ -1583,7 +1583,7 @@ export default {
       if (url.pathname === '/api/admin/user/update' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { discordId, name, email, department, baseLevel, utilisation } = body;
+          const { discordId, name, email, department, baseLevel, utilisation, robloxId, robloxUsername, staffId } = body;
           
           if (!discordId) {
             return new Response(JSON.stringify({ success: false, error: 'Missing discordId' }), {
@@ -1600,6 +1600,9 @@ export default {
           if (email !== undefined) profile.email = email;
           if (department !== undefined) profile.department = department;
           if (baseLevel !== undefined) profile.baseLevel = baseLevel;
+          if (robloxId !== undefined) profile.robloxId = robloxId;
+          if (robloxUsername !== undefined) profile.robloxUsername = robloxUsername;
+          if (staffId !== undefined) profile.staffId = staffId;
           if (utilisation !== undefined) {
             profile.suspended = utilisation === 'Suspended';
             profile.utilisation = utilisation;
@@ -1614,6 +1617,9 @@ export default {
           account.profile = profile;
           if (name !== undefined) account.name = name;
           if (email !== undefined) account.email = email;
+          if (robloxId !== undefined) account.robloxId = robloxId;
+          if (robloxUsername !== undefined) account.robloxUsername = robloxUsername;
+          if (staffId !== undefined) account.staffId = staffId;
           await env.DATA.put(accountKey, JSON.stringify(account));
           
           return new Response(JSON.stringify({ success: true, profile }), { headers: corsHeaders });

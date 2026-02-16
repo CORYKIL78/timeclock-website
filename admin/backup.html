@@ -962,12 +962,31 @@ function updateNavIndicator(targetBtn) {
    API HELPERS
    ================================================================ */
 async function apiGet(path) {
-  const r = await fetch(API + path);
-  return r.json();
+  try {
+    const r = await fetch(API + path);
+    if (!r.ok) {
+      const errorData = await r.json().catch(() => ({ error: 'Network error' }));
+      throw new Error(errorData.error || `HTTP ${r.status}`);
+    }
+    return await r.json();
+  } catch (e) {
+    console.error('[API GET]', path, e);
+    throw e;
+  }
 }
+
 async function apiPost(path, body) {
-  const r = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  return r.json();
+  try {
+    const r = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await r.json();
+    if (!r.ok) {
+      throw new Error(data?.error || `HTTP ${r.status}`);
+    }
+    return data;
+  } catch (e) {
+    console.error('[API POST]', path, e);
+    throw e;
+  }
 }
 
 function avatarUrl(userId, hash) {
@@ -1044,30 +1063,34 @@ async function doLogin() {
   showScreen('loadingScreen');
 
   try {
-    // Try to validate against backend first (production)
     let validation = null;
     let isLocalAuth = false;
     
-    try {
-      const response = await apiPost('/api/admin/validate', { discordId: id, pin });
-      if (response.success) {
-        validation = response;
-      }
-    } catch (e) {
-      // Backend not available or endpoint not working
-      console.log('[AUTH] Backend validation unavailable, checking local config...');
-    }
-    
-    // Fall back to local credentials if available (development)
-    if (!validation && window.CONFIG?.ADMINS?.[id]) {
+    // PRIORITY 1: Check local credentials first (development/simple setup)
+    if (window.CONFIG?.ADMINS?.[id]) {
       if (window.CONFIG.ADMINS[id].pin === pin) {
         validation = {
           success: true,
           adminId: id,
-          adminName: window.CONFIG.ADMINS[id].name
+          adminName: window.CONFIG.ADMINS[id].name,
+          staffId: window.CONFIG.ADMINS[id].staffId || ''
         };
         isLocalAuth = true;
         console.log('[AUTH] Using local configuration for authentication');
+      }
+    }
+    
+    // PRIORITY 2: Fall back to backend validation if local fails
+    if (!validation) {
+      try {
+        const response = await apiPost('/api/admin/validate', { discordId: id, pin });
+        if (response && response.success) {
+          validation = response;
+          console.log('[AUTH] Backend validation successful');
+        }
+      } catch (e) {
+        // Backend validation failed or unavailable
+        console.log('[AUTH] Backend validation unavailable:', e.message);
       }
     }
     
@@ -1088,7 +1111,7 @@ async function doLogin() {
       console.log('Could not fetch Discord profile, using defaults:', e);
     }
 
-    state.admin = { id, name: displayName, avatar: avatarSrc };
+    state.admin = { id, name: displayName, avatar: avatarSrc, staffId: validation.staffId || '' };
 
     try {
       await logAdminAction('admin_login', `${displayName} logged in`, id);

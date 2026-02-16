@@ -71,8 +71,9 @@ self.addEventListener('fetch', event => {
       url.includes('cdn.discordapp.com') ||
       url.includes('googleapis.com') ||
       url.includes('sheets.googleapis.com')) {
-    // Don't intercept - let browser handle these requests
-    return;
+    // Don't intercept - let browser handle these requests naturally
+    // These have CORS restrictions and need to bypass the SW
+    return event.respondWith(fetch(request));
   }
   
   // Always fetch HTML fresh
