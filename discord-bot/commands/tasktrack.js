@@ -8,7 +8,7 @@
  * - 1473065415780470971
  */
 
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ChannelType } = require('discord.js');
 const config = require('../config');
 
 const BACKEND_URL = config.BACKEND_URL;
@@ -351,13 +351,14 @@ async function handleTaskPublish(interaction) {
             });
         }
 
-        // Create thread in the channel (handle forum channels)
+        // Create thread in the channel (handle forum/media channels correctly)
         console.log(`[TASKTRACK] Creating thread in channel ${channelId}, type: ${channel.type}`);
         let thread;
         try {
-            // Check if it's a forum channel
-            if (channel.isForumChannel && channel.isForumChannel()) {
-                // Forum channels require a message
+            const isForumLikeChannel = channel.type === ChannelType.GuildForum || channel.type === ChannelType.GuildMedia;
+
+            if (isForumLikeChannel) {
+                // Forum/Media channels require starter message
                 thread = await channel.threads.create({
                     name: `📋 ${taskData.title}`,
                     message: {
@@ -365,12 +366,20 @@ async function handleTaskPublish(interaction) {
                     },
                     autoArchiveDuration: 10080, // 7 days
                 });
-            } else {
-                // Regular text channel
-                thread = await channel.threads.create({
+            } else if (channel.isTextBased && channel.isTextBased()) {
+                // For normal text channels, send starter message then create thread from it
+                const starterMessage = await channel.send({
+                    content: `📋 **${taskData.title}**\nTask created by ${taskData.createdByName}`
+                });
+
+                thread = await starterMessage.startThread({
                     name: `📋 ${taskData.title}`,
-                    autoArchiveDuration: 10080, // 7 days
-                    type: 11 // GUILD_PUBLIC_THREAD
+                    autoArchiveDuration: 10080 // 7 days
+                });
+            } else {
+                return await interaction.followUp({
+                    content: '❌ Selected department channel is not thread-capable.',
+                    ephemeral: true
                 });
             }
         } catch (threadError) {
@@ -533,22 +542,76 @@ async function handleAnalyticsSubmit(interaction) {
 
     try {
         console.log(`[TASKTRACK] Fetching analytics for staff ID: ${staffId}`);
-        
-        // Fetch analytics from backend
-        const analyticsResponse = await fetch(`${BACKEND_URL}/api/staff/analytics/${staffId}`, {
+
+        // 1) Resolve staff ID to Discord ID using real backend endpoint
+        const usersResponse = await fetch(`${BACKEND_URL}/api/admin/users`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
 
-        if (!analyticsResponse.ok) {
-            console.error(`[TASKTRACK] Analytics fetch error: ${analyticsResponse.status} - ${analyticsResponse.statusText}`);
+        if (!usersResponse.ok) {
+            console.error(`[TASKTRACK] Users fetch error: ${usersResponse.status} - ${usersResponse.statusText}`);
             return await interaction.editReply({
-                content: `❌ Could not find analytics for staff ID: ${staffId}. (${analyticsResponse.status}) Please check the ID and try again.`,
+                content: `❌ Could not fetch user list for analytics. (${usersResponse.status})`,
                 ephemeral: true
             });
         }
 
-        const analytics = await analyticsResponse.json();
+        const usersPayload = await usersResponse.json();
+        const users = usersPayload?.users || [];
+        const normalizedStaffId = staffId.trim().toUpperCase();
+        const matchedUser = users.find(user => (user.staffId || '').trim().toUpperCase() === normalizedStaffId);
+
+        if (!matchedUser) {
+            return await interaction.editReply({
+                content: `❌ Could not find analytics for staff ID: ${staffId}. No matching profile found.`,
+                ephemeral: true
+            });
+        }
+
+        // 2) Fetch tasks for this user
+        const tasksResponse = await fetch(`${BACKEND_URL}/api/tasks/user/${matchedUser.discordId}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!tasksResponse.ok) {
+            return await interaction.editReply({
+                content: `❌ Could not fetch tasks for ${staffId}. (${tasksResponse.status})`,
+                ephemeral: true
+            });
+        }
+
+        const tasks = await tasksResponse.json();
+        const allTasks = Array.isArray(tasks) ? tasks : [];
+
+        // 3) Build analytics from task data
+        const completedTasks = allTasks.filter(task => task.status === 'completed').length;
+        const inProgressTasks = allTasks.filter(task => ['open', 'in_progress', 'claimed'].includes(task.status)).length;
+        const overdueTasks = allTasks.filter(task => task.status === 'overdue').length;
+        const totalTasks = allTasks.length;
+        const completionRate = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : '0.0';
+
+        const latestTaskDate = allTasks
+            .map(task => task.updatedAt || task.completedAt || task.claimedAt || task.createdAt)
+            .filter(Boolean)
+            .sort((a, b) => new Date(b) - new Date(a))[0];
+
+        const analytics = {
+            name: matchedUser.name || 'N/A',
+            department: matchedUser.department || 'N/A',
+            position: matchedUser.baseLevel || 'N/A',
+            totalTasks,
+            completedTasks,
+            inProgressTasks,
+            overdueTasks,
+            completionRate,
+            avgCompletionTime: 'N/A',
+            onTimeRate: 'N/A',
+            lastActive: latestTaskDate ? new Date(latestTaskDate).toLocaleString('en-GB') : 'N/A',
+            totalHours: 'N/A',
+            avgDaily: 'N/A'
+        };
 
         // Create analytics embed
         const analyticsEmbed = new EmbedBuilder()

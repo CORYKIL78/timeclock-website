@@ -180,7 +180,7 @@ async function sendDismissalEmail(recipientEmail, username, dismissedBy) {
     const emailHtml = getDismissalEmailHTML(username, dismissedBy);
 
     // Using Mailersend API
-    const mailersendApiKey = process.env.MAILERSEND_API_KEY;
+    const mailersendApiKey = process.env.MAILERSEND_API_KEY || process.env.MAILERSEND_TOKEN || process.env.MAILERSEND_KEY;
     if (!mailersendApiKey) {
         console.error('[DISMISS] ❌ MAILERSEND_API_KEY environment variable not set');
         throw new Error('Email service not configured (MAILERSEND_API_KEY missing)');
@@ -216,8 +216,18 @@ async function sendDismissalEmail(recipientEmail, username, dismissedBy) {
         throw new Error(`Email API error: ${response.status} ${response.statusText}`);
     }
 
-    const result = await response.json();
-    console.log('[DISMISS] ✅ Dismissal email sent successfully:', result.message_id);
+    // MailerSend often returns 202 Accepted with an empty body
+    const responseText = await response.text();
+    let result = { accepted: true };
+    if (responseText && responseText.trim().length > 0) {
+        try {
+            result = JSON.parse(responseText);
+        } catch (parseError) {
+            console.log('[DISMISS] MailerSend response is non-JSON but accepted:', responseText);
+        }
+    }
+
+    console.log('[DISMISS] ✅ Dismissal email accepted by MailerSend');
     return result;
 }
 

@@ -4,7 +4,7 @@
  * Assigns roles, sends welcome email, and logs the action
  */
 
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const config = require('../config');
 
 const BACKEND_URL = config.BACKEND_URL;
@@ -92,11 +92,23 @@ module.exports = {
                 }
             }
 
-            // Change nickname
+            // Change nickname in main server (and attempt in staff server)
+            let nicknameMainSuccess = false;
+            let nicknameStaffSuccess = false;
             try {
                 await member.setNickname(fullName);
+                nicknameMainSuccess = true;
             } catch (nickError) {
-                console.error('Error setting nickname:', nickError);
+                console.error('[HIRE] Error setting nickname in main server:', nickError.message);
+            }
+
+            try {
+                const staffServer = await interaction.client.guilds.fetch(STAFF_SERVER_ID);
+                const staffMember = await staffServer.members.fetch(user.id);
+                await staffMember.setNickname(fullName);
+                nicknameStaffSuccess = true;
+            } catch (staffNickError) {
+                console.error('[HIRE] Error setting nickname in staff server:', staffNickError.message);
             }
 
             // Send welcome email
@@ -110,6 +122,7 @@ module.exports = {
             }
 
             // Send welcome DM
+            let dmSuccess = false;
             try {
                 const dmEmbed = new EmbedBuilder()
                     .setTitle('👋 Welcome to the team!')
@@ -125,6 +138,7 @@ module.exports = {
                     .setTimestamp();
 
                 await user.send({ embeds: [dmEmbed] });
+                dmSuccess = true;
                 console.log(`[HIRE] Welcome DM sent to ${user.tag}`);
             } catch (dmError) {
                 console.error('[HIRE] Error sending welcome DM:', dmError.message);
@@ -143,8 +157,13 @@ module.exports = {
                         { name: 'Department', value: department, inline: true },
                         { name: 'Email', value: email, inline: true },
                         { name: 'Email Sent', value: emailSuccess ? '✅ Yes' : '❌ No', inline: true },
+                        { name: 'DM Sent', value: dmSuccess ? '✅ Yes' : '❌ No', inline: true },
                         { name: 'Roles Assigned', value: rolesToAdd.length > 0 ? '✅ Yes' : '❌ No', inline: true },
-                        { name: 'Nickname Set', value: fullName, inline: false }
+                        {
+                            name: 'Nickname Set',
+                            value: `Main: ${nicknameMainSuccess ? '✅' : '❌'} | Staff: ${nicknameStaffSuccess ? '✅' : '❌'} (${fullName})`,
+                            inline: false
+                        }
                     )
                     .setTimestamp();
 
@@ -154,7 +173,7 @@ module.exports = {
             }
 
             await interaction.editReply({
-                content: `✅ Successfully hired ${user.tag}!\n- Roles assigned: ${rolesToAdd.length}\n- Email sent: ${emailSuccess ? '✅' : '❌'}\n- Nickname set to: ${fullName}`
+                content: `✅ Successfully hired ${user.tag}!\n- Roles assigned: ${rolesToAdd.length}\n- Email sent: ${emailSuccess ? '✅' : '❌'}\n- DM sent: ${dmSuccess ? '✅' : '❌'}\n- Nickname main server: ${nicknameMainSuccess ? '✅' : '❌'}\n- Nickname staff server: ${nicknameStaffSuccess ? '✅' : '❌'}`
             });
 
         } catch (error) {
@@ -170,7 +189,7 @@ async function sendWelcomeEmail(recipientEmail, fullName, department) {
     const emailHtml = getWelcomeEmailHTML(fullName, department);
 
     // Using Mailersend API
-    const mailersendApiKey = process.env.MAILERSEND_API_KEY;
+    const mailersendApiKey = process.env.MAILERSEND_API_KEY || process.env.MAILERSEND_TOKEN || process.env.MAILERSEND_KEY;
     if (!mailersendApiKey) {
         console.error('[HIRE] ❌ MAILERSEND_API_KEY environment variable not set');
         throw new Error('Email service not configured (MAILERSEND_API_KEY missing)');
@@ -206,8 +225,18 @@ async function sendWelcomeEmail(recipientEmail, fullName, department) {
         throw new Error(`Email API error: ${response.status} ${response.statusText}`);
     }
 
-    const result = await response.json();
-    console.log('[HIRE] ✅ Email sent successfully:', result.message_id);
+    // MailerSend often returns 202 Accepted with an empty body
+    const responseText = await response.text();
+    let result = { accepted: true };
+    if (responseText && responseText.trim().length > 0) {
+        try {
+            result = JSON.parse(responseText);
+        } catch (parseError) {
+            console.log('[HIRE] MailerSend response is non-JSON but accepted:', responseText);
+        }
+    }
+
+    console.log('[HIRE] ✅ Email accepted by MailerSend');
     return result;
 }
 
