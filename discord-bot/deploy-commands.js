@@ -21,6 +21,7 @@ try {
 
 const CLIENT_ID = config.CLIENT_ID;
 const GUILD_ID = config.GUILD_ID;
+const STAFF_SERVER_ID = '1460025375655723283'; // Staff server for verification
 const TOKEN = config.DISCORD_BOT_TOKEN;
 
 // Load all commands from commands folder
@@ -45,15 +46,25 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
     try {
         console.log('🔄 Started refreshing application (/) commands...');
 
-        // Register commands for specific guild (faster for testing)
-        const data = await rest.put(
+        // Register commands for main guild
+        const mainData = await rest.put(
             Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
             { body: commands }
         );
 
-        console.log(`✅ Successfully registered ${data.length} application commands!`);
+        console.log(`✅ Successfully registered ${mainData.length} application commands to main server!`);
         console.log(`📋 Registered commands:`);
-        data.forEach(cmd => console.log(`   - /${cmd.name}`));
+        mainData.forEach(cmd => console.log(`   - /${cmd.name}`));
+
+        // Register commands for staff server
+        const staffData = await rest.put(
+            Routes.applicationGuildCommands(CLIENT_ID, STAFF_SERVER_ID),
+            { body: commands }
+        );
+
+        console.log(`\n✅ Successfully registered ${staffData.length} application commands to staff server!`);
+        console.log(`📋 Registered commands for staff server:`);
+        staffData.forEach(cmd => console.log(`   - /${cmd.name}`));
         
         console.log('\n💡 To register globally (slower, up to 1 hour), use:');
         console.log('   Routes.applicationCommands(CLIENT_ID)');
