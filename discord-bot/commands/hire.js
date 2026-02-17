@@ -149,11 +149,7 @@ module.exports = {
                         { name: 'Email Sent', value: emailSuccess ? '✅ Yes' : '❌ No', inline: true },
                         { name: 'DM Sent', value: dmSuccess ? '✅ Yes' : '❌ No', inline: true },
                         { name: 'Roles Assigned', value: rolesToAdd.length > 0 ? '✅ Yes' : '❌ No', inline: true },
-                        {
-                            name: 'Nickname Set',
-                            value: `Main: ${nicknameMainSuccess ? '✅' : '❌'} | Staff: ${nicknameStaffSuccess ? '✅' : '❌'} (${fullName})`,
-                            inline: false
-                        }
+                        { name: 'Nickname Set', value: nicknameMainSuccess ? '✅' : '❌', inline: true }
                     )
                     .setTimestamp();
 
@@ -163,7 +159,7 @@ module.exports = {
             }
 
             await interaction.editReply({
-                content: `✅ Successfully hired ${user.tag}!\n- Roles assigned: ${rolesToAdd.length}\n- Email sent: ${emailSuccess ? '✅' : '❌'}\n- DM sent: ${dmSuccess ? '✅' : '❌'}\n- Nickname main server: ${nicknameMainSuccess ? '✅' : '❌'}\n- Nickname staff server: ${nicknameStaffSuccess ? '✅' : '❌'}`
+                content: `✅ Successfully hired ${user.tag}!\n- Roles assigned: ${rolesToAdd.length}\n- Email sent: ${emailSuccess ? '✅' : '❌'}\n- DM sent: ${dmSuccess ? '✅' : '❌'}\n- Nickname set: ${nicknameMainSuccess ? '✅' : '❌'}`
             });
 
         } catch (error) {
