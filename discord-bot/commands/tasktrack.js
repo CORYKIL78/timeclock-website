@@ -8,7 +8,7 @@
  * - 1473065415780470971
  */
 
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ChannelType } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const config = require('../config');
 
 const BACKEND_URL = config.BACKEND_URL;
@@ -351,37 +351,17 @@ async function handleTaskPublish(interaction) {
             });
         }
 
-        // Create thread in the channel (handle forum/media channels correctly)
-        console.log(`[TASKTRACK] Creating thread in channel ${channelId}, type: ${channel.type}`);
+        // Create thread in forum channel
+        console.log(`[TASKTRACK] Creating forum thread in channel ${channelId}`);
         let thread;
         try {
-            const isForumLikeChannel = channel.type === ChannelType.GuildForum || channel.type === ChannelType.GuildMedia;
-
-            if (isForumLikeChannel) {
-                // Forum/Media channels require starter message
-                thread = await channel.threads.create({
-                    name: `📋 ${taskData.title}`,
-                    message: {
-                        content: `👋 Task created by ${taskData.createdByName}\n\n**Description:** ${taskData.description}`
-                    },
-                    autoArchiveDuration: 10080, // 7 days
-                });
-            } else if (channel.isTextBased && channel.isTextBased()) {
-                // For normal text channels, send starter message then create thread from it
-                const starterMessage = await channel.send({
-                    content: `📋 **${taskData.title}**\nTask created by ${taskData.createdByName}`
-                });
-
-                thread = await starterMessage.startThread({
-                    name: `📋 ${taskData.title}`,
-                    autoArchiveDuration: 10080 // 7 days
-                });
-            } else {
-                return await interaction.followUp({
-                    content: '❌ Selected department channel is not thread-capable.',
-                    ephemeral: true
-                });
-            }
+            thread = await channel.threads.create({
+                name: `📋 ${taskData.title}`,
+                message: {
+                    content: `👋 Task created by ${taskData.createdByName}\n\n**Description:** ${taskData.description}`
+                },
+                autoArchiveDuration: 10080, // 7 days
+            });
         } catch (threadError) {
             console.error(`[TASKTRACK] Error creating thread:`, threadError.message);
             return await interaction.followUp({
