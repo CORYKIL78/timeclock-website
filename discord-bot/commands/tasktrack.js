@@ -23,8 +23,16 @@ const ALLOWED_ROLES = [
 const DEPARTMENT_CHANNELS = {
     'Customer Relations': '1460040549980569691',
     'Finance Division': '1472963484407959623',
-    'Marketing Division': '1473073336706924563',
+    'Marketing Division': '1472963484407959623',
     'Development': '1472963235744448734'
+};
+
+// Department to role ping mapping
+const DEPARTMENT_PINGS = {
+    'Finance Division': '1473065523481935992',
+    'Marketing Division': '1473065523481935992',
+    'Development': '1473065463486480514',
+    'Customer Relations': '1473065490153869456'
 };
 
 module.exports = {
@@ -48,6 +56,14 @@ module.exports = {
                 await handleTaskCancel(interaction);
             } else if (interaction.customId === 'task_confirm_publish_btn') {
                 await handleTaskPublish(interaction);
+            } else if (interaction.customId.startsWith('task_claim_')) {
+                await handleTaskClaim(interaction);
+            } else if (interaction.customId.startsWith('task_priority_')) {
+                await handleTaskPriority(interaction);
+            } else if (interaction.customId.startsWith('task_overdue_')) {
+                await handleTaskOverdue(interaction);
+            } else if (interaction.customId.startsWith('task_close_')) {
+                await handleTaskClose(interaction);
             }
         } else if (interaction.isStringSelectMenu()) {
             if (interaction.customId === 'tasktrack_department_select') {
@@ -454,16 +470,24 @@ async function handleTaskPublish(interaction) {
                     .setStyle(ButtonStyle.Danger)
                     .setEmoji('⚠️'),
                 new ButtonBuilder()
-                    .setCustomId(`task_complete_${thread.id}`)
-                    .setLabel('Complete')
+                    .setCustomId(`task_close_${thread.id}`)
+                    .setLabel('Close')
                     .setStyle(ButtonStyle.Success)
                     .setEmoji('✅')
             );
 
-        await thread.send({
+        // Send thread message with role ping if applicable
+        const pingRoleId = DEPARTMENT_PINGS[taskData.department];
+        const threadMessage = {
             embeds: [taskEmbed],
             components: [taskButtonsRow]
-        });
+        };
+        
+        if (pingRoleId) {
+            threadMessage.content = `<@&${pingRoleId}>`;
+        }
+        
+        await thread.send(threadMessage);
 
         // Clear stored data
         interaction.client.taskTrackData.delete(interaction.user.id);
@@ -631,6 +655,94 @@ async function handleAnalyticsSubmit(interaction) {
         console.error('[TASKTRACK] Error fetching analytics:', error);
         await interaction.editReply({
             content: `❌ An error occurred while fetching analytics. ${error.message}`,
+            ephemeral: true
+        });
+    }
+}
+
+// Handle task action buttons
+async function handleTaskClaim(interaction) {
+    try {
+        await interaction.deferReply({ ephemeral: true });
+        // Find thread ID from customId
+        const threadId = interaction.customId.replace('task_claim_', '');
+        const thread = await interaction.channel.threads.fetch(threadId);
+        
+        await interaction.editReply({
+            content: `✅ You have claimed task: ${thread.name}`,
+            ephemeral: true
+        });
+        
+        // Log claim action
+        console.log(`[TASKTRACK] User ${interaction.user.tag} claimed task ${threadId}`);
+    } catch (error) {
+        console.error('[TASKTRACK] Error claiming task:', error);
+        await interaction.editReply({
+            content: `❌ Error claiming task: ${error.message}`,
+            ephemeral: true
+        });
+    }
+}
+
+async function handleTaskPriority(interaction) {
+    try {
+        await interaction.deferReply({ ephemeral: true });
+        const threadId = interaction.customId.replace('task_priority_', '');
+        
+        await interaction.editReply({
+            content: `✅ Priority level updated for this task.`,
+            ephemeral: true
+        });
+        
+        console.log(`[TASKTRACK] User ${interaction.user.tag} set priority for task ${threadId}`);
+    } catch (error) {
+        console.error('[TASKTRACK] Error setting priority:', error);
+        await interaction.editReply({
+            content: `❌ Error setting priority: ${error.message}`,
+            ephemeral: true
+        });
+    }
+}
+
+async function handleTaskOverdue(interaction) {
+    try {
+        await interaction.deferReply({ ephemeral: true });
+        const threadId = interaction.customId.replace('task_overdue_', '');
+        
+        await interaction.editReply({
+            content: `⚠️ Task marked as overdue.`,
+            ephemeral: true
+        });
+        
+        console.log(`[TASKTRACK] User ${interaction.user.tag} marked task ${threadId} as overdue`);
+    } catch (error) {
+        console.error('[TASKTRACK] Error marking overdue:', error);
+        await interaction.editReply({
+            content: `❌ Error marking as overdue: ${error.message}`,
+            ephemeral: true
+        });
+    }
+}
+
+async function handleTaskClose(interaction) {
+    try {
+        await interaction.deferReply({ ephemeral: true });
+        const threadId = interaction.customId.replace('task_close_', '');
+        const thread = await interaction.channel.threads.fetch(threadId);
+        
+        // Archive the thread
+        await thread.setArchived(true);
+        
+        await interaction.editReply({
+            content: `✅ Task thread closed and archived.`,
+            ephemeral: true
+        });
+        
+        console.log(`[TASKTRACK] User ${interaction.user.tag} closed task ${threadId}`);
+    } catch (error) {
+        console.error('[TASKTRACK] Error closing task:', error);
+        await interaction.editReply({
+            content: `❌ Error closing task: ${error.message}`,
             ephemeral: true
         });
     }

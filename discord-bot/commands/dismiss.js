@@ -179,32 +179,24 @@ module.exports = {
 async function sendDismissalEmail(recipientEmail, username, dismissedBy) {
     const emailHtml = getDismissalEmailHTML(username, dismissedBy);
 
-    // Using Mailersend API
-    const mailersendApiKey = process.env.MAILERSEND_API_KEY || process.env.MAILERSEND_TOKEN || process.env.MAILERSEND_KEY;
-    if (!mailersendApiKey) {
-        console.error('[DISMISS] ❌ MAILERSEND_API_KEY environment variable not set');
-        throw new Error('Email service not configured (MAILERSEND_API_KEY missing)');
+    // Using Resend API
+    const resendApiKey = process.env.RESEND_API_KEY_MAIN;
+    if (!resendApiKey) {
+        console.error('[DISMISS] ❌ RESEND_API_KEY_MAIN environment variable not set');
+        throw new Error('Email service not configured (RESEND_API_KEY_MAIN missing)');
     }
 
     console.log(`[DISMISS] Sending dismissal email to ${recipientEmail}...`);
     
-    const response = await fetch('https://api.mailersend.com/v1/email', {
+    const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${mailersendApiKey}`,
+            'Authorization': `Bearer ${resendApiKey}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            from: {
-                email: 'careers@cirkledevelopment.co.uk',
-                name: 'Careers Department'
-            },
-            to: [
-                {
-                    email: recipientEmail,
-                    name: username
-                }
-            ],
+            from: 'candidates@staff.cirkledevelopment.co.uk',
+            to: recipientEmail,
             subject: 'Your Dismissal from Cirkle Development',
             html: emailHtml
         })
@@ -216,18 +208,8 @@ async function sendDismissalEmail(recipientEmail, username, dismissedBy) {
         throw new Error(`Email API error: ${response.status} ${response.statusText}`);
     }
 
-    // MailerSend often returns 202 Accepted with an empty body
-    const responseText = await response.text();
-    let result = { accepted: true };
-    if (responseText && responseText.trim().length > 0) {
-        try {
-            result = JSON.parse(responseText);
-        } catch (parseError) {
-            console.log('[DISMISS] MailerSend response is non-JSON but accepted:', responseText);
-        }
-    }
-
-    console.log('[DISMISS] ✅ Dismissal email accepted by MailerSend');
+    const result = await response.json();
+    console.log('[DISMISS] ✅ Dismissal email accepted by Resend:', result.id);
     return result;
 }
 

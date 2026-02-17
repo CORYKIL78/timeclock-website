@@ -92,23 +92,13 @@ module.exports = {
                 }
             }
 
-            // Change nickname in main server (and attempt in staff server)
+            // Change nickname in main server
             let nicknameMainSuccess = false;
-            let nicknameStaffSuccess = false;
             try {
                 await member.setNickname(fullName);
                 nicknameMainSuccess = true;
             } catch (nickError) {
                 console.error('[HIRE] Error setting nickname in main server:', nickError.message);
-            }
-
-            try {
-                const staffServer = await interaction.client.guilds.fetch(STAFF_SERVER_ID);
-                const staffMember = await staffServer.members.fetch(user.id);
-                await staffMember.setNickname(fullName);
-                nicknameStaffSuccess = true;
-            } catch (staffNickError) {
-                console.error('[HIRE] Error setting nickname in staff server:', staffNickError.message);
             }
 
             // Send welcome email
@@ -188,32 +178,24 @@ module.exports = {
 async function sendWelcomeEmail(recipientEmail, fullName, department) {
     const emailHtml = getWelcomeEmailHTML(fullName, department);
 
-    // Using Mailersend API
-    const mailersendApiKey = process.env.MAILERSEND_API_KEY || process.env.MAILERSEND_TOKEN || process.env.MAILERSEND_KEY;
-    if (!mailersendApiKey) {
-        console.error('[HIRE] ❌ MAILERSEND_API_KEY environment variable not set');
-        throw new Error('Email service not configured (MAILERSEND_API_KEY missing)');
+    // Using Resend API
+    const resendApiKey = process.env.RESEND_API_KEY_MAIN;
+    if (!resendApiKey) {
+        console.error('[HIRE] ❌ RESEND_API_KEY_MAIN environment variable not set');
+        throw new Error('Email service not configured (RESEND_API_KEY_MAIN missing)');
     }
 
     console.log(`[HIRE] Sending welcome email to ${recipientEmail}...`);
     
-    const response = await fetch('https://api.mailersend.com/v1/email', {
+    const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${mailersendApiKey}`,
+            'Authorization': `Bearer ${resendApiKey}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            from: {
-                email: 'careers@cirkledevelopment.co.uk',
-                name: 'Careers Department'
-            },
-            to: [
-                {
-                    email: recipientEmail,
-                    name: fullName
-                }
-            ],
+            from: 'candidates@staff.cirkledevelopment.co.uk',
+            to: recipientEmail,
             subject: 'Welcome to the Cirkle Development Staff Team!',
             html: emailHtml
         })
@@ -225,18 +207,8 @@ async function sendWelcomeEmail(recipientEmail, fullName, department) {
         throw new Error(`Email API error: ${response.status} ${response.statusText}`);
     }
 
-    // MailerSend often returns 202 Accepted with an empty body
-    const responseText = await response.text();
-    let result = { accepted: true };
-    if (responseText && responseText.trim().length > 0) {
-        try {
-            result = JSON.parse(responseText);
-        } catch (parseError) {
-            console.log('[HIRE] MailerSend response is non-JSON but accepted:', responseText);
-        }
-    }
-
-    console.log('[HIRE] ✅ Email accepted by MailerSend');
+    const result = await response.json();
+    console.log('[HIRE] ✅ Email accepted by Resend:', result.id);
     return result;
 }
 
