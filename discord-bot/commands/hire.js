@@ -104,8 +104,30 @@ module.exports = {
             try {
                 await sendWelcomeEmail(email, fullName, department);
                 emailSuccess = true;
+                console.log(`[HIRE] Email sent successfully to ${email}`);
             } catch (emailError) {
-                console.error('Error sending email:', emailError);
+                console.error('[HIRE] Error sending email:', emailError.message);
+            }
+
+            // Send welcome DM
+            try {
+                const dmEmbed = new EmbedBuilder()
+                    .setTitle('👋 Welcome to the team!')
+                    .setColor('#10b981')
+                    .setDescription(`Hey ${fullName}! You have been successfully hired to Cirkle Development. However, you must complete a few steps before fully gaining access to everything. Please see below:`)
+                    .addFields(
+                        { name: '💻 Join the Staff Server', value: 'You must be in the Staff Server. You can join by using this link: https://discord.gg/HDrpVmTRxC\n**⚠️ DO NOT SHARE THIS WITH ANYONE**', inline: false },
+                        { name: '🔗 Sign the Promissory Agreement', value: 'You must sign the Promissory Agreement by navigating to https://redirects.cirkledevelopment.co.uk/pa/sign', inline: false },
+                        { name: '📱 Create a Portal Account', value: 'You must have a Portal account. Sign up to Cirkles custom made staff portal at https://portal.cirkledevelopment.co.uk', inline: false },
+                        { name: '✅ Final Step', value: 'Once all of these steps are done, hit the Verify button in the Staff Server! You can also check your email for a little welcome letter.', inline: false }
+                    )
+                    .setFooter({ text: 'We look forward to having you!' })
+                    .setTimestamp();
+
+                await user.send({ embeds: [dmEmbed] });
+                console.log(`[HIRE] Welcome DM sent to ${user.tag}`);
+            } catch (dmError) {
+                console.error('[HIRE] Error sending welcome DM:', dmError.message);
             }
 
             // Log to hiring log channel
@@ -147,33 +169,46 @@ module.exports = {
 async function sendWelcomeEmail(recipientEmail, fullName, department) {
     const emailHtml = getWelcomeEmailHTML(fullName, department);
 
-    // Using Resend API
-    const resendApiKey = process.env.RESEND_API_KEY;
-    if (!resendApiKey) {
-        console.warn('RESEND_API_KEY not set, skipping email');
-        return;
+    // Using Mailersend API
+    const mailersendApiKey = process.env.MAILERSEND_API_KEY;
+    if (!mailersendApiKey) {
+        console.error('[HIRE] ❌ MAILERSEND_API_KEY environment variable not set');
+        throw new Error('Email service not configured (MAILERSEND_API_KEY missing)');
     }
 
-    const response = await fetch('https://api.resend.com/emails', {
+    console.log(`[HIRE] Sending welcome email to ${recipientEmail}...`);
+    
+    const response = await fetch('https://api.mailersend.com/v1/email', {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
+            'Authorization': `Bearer ${mailersendApiKey}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            from: 'Careers Department <careers@cirkledevelopment.co.uk>',
-            to: recipientEmail,
+            from: {
+                email: 'careers@cirkledevelopment.co.uk',
+                name: 'Careers Department'
+            },
+            to: [
+                {
+                    email: recipientEmail,
+                    name: fullName
+                }
+            ],
             subject: 'Welcome to the Cirkle Development Staff Team!',
             html: emailHtml
         })
     });
 
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Resend API error: ${errorData.message}`);
+        const errorText = await response.text();
+        console.error(`[HIRE] Email API error (${response.status}):`, errorText);
+        throw new Error(`Email API error: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('[HIRE] ✅ Email sent successfully:', result.message_id);
+    return result;
 }
 
 function getWelcomeEmailHTML(fullName, department) {

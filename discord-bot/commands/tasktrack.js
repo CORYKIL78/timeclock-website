@@ -40,6 +40,8 @@ module.exports = {
         if (interaction.isButton()) {
             if (interaction.customId === 'tasktrack_submit_btn') {
                 await handleTaskTrackSubmitButton(interaction);
+            } else if (interaction.customId === 'tasktrack_analytics_btn') {
+                await handleAnalyticsButton(interaction);
             } else if (interaction.customId === 'task_confirm_edit_btn') {
                 await handleTaskEdit(interaction);
             } else if (interaction.customId === 'task_confirm_cancel_btn') {
@@ -54,6 +56,8 @@ module.exports = {
         } else if (interaction.isModalSubmit()) {
             if (interaction.customId === 'tasktrack_form_modal') {
                 await handleTaskFormSubmit(interaction);
+            } else if (interaction.customId === 'analytics_staffid_modal') {
+                await handleAnalyticsSubmit(interaction);
             }
         }
     }
@@ -85,7 +89,12 @@ async function handleTaskTrackCommand(interaction) {
                         .setCustomId('tasktrack_submit_btn')
                         .setLabel('Submit Task')
                         .setStyle(ButtonStyle.Primary)
-                        .setEmoji('📝')
+                        .setEmoji('📝'),
+                    new ButtonBuilder()
+                        .setCustomId('tasktrack_analytics_btn')
+                        .setLabel('Analytics')
+                        .setStyle(ButtonStyle.Secondary)
+                        .setEmoji('📊')
                 );
 
             await interaction.editReply({
@@ -342,14 +351,28 @@ async function handleTaskPublish(interaction) {
             });
         }
 
-        // Create thread in the channel
-        console.log(`[TASKTRACK] Creating thread in channel ${channelId}`);
+        // Create thread in the channel (handle forum channels)
+        console.log(`[TASKTRACK] Creating thread in channel ${channelId}, type: ${channel.type}`);
         let thread;
         try {
-            thread = await channel.threads.create({
-                name: `📋 ${taskData.title}`,
-                autoArchiveDuration: 10080, // 7 days
-            });
+            // Check if it's a forum channel
+            if (channel.isForumChannel && channel.isForumChannel()) {
+                // Forum channels require a message
+                thread = await channel.threads.create({
+                    name: `📋 ${taskData.title}`,
+                    message: {
+                        content: `👋 Task created by ${taskData.createdByName}\n\n**Description:** ${taskData.description}`
+                    },
+                    autoArchiveDuration: 10080, // 7 days
+                });
+            } else {
+                // Regular text channel
+                thread = await channel.threads.create({
+                    name: `📋 ${taskData.title}`,
+                    autoArchiveDuration: 10080, // 7 days
+                    type: 11 // GUILD_PUBLIC_THREAD
+                });
+            }
         } catch (threadError) {
             console.error(`[TASKTRACK] Error creating thread:`, threadError.message);
             return await interaction.followUp({
@@ -473,6 +496,98 @@ async function handleTaskPublish(interaction) {
         });
         await interaction.followUp({
             content: '❌ An error occurred while publishing the task. Please try again.',
+            ephemeral: true
+        });
+    }
+}
+
+async function handleAnalyticsButton(interaction) {
+    const modal = new ModalBuilder()
+        .setCustomId('analytics_staffid_modal')
+        .setTitle('Staff Analytics');
+
+    const staffIdInput = new TextInputBuilder()
+        .setCustomId('analytics_staffid_input')
+        .setLabel('Enter Staff ID')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('e.g., OC061021')
+        .setRequired(true);
+
+    const row = new ActionRowBuilder().addComponents(staffIdInput);
+    modal.addComponents(row);
+
+    await interaction.showModal(modal);
+}
+
+async function handleAnalyticsSubmit(interaction) {
+    const staffId = interaction.fields.getTextInputValue('analytics_staffid_input');
+
+    await interaction.deferReply({ ephemeral: true });
+
+    if (!staffId || staffId.trim().length === 0) {
+        return await interaction.editReply({
+            content: '❌ Staff ID cannot be empty. Please provide a valid staff ID (e.g., OC061021).',
+            ephemeral: true
+        });
+    }
+
+    try {
+        console.log(`[TASKTRACK] Fetching analytics for staff ID: ${staffId}`);
+        
+        // Fetch analytics from backend
+        const analyticsResponse = await fetch(`${BACKEND_URL}/api/staff/analytics/${staffId}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!analyticsResponse.ok) {
+            console.error(`[TASKTRACK] Analytics fetch error: ${analyticsResponse.status} - ${analyticsResponse.statusText}`);
+            return await interaction.editReply({
+                content: `❌ Could not find analytics for staff ID: ${staffId}. (${analyticsResponse.status}) Please check the ID and try again.`,
+                ephemeral: true
+            });
+        }
+
+        const analytics = await analyticsResponse.json();
+
+        // Create analytics embed
+        const analyticsEmbed = new EmbedBuilder()
+            .setTitle(`📊 Staff Analytics - ${staffId}`)
+            .setColor('#667eea')
+            .addFields(
+                {
+                    name: '👤 Staff Information',
+                    value: `**Name:** ${analytics.name || 'N/A'}\n**Department:** ${analytics.department || 'N/A'}\n**Position:** ${analytics.position || 'N/A'}`,
+                    inline: false
+                },
+                {
+                    name: '📋 Task Analytics',
+                    value: `**Total Tasks:** ${analytics.totalTasks || 0}\n**Completed:** ${analytics.completedTasks || 0}\n**In Progress:** ${analytics.inProgressTasks || 0}\n**Overdue:** ${analytics.overdueTasks || 0}`,
+                    inline: true
+                },
+                {
+                    name: '📈 Performance',
+                    value: `**Completion Rate:** ${analytics.completionRate || '0'}%\n**Avg Completion Time:** ${analytics.avgCompletionTime || 'N/A'} days\n**On-Time Rate:** ${analytics.onTimeRate || '0'}%`,
+                    inline: true
+                },
+                {
+                    name: '📅 Activity',
+                    value: `**Last Active:** ${analytics.lastActive || 'N/A'}\n**Total Hours:** ${analytics.totalHours || '0'} hrs\n**Average Daily:** ${analytics.avgDaily || '0'} hrs`,
+                    inline: false
+                }
+            )
+            .setFooter({ text: `Generated for staff ID: ${staffId}` })
+            .setTimestamp();
+
+        await interaction.editReply({
+            embeds: [analyticsEmbed],
+            ephemeral: true
+        });
+
+    } catch (error) {
+        console.error('[TASKTRACK] Error fetching analytics:', error);
+        await interaction.editReply({
+            content: `❌ An error occurred while fetching analytics. ${error.message}`,
             ephemeral: true
         });
     }

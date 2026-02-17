@@ -112,13 +112,15 @@ module.exports = {
             // Send dismissal email
             let emailSuccess = false;
             try {
-                await sendDismissalEmail(userEmail, user.username);
+                await sendDismissalEmail(userEmail, user.username, interaction.user.tag);
                 emailSuccess = true;
+                console.log(`[DISMISS] Dismissal email sent to ${userEmail}`);
             } catch (emailError) {
-                console.error('Error sending dismissal email:', emailError);
+                console.error('[DISMISS] Error sending dismissal email:', emailError.message);
             }
 
             // Send DM to user
+            let dmSuccess = false;
             try {
                 const dmEmbed = new EmbedBuilder()
                     .setTitle('👋 Goodbye from the Cirkle Family')
@@ -132,8 +134,10 @@ module.exports = {
                     .setTimestamp();
 
                 await user.send({ embeds: [dmEmbed] });
+                dmSuccess = true;
+                console.log(`[DISMISS] DM sent to ${user.tag}`);
             } catch (dmError) {
-                console.error('Error sending DM:', dmError);
+                console.error('[DISMISS] Error sending DM:', dmError.message);
             }
 
             // Log to dismissal log channel
@@ -150,7 +154,7 @@ module.exports = {
                         { name: 'Roles Removed', value: `${rolesRemoved} roles`, inline: true },
                         { name: 'Kicked from Staff Server', value: kickSuccess ? '✅ Yes' : '❌ No', inline: true },
                         { name: 'Email Sent', value: emailSuccess ? '✅ Yes' : '❌ No', inline: true },
-                        { name: 'DM Sent', value: '✅ Yes', inline: true }
+                        { name: 'DM Sent', value: dmSuccess ? '✅ Yes' : '❌ No', inline: true }
                     )
                     .setTimestamp();
 
@@ -160,7 +164,7 @@ module.exports = {
             }
 
             await interaction.editReply({
-                content: `✅ Successfully dismissed ${user.tag}!\n- Roles removed: ${rolesRemoved}\n- Kicked from staff server: ${kickSuccess ? '✅' : '❌'}\n- Email sent: ${emailSuccess ? '✅' : '❌'}\n- DM sent: ✅`
+                content: `✅ Successfully dismissed ${user.tag}!\n- Roles removed: ${rolesRemoved}\n- Kicked from staff server: ${kickSuccess ? '✅' : '❌'}\n- Email sent: ${emailSuccess ? '✅' : '❌'}\n- DM sent: ${dmSuccess ? '✅' : '❌'}`
             });
 
         } catch (error) {
@@ -172,40 +176,52 @@ module.exports = {
     }
 };
 
-async function sendDismissalEmail(recipientEmail, username) {
-    const emailHtml = getDismissalEmailHTML(username);
+async function sendDismissalEmail(recipientEmail, username, dismissedBy) {
+    const emailHtml = getDismissalEmailHTML(username, dismissedBy);
 
-    // Using Resend API
-    const resendApiKey = process.env.RESEND_API_KEY;
-    if (!resendApiKey) {
-        console.warn('RESEND_API_KEY not set, skipping email');
-        return;
+    // Using Mailersend API
+    const mailersendApiKey = process.env.MAILERSEND_API_KEY;
+    if (!mailersendApiKey) {
+        console.error('[DISMISS] ❌ MAILERSEND_API_KEY environment variable not set');
+        throw new Error('Email service not configured (MAILERSEND_API_KEY missing)');
     }
 
-    const response = await fetch('https://api.resend.com/emails', {
+    console.log(`[DISMISS] Sending dismissal email to ${recipientEmail}...`);
+    
+    const response = await fetch('https://api.mailersend.com/v1/email', {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
+            'Authorization': `Bearer ${mailersendApiKey}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            from: 'Careers Department <careers@cirkledevelopment.co.uk>',
-            to: recipientEmail,
+            from: {
+                email: 'careers@cirkledevelopment.co.uk',
+                name: 'Careers Department'
+            },
+            to: [
+                {
+                    email: recipientEmail,
+                    name: username
+                }
+            ],
             subject: 'Your Dismissal from Cirkle Development',
             html: emailHtml
         })
     });
 
     if (!response.ok) {
-        const error = await response.text();
-        console.error('Resend API error:', error);
-        throw new Error(`Failed to send email: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`[DISMISS] Email API error (${response.status}):`, errorText);
+        throw new Error(`Email API error: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('[DISMISS] ✅ Dismissal email sent successfully:', result.message_id);
+    return result;
 }
 
-function getDismissalEmailHTML(username) {
+function getDismissalEmailHTML(username, dismissedBy) {
     return `
 <!DOCTYPE html>
 <html>
@@ -307,8 +323,13 @@ function getDismissalEmailHTML(username) {
             </div>
 
             <div class="section">
+                <h2>👤 Dismissed By</h2>
+                <p>This dismissal was processed by: <strong>${dismissedBy}</strong></p>
+            </div>
+
+            <div class="section">
                 <h2>❓ Got Questions?</h2>
-                <p>If you wish to get in contact with us to question your dismissal, you can DM the admin who processed your dismissal. Their username and details can be found in the formal letter that was sent to you.</p>
+                <p>If you wish to get in contact with us to question your dismissal, you can DM the admin who processed your dismissal (${dismissedBy}).</p>
                 <p>You can also speak to the department manager via <strong><a href="mailto:careers@cirkledevelopment.co.uk">careers@cirkledevelopment.co.uk</a></strong> if necessary.</p>
             </div>
 
