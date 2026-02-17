@@ -315,26 +315,48 @@ async function handleTaskPublish(interaction) {
         const channelId = DEPARTMENT_CHANNELS[taskData.department];
 
         if (!channelId) {
+            console.error('Department not found:', taskData.department);
             return await interaction.followUp({
-                content: '❌ Department channel not found.',
+                content: '❌ Department channel not found. Invalid department.',
                 ephemeral: true
             });
         }
 
-        const channel = await interaction.client.channels.fetch(channelId);
+        console.log(`[TASKTRACK] Fetching channel ${channelId} for department ${taskData.department}`);
+        let channel;
+        try {
+            channel = await interaction.client.channels.fetch(channelId);
+        } catch (fetchError) {
+            console.error(`[TASKTRACK] Error fetching channel ${channelId}:`, fetchError.message);
+            return await interaction.followUp({
+                content: `❌ Could not access department channel (${channelId}). The bot may not have permission.`,
+                ephemeral: true
+            });
+        }
 
         if (!channel) {
+            console.error(`[TASKTRACK] Channel is null after fetch: ${channelId}`);
             return await interaction.followUp({
-                content: '❌ Could not access department channel.',
+                content: '❌ Could not access department channel (channel is null).',
                 ephemeral: true
             });
         }
 
         // Create thread in the channel
-        const thread = await channel.threads.create({
-            name: `📋 ${taskData.title}`,
-            autoArchiveDuration: 10080, // 7 days
-        });
+        console.log(`[TASKTRACK] Creating thread in channel ${channelId}`);
+        let thread;
+        try {
+            thread = await channel.threads.create({
+                name: `📋 ${taskData.title}`,
+                autoArchiveDuration: 10080, // 7 days
+            });
+        } catch (threadError) {
+            console.error(`[TASKTRACK] Error creating thread:`, threadError.message);
+            return await interaction.followUp({
+                content: `❌ Could not create thread in department channel. ${threadError.message}`,
+                ephemeral: true
+            });
+        }
 
         // Create task in backend
         const createTaskResponse = await fetch(`${BACKEND_URL}/api/tasks/create`, {

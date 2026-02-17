@@ -8,7 +8,7 @@ const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, Butt
 const config = require('../config');
 
 const BACKEND_URL = config.BACKEND_URL;
-const MAIN_SERVER_ID = '1315342487928627330'; // Main server
+const MAIN_SERVER_ID = '1310656642672627752'; // Main server
 const STAFF_SERVER_ID = '1460025375655723283'; // Staff server
 const DISMISSAL_LOG_CHANNEL = '1473377571482894478'; // Hiring log channel (for dismissals too)
 
