@@ -193,25 +193,32 @@ async function handleVerifyYes(interaction) {
 
         // Get roles to assign based on department
         const rolesToAdd = DEPARTMENT_ROLES[profile.department] || [];
+        
+        console.log(`[VERIFICATION] User: ${interaction.user.tag}, Department: ${profile.department}, Roles to add:`, rolesToAdd);
 
         // Get the guild and member
         const guild = await interaction.client.guilds.fetch(STAFF_SERVER_ID);
         const member = await guild.members.fetch(interaction.user.id);
 
         // Assign roles
+        let rolesAssigned = 0;
         for (const roleId of rolesToAdd) {
             try {
                 await member.roles.add(roleId);
+                rolesAssigned++;
+                console.log(`[VERIFICATION] Successfully added role ${roleId} to ${interaction.user.tag}`);
             } catch (roleError) {
-                console.error(`Error adding role ${roleId}:`, roleError);
+                console.error(`[VERIFICATION] Error adding role ${roleId} to ${interaction.user.tag}:`, roleError);
             }
         }
+        
+        console.log(`[VERIFICATION] Assigned ${rolesAssigned}/${rolesToAdd.length} roles to ${interaction.user.tag}`);
 
         // Send success message in channel
         const successEmbed = new EmbedBuilder()
             .setTitle('✅ You have been verified!')
             .setColor('#10b981')
-            .setDescription(`Welcome to the Staff Server, ${interaction.user.username}!`)
+            .setDescription(`Welcome to the Staff Server, ${interaction.user.username}!\n\nDepartment: ${profile.department}\nRoles Assigned: ${rolesAssigned}/${rolesToAdd.length}`)
             .setTimestamp();
 
         await interaction.editReply({
