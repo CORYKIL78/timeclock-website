@@ -444,8 +444,13 @@ async function handleTaskPublish(interaction) {
 
     } catch (error) {
         console.error('Error publishing task:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         await interaction.followUp({
-            content: '❌ An error occurred while publishing the task.',
+            content: '❌ An error occurred while publishing the task. Please try again.',
             ephemeral: true
         });
     }

@@ -62,8 +62,25 @@ module.exports = {
 
         try {
             // Get main server
-            const mainServer = await interaction.client.guilds.fetch(MAIN_SERVER_ID);
-            const member = await mainServer.members.fetch(user.id);
+            let mainServer;
+            try {
+                mainServer = await interaction.client.guilds.fetch(MAIN_SERVER_ID);
+            } catch (guildError) {
+                console.error('Error fetching main server:', guildError);
+                return await interaction.editReply({
+                    content: `❌ Error: Could not access main server. Please check bot permissions.`
+                });
+            }
+
+            let member;
+            try {
+                member = await mainServer.members.fetch(user.id);
+            } catch (memberError) {
+                console.error('Error fetching member:', memberError);
+                return await interaction.editReply({
+                    content: `❌ Error: Could not find user in main server.`
+                });
+            }
 
             // Assign roles in main server
             const rolesToAdd = MAIN_SERVER_ROLES[department] || [];
