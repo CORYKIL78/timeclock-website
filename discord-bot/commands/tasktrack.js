@@ -664,17 +664,16 @@ async function handleAnalyticsSubmit(interaction) {
 async function handleTaskClaim(interaction) {
     try {
         await interaction.deferReply({ ephemeral: true });
-        // Find thread ID from customId
-        const threadId = interaction.customId.replace('task_claim_', '');
-        const thread = await interaction.channel.threads.fetch(threadId);
+        // We're already in the thread, so just use interaction.channel
+        const threadName = interaction.channel.name;
         
         await interaction.editReply({
-            content: `✅ You have claimed task: ${thread.name}`,
+            content: `✅ You have claimed task: ${threadName}`,
             ephemeral: true
         });
         
         // Log claim action
-        console.log(`[TASKTRACK] User ${interaction.user.tag} claimed task ${threadId}`);
+        console.log(`[TASKTRACK] User ${interaction.user.tag} claimed task ${interaction.channelId}`);
     } catch (error) {
         console.error('[TASKTRACK] Error claiming task:', error);
         await interaction.editReply({
@@ -727,18 +726,15 @@ async function handleTaskOverdue(interaction) {
 async function handleTaskClose(interaction) {
     try {
         await interaction.deferReply({ ephemeral: true });
-        const threadId = interaction.customId.replace('task_close_', '');
-        const thread = await interaction.channel.threads.fetch(threadId);
-        
-        // Archive the thread
-        await thread.setArchived(true);
+        // We're already in the thread, so just archive it directly
+        await interaction.channel.setArchived(true);
         
         await interaction.editReply({
             content: `✅ Task thread closed and archived.`,
             ephemeral: true
         });
         
-        console.log(`[TASKTRACK] User ${interaction.user.tag} closed task ${threadId}`);
+        console.log(`[TASKTRACK] User ${interaction.user.tag} closed task ${interaction.channelId}`);
     } catch (error) {
         console.error('[TASKTRACK] Error closing task:', error);
         await interaction.editReply({
