@@ -166,6 +166,7 @@ function updateProfileDisplay() {
     if (typeof updateProfilePictures === 'function') {
         updateProfilePictures();
     }
+        updateUserStatsWidgets();
 }
 
 // Register service worker for PWA
@@ -3312,6 +3313,7 @@ function renderPreviousSessions(skipSync = false) {
     
     if (previousSessions.length === 0) {
         list.innerHTML = '<div class="empty-state" style="padding: 30px 10px;"><p style="font-size: 13px;">No previous clock-in sessions yet.</p></div>';
+        updateUserStatsWidgets();
         return;
     }
     
@@ -3383,6 +3385,8 @@ function renderPreviousSessions(skipSync = false) {
         
         list.appendChild(div);
     });
+
+    updateUserStatsWidgets();
 }
 
 function updateSidebarProfile() {
@@ -4964,6 +4968,7 @@ function renderEvents() {
     }
     
     container.appendChild(eventsSection);
+    updateUserStatsWidgets();
     
     // Now fetch and display holidays
     fetchAndDisplayHolidays(container);
@@ -9860,24 +9865,82 @@ function closeTaskDetail() {
     }
 }
 
+function showTaskActionConfirm(message) {
+    return new Promise(resolve => {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'flex';
+        modal.style.zIndex = '10050';
+
+        modal.innerHTML = `
+            <div class="modal-content request-modal" style="max-width: 480px;">
+                <h2 style="margin-bottom: 12px;">Confirm Action</h2>
+                <p style="margin: 0 0 16px 0; color: var(--text2);">${message}</p>
+                <div class="request-buttons">
+                    <button id="taskConfirmYes" class="submit-request-btn">Confirm</button>
+                    <button id="taskConfirmNo" class="cancel-request-btn">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        const close = (value) => {
+            modal.remove();
+            resolve(value);
+        };
+
+        modal.querySelector('#taskConfirmYes').addEventListener('click', () => close(true));
+        modal.querySelector('#taskConfirmNo').addEventListener('click', () => close(false));
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) close(false);
+        });
+    });
+}
+
+function showTaskActionConfirm(message) {
+    return new Promise(resolve => {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'flex';
+        modal.style.zIndex = '10050';
+
+        modal.innerHTML = `
+            <div class="modal-content request-modal" style="max-width: 480px;">
+                <h2 style="margin-bottom: 12px;">Confirm Action</h2>
+                <p style="margin: 0 0 16px 0; color: var(--text2);">${message}</p>
+                <div class="request-buttons">
+                    <button id="taskConfirmYes" class="submit-request-btn">Confirm</button>
+                    <button id="taskConfirmNo" class="cancel-request-btn">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const cleanup = (result) => {
+            modal.remove();
+            resolve(result);
+        };
+
+        modal.querySelector('#taskConfirmYes').addEventListener('click', () => cleanup(true));
+        modal.querySelector('#taskConfirmNo').addEventListener('click', () => cleanup(false));
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) cleanup(false);
+        });
+    });
+}
+
 function publishTaskUpdate() {
     const task = window.currentDetailTask;
     if (!task) {
-        alert('Task not found');
+        showModal('alert', '⚠️ Task not found');
         return;
     }
 
-    // Show a simple prompt/modal for the update content
-    const updateContent = prompt('Enter your update (max 500 characters):', '');
-    if (!updateContent) return;
-
-    if (updateContent.length > 500) {
-        alert('Update must be 500 characters or less');
-        return;
-    }
-
-    // Call the API to publish the update
-    publishUpdate(task.id, updateContent);
+    const taskUpdateInput = document.getElementById('taskUpdateInput');
+    if (taskUpdateInput) taskUpdateInput.value = '';
+    window.pendingTaskUpdateId = task.id;
+    showModal('taskUpdate');
 }
 
 async function publishUpdate(taskId, content) {
@@ -9904,22 +9967,23 @@ async function publishUpdate(taskId, content) {
 
         // Refresh the task details modal
         showTaskDetail(result.task);
-        
-        alert('✅ Update published and sent to Discord!');
+
+        showModal('alert', '<span class="success-tick"></span> Update published successfully.');
     } catch (error) {
         console.error('Error publishing update:', error);
-        alert(`Error: ${error.message}`);
+        showModal('alert', `⚠️ ${error.message}`);
     }
 }
 
 async function completeTask() {
     const task = window.currentDetailTask;
     if (!task) {
-        alert('Task not found');
+        showModal('alert', '⚠️ Task not found');
         return;
     }
 
-    if (!confirm('Mark this task as complete?')) return;
+    const confirmed = await showTaskActionConfirm('Mark this task as complete?');
+    if (!confirmed) return;
 
     try {
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
@@ -9945,23 +10009,24 @@ async function completeTask() {
             throw new Error(`Failed to complete task: ${response.status}`);
         }
 
-        alert('✅ Task marked as complete! Thread closed on Discord.');
+        showModal('alert', '<span class="success-tick"></span> Task marked as complete.');
         closeTaskDetail();
         await loadTaskTrackData();  // Refresh the task list
     } catch (error) {
         console.error('Error completing task:', error);
-        alert(`Error: ${error.message}`);
+        showModal('alert', `⚠️ ${error.message}`);
     }
 }
 
 async function reopenTask() {
     const task = window.currentDetailTask;
     if (!task) {
-        alert('Task not found');
+        showModal('alert', '⚠️ Task not found');
         return;
     }
 
-    if (!confirm('Reopen this task?')) return;
+    const confirmed = await showTaskActionConfirm('Reopen this task?');
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/tasks/status`, {
@@ -9979,13 +10044,52 @@ async function reopenTask() {
             throw new Error(`Failed to reopen task: ${response.status}`);
         }
 
-        alert('✅ Task reopened!');
+        showModal('alert', '<span class="success-tick"></span> Task reopened.');
         closeTaskDetail();
         await loadTaskTrackData();  // Refresh the task list
     } catch (error) {
         console.error('Error reopening task:', error);
-        alert(`Error: ${error.message}`);
+        showModal('alert', `⚠️ ${error.message}`);
     }
+}
+
+function updateUserStatsWidgets() {
+    if (!currentUser?.id) return;
+
+    const responses = JSON.parse(localStorage.getItem(`event_responses_${currentUser.id}`) || '{}');
+    const totalEvents = Array.isArray(eventsData) ? eventsData.length : 0;
+    const eventIds = new Set((eventsData || []).map(e => String(e.id || e.rowIndex)));
+
+    let attended = 0;
+    let unattended = 0;
+    let unsure = 0;
+
+    Object.entries(responses).forEach(([eventId, value]) => {
+        if (eventIds.size && !eventIds.has(String(eventId))) return;
+        if (value === 'attend') attended += 1;
+        else if (value === 'cannot') unattended += 1;
+        else if (value === 'unsure') unsure += 1;
+    });
+
+    const notAnswered = Math.max(totalEvents - attended - unattended - unsure, 0);
+    const sessionCount = (JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`) || '[]') || []).length;
+
+    const setText = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = String(value);
+    };
+
+    setText('eventsAttendedCount', attended);
+    setText('eventsUnattendedCount', unattended);
+    setText('eventsUnsureCount', unsure);
+    setText('eventsNoAnswerCount', notAnswered);
+    setText('clockinsCount', sessionCount);
+
+    setText('profileStatAttended', attended);
+    setText('profileStatUnattended', unattended);
+    setText('profileStatUnsure', unsure);
+    setText('profileStatNoAnswer', notAnswered);
+    setText('profileStatClockins', sessionCount);
 }
 
 function setupModalCloseButtons() {
@@ -10027,6 +10131,35 @@ function setupModalCloseButtons() {
             }
         });
     }
+        const submitTaskUpdateBtn = document.getElementById('submitTaskUpdateBtn');
+        if (submitTaskUpdateBtn && !submitTaskUpdateBtn.dataset.bound) {
+            submitTaskUpdateBtn.dataset.bound = '1';
+            submitTaskUpdateBtn.addEventListener('click', async () => {
+                const updateInput = document.getElementById('taskUpdateInput');
+                const content = (updateInput?.value || '').trim();
+                const taskId = window.pendingTaskUpdateId;
+                if (!taskId) {
+                    showModal('alert', '⚠️ Task not found');
+                    return;
+                }
+                if (!content) {
+                    showModal('alert', '⚠️ Please enter an update');
+                    return;
+                }
+                if (content.length > 500) {
+                    showModal('alert', '⚠️ Update must be 500 characters or less');
+                    return;
+                }
+                closeModal('taskUpdate');
+                await publishUpdate(taskId, content);
+            });
+        }
+
+        const cancelTaskUpdateBtn = document.getElementById('cancelTaskUpdateBtn');
+        if (cancelTaskUpdateBtn && !cancelTaskUpdateBtn.dataset.bound) {
+            cancelTaskUpdateBtn.dataset.bound = '1';
+            cancelTaskUpdateBtn.addEventListener('click', () => closeModal('taskUpdate'));
+        }
 }
 
 if (document.readyState === 'loading') {

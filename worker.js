@@ -1370,6 +1370,95 @@ export default {
         return new Response(JSON.stringify([]), { headers: corsHeaders });
       }
 
+      if (url.pathname === '/api/admin/staff-analytics' && request.method === 'GET') {
+        try {
+          const staffId = (url.searchParams.get('staffId') || '').trim();
+          if (!staffId) {
+            return new Response(JSON.stringify({ success: false, error: 'Missing staffId' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          let matchedUserId = null;
+          let matchedProfile = null;
+
+          for (const userId of usersIndex) {
+            const profile = await env.DATA.get(`profile:${userId}`, 'json');
+            const candidateStaffId = (profile?.staffId || '').toString().trim();
+            if (candidateStaffId && candidateStaffId.toLowerCase() === staffId.toLowerCase()) {
+              matchedUserId = userId;
+              matchedProfile = profile;
+              break;
+            }
+          }
+
+          if (!matchedUserId) {
+            return new Response(JSON.stringify({ success: false, error: 'Staff member not found' }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+
+          const [account, absences, requests, sessions, eventsIndex] = await Promise.all([
+            env.DATA.get(`user:${matchedUserId}`, 'json'),
+            env.DATA.get(`absences:${matchedUserId}`, 'json'),
+            env.DATA.get(`requests:${matchedUserId}`, 'json'),
+            env.DATA.get(`timeclock:sessions:${matchedUserId}`, 'json'),
+            env.DATA.get('events:index', 'json')
+          ]);
+
+          const safeAbsences = absences || [];
+          const safeRequests = requests || [];
+          const safeSessions = sessions || [];
+          const safeEventsIndex = eventsIndex || [];
+
+          let attended = 0;
+          let unattended = 0;
+          let unsure = 0;
+          let respondedTotal = 0;
+
+          for (const eventId of safeEventsIndex) {
+            const event = await env.DATA.get(`events:${eventId}`, 'json');
+            const response = event?.responses?.find(r => r.userId === matchedUserId);
+            if (!response) continue;
+            respondedTotal += 1;
+            const normalized = String(response.status || '').toLowerCase();
+            if (normalized === 'attend' || normalized === 'attending') attended += 1;
+            else if (normalized === 'cannot' || normalized === 'not_attending') unattended += 1;
+            else if (normalized === 'unsure') unsure += 1;
+          }
+
+          const notAnswered = Math.max(safeEventsIndex.length - respondedTotal, 0);
+
+          return new Response(JSON.stringify({
+            success: true,
+            userId: matchedUserId,
+            profile: matchedProfile,
+            account: account || null,
+            counts: {
+              absences: safeAbsences.length,
+              requests: safeRequests.length,
+              clockins: safeSessions.length,
+              eventsAttended: attended,
+              eventsUnattended: unattended,
+              eventsUnsure: unsure,
+              eventsNotAnswered: notAnswered
+            },
+            absences: safeAbsences,
+            requests: safeRequests,
+            sessions: safeSessions
+          }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[ADMIN STAFF ANALYTICS]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
       // ============================================================================
       // ADMIN ENDPOINTS
       // ============================================================================
@@ -2829,7 +2918,7 @@ export default {
       if (url.pathname === '/api/tasks/create' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { title, description, dueDate, extraInfo, department, createdBy, createdByName } = body;
+          const { title, description, dueDate, extraInfo, department, createdBy, createdByName, threadId } = body;
 
           if (!title || !department || !createdBy) {
             return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -2848,6 +2937,7 @@ export default {
             department,
             createdBy,
             createdByName: createdByName || 'Unknown',
+            threadId: threadId || null,
             status: 'open',
             priority: 'medium',
             claimedBy: null,
@@ -3075,29 +3165,35 @@ export default {
             await env.DATA.put(userTasksKey, JSON.stringify(updatedUserTasks));
           }
 
+          const resolvedThreadId = threadId || task.threadId;
+          const resolvedCreatorId = createdBy || task.createdBy;
+          const resolvedTitle = title || task.title || 'Task';
+          const resolvedClaimedAt = claimedAt || task.claimedAt;
+          const resolvedUpdates = Array.isArray(updates) ? updates : (task.updates || []);
+
           // Handle task completion webhook
-          if ((normalizedStatus === 'completed' || normalizedStatus === 'closed') && threadId) {
+          if ((normalizedStatus === 'completed' || normalizedStatus === 'closed') && resolvedThreadId) {
             try {
               // Build timeline
               let timeline = '';
-              if (claimedAt) timeline += `✅ **Claimed:** <t:${Math.floor(new Date(claimedAt).getTime() / 1000)}:f>\n`;
+              if (resolvedClaimedAt) timeline += `✅ **Claimed:** <t:${Math.floor(new Date(resolvedClaimedAt).getTime() / 1000)}:f>\n`;
               timeline += `✓ **Completed:** <t:${Math.floor(new Date().getTime() / 1000)}:f>`;
               
               // Build updates timeline
               let updatesTimeline = '';
-              if (updates && updates.length > 0) {
+              if (resolvedUpdates && resolvedUpdates.length > 0) {
                 updatesTimeline += '\n\n**Update History:**\n';
-                for (let i = 0; i < Math.min(updates.length, 3); i++) {
-                  const update = updates[i];
+                for (let i = 0; i < Math.min(resolvedUpdates.length, 3); i++) {
+                  const update = resolvedUpdates[i];
                   updatesTimeline += `• ${update.content.substring(0, 100)}${update.content.length > 100 ? '...' : ''}\n`;
                 }
-                if (updates.length > 3) updatesTimeline += `• ... and ${updates.length - 3} more updates`;
+                if (resolvedUpdates.length > 3) updatesTimeline += `• ... and ${resolvedUpdates.length - 3} more updates`;
               }
               
               // Send embed to thread
               const completionEmbed = {
                 title: '✅ Task Completed',
-                description: `**${title}** has been marked as complete`,
+                description: `**${resolvedTitle}** has been marked as complete`,
                 color: 3066993,  // Green
                 fields: [
                   {
@@ -3129,12 +3225,12 @@ export default {
               
               // Create content with mention
               let content = '';
-              if (createdBy) {
-                content = `<@${createdBy}> Task completed!`;
+              if (resolvedCreatorId) {
+                content = `<@${resolvedCreatorId}> Task marked as complete.`;
               }
               
               // Send message
-              const messageResponse = await fetch(`https://discord.com/api/v10/channels/${threadId}/messages`, {
+              const messageResponse = await fetch(`https://discord.com/api/v10/channels/${resolvedThreadId}/messages`, {
                 method: 'POST',
                 headers: {
                   'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
@@ -3150,14 +3246,14 @@ export default {
                 // Close/lock the thread
                 try {
                   // Edit thread name to add CLOSED prefix
-                  await fetch(`https://discord.com/api/v10/channels/${threadId}`, {
+                  await fetch(`https://discord.com/api/v10/channels/${resolvedThreadId}`, {
                     method: 'PATCH',
                     headers: {
                       'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
                       'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                      name: `CLOSED: ${title}`,
+                      name: `CLOSED: ${resolvedTitle}`,
                       locked: true,
                       archived: true
                     })
@@ -3214,10 +3310,12 @@ export default {
 
           await env.DATA.put(taskKey, JSON.stringify(task));
 
+          const resolvedThreadId = threadId || task.threadId;
+
           // Send update to Discord thread if threadId is provided
-          if (threadId) {
+          if (resolvedThreadId) {
             try {
-              await fetch(`https://discord.com/api/v10/channels/${threadId}/messages`, {
+              await fetch(`https://discord.com/api/v10/channels/${resolvedThreadId}/messages`, {
                 method: 'POST',
                 headers: {
                   'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
