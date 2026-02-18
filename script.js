@@ -2579,7 +2579,8 @@ const modals = {
     absenceDetail: document.getElementById('absenceDetailModal'),
     confirmCancelAbsence: document.getElementById('confirmCancelAbsenceModal'),
     submitRequest: document.getElementById('submitRequestModal'),
-    clockOutActivity: document.getElementById('clockOutActivityModal')
+    clockOutActivity: document.getElementById('clockOutActivityModal'),
+    taskUpdate: document.getElementById('taskUpdateModal')
 };
 
 console.log('%c🚀 SCRIPT.JS LOADED', 'color: magenta; font-size: 20px; font-weight: bold;');
@@ -9893,39 +9894,6 @@ function showTaskActionConfirm(message) {
         modal.querySelector('#taskConfirmNo').addEventListener('click', () => close(false));
         modal.addEventListener('click', (e) => {
             if (e.target === modal) close(false);
-        });
-    });
-}
-
-function showTaskActionConfirm(message) {
-    return new Promise(resolve => {
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.style.display = 'flex';
-        modal.style.zIndex = '10050';
-
-        modal.innerHTML = `
-            <div class="modal-content request-modal" style="max-width: 480px;">
-                <h2 style="margin-bottom: 12px;">Confirm Action</h2>
-                <p style="margin: 0 0 16px 0; color: var(--text2);">${message}</p>
-                <div class="request-buttons">
-                    <button id="taskConfirmYes" class="submit-request-btn">Confirm</button>
-                    <button id="taskConfirmNo" class="cancel-request-btn">Cancel</button>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-
-        const cleanup = (result) => {
-            modal.remove();
-            resolve(result);
-        };
-
-        modal.querySelector('#taskConfirmYes').addEventListener('click', () => cleanup(true));
-        modal.querySelector('#taskConfirmNo').addEventListener('click', () => cleanup(false));
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) cleanup(false);
         });
     });
 }
