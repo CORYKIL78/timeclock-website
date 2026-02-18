@@ -180,9 +180,9 @@ async function sendDismissalEmail(recipientEmail, username, dismissedBy) {
     const emailHtml = getDismissalEmailHTML(username, dismissedBy);
 
     // Using Resend API
-    const resendApiKey = process.env.RESEND_API_KEY_MAIN;
+    const resendApiKey = process.env.RESEND_API_KEY_MAIN || process.env.RESEND_API_KEY;
     if (!resendApiKey) {
-        console.error('[DISMISS] ❌ RESEND_API_KEY_MAIN environment variable not set');
+        console.error('[DISMISS] ❌ RESEND_API_KEY_MAIN/RESEND_API_KEY environment variable not set');
         throw new Error('Email service not configured (RESEND_API_KEY_MAIN missing)');
     }
 
@@ -195,8 +195,8 @@ async function sendDismissalEmail(recipientEmail, username, dismissedBy) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            from: 'candidates@staff.cirkledevelopment.co.uk',
-            to: recipientEmail,
+            from: 'Cirkle Candidates <candidates@staff.cirkledevelopment.co.uk>',
+            to: [recipientEmail],
             subject: 'Your Dismissal from Cirkle Development',
             html: emailHtml
         })

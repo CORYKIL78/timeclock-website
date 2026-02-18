@@ -74,6 +74,8 @@ module.exports = {
                 await handleTaskFormSubmit(interaction);
             } else if (interaction.customId === 'analytics_staffid_modal') {
                 await handleAnalyticsSubmit(interaction);
+            } else if (interaction.customId.startsWith('task_priority_modal_')) {
+                await handleTaskPriorityModalSubmit(interaction);
             }
         }
     }
@@ -415,6 +417,13 @@ async function handleTaskPublish(interaction) {
         const createdTask = await createTaskResponse.json();
         const taskId = createdTask.task?.id;
 
+        if (!taskId) {
+            return await interaction.followUp({
+                content: '❌ Task created in thread but backend did not return a task ID.',
+                ephemeral: true
+            });
+        }
+
         // Log task creation
         if (taskId) {
             await fetch(`${BACKEND_URL}/api/tasks/log`, {
@@ -455,22 +464,22 @@ async function handleTaskPublish(interaction) {
         const taskButtonsRow = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId(`task_claim_${thread.id}`)
+                    .setCustomId(`task_claim_${taskId}`)
                     .setLabel('Claim')
                     .setStyle(ButtonStyle.Success)
                     .setEmoji('✋'),
                 new ButtonBuilder()
-                    .setCustomId(`task_priority_${thread.id}`)
+                    .setCustomId(`task_priority_${taskId}`)
                     .setLabel('Set Priority')
                     .setStyle(ButtonStyle.Primary)
                     .setEmoji('📊'),
                 new ButtonBuilder()
-                    .setCustomId(`task_overdue_${thread.id}`)
+                    .setCustomId(`task_overdue_${taskId}`)
                     .setLabel('Mark Overdue')
                     .setStyle(ButtonStyle.Danger)
                     .setEmoji('⚠️'),
                 new ButtonBuilder()
-                    .setCustomId(`task_close_${thread.id}`)
+                    .setCustomId(`task_close_${taskId}`)
                     .setLabel('Close')
                     .setStyle(ButtonStyle.Success)
                     .setEmoji('✅')
@@ -664,16 +673,47 @@ async function handleAnalyticsSubmit(interaction) {
 async function handleTaskClaim(interaction) {
     try {
         await interaction.deferReply({ ephemeral: true });
-        // We're already in the thread, so just use interaction.channel
-        const threadName = interaction.channel.name;
+
+        const taskId = interaction.customId.replace('task_claim_', '');
+
+        const claimResponse = await fetch(`${BACKEND_URL}/api/tasks/claim`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                taskId,
+                userId: interaction.user.id,
+                userName: interaction.user.tag
+            })
+        });
+
+        if (!claimResponse.ok) {
+            const errorText = await claimResponse.text();
+            throw new Error(`Claim failed (${claimResponse.status}): ${errorText}`);
+        }
+
+        await fetch(`${BACKEND_URL}/api/tasks/log`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                taskId,
+                action: 'claimed',
+                details: { claimedBy: interaction.user.id, claimedByTag: interaction.user.tag },
+                userId: interaction.user.id,
+                userName: interaction.user.tag
+            })
+        }).catch(() => {});
+
+        await interaction.channel.send(`✋ Task claimed by <@${interaction.user.id}>`);
+        await updateTaskMessageEmbed(interaction, {
+            status: `Claimed by ${interaction.user.tag}`
+        });
         
         await interaction.editReply({
-            content: `✅ You have claimed task: ${threadName}`,
+            content: `✅ Task claimed and synced to portal.`,
             ephemeral: true
         });
         
-        // Log claim action
-        console.log(`[TASKTRACK] User ${interaction.user.tag} claimed task ${interaction.channelId}`);
+        console.log(`[TASKTRACK] User ${interaction.user.tag} claimed task ${taskId}`);
     } catch (error) {
         console.error('[TASKTRACK] Error claiming task:', error);
         await interaction.editReply({
@@ -685,17 +725,33 @@ async function handleTaskClaim(interaction) {
 
 async function handleTaskPriority(interaction) {
     try {
-        await interaction.deferReply({ ephemeral: true });
-        const threadId = interaction.customId.replace('task_priority_', '');
-        
-        await interaction.editReply({
-            content: `✅ Priority level updated for this task.`,
-            ephemeral: true
-        });
-        
-        console.log(`[TASKTRACK] User ${interaction.user.tag} set priority for task ${threadId}`);
+        const taskId = interaction.customId.replace('task_priority_', '');
+
+        const modal = new ModalBuilder()
+            .setCustomId(`task_priority_modal_${taskId}`)
+            .setTitle('Set Task Priority')
+            .addComponents(
+                new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId('task_priority_input')
+                        .setLabel('Priority (low, medium, high, critical)')
+                        .setStyle(TextInputStyle.Short)
+                        .setRequired(true)
+                        .setPlaceholder('e.g. high')
+                        .setMaxLength(10)
+                )
+            );
+
+        await interaction.showModal(modal);
     } catch (error) {
         console.error('[TASKTRACK] Error setting priority:', error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: `❌ Error setting priority: ${error.message}`,
+                ephemeral: true
+            });
+            return;
+        }
         await interaction.editReply({
             content: `❌ Error setting priority: ${error.message}`,
             ephemeral: true
@@ -706,14 +762,48 @@ async function handleTaskPriority(interaction) {
 async function handleTaskOverdue(interaction) {
     try {
         await interaction.deferReply({ ephemeral: true });
-        const threadId = interaction.customId.replace('task_overdue_', '');
+
+        const taskId = interaction.customId.replace('task_overdue_', '');
+
+        const statusResponse = await fetch(`${BACKEND_URL}/api/tasks/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                taskId,
+                status: 'overdue',
+                userId: interaction.user.id,
+                userName: interaction.user.tag
+            })
+        });
+
+        if (!statusResponse.ok) {
+            const errorText = await statusResponse.text();
+            throw new Error(`Overdue update failed (${statusResponse.status}): ${errorText}`);
+        }
+
+        await fetch(`${BACKEND_URL}/api/tasks/log`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                taskId,
+                action: 'overdue',
+                details: { markedBy: interaction.user.id },
+                userId: interaction.user.id,
+                userName: interaction.user.tag
+            })
+        }).catch(() => {});
+
+        await interaction.channel.send(`⚠️ Task marked overdue by <@${interaction.user.id}>`);
+        await updateTaskMessageEmbed(interaction, {
+            status: 'Overdue'
+        });
         
         await interaction.editReply({
-            content: `⚠️ Task marked as overdue.`,
+            content: `⚠️ Task marked as overdue and synced.`,
             ephemeral: true
         });
         
-        console.log(`[TASKTRACK] User ${interaction.user.tag} marked task ${threadId} as overdue`);
+        console.log(`[TASKTRACK] User ${interaction.user.tag} marked task ${taskId} as overdue`);
     } catch (error) {
         console.error('[TASKTRACK] Error marking overdue:', error);
         await interaction.editReply({
@@ -726,7 +816,42 @@ async function handleTaskOverdue(interaction) {
 async function handleTaskClose(interaction) {
     try {
         await interaction.deferReply({ ephemeral: true });
-        // We're already in the thread, so just archive it directly
+
+        const taskId = interaction.customId.replace('task_close_', '');
+
+        const statusResponse = await fetch(`${BACKEND_URL}/api/tasks/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                taskId,
+                status: 'closed',
+                userId: interaction.user.id,
+                userName: interaction.user.tag
+            })
+        });
+
+        if (!statusResponse.ok) {
+            const errorText = await statusResponse.text();
+            throw new Error(`Close failed (${statusResponse.status}): ${errorText}`);
+        }
+
+        await fetch(`${BACKEND_URL}/api/tasks/log`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                taskId,
+                action: 'closed',
+                details: { closedBy: interaction.user.id },
+                userId: interaction.user.id,
+                userName: interaction.user.tag
+            })
+        }).catch(() => {});
+
+        await interaction.channel.send(`✅ Task closed by <@${interaction.user.id}>`);
+        await updateTaskMessageEmbed(interaction, {
+            status: `Closed by ${interaction.user.tag}`
+        });
+
         await interaction.channel.setArchived(true);
         
         await interaction.editReply({
@@ -734,12 +859,102 @@ async function handleTaskClose(interaction) {
             ephemeral: true
         });
         
-        console.log(`[TASKTRACK] User ${interaction.user.tag} closed task ${interaction.channelId}`);
+        console.log(`[TASKTRACK] User ${interaction.user.tag} closed task ${taskId}`);
     } catch (error) {
         console.error('[TASKTRACK] Error closing task:', error);
         await interaction.editReply({
             content: `❌ Error closing task: ${error.message}`,
             ephemeral: true
         });
+    }
+}
+
+async function handleTaskPriorityModalSubmit(interaction) {
+    try {
+        await interaction.deferReply({ ephemeral: true });
+
+        const taskId = interaction.customId.replace('task_priority_modal_', '');
+        const rawPriority = interaction.fields.getTextInputValue('task_priority_input') || '';
+        const normalizedPriority = rawPriority.trim().toLowerCase();
+        const allowed = ['low', 'medium', 'high', 'critical'];
+
+        if (!allowed.includes(normalizedPriority)) {
+            return await interaction.editReply({
+                content: '❌ Invalid priority. Use one of: low, medium, high, critical.',
+                ephemeral: true
+            });
+        }
+
+        const priorityResponse = await fetch(`${BACKEND_URL}/api/tasks/priority`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                taskId,
+                priority: normalizedPriority,
+                userId: interaction.user.id,
+                userName: interaction.user.tag
+            })
+        });
+
+        if (!priorityResponse.ok) {
+            const errorText = await priorityResponse.text();
+            throw new Error(`Priority update failed (${priorityResponse.status}): ${errorText}`);
+        }
+
+        await fetch(`${BACKEND_URL}/api/tasks/log`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                taskId,
+                action: 'priority_set',
+                details: { priority: normalizedPriority },
+                userId: interaction.user.id,
+                userName: interaction.user.tag
+            })
+        }).catch(() => {});
+
+        const priorityLabel = `${normalizedPriority.charAt(0).toUpperCase()}${normalizedPriority.slice(1)}`;
+        await interaction.channel.send(`📊 Priority set to **${priorityLabel}** by <@${interaction.user.id}>`);
+
+        await interaction.editReply({
+            content: `✅ Priority set to ${priorityLabel}.`,
+            ephemeral: true
+        });
+    } catch (error) {
+        console.error('[TASKTRACK] Error submitting priority modal:', error);
+        await interaction.editReply({
+            content: `❌ Error setting priority: ${error.message}`,
+            ephemeral: true
+        });
+    }
+}
+
+async function updateTaskMessageEmbed(interaction, updates = {}) {
+    try {
+        const message = interaction.message;
+        const firstEmbed = message?.embeds?.[0];
+        if (!firstEmbed) return;
+
+        const nextEmbed = EmbedBuilder.from(firstEmbed);
+        const fields = [...(firstEmbed.fields || [])];
+
+        const statusFieldIndex = fields.findIndex(f => f.name === 'Status');
+        if (statusFieldIndex >= 0 && updates.status) {
+            fields[statusFieldIndex] = { ...fields[statusFieldIndex], value: updates.status };
+        }
+
+        const priorityFieldIndex = fields.findIndex(f => f.name === 'Priority');
+        if (updates.priority) {
+            if (priorityFieldIndex >= 0) {
+                fields[priorityFieldIndex] = { ...fields[priorityFieldIndex], value: updates.priority };
+            } else {
+                fields.push({ name: 'Priority', value: updates.priority, inline: true });
+            }
+        }
+
+        nextEmbed.setFields(fields);
+        await message.edit({ embeds: [nextEmbed] });
+    } catch (error) {
+        console.error('[TASKTRACK] Failed to update task embed:', error.message);
     }
 }

@@ -7,9 +7,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const config = require('../config');
 
-const BACKEND_URL = config.BACKEND_URL;
 const MAIN_SERVER_ID = '1310656642672627752'; // Main server
-const STAFF_SERVER_ID = '1460025375655723283'; // Staff server
 const HIRING_LOG_CHANNEL = '1473377571482894478'; // Hiring log channel in staff server
 
 // Department to roles mapping (MAIN SERVER)
@@ -57,6 +55,7 @@ module.exports = {
         const department = interaction.options.getString('department');
         const email = interaction.options.getString('email');
         const fullName = interaction.options.getString('fullname');
+        const safeNickname = (fullName || '').trim().slice(0, 32);
 
         await interaction.deferReply({ ephemeral: true });
 
@@ -94,21 +93,25 @@ module.exports = {
 
             // Change nickname in main server
             let nicknameMainSuccess = false;
+            let nicknameErrorMessage = '';
             try {
-                await member.setNickname(fullName);
+                await member.setNickname(safeNickname);
                 nicknameMainSuccess = true;
             } catch (nickError) {
                 console.error('[HIRE] Error setting nickname in main server:', nickError.message);
+                nicknameErrorMessage = nickError.message;
             }
 
             // Send welcome email
             let emailSuccess = false;
+            let emailErrorMessage = '';
             try {
                 await sendWelcomeEmail(email, fullName, department);
                 emailSuccess = true;
                 console.log(`[HIRE] Email sent successfully to ${email}`);
             } catch (emailError) {
                 console.error('[HIRE] Error sending email:', emailError.message);
+                emailErrorMessage = emailError.message;
             }
 
             // Send welcome DM
@@ -135,8 +138,13 @@ module.exports = {
             }
 
             // Log to hiring log channel
+            let logSuccess = false;
+            let logErrorMessage = '';
             try {
                 const logChannel = await interaction.client.channels.fetch(HIRING_LOG_CHANNEL);
+                if (!logChannel || !logChannel.isTextBased || !logChannel.isTextBased()) {
+                    throw new Error('Hiring log channel is missing or not text-based');
+                }
                 const logEmbed = new EmbedBuilder()
                     .setTitle('✅ New Staff Hired')
                     .setColor('#10b981')
@@ -154,12 +162,14 @@ module.exports = {
                     .setTimestamp();
 
                 await logChannel.send({ embeds: [logEmbed] });
+                logSuccess = true;
             } catch (logError) {
                 console.error('Error logging hire:', logError);
+                logErrorMessage = logError.message;
             }
 
             await interaction.editReply({
-                content: `✅ Successfully hired ${user.tag}!\n- Roles assigned: ${rolesToAdd.length}\n- Email sent: ${emailSuccess ? '✅' : '❌'}\n- DM sent: ${dmSuccess ? '✅' : '❌'}\n- Nickname set: ${nicknameMainSuccess ? '✅' : '❌'}`
+                content: `✅ Successfully hired ${user.tag}!\n- Roles assigned: ${rolesToAdd.length}\n- Email sent: ${emailSuccess ? '✅' : `❌ (${emailErrorMessage || 'failed'})`}\n- DM sent: ${dmSuccess ? '✅' : '❌'}\n- Nickname set: ${nicknameMainSuccess ? '✅' : `❌ (${nicknameErrorMessage || 'failed'})`}\n- Hiring log sent: ${logSuccess ? '✅' : `❌ (${logErrorMessage || 'failed'})`}`
             });
 
         } catch (error) {
@@ -175,9 +185,9 @@ async function sendWelcomeEmail(recipientEmail, fullName, department) {
     const emailHtml = getWelcomeEmailHTML(fullName, department);
 
     // Using Resend API
-    const resendApiKey = process.env.RESEND_API_KEY_MAIN;
+    const resendApiKey = process.env.RESEND_API_KEY_MAIN || process.env.RESEND_API_KEY;
     if (!resendApiKey) {
-        console.error('[HIRE] ❌ RESEND_API_KEY_MAIN environment variable not set');
+        console.error('[HIRE] ❌ RESEND_API_KEY_MAIN/RESEND_API_KEY environment variable not set');
         throw new Error('Email service not configured (RESEND_API_KEY_MAIN missing)');
     }
 
@@ -190,8 +200,8 @@ async function sendWelcomeEmail(recipientEmail, fullName, department) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            from: 'candidates@staff.cirkledevelopment.co.uk',
-            to: recipientEmail,
+            from: 'Cirkle Candidates <candidates@staff.cirkledevelopment.co.uk>',
+            to: [recipientEmail],
             subject: 'Welcome to the Cirkle Development Staff Team!',
             html: emailHtml
         })

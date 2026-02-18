@@ -2879,6 +2879,122 @@ export default {
         }
       }
 
+      // Set task priority
+      if (url.pathname === '/api/tasks/priority' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { taskId, priority, userId, userName } = body;
+
+          if (!taskId || !priority) {
+            return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const allowedPriorities = ['low', 'medium', 'high', 'critical'];
+          const normalizedPriority = String(priority).toLowerCase();
+          if (!allowedPriorities.includes(normalizedPriority)) {
+            return new Response(JSON.stringify({ error: 'Invalid priority value' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const taskKey = `task:${taskId}`;
+          const task = await env.DATA.get(taskKey, 'json');
+
+          if (!task) {
+            return new Response(JSON.stringify({ error: 'Task not found' }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+
+          task.priority = normalizedPriority;
+          task.updatedAt = new Date().toISOString();
+          task.updatedBy = userId || 'system';
+          task.updatedByName = userName || 'System';
+
+          await env.DATA.put(taskKey, JSON.stringify(task));
+
+          if (task.claimedBy) {
+            const userTasksKey = `tasks:${task.claimedBy}`;
+            const userTasks = await env.DATA.get(userTasksKey, 'json') || [];
+            const updatedUserTasks = userTasks.map(t => t.id === taskId ? task : t);
+            await env.DATA.put(userTasksKey, JSON.stringify(updatedUserTasks));
+          }
+
+          return new Response(JSON.stringify({ success: true, task }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[TASKS PRIORITY]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // Set task status (open, claimed, overdue, completed, closed)
+      if (url.pathname === '/api/tasks/status' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { taskId, status, userId, userName } = body;
+
+          if (!taskId || !status) {
+            return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const allowedStatuses = ['open', 'claimed', 'overdue', 'completed', 'closed'];
+          const normalizedStatus = String(status).toLowerCase();
+          if (!allowedStatuses.includes(normalizedStatus)) {
+            return new Response(JSON.stringify({ error: 'Invalid status value' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const taskKey = `task:${taskId}`;
+          const task = await env.DATA.get(taskKey, 'json');
+
+          if (!task) {
+            return new Response(JSON.stringify({ error: 'Task not found' }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+
+          task.status = normalizedStatus;
+          task.updatedAt = new Date().toISOString();
+          task.updatedBy = userId || 'system';
+          task.updatedByName = userName || 'System';
+
+          if (normalizedStatus === 'completed' || normalizedStatus === 'closed') {
+            task.completedAt = new Date().toISOString();
+          }
+
+          await env.DATA.put(taskKey, JSON.stringify(task));
+
+          if (task.claimedBy) {
+            const userTasksKey = `tasks:${task.claimedBy}`;
+            const userTasks = await env.DATA.get(userTasksKey, 'json') || [];
+            const updatedUserTasks = userTasks.map(t => t.id === taskId ? task : t);
+            await env.DATA.put(userTasksKey, JSON.stringify(updatedUserTasks));
+          }
+
+          return new Response(JSON.stringify({ success: true, task }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[TASKS STATUS]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
       // Update task
       if (url.pathname === '/api/tasks/update' && request.method === 'POST') {
         try {
