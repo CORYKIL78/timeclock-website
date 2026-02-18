@@ -1502,11 +1502,6 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script>
         // ===== CACHE BUSTING STRATEGY =====
-        // Dynamically load config-loader with timestamp
-        const configScript = document.createElement('script');
-        configScript.src = 'config-loader.js?t=' + Date.now();
-        document.head.appendChild(configScript);
-        
         // Generate cache buster token (changes every minute)
         const cacheBustToken = Math.floor(Date.now() / 60000);
         
@@ -1517,31 +1512,50 @@
                 link.href = link.href + (link.href.includes('?') ? '&' : '?') + 'cb=' + cacheBustToken;
             }
         });
+        
+        // Dynamically load config with cache bust
+        const configScript = document.createElement('script');
+        configScript.src = 'config-loader.js?t=' + Date.now();
+        document.head.appendChild(configScript);
     </script>
     <!-- Main application script -->
     <script src="script.js?v=2.1.0"></script>
     <script>
-        // Auto-update service worker and clear old caches
+        // Service worker cache management - only update, don't re-register
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(registrations => {
-                registrations.forEach(reg => reg.unregister()); // Unregister old service workers
-                // Re-register fresh every visit
-                navigator.serviceWorker.register('sw.js?t=' + Date.now()).catch(err => console.log('[SW] Registration error:', err));
-            });
+                registrations.forEach(reg => {
+                    // Just check for updates, don't unregister
+                    reg.update().catch(err => console.log('[SW] Update check error:', err));
+                });
+                
+                // Register if not already registered
+                if (registrations.length === 0) {
+                    navigator.serviceWorker.register('sw.js?t=' + Date.now()).catch(err => {
+                        console.log('[SW] Registration error:', err);
+                    });
+                }
+            }).catch(err => console.log('[SW] getRegistrations error:', err));
             
-            // Listen for SW cache updates
+            // Listen for SW cache updates - but only do soft reload
+            let reloadScheduled = false;
             navigator.serviceWorker.addEventListener('message', event => {
-                if (event.data.type === 'CACHE_UPDATE') {
+                if (event.data.type === 'CACHE_UPDATE' && !reloadScheduled) {
+                    reloadScheduled = true;
                     console.log('[APP] Service worker cache updated:', event.data.message);
-                    // Automatically reload the page to get fresh assets
+                    // Wait 3 seconds before reloading to avoid loop
                     setTimeout(() => {
-                        window.location.reload(true); // Force hard refresh
-                    }, 1000);
+                        // Only reload if user is on login screen (not during active work)
+                        const activeScreen = document.querySelector('[class*="screen"][style*="display"]');
+                        if (!activeScreen || activeScreen.id === 'discord' || activeScreen.id === 'portalWelcome') {
+                            window.location.reload(true);
+                        }
+                    }, 3000);
                 }
             });
         }
         
-        // Clear localStorage cache on page load to prevent stale data
+        // Clear API cache on page load
         window.addEventListener('load', () => {
             if (typeof apiCache !== 'undefined' && apiCache.clear) {
                 apiCache.clear();
