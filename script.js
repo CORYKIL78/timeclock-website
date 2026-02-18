@@ -10025,21 +10025,16 @@ function updateUserStatsWidgets() {
     if (!currentUser?.id) return;
 
     const responses = JSON.parse(localStorage.getItem(`event_responses_${currentUser.id}`) || '{}');
-    const totalEvents = Array.isArray(eventsData) ? eventsData.length : 0;
-    const eventIds = new Set((eventsData || []).map(e => String(e.id || e.rowIndex)));
-
     let attended = 0;
     let unattended = 0;
     let unsure = 0;
 
     Object.entries(responses).forEach(([eventId, value]) => {
-        if (eventIds.size && !eventIds.has(String(eventId))) return;
         if (value === 'attend') attended += 1;
         else if (value === 'cannot') unattended += 1;
         else if (value === 'unsure') unsure += 1;
     });
 
-    const notAnswered = Math.max(totalEvents - attended - unattended - unsure, 0);
     const sessionCount = (JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`) || '[]') || []).length;
 
     const setText = (id, value) => {
@@ -10050,13 +10045,11 @@ function updateUserStatsWidgets() {
     setText('eventsAttendedCount', attended);
     setText('eventsUnattendedCount', unattended);
     setText('eventsUnsureCount', unsure);
-    setText('eventsNoAnswerCount', notAnswered);
     setText('clockinsCount', sessionCount);
 
     setText('profileStatAttended', attended);
     setText('profileStatUnattended', unattended);
     setText('profileStatUnsure', unsure);
-    setText('profileStatNoAnswer', notAnswered);
     setText('profileStatClockins', sessionCount);
 }
 
