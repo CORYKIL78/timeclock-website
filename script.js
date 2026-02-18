@@ -9732,48 +9732,46 @@ function showTaskDetail(task) {
     const isCompleted = ['complete', 'completed', 'closed'].includes((task.status || '').toLowerCase());
 
     detailsContent.innerHTML = `
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
-            <div>
-                <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px;">Status</h3>
-                <p style="margin: 0; color: white; background: ${statusColor}; padding: 8px 12px; border-radius: 6px; display: inline-block; font-weight: 600; text-transform: capitalize;">${task.status}</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div style="padding: 8px 10px; border-radius: 5px; background: var(--bg3); color: var(--text); font-weight: 600; font-size: 11px; text-align: center;">
+                <span style="color: ${statusColor};">■</span> ${task.status}
             </div>
-            <div>
-                <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px;">Priority</h3>
-                <p style="margin: 0; color: white; background: ${priorityColor}; padding: 8px 12px; border-radius: 6px; display: inline-block; font-weight: 600; text-transform: capitalize;">${task.priority || 'normal'}</p>
+            <div style="padding: 8px 10px; border-radius: 5px; background: var(--bg3); color: var(--text); font-weight: 600; font-size: 11px; text-align: center;">
+                <span style="color: ${priorityColor};">■</span> ${task.priority || 'normal'}
             </div>
         </div>
 
-        <div style="margin-bottom: 24px;">
-            <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Description</h3>
-            <p style="margin: 0; color: var(--text); line-height: 1.6; white-space: pre-wrap;">${task.description || 'No description'}</p>
+        <div style="margin-bottom: 12px;">
+            <h4 style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Description</h4>
+            <p style="margin: 0; color: var(--text); line-height: 1.5; white-space: pre-wrap; font-size: 13px;">${task.description || 'No description'}</p>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; font-size: 12px;">
             <div>
-                <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Department</h3>
-                <p style="margin: 0; color: var(--text); font-weight: 500;">${task.department || 'Unknown'}</p>
+                <h4 style="margin: 0 0 3px 0; font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Dept</h4>
+                <p style="margin: 0; color: var(--text);">${task.department || 'N/A'}</p>
             </div>
             <div>
-                <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Due Date</h3>
-                <p style="margin: 0; color: var(--text); font-weight: 500;">${new Date(task.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <h4 style="margin: 0 0 3px 0; font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Due</h4>
+                <p style="margin: 0; color: var(--text);">${new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
             </div>
         </div>
 
-        <div style="margin-bottom: 24px;">
-            <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Assigned By</h3>
+        <div style="margin-bottom: 8px; font-size: 12px;">
+            <h4 style="margin: 0 0 3px 0; font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase;">By</h4>
             <p style="margin: 0; color: var(--text);">${task.createdByName || 'Unknown'}</p>
         </div>
 
         ${task.extraInfo ? `
-            <div style="margin-bottom: 24px;">
-                <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Extra Information</h3>
-                <div style="background: var(--bg3); padding: 12px; border-radius: 6px; border-left: 3px solid var(--accent); color: var(--text); white-space: pre-wrap;">${task.extraInfo}</div>
+            <div style="margin-bottom: 12px; font-size: 12px;">
+                <h4 style="margin: 0 0 4px 0; font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Info</h4>
+                <div style="background: var(--bg3); padding: 8px; border-radius: 5px; border-left: 2px solid var(--accent); color: var(--text); white-space: pre-wrap;">${task.extraInfo}</div>
             </div>
         ` : ''}
 
         ${isCompleted ? `
-            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 6px; padding: 12px; margin-top: 24px;">
-                <p style="margin: 0; color: #10b981; font-size: 14px;">✓ This task is ${task.status}</p>
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 5px; padding: 8px; margin-top: 8px;">
+                <p style="margin: 0; color: #10b981; font-size: 12px;">✓ ${task.status.charAt(0).toUpperCase() + task.status.slice(1)}</p>
             </div>
         ` : ''}
     `;
@@ -9885,13 +9883,16 @@ function publishTaskUpdate() {
 async function publishUpdate(taskId, content) {
     try {
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const task = window.currentDetailTask;
         
         const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/tasks/update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 taskId,
-                update: content  // Worker expects 'update' field
+                update: content,  // Worker expects 'update' field
+                threadId: task?.threadId,  // Send thread ID for Discord webhook
+                userName: currentUser.username
             })
         });
 
@@ -9904,7 +9905,7 @@ async function publishUpdate(taskId, content) {
         // Refresh the task details modal
         showTaskDetail(result.task);
         
-        alert('✅ Update published successfully!');
+        alert('✅ Update published and sent to Discord!');
     } catch (error) {
         console.error('Error publishing update:', error);
         alert(`Error: ${error.message}`);
@@ -9921,6 +9922,7 @@ async function completeTask() {
     if (!confirm('Mark this task as complete?')) return;
 
     try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/tasks/status`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -9928,7 +9930,14 @@ async function completeTask() {
                 taskId: task.id,
                 status: 'completed',
                 userId: task.userId,
-                userName: task.assignedTo
+                userName: task.assignedTo,
+                threadId: task.threadId,  // Send thread ID for Discord webhook
+                createdBy: task.createdBy,  // Creator to ping
+                title: task.title,
+                completedBy: currentUser.username,
+                completedAt: new Date().toISOString(),
+                claimedAt: task.claimedAt,
+                updates: task.updates || []  // Send all updates for timeline
             })
         });
 
@@ -9936,7 +9945,7 @@ async function completeTask() {
             throw new Error(`Failed to complete task: ${response.status}`);
         }
 
-        alert('✅ Task marked as complete!');
+        alert('✅ Task marked as complete! Thread closed on Discord.');
         closeTaskDetail();
         await loadTaskTrackData();  // Refresh the task list
     } catch (error) {

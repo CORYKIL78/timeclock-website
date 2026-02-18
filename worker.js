@@ -3029,7 +3029,7 @@ export default {
       if (url.pathname === '/api/tasks/status' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { taskId, status, userId, userName } = body;
+          const { taskId, status, userId, userName, threadId, createdBy, title, completedBy, completedAt, claimedAt, updates } = body;
 
           if (!taskId || !status) {
             return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -3075,6 +3075,103 @@ export default {
             await env.DATA.put(userTasksKey, JSON.stringify(updatedUserTasks));
           }
 
+          // Handle task completion webhook
+          if ((normalizedStatus === 'completed' || normalizedStatus === 'closed') && threadId) {
+            try {
+              // Build timeline
+              let timeline = '';
+              if (claimedAt) timeline += `✅ **Claimed:** <t:${Math.floor(new Date(claimedAt).getTime() / 1000)}:f>\n`;
+              timeline += `✓ **Completed:** <t:${Math.floor(new Date().getTime() / 1000)}:f>`;
+              
+              // Build updates timeline
+              let updatesTimeline = '';
+              if (updates && updates.length > 0) {
+                updatesTimeline += '\n\n**Update History:**\n';
+                for (let i = 0; i < Math.min(updates.length, 3); i++) {
+                  const update = updates[i];
+                  updatesTimeline += `• ${update.content.substring(0, 100)}${update.content.length > 100 ? '...' : ''}\n`;
+                }
+                if (updates.length > 3) updatesTimeline += `• ... and ${updates.length - 3} more updates`;
+              }
+              
+              // Send embed to thread
+              const completionEmbed = {
+                title: '✅ Task Completed',
+                description: `**${title}** has been marked as complete`,
+                color: 3066993,  // Green
+                fields: [
+                  {
+                    name: 'Completed By',
+                    value: completedBy || 'Unknown',
+                    inline: true
+                  },
+                  {
+                    name: 'Status',
+                    value: '🎉 Complete',
+                    inline: true
+                  },
+                  {
+                    name: 'Timeline',
+                    value: timeline,
+                    inline: false
+                  }
+                ],
+                timestamp: new Date().toISOString()
+              };
+              
+              if (updatesTimeline) {
+                completionEmbed.fields.push({
+                  name: 'Updates',
+                  value: updatesTimeline,
+                  inline: false
+                });
+              }
+              
+              // Create content with mention
+              let content = '';
+              if (createdBy) {
+                content = `<@${createdBy}> Task completed!`;
+              }
+              
+              // Send message
+              const messageResponse = await fetch(`https://discord.com/api/v10/channels/${threadId}/messages`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  content: content || undefined,
+                  embeds: [completionEmbed]
+                })
+              });
+              
+              if (messageResponse.ok) {
+                // Close/lock the thread
+                try {
+                  // Edit thread name to add CLOSED prefix
+                  await fetch(`https://discord.com/api/v10/channels/${threadId}`, {
+                    method: 'PATCH',
+                    headers: {
+                      'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      name: `CLOSED: ${title}`,
+                      locked: true,
+                      archived: true
+                    })
+                  });
+                } catch (threadUpdateError) {
+                  console.log('[DISCORD] Could not update thread name (may lack permissions):', threadUpdateError.message);
+                }
+              }
+            } catch (discordError) {
+              console.error('[DISCORD] Failed to send completion webhook:', discordError.message);
+              // Don't fail the request
+            }
+          }
+
           return new Response(JSON.stringify({ success: true, task }), { headers: corsHeaders });
         } catch (error) {
           console.error('[TASKS STATUS]', error);
@@ -3089,7 +3186,7 @@ export default {
       if (url.pathname === '/api/tasks/update' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { taskId, update } = body;
+          const { taskId, update, threadId, userName } = body;
 
           if (!taskId || !update) {
             return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -3116,6 +3213,33 @@ export default {
           });
 
           await env.DATA.put(taskKey, JSON.stringify(task));
+
+          // Send update to Discord thread if threadId is provided
+          if (threadId) {
+            try {
+              await fetch(`https://discord.com/api/v10/channels/${threadId}/messages`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  embeds: [{
+                    title: '📝 Task Update',
+                    description: update,
+                    color: 9683183,  // Purple
+                    author: {
+                      name: userName || 'Unknown User'
+                    },
+                    timestamp: new Date().toISOString()
+                  }]
+                })
+              });
+            } catch (discordError) {
+              console.error('[DISCORD] Failed to send update to thread:', discordError.message);
+              // Don't fail the request if Discord fails
+            }
+          }
 
           return new Response(JSON.stringify({ success: true, task }), { headers: corsHeaders });
         } catch (error) {
