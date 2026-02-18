@@ -2803,6 +2803,28 @@ export default {
         return new Response(JSON.stringify(tasks), { headers: corsHeaders });
       }
 
+      // Get single task by ID
+      if (url.pathname.startsWith('/api/tasks/') && !url.pathname.endsWith('/claim') && !url.pathname.endsWith('/priority') && !url.pathname.endsWith('/overdue') && !url.pathname.endsWith('/close') && !url.pathname.endsWith('/update') && !url.pathname.endsWith('/status') && !url.pathname.endsWith('/create') && !url.pathname.endsWith('/log') && request.method === 'GET') {
+        try {
+          const taskId = url.pathname.split('/api/tasks/')[1];
+          if (!taskId) {
+            return new Response(JSON.stringify({ error: 'Task ID required' }), { status: 400, headers: corsHeaders });
+          }
+          
+          const taskKey = `task:${taskId}`;
+          const task = await env.DATA.get(taskKey, 'json');
+          
+          if (!task) {
+            return new Response(JSON.stringify({ error: 'Task not found' }), { status: 404, headers: corsHeaders });
+          }
+          
+          return new Response(JSON.stringify(task), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[TASKS GET]', error);
+          return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
       // Create task
       if (url.pathname === '/api/tasks/create' && request.method === 'POST') {
         try {
@@ -3102,6 +3124,32 @@ export default {
             status: 500,
             headers: corsHeaders
           });
+        }
+      }
+
+      // ============================================================================
+      // Serve portal HTML for non-API routes (SPA fallback)
+      // ============================================================================
+
+      // For any non-API route, try to serve from static assets
+      // If static assets aren't available, serve a simple index redirect
+      if (!url.pathname.startsWith('/api/')) {
+        try {
+          // Try to fetch the static file
+          const response = await fetch(new URL('/index.html', request.url).toString());
+          if (response.ok) {
+            return new Response(response.body, {
+              status: 200,
+              headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Access-Control-Allow-Origin': origin
+              }
+            });
+          }
+        } catch (e) {
+          // If static fetch fails, return a redirect or error
+          console.log('[PORTAL-FALLBACK] Static fetch failed:', e.message);
         }
       }
 

@@ -708,26 +708,32 @@ async function handleTaskClaim(interaction) {
             status: `✋ Claimed by ${interaction.user.tag}`
         });
 
+        let dmSent = false;
+        let dmError = null;
         try {
-            await interaction.user.send({
-                embeds: [
-                    new EmbedBuilder()
-                        .setTitle('✅ Task Claimed')
-                        .setColor('#10b981')
-                        .setDescription('You successfully claimed a TaskTrack task.')
-                        .addFields(
-                            { name: 'Task ID', value: taskId, inline: true },
-                            { name: 'Thread', value: interaction.channel?.name || 'Task Thread', inline: true }
-                        )
-                        .setTimestamp()
-                ]
-            });
+            const dmEmbed = new EmbedBuilder()
+                .setTitle('✅ Task Claimed')
+                .setColor('#10b981')
+                .setDescription('You successfully claimed a TaskTrack task.')
+                .addFields(
+                    { name: 'Task ID', value: taskId, inline: true },
+                    { name: 'Thread', value: interaction.channel?.name || 'Task Thread', inline: true },
+                    { name: 'Portal Link', value: '[View in Portal](https://portal.cirkledevelopment.co.uk)', inline: true }
+                )
+                .setTimestamp()
+                .setFooter({ text: 'Check your portal for more details and to publish updates' });
+
+            await interaction.user.send({ embeds: [dmEmbed] });
+            dmSent = true;
+            console.log(`[TASKTRACK] ✅ Claim DM sent to ${interaction.user.tag}`);
         } catch (dmError) {
-            console.warn('[TASKTRACK] Could not send claim DM:', dmError.message);
+            console.error('[TASKTRACK] ❌ Could not send claim DM:', dmError.message);
+            console.error('[TASKTRACK] Error details:', dmError);
+            dmError = dmError.message;
         }
         
         await interaction.editReply({
-            content: `✅ Task claimed and synced to portal.`,
+            content: `✅ Task claimed and synced to portal.${!dmSent ? '\n⚠️ Note: Could not send DM - check your Discord privacy settings' : ''}`,
             ephemeral: true
         });
         

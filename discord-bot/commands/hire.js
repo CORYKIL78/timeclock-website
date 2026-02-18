@@ -95,8 +95,20 @@ module.exports = {
             let nicknameMainSuccess = false;
             let nicknameErrorMessage = '';
             try {
+                // Check bot's role position vs member's highest role
+                const botMember = await mainServer.members.fetchMe();
+                const botHighestRole = botMember.roles.highest;
+                const memberHighestRole = member.roles.highest;
+                
+                console.log(`[HIRE] Bot highest role position: ${botHighestRole.position}, Member highest role position: ${memberHighestRole.position}`);
+                
+                if (botHighestRole.position <= memberHighestRole.position) {
+                    throw new Error(`Bot role (position ${botHighestRole.position}) is not higher than user's role (position ${memberHighestRole.position}). Move the bot's role higher in server role list.`);
+                }
+                
                 await member.setNickname(safeNickname);
                 nicknameMainSuccess = true;
+                console.log(`[HIRE] Nickname set to: ${safeNickname}`);
             } catch (nickError) {
                 console.error('[HIRE] Error setting nickname in main server:', nickError.message);
                 nicknameErrorMessage = nickError.message;
@@ -182,7 +194,7 @@ module.exports = {
 };
 
 async function sendWelcomeEmail(recipientEmail, fullName, department) {
-    const emailHtml = getWelcomeEmailHTML(fullName, department);
+    const emailHtml = getWelcomeEmailHTML(recipientEmail, fullName, department);
 
     // Using Resend API
     const resendApiKey = process.env.RESEND_API_KEY_MAIN || process.env.RESEND_API_KEY;
@@ -218,7 +230,7 @@ async function sendWelcomeEmail(recipientEmail, fullName, department) {
     return result;
 }
 
-function getWelcomeEmailHTML(fullName, department) {
+function getWelcomeEmailHTML(recipientEmail, fullName, department) {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>

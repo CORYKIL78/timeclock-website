@@ -9713,69 +9713,270 @@ function renderHistoryTasks(tasks) {
 
 function showTaskDetail(task) {
     const modal = document.getElementById('taskDetailModal');
-    const content = document.getElementById('taskDetailContent');
+    const titleEl = document.getElementById('taskDetailTitle');
+    const detailsContent = document.getElementById('taskDetailContent');
+    const updatesContent = document.getElementById('taskUpdatesContent');
+    const actionsEl = document.getElementById('taskDetailActions');
 
-    if (!modal || !content) return;
+    if (!modal || !titleEl || !detailsContent) return;
 
-    content.innerHTML = `
-        <h2 style="margin: 0 0 16px 0; color: var(--text);">${task.title}</h2>
-        
-        <div style="margin-bottom: 20px;">
+    // Store current task for later use
+    window.currentDetailTask = task;
+
+    // Set title
+    titleEl.textContent = task.title;
+
+    // Render details tab
+    const priorityColor = task.priority === 'high' ? '#ef4444' : task.priority === 'medium' ? '#f59e0b' : '#3b82f6';
+    const statusColor = task.status === 'claimed' ? '#10b981' : task.status === 'overdue' ? '#ef4444' : '#f59e0b';
+    const isCompleted = ['complete', 'completed', 'closed'].includes((task.status || '').toLowerCase());
+
+    detailsContent.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+            <div>
+                <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px;">Status</h3>
+                <p style="margin: 0; color: white; background: ${statusColor}; padding: 8px 12px; border-radius: 6px; display: inline-block; font-weight: 600; text-transform: capitalize;">${task.status}</p>
+            </div>
+            <div>
+                <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px;">Priority</h3>
+                <p style="margin: 0; color: white; background: ${priorityColor}; padding: 8px 12px; border-radius: 6px; display: inline-block; font-weight: 600; text-transform: capitalize;">${task.priority || 'normal'}</p>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 24px;">
             <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Description</h3>
-            <p style="margin: 0; color: var(--text); line-height: 1.6;">${task.description}</p>
+            <p style="margin: 0; color: var(--text); line-height: 1.6; white-space: pre-wrap;">${task.description || 'No description'}</p>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
             <div>
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Due Date</h3>
-                <p style="margin: 0; color: var(--text); font-weight: 600;">${new Date(task.dueDate).toLocaleDateString()}</p>
+                <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Department</h3>
+                <p style="margin: 0; color: var(--text); font-weight: 500;">${task.department || 'Unknown'}</p>
             </div>
             <div>
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Status</h3>
-                <p style="margin: 0; color: var(--text); font-weight: 600;">${task.status?.toUpperCase()}</p>
-            </div>
-            <div>
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Department</h3>
-                <p style="margin: 0; color: var(--text); font-weight: 600;">${task.department}</p>
-            </div>
-            <div>
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Priority</h3>
-                <p style="margin: 0; color: var(--text); font-weight: 600;">${task.priority?.toUpperCase()}</p>
+                <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Due Date</h3>
+                <p style="margin: 0; color: var(--text); font-weight: 500;">${new Date(task.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             </div>
         </div>
 
-        ${task.extraInfo ? `
-            <div style="margin-bottom: 20px;">
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Extra Information</h3>
-                <p style="margin: 0; color: var(--text);">${task.extraInfo}</p>
-            </div>
-        ` : ''}
-
-        <div style="margin-bottom: 20px;">
-            <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Assigned By</h3>
+        <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Assigned By</h3>
             <p style="margin: 0; color: var(--text);">${task.createdByName || 'Unknown'}</p>
         </div>
 
-        ${task.updates && task.updates.length > 0 ? `
-            <div style="margin-bottom: 20px;">
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text2);">Progress Updates</h3>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    ${task.updates.map(update => `
-                        <div style="background: var(--bg3); padding: 12px; border-radius: 6px; border-left: 3px solid var(--accent);">
-                            <p style="margin: 0 0 4px 0; color: var(--text);">${update.content}</p>
-                            <p style="margin: 0; font-size: 12px; color: var(--text2);">${new Date(update.createdAt).toLocaleString()}</p>
-                        </div>
-                    `).join('')}
-                </div>
+        ${task.extraInfo ? `
+            <div style="margin-bottom: 24px;">
+                <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase;">Extra Information</h3>
+                <div style="background: var(--bg3); padding: 12px; border-radius: 6px; border-left: 3px solid var(--accent); color: var(--text); white-space: pre-wrap;">${task.extraInfo}</div>
             </div>
         ` : ''}
 
-        <button style="width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; margin-top: 20px; transition: background 0.2s ease;" onmouseover="this.style.background='#a78bfa'" onmouseout="this.style.background='var(--accent)'">
-            Mark as Complete
-        </button>
+        ${isCompleted ? `
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 6px; padding: 12px; margin-top: 24px;">
+                <p style="margin: 0; color: #10b981; font-size: 14px;">✓ This task is ${task.status}</p>
+            </div>
+        ` : ''}
     `;
 
+    // Render updates tab
+    const updates = task.updates || [];
+    if (updates.length === 0) {
+        updatesContent.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px;">
+                <p style="margin: 0; color: var(--text2); font-size: 14px;">No updates yet</p>
+                <p style="margin: 8px 0 0 0; color: var(--text2); font-size: 12px;">Click "Publish Update" to add one</p>
+            </div>
+        `;
+    } else {
+        updatesContent.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                ${updates.map((update, idx) => `
+                    <div style="background: var(--bg3); padding: 16px; border-radius: 8px; border-left: 3px solid var(--accent);">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                            <p style="margin: 0; color: var(--text); font-weight: 600; font-size: 14px;">Update #${updates.length - idx}</p>
+                            <p style="margin: 0; font-size: 12px; color: var(--text2);">${new Date(update.createdAt || update.timestamp).toLocaleString()}</p>
+                        </div>
+                        <p style="margin: 0; color: var(--text); white-space: pre-wrap; line-height: 1.5; font-size: 14px;">${update.content || update.message || 'No content'}</p>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // Render action buttons
+    let actionsHTML = '';
+    if (!isCompleted) {
+        actionsHTML += `
+            <button onclick="publishTaskUpdate()" style="padding: 10px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s;" onmouseover="this.style.background='#a78bfa'" onmouseout="this.style.background='var(--accent)'">
+                📝 Publish Update
+            </button>
+            <button onclick="completeTask()" style="padding: 10px 16px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                ✓ Mark Complete
+            </button>
+        `;
+    }
+    if (isCompleted) {
+        actionsHTML += `
+            <button onclick="reopenTask()" style="padding: 10px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s;" onmouseover="this.style.background='#a78bfa'" onmouseout="this.style.background='var(--accent)'">>
+                🔄 Reopen Task
+            </button>
+        `;
+    }
+    actionsEl.innerHTML = actionsHTML;
+
+    // Show modal
     modal.classList.add('active');
+    
+    // Reset tabs to details
+    switchTaskTab('details');
+}
+
+function switchTaskTab(tabName) {
+    const detailsTab = document.getElementById('taskDetailsTab');
+    const updatesTab = document.getElementById('taskUpdatesTab');
+    const detailsBtn = document.getElementById('detailsTabBtn');
+    const updatesBtn = document.getElementById('updatesTabBtn');
+
+    if (tabName === 'details') {
+        detailsTab.style.display = 'block';
+        updatesTab.style.display = 'none';
+        detailsBtn.style.borderBottomColor = 'var(--accent)';
+        detailsBtn.style.color = 'var(--text)';
+        updatesBtn.style.borderBottomColor = 'transparent';
+        updatesBtn.style.color = 'var(--text2)';
+    } else {
+        detailsTab.style.display = 'none';
+        updatesTab.style.display = 'block';
+        detailsBtn.style.borderBottomColor = 'transparent';
+        detailsBtn.style.color = 'var(--text2)';
+        updatesBtn.style.borderBottomColor = 'var(--accent)';
+        updatesBtn.style.color = 'var(--text)';
+    }
+}
+
+function closeTaskDetail() {
+    const modal = document.getElementById('taskDetailModal');
+    if (modal) {
+        modal.classList.remove('active');
+        window.currentDetailTask = null;
+    }
+}
+
+function publishTaskUpdate() {
+    const task = window.currentDetailTask;
+    if (!task) {
+        alert('Task not found');
+        return;
+    }
+
+    // Show a simple prompt/modal for the update content
+    const updateContent = prompt('Enter your update (max 500 characters):', '');
+    if (!updateContent) return;
+
+    if (updateContent.length > 500) {
+        alert('Update must be 500 characters or less');
+        return;
+    }
+
+    // Call the API to publish the update
+    publishUpdate(task.id, updateContent);
+}
+
+async function publishUpdate(taskId, content) {
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        
+        const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/tasks/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                taskId,
+                update: content  // Worker expects 'update' field
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to publish update: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        // Refresh the task details modal
+        showTaskDetail(result.task);
+        
+        alert('✅ Update published successfully!');
+    } catch (error) {
+        console.error('Error publishing update:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+async function completeTask() {
+    const task = window.currentDetailTask;
+    if (!task) {
+        alert('Task not found');
+        return;
+    }
+
+    if (!confirm('Mark this task as complete?')) return;
+
+    try {
+        const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/tasks/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                taskId: task.id,
+                status: 'completed',
+                userId: task.userId,
+                userName: task.assignedTo
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to complete task: ${response.status}`);
+        }
+
+        alert('✅ Task marked as complete!');
+        closeTaskDetail();
+        await loadTaskTrackData();  // Refresh the task list
+    } catch (error) {
+        console.error('Error completing task:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+async function reopenTask() {
+    const task = window.currentDetailTask;
+    if (!task) {
+        alert('Task not found');
+        return;
+    }
+
+    if (!confirm('Reopen this task?')) return;
+
+    try {
+        const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/tasks/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                taskId: task.id,
+                status: 'open',
+                userId: task.userId,
+                userName: task.assignedTo
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to reopen task: ${response.status}`);
+        }
+
+        alert('✅ Task reopened!');
+        closeTaskDetail();
+        await loadTaskTrackData();  // Refresh the task list
+    } catch (error) {
+        console.error('Error reopening task:', error);
+        alert(`Error: ${error.message}`);
+    }
 }
 
 function setupModalCloseButtons() {

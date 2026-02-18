@@ -1365,7 +1365,7 @@
                     <!-- Upcoming Tasks Section -->
                     <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
                         <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: var(--text);">Tasks for This Fortnight</h3>
-                        <div id="upcomingTasksContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                        <div id="upcomingTasksContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
                             <!-- Task cards will be rendered here -->
                         </div>
                         <div id="noTasksOverviewMessage" style="text-align: center; padding: 40px 20px; color: var(--text2);">
@@ -1375,10 +1375,10 @@
                 </div>
 
                 <!-- MY TASKS TAB -->
-                <div id="mytasksTab" class="tasktrack-tab" style="display: none; overflow-y: auto;">
+                <div id="mytasksTab" class="tasktrack-tab" style="display: none; overflow-y: auto; padding-right: 4px;">
                     <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
                         <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: var(--text);">✓ Your Active Tasks</h3>
-                        <div id="myTasksList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                        <div id="myTasksList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
                             <!-- User's tasks will be rendered here -->
                         </div>
                         <div id="noMyTasksMessage" style="text-align: center; padding: 40px 20px; color: var(--text2); display: none;">
@@ -1388,10 +1388,10 @@
                 </div>
 
                 <!-- HISTORY TAB -->
-                <div id="historyTab" class="tasktrack-tab" style="display: none; overflow-y: auto;">
+                <div id="historyTab" class="tasktrack-tab" style="display: none; overflow-y: auto; padding-right: 4px;">
                     <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
                         <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: var(--text);">📜 Completed Tasks History</h3>
-                        <div id="completedTasksList" style="display: flex; flex-direction: column; gap: 12px;">
+                        <div id="completedTasksList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
                             <!-- Completed tasks will be rendered here -->
                         </div>
                         <div id="noHistoryMessage" style="text-align: center; padding: 40px 20px; color: var(--text2); display: none;">
@@ -1403,13 +1403,39 @@
         </div>
     </div>
 
-    <!-- Task Detail Modal -->
-    <div id="taskDetailModal" class="modal">
-        <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
-            <button onclick="document.getElementById('taskDetailModal').classList.remove('active')" style="position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
-            <div id="taskDetailContent">
-                <!-- Task details will be rendered here -->
+    <!-- Task Detail Modal (Full Screen) -->
+    <div id="taskDetailModal" class="modal" style="align-items: stretch; justify-content: stretch; padding: 0;">
+        <div class="modal-content" style="max-width: 100%; width: 100%; max-height: 100%; height: 100%; border-radius: 0; margin: 0; display: flex; flex-direction: column; position: relative;">
+            <!-- Header with back button and close -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid var(--border); background: var(--bg3);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button id="taskDetailBackBtn" onclick="closeTaskDetail()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--accent); padding: 8px; display: flex; align-items: center;">← Back</button>
+                    <h2 id="taskDetailTitle" style="margin: 0; color: var(--text); font-size: 24px; font-weight: 600;"></h2>
+                </div>
+                <button onclick="closeTaskDetail()" style="position: static; background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text2); padding: 4px 12px; transform: none; transition: color 0.2s;">×</button>
             </div>
+
+            <!-- Tab navigation -->
+            <div style="display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--bg2); padding: 0;">
+                <button id="detailsTabBtn" onclick="switchTaskTab('details')" style="flex: 1; padding: 16px; background: none; border: none; color: var(--text); cursor: pointer;  border-bottom: 3px solid var(--accent); font-weight: 600; font-size: 14px; transition: all 0.3s;">📋 Details</button>
+                <button id="updatesTabBtn" onclick="switchTaskTab('updates')" style="flex: 1; padding: 16px; background: none; border: none; color: var(--text2); cursor: pointer; border-bottom: 3px solid transparent; font-weight: 600; font-size: 14px; transition: all 0.3s;">📝 Updates</button>
+            </div>
+
+            <!-- Content area -->
+            <div style="flex: 1; overflow-y: auto; padding: 20px;">
+                <!-- Details Tab -->
+                <div id="taskDetailsTab" style="display: block;">
+                    <div id="taskDetailContent"></div>
+                </div>
+
+                <!-- Updates Tab -->
+                <div id="taskUpdatesTab" style="display: none;">
+                    <div id="taskUpdatesContent"></div>
+                </div>
+            </div>
+
+            <!-- Footer with actions -->
+            <div id="taskDetailActions" style="display: flex; gap: 8px; padding: 20px; border-top: 1px solid var(--border); background: var(--bg3); justify-content: flex-end; flex-wrap: wrap;"></div>
         </div>
     </div>
 
