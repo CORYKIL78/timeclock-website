@@ -599,7 +599,7 @@ async function handleAnalyticsSubmit(interaction) {
         const allTasks = Array.isArray(tasks) ? tasks : [];
 
         // 3) Build analytics from task data
-        const completedTasks = allTasks.filter(task => task.status === 'completed').length;
+        const completedTasks = allTasks.filter(task => ['completed', 'complete', 'closed'].includes(task.status)).length;
         const inProgressTasks = allTasks.filter(task => ['open', 'in_progress', 'claimed'].includes(task.status)).length;
         const overdueTasks = allTasks.filter(task => task.status === 'overdue').length;
         const totalTasks = allTasks.length;
@@ -705,8 +705,26 @@ async function handleTaskClaim(interaction) {
 
         await interaction.channel.send(`✋ Task claimed by <@${interaction.user.id}>`);
         await updateTaskMessageEmbed(interaction, {
-            status: `Claimed by ${interaction.user.tag}`
+            status: `✋ Claimed by ${interaction.user.tag}`
         });
+
+        try {
+            await interaction.user.send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setTitle('✅ Task Claimed')
+                        .setColor('#10b981')
+                        .setDescription('You successfully claimed a TaskTrack task.')
+                        .addFields(
+                            { name: 'Task ID', value: taskId, inline: true },
+                            { name: 'Thread', value: interaction.channel?.name || 'Task Thread', inline: true }
+                        )
+                        .setTimestamp()
+                ]
+            });
+        } catch (dmError) {
+            console.warn('[TASKTRACK] Could not send claim DM:', dmError.message);
+        }
         
         await interaction.editReply({
             content: `✅ Task claimed and synced to portal.`,
@@ -795,7 +813,8 @@ async function handleTaskOverdue(interaction) {
 
         await interaction.channel.send(`⚠️ Task marked overdue by <@${interaction.user.id}>`);
         await updateTaskMessageEmbed(interaction, {
-            status: 'Overdue'
+            status: '⚠️ Overdue',
+            color: '#ef4444'
         });
         
         await interaction.editReply({
@@ -916,6 +935,10 @@ async function handleTaskPriorityModalSubmit(interaction) {
         const priorityLabel = `${normalizedPriority.charAt(0).toUpperCase()}${normalizedPriority.slice(1)}`;
         await interaction.channel.send(`📊 Priority set to **${priorityLabel}** by <@${interaction.user.id}>`);
 
+        await updateTaskMessageEmbed(interaction, {
+            priority: priorityLabel
+        });
+
         await interaction.editReply({
             content: `✅ Priority set to ${priorityLabel}.`,
             ephemeral: true
@@ -950,6 +973,10 @@ async function updateTaskMessageEmbed(interaction, updates = {}) {
             } else {
                 fields.push({ name: 'Priority', value: updates.priority, inline: true });
             }
+        }
+
+        if (updates.color) {
+            nextEmbed.setColor(updates.color);
         }
 
         nextEmbed.setFields(fields);

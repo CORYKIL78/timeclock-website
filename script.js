@@ -2553,7 +2553,7 @@ const screens = {
     mainMenu: document.getElementById('mainMenuScreen'),
     myProfile: document.getElementById('myProfileScreen'),
     myRoles: document.getElementById('myRolesScreen'),
-    tasks: document.getElementById('tasksScreen'),
+    tasks: document.getElementById('tasktrackScreen'),
     absences: document.getElementById('absencesScreen'),
     payslips: document.getElementById('payslipsScreen'),
     disciplinaries: document.getElementById('disciplinariesScreen'),
@@ -2830,7 +2830,7 @@ function updateActiveNavButton(screenId) {
         'requests': 'requestsBtn',
         'timeclock': 'timeclockBtn',
         'mail': 'mailBtn',
-        'tasks': 'clickupBtn',
+        'tasks': 'tasktrackBtn',
         'clickup': 'clickupBtn',
         'calendarScreen': 'calendarBtn',
         'handbooks': 'handbooksBtn'
@@ -9322,14 +9322,8 @@ function setupTaskTrackSystem() {
 }
 
 async function showTaskTrackScreen() {
-    // Show TaskTrack screen
-    const screens = document.querySelectorAll('.screen');
-    screens.forEach(s => s.style.display = 'none');
-
-    const tasktrackScreen = document.getElementById('tasktrackScreen');
-    if (tasktrackScreen) {
-        tasktrackScreen.style.display = 'flex';
-    }
+    // Use the standard router/screen system so menu state and navigation keep working
+    showScreen('tasks');
 
     // Show loading screen
     const loadingScreen = document.getElementById('tasktrackLoadingScreen');
@@ -9434,9 +9428,9 @@ function switchTaskTrackTab(tabName) {
 }
 
 function renderTaskTrackAnalytics(tasks) {
-    const completed = tasks.filter(t => t.status === 'complete').length;
+    const completed = tasks.filter(t => ['complete', 'completed', 'closed'].includes((t.status || '').toLowerCase())).length;
     const inProgress = tasks.filter(t => t.status === 'claimed' || t.status === 'in_progress').length;
-    const overdue = tasks.filter(t => t.status === 'overdue' || (new Date(t.dueDate) < new Date() && t.status !== 'complete')).length;
+    const overdue = tasks.filter(t => t.status === 'overdue' || (new Date(t.dueDate) < new Date() && !['complete', 'completed', 'closed'].includes((t.status || '').toLowerCase()))).length;
 
     // Update counters
     document.getElementById('completedTasksCount').textContent = completed;
@@ -9494,7 +9488,7 @@ function renderOverviewTasks(tasks) {
     
     const upcomingTasks = tasks.filter(t => {
         const dueDate = new Date(t.dueDate);
-        return dueDate >= now && dueDate <= twoWeeksFromNow && t.status !== 'complete';
+        return dueDate >= now && dueDate <= twoWeeksFromNow && !['complete', 'completed', 'closed'].includes((t.status || '').toLowerCase());
     }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
     // Clear container
@@ -9558,7 +9552,7 @@ function renderMyTasks(tasks) {
     if (!container) return;
 
     // Filter user's active tasks
-    const myTasks = tasks.filter(t => t.status !== 'complete').sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    const myTasks = tasks.filter(t => !['complete', 'completed', 'closed'].includes((t.status || '').toLowerCase())).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
     container.innerHTML = '';
 
@@ -9616,7 +9610,7 @@ function renderHistoryTasks(tasks) {
     if (!container) return;
 
     // Filter completed tasks
-    const completed = tasks.filter(t => t.status === 'complete').sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+    const completed = tasks.filter(t => ['complete', 'completed', 'closed'].includes((t.status || '').toLowerCase())).sort((a, b) => new Date(b.completedAt || b.updatedAt || b.createdAt) - new Date(a.completedAt || a.updatedAt || a.createdAt));
 
     container.innerHTML = '';
 

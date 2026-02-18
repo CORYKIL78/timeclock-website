@@ -2820,16 +2820,23 @@ export default {
           task.claimedBy = userId;
           task.claimedByName = userName || 'Unknown';
           task.claimedAt = new Date().toISOString();
+          task.status = 'claimed';
+          task.updatedAt = new Date().toISOString();
+          task.updatedBy = userId;
+          task.updatedByName = userName || 'Unknown';
 
           await env.DATA.put(taskKey, JSON.stringify(task));
 
           // Add to user's claimed tasks
           const userTasksKey = `tasks:${userId}`;
           const userTasks = await env.DATA.get(userTasksKey, 'json') || [];
-          if (!userTasks.find(t => t.id === taskId)) {
+          const existingTaskIndex = userTasks.findIndex(t => t.id === taskId);
+          if (existingTaskIndex >= 0) {
+            userTasks[existingTaskIndex] = task;
+          } else {
             userTasks.push(task);
-            await env.DATA.put(userTasksKey, JSON.stringify(userTasks));
           }
+          await env.DATA.put(userTasksKey, JSON.stringify(userTasks));
 
           return new Response(JSON.stringify({ success: true, task }), { headers: corsHeaders });
         } catch (error) {

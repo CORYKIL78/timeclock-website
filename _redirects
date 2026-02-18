@@ -1,2 +1,3 @@
 /adminportal /admin/backup.html 200
 /adminportal/* /admin/backup.html 200
+/* /index.html 200
