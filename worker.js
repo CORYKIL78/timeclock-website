@@ -2733,6 +2733,67 @@ export default {
       // TASKTRACK ENDPOINTS
       // ============================================================================
 
+      // Get timeclock sessions for a user (cross-device sync)
+      if (url.pathname.startsWith('/api/timeclock/sessions/') && request.method === 'GET') {
+        try {
+          const userId = url.pathname.split('/api/timeclock/sessions/')[1];
+          if (!userId) {
+            return new Response(JSON.stringify({ error: 'Missing user ID' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const key = `timeclock:sessions:${userId}`;
+          const sessions = await env.DATA.get(key, 'json') || [];
+          return new Response(JSON.stringify({ success: true, sessions }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[TIMECLOCK SESSIONS GET]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // Save a timeclock session for a user (cross-device sync)
+      if (url.pathname === '/api/timeclock/sessions/save' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { userId, session } = body;
+
+          if (!userId || !session) {
+            return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const key = `timeclock:sessions:${userId}`;
+          const sessions = await env.DATA.get(key, 'json') || [];
+          const existingIndex = sessions.findIndex(s => s.id === session.id);
+
+          if (existingIndex >= 0) {
+            sessions[existingIndex] = session;
+          } else {
+            sessions.push(session);
+          }
+
+          if (sessions.length > 250) {
+            sessions.splice(0, sessions.length - 250);
+          }
+
+          await env.DATA.put(key, JSON.stringify(sessions));
+          return new Response(JSON.stringify({ success: true, count: sessions.length }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[TIMECLOCK SESSIONS SAVE]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
       // Get user tasks
       if (url.pathname.startsWith('/api/tasks/user/')) {
         const userId = url.pathname.split('/api/tasks/user/')[1];

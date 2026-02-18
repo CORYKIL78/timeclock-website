@@ -3263,9 +3263,50 @@ function renderTasks() {
     });
 }
 
-function renderPreviousSessions() {
+async function syncTimeclockSessionsFromBackend() {
+    try {
+        if (!currentUser?.id) return;
+        if (window.__timeclockSyncInProgress) return;
+
+        window.__timeclockSyncInProgress = true;
+        const response = await fetch(`${WORKER_URL}/api/timeclock/sessions/${currentUser.id}`);
+        if (!response.ok) return;
+
+        const payload = await response.json();
+        const backendSessions = Array.isArray(payload?.sessions) ? payload.sessions : [];
+        const localSessions = JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`)) || [];
+
+        const mergedMap = new Map();
+        [...backendSessions, ...localSessions].forEach(session => {
+            if (session && session.id) {
+                mergedMap.set(session.id, session);
+            }
+        });
+
+        const mergedSessions = Array.from(mergedMap.values()).sort((a, b) => {
+            const aTime = new Date(a.clockOut || a.clockIn || 0).getTime();
+            const bTime = new Date(b.clockOut || b.clockIn || 0).getTime();
+            return bTime - aTime;
+        });
+
+        localStorage.setItem(`previousSessions_${currentUser.id}`, JSON.stringify(mergedSessions));
+        previousSessions = mergedSessions;
+        renderPreviousSessions(true);
+    } catch (error) {
+        console.warn('[TIMECLOCK] Session sync failed:', error.message);
+    } finally {
+        window.__timeclockSyncInProgress = false;
+    }
+}
+
+function renderPreviousSessions(skipSync = false) {
     const list = document.getElementById('previousSessions');
     if (!list) return;
+
+    if (!skipSync) {
+        void syncTimeclockSessionsFromBackend();
+    }
+
     list.innerHTML = '';
     previousSessions = JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`)) || [];
     
@@ -7379,6 +7420,18 @@ document.getElementById('submitClockOutBtn').addEventListener('click', async () 
     previousSessions = JSON.parse(localStorage.getItem(`previousSessions_${currentUser.id}`)) || [];
     previousSessions.unshift(session);
     localStorage.setItem(`previousSessions_${currentUser.id}`, JSON.stringify(previousSessions));
+
+    await fetch(`${WORKER_URL}/api/timeclock/sessions/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userId: currentUser.id,
+            session
+        })
+    }).catch((syncError) => {
+        console.warn('[TIMECLOCK] Failed to sync session to backend:', syncError.message);
+    });
+
     localStorage.removeItem('clockInTime');
     localStorage.removeItem(`timeclockMessageId_${currentUser.id}`);
     clockInTime = null;
