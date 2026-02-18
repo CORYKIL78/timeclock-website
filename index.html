@@ -1500,15 +1500,33 @@
     <footer>© Cirkle Development 2024 | Portal V4</footer>
 
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <!-- Load environment configuration (defaults are hardcoded in script.js) -->
-    <script src="config-loader.js"></script>
+    <script>
+        // ===== CACHE BUSTING STRATEGY =====
+        // Dynamically load config-loader with timestamp
+        const configScript = document.createElement('script');
+        configScript.src = 'config-loader.js?t=' + Date.now();
+        document.head.appendChild(configScript);
+        
+        // Generate cache buster token (changes every minute)
+        const cacheBustToken = Math.floor(Date.now() / 60000);
+        
+        // Add cache buster to all stylesheets
+        const links = document.querySelectorAll('link[rel="stylesheet"]');
+        links.forEach(link => {
+            if (!link.href.includes('manifest') && !link.href.includes('cb=')) {
+                link.href = link.href + (link.href.includes('?') ? '&' : '?') + 'cb=' + cacheBustToken;
+            }
+        });
+    </script>
     <!-- Main application script -->
     <script src="script.js?v=2.1.0"></script>
     <script>
         // Auto-update service worker and clear old caches
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(registrations => {
-                registrations.forEach(reg => reg.update());
+                registrations.forEach(reg => reg.unregister()); // Unregister old service workers
+                // Re-register fresh every visit
+                navigator.serviceWorker.register('sw.js?t=' + Date.now()).catch(err => console.log('[SW] Registration error:', err));
             });
             
             // Listen for SW cache updates
