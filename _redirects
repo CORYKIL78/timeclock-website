@@ -1,3 +1,5 @@
 /adminportal /admin/backup.html 200
 /adminportal/* /admin/backup.html 200
+/financetools /maintenance.html 302
+/financetools.html /maintenance.html 302
 /* /index.html 200

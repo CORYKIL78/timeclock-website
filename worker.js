@@ -71,6 +71,15 @@ function tryParseJson(value, fallback = null) {
   }
 }
 
+function pickFirstNonEmpty(...values) {
+  for (const value of values) {
+    if (value === null || value === undefined) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return '';
+}
+
 function toUint8ArrayFromBase64(base64Value) {
   const binary = atob(base64Value);
   const bytes = new Uint8Array(binary.length);
@@ -153,14 +162,68 @@ async function parseInboundEmailRequest(request) {
 
   if (contentType.includes('application/json')) {
     const body = await request.json();
+    const data = body?.data || body?.email || body || {};
+
+    const resolvedFrom = pickFirstNonEmpty(
+      body?.from,
+      body?.sender,
+      data?.from,
+      data?.sender,
+      data?.envelope?.from
+    );
+
+    const resolvedTo = pickFirstNonEmpty(
+      body?.to,
+      body?.recipients,
+      data?.to,
+      data?.recipients,
+      data?.envelope?.to
+    );
+
+    const resolvedSubject = pickFirstNonEmpty(
+      body?.subject,
+      data?.subject,
+      '(No subject)'
+    );
+
+    const resolvedText = pickFirstNonEmpty(
+      body?.text,
+      body?.body,
+      body?.text_body,
+      body?.textBody,
+      body?.['stripped-text'],
+      body?.strippedText,
+      data?.text,
+      data?.body,
+      data?.text_body,
+      data?.textBody,
+      data?.['stripped-text'],
+      data?.strippedText,
+      data?.content,
+      data?.message
+    );
+
+    const resolvedHtml = pickFirstNonEmpty(
+      body?.html,
+      body?.html_body,
+      body?.htmlBody,
+      body?.['stripped-html'],
+      body?.strippedHtml,
+      data?.html,
+      data?.html_body,
+      data?.htmlBody,
+      data?.['stripped-html'],
+      data?.strippedHtml
+    );
+
     return {
-      from: body.from || body.sender || body.email?.from || body.data?.from || '',
-      to: body.to || body.recipients || body.email?.to || body.data?.to || '',
-      subject: body.subject || body.email?.subject || body.data?.subject || '(No subject)',
-      text: body.text || body.body || body.email?.text || body.data?.text || '',
-      html: body.html || body.email?.html || body.data?.html || '',
-      messageId: body.id || body.message_id || body.email_id || body.data?.id || '',
-      attachments: body.attachments || body.email?.attachments || body.data?.attachments || []
+      from: resolvedFrom,
+      to: resolvedTo,
+      subject: resolvedSubject,
+      text: resolvedText,
+      html: resolvedHtml,
+      messageId: body.id || body.message_id || body.email_id || data?.id || data?.message_id || '',
+      attachments: body.attachments || data?.attachments || []
     };
   }
 
@@ -182,11 +245,25 @@ async function parseInboundEmailRequest(request) {
     const parsedEncoded = typeof encodedAttachments === 'string' ? tryParseJson(encodedAttachments, []) : [];
 
     return {
-      from: form.get('from') || form.get('sender') || '',
-      to: form.get('to') || form.get('recipient') || form.get('recipients') || '',
-      subject: form.get('subject') || '(No subject)',
-      text: form.get('text') || form.get('body') || '',
-      html: form.get('html') || '',
+      from: pickFirstNonEmpty(form.get('from'), form.get('sender'), form.get('from_email')),
+      to: pickFirstNonEmpty(form.get('to'), form.get('recipient'), form.get('recipients'), form.get('to_email')),
+      subject: pickFirstNonEmpty(form.get('subject'), '(No subject)'),
+      text: pickFirstNonEmpty(
+        form.get('text'),
+        form.get('body'),
+        form.get('text_body'),
+        form.get('TextBody'),
+        form.get('stripped-text'),
+        form.get('strippedText'),
+        form.get('content')
+      ),
+      html: pickFirstNonEmpty(
+        form.get('html'),
+        form.get('html_body'),
+        form.get('HtmlBody'),
+        form.get('stripped-html'),
+        form.get('strippedHtml')
+      ),
       messageId: form.get('id') || form.get('message_id') || '',
       attachments: [...parsedAttachments, ...(Array.isArray(parsedEncoded) ? parsedEncoded : [])]
     };
@@ -1205,7 +1282,7 @@ export default {
 
           const textBody = String(inbound.text || '').trim();
           const htmlBody = String(inbound.html || '').trim();
-          const finalBody = textBody || stripHtml(htmlBody) || 'No body content provided';
+          const finalBody = textBody || stripHtml(htmlBody) || 'No body content provided by sender.';
           const attachmentItems = Array.isArray(inbound.attachments) ? inbound.attachments : [];
           const discordFiles = await resolveDiscordFilesFromAttachments(attachmentItems);
 
@@ -3123,18 +3200,97 @@ export default {
       if (url.pathname === '/api/admin/events/notify' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { eventId, eventTitle, eventDate, eventTime } = body;
-          
-          // TODO: Send Discord DMs to all staff about the event
-          // This would typically integrate with Discord bot API
-          // For now, we'll just return success
-          
-          return new Response(JSON.stringify({ success: true, message: 'Notifications queued' }), { headers: corsHeaders });
+          const { eventId, eventTitle, eventDate, eventTime, eventDescription, mandatory, senderName, senderId } = body;
+
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          let sent = 0;
+          let failed = 0;
+
+          for (const userId of usersIndex) {
+            if (!userId) continue;
+            if (senderId && String(senderId) === String(userId)) continue;
+
+            const ok = await sendDiscordDM(env, String(userId), {
+              title: '📅 New Staff Event',
+              description: `A new event has been posted in the staff portal.`,
+              color: 0x6366f1,
+              fields: [
+                { name: 'Event', value: eventTitle || 'Untitled Event', inline: false },
+                { name: 'Date', value: eventDate || 'TBA', inline: true },
+                { name: 'Time', value: eventTime || 'TBA', inline: true },
+                { name: 'Attendance', value: mandatory || 'optional', inline: true },
+                { name: 'Details', value: truncateText(eventDescription || 'Open the calendar tab in portal for full details.', 1024), inline: false },
+                { name: 'Posted By', value: senderName || 'OC Portal', inline: false }
+              ],
+              footer: { text: eventId ? `Event ID: ${eventId}` : 'Staff Portal Event' },
+              timestamp: new Date().toISOString()
+            });
+
+            if (ok) sent += 1;
+            else failed += 1;
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'Notifications processed',
+            sent,
+            failed,
+            total: usersIndex.length
+          }), { headers: corsHeaders });
         } catch (e) {
           console.error('[EVENTS] Error sending notifications:', e);
           return new Response(JSON.stringify({ success: false, error: e.message }), { 
             status: 500,
             headers: corsHeaders 
+          });
+        }
+      }
+
+      if (url.pathname === '/api/admin/broadcast-staff' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { senderId, senderName, message } = body;
+
+          const safeMessage = String(message || '').trim();
+          if (!safeMessage) {
+            return new Response(JSON.stringify({ success: false, error: 'message required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          let sent = 0;
+          let failed = 0;
+
+          for (const userId of usersIndex) {
+            if (!userId) continue;
+            if (senderId && String(senderId) === String(userId)) continue;
+
+            const ok = await sendDiscordDM(env, String(userId), {
+              title: '📣 Staff Broadcast Message',
+              description: truncateText(safeMessage, 4000),
+              color: 0x3b82f6,
+              fields: [
+                { name: 'From', value: senderName || senderId || 'OC Portal', inline: false }
+              ],
+              timestamp: new Date().toISOString()
+            });
+
+            if (ok) sent += 1;
+            else failed += 1;
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            sent,
+            failed,
+            total: usersIndex.length
+          }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
           });
         }
       }

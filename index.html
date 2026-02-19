@@ -1502,59 +1502,37 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script>
         // ===== CACHE BUSTING STRATEGY =====
-        // Generate cache buster token (changes every minute)
-        const cacheBustToken = Math.floor(Date.now() / 60000);
-        
-        // Add cache buster to all stylesheets
+        const cacheBustToken = Date.now();
+
+        // Always refresh stylesheet URLs
         const links = document.querySelectorAll('link[rel="stylesheet"]');
         links.forEach(link => {
-            if (!link.href.includes('manifest') && !link.href.includes('cb=')) {
-                link.href = link.href + (link.href.includes('?') ? '&' : '?') + 'cb=' + cacheBustToken;
+            if (!link.href.includes('manifest')) {
+                link.href = link.href.replace(/([?&])cb=\d+/g, '') + (link.href.includes('?') ? '&' : '?') + 'cb=' + cacheBustToken;
             }
         });
-        
-        // Dynamically load config with cache bust
-        const configScript = document.createElement('script');
-        configScript.src = 'config-loader.js?t=' + Date.now();
-        document.head.appendChild(configScript);
-    </script>
-    <!-- Main application script -->
-    <script src="script.js?v=2.1.0"></script>
-    <script>
-        // Service worker cache management - only update, don't re-register
+
+        // Disable service worker caching to prevent stale portal versions
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-                registrations.forEach(reg => {
-                    // Just check for updates, don't unregister
-                    reg.update().catch(err => console.log('[SW] Update check error:', err));
-                });
-                
-                // Register if not already registered
-                if (registrations.length === 0) {
-                    navigator.serviceWorker.register('sw.js?t=' + Date.now()).catch(err => {
-                        console.log('[SW] Registration error:', err);
-                    });
-                }
-            }).catch(err => console.log('[SW] getRegistrations error:', err));
-            
-            // Listen for SW cache updates - but only do soft reload
-            let reloadScheduled = false;
-            navigator.serviceWorker.addEventListener('message', event => {
-                if (event.data.type === 'CACHE_UPDATE' && !reloadScheduled) {
-                    reloadScheduled = true;
-                    console.log('[APP] Service worker cache updated:', event.data.message);
-                    // Wait 3 seconds before reloading to avoid loop
-                    setTimeout(() => {
-                        // Only reload if user is on login screen (not during active work)
-                        const activeScreen = document.querySelector('[class*="screen"][style*="display"]');
-                        if (!activeScreen || activeScreen.id === 'discord' || activeScreen.id === 'portalWelcome') {
-                            window.location.reload(true);
-                        }
-                    }, 3000);
-                }
-            });
+            navigator.serviceWorker.getRegistrations()
+                .then(registrations => Promise.all(registrations.map(reg => reg.unregister())))
+                .catch(() => null);
+
+            if (window.caches && typeof window.caches.keys === 'function') {
+                window.caches.keys().then(keys => Promise.all(keys.map(key => window.caches.delete(key)))).catch(() => null);
+            }
         }
-        
+
+        // Load config first, then app script, both cache-busted
+        const configScript = document.createElement('script');
+        configScript.src = 'config-loader.js?t=' + cacheBustToken;
+        configScript.onload = () => {
+            const appScript = document.createElement('script');
+            appScript.src = 'script.js?v=2.1.0&t=' + cacheBustToken;
+            document.body.appendChild(appScript);
+        };
+        document.head.appendChild(configScript);
+
         // Clear API cache on page load
         window.addEventListener('load', () => {
             if (typeof apiCache !== 'undefined' && apiCache.clear) {
