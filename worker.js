@@ -9,6 +9,276 @@ const TIMECLOCK_CHANNEL = '1472956106753183919';
 const STAFF_ALERT_ROLE = '1472955487099289706';
 const STAFF_SERVER_GUILD_ID = '1460025375655723283';
 const OC_ADMIN_URL = 'https://portal.cirkledevelopment.co.uk/admin';
+const EMAIL_INBOUND_DEDUPE_PREFIX = 'email:inbound:dedupe:';
+const DEPARTMENT_EMAIL_CHANNELS = {
+  'finance@departments.cirkledevelopment.co.uk': '1473829029306957866',
+  'marketing@departments.cirkledevelopment.co.uk': '1473829616715038832',
+  'development@departments.cirkledevelopment.co.uk': '1473829651792138395',
+  'customerrelations@departments.cirkledevelopment.co.uk': '1473829693042987018'
+};
+
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function truncateText(value, maxLen = 1024) {
+  const text = String(value || '').trim();
+  if (!text) return 'Not provided';
+  return text.length > maxLen ? `${text.slice(0, maxLen - 3)}...` : text;
+}
+
+function stripHtml(value) {
+  return String(value || '')
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/\s+\n/g, '\n')
+    .replace(/\n\s+/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function flattenAddressList(input) {
+  if (!input) return [];
+  if (Array.isArray(input)) {
+    return input.flatMap(flattenAddressList).filter(Boolean);
+  }
+  if (typeof input === 'object') {
+    return [
+      input.email,
+      input.address,
+      input.value,
+      input.to,
+      input.recipient
+    ].filter(Boolean).map(normalizeEmail);
+  }
+  return String(input)
+    .split(/[;,]/)
+    .map(item => item.replace(/.*<([^>]+)>.*/, '$1'))
+    .map(normalizeEmail)
+    .filter(Boolean);
+}
+
+function tryParseJson(value, fallback = null) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function toUint8ArrayFromBase64(base64Value) {
+  const binary = atob(base64Value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
+}
+
+function constantTimeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let index = 0; index < a.length; index += 1) {
+    result |= a.charCodeAt(index) ^ b.charCodeAt(index);
+  }
+  return result === 0;
+}
+
+function parseSvixSignatures(signatureHeader) {
+  return String(signatureHeader || '')
+    .split(/\s+/)
+    .map(item => item.trim())
+    .filter(Boolean)
+    .map(item => {
+      const parts = item.split(',');
+      return { version: parts[0], signature: parts.slice(1).join(',') };
+    })
+    .filter(item => item.version === 'v1' && item.signature);
+}
+
+async function verifyResendWebhookSignature(request, env) {
+  const webhookSecret = String(env?.RESEND_WEBHOOK_SECRET || '').trim();
+  if (!webhookSecret) {
+    return { ok: true, skipped: true, reason: 'No RESEND_WEBHOOK_SECRET configured' };
+  }
+
+  const svixId = request.headers.get('svix-id') || request.headers.get('Svix-Id');
+  const svixTimestamp = request.headers.get('svix-timestamp') || request.headers.get('Svix-Timestamp');
+  const svixSignature = request.headers.get('svix-signature') || request.headers.get('Svix-Signature');
+
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    return { ok: false, reason: 'Missing svix signature headers' };
+  }
+
+  const rawBody = await request.clone().text();
+  const payload = `${svixId}.${svixTimestamp}.${rawBody}`;
+
+  let secretBytes;
+  if (webhookSecret.startsWith('whsec_')) {
+    const encodedSecret = webhookSecret.slice(6);
+    secretBytes = toUint8ArrayFromBase64(encodedSecret);
+  } else {
+    secretBytes = new TextEncoder().encode(webhookSecret);
+  }
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    secretBytes,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signedBuffer = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(payload));
+  const signatureBytes = new Uint8Array(signedBuffer);
+  const expectedSignature = btoa(String.fromCharCode(...signatureBytes));
+
+  const candidates = parseSvixSignatures(svixSignature);
+  const matched = candidates.some(item => constantTimeEqual(item.signature, expectedSignature));
+
+  if (!matched) {
+    return { ok: false, reason: 'Webhook signature mismatch' };
+  }
+
+  return { ok: true, eventId: svixId, timestamp: svixTimestamp };
+}
+
+async function parseInboundEmailRequest(request) {
+  const contentType = request.headers.get('content-type') || '';
+
+  if (contentType.includes('application/json')) {
+    const body = await request.json();
+    return {
+      from: body.from || body.sender || body.email?.from || body.data?.from || '',
+      to: body.to || body.recipients || body.email?.to || body.data?.to || '',
+      subject: body.subject || body.email?.subject || body.data?.subject || '(No subject)',
+      text: body.text || body.body || body.email?.text || body.data?.text || '',
+      html: body.html || body.email?.html || body.data?.html || '',
+      messageId: body.id || body.message_id || body.email_id || body.data?.id || '',
+      attachments: body.attachments || body.email?.attachments || body.data?.attachments || []
+    };
+  }
+
+  if (contentType.includes('multipart/form-data') || contentType.includes('application/x-www-form-urlencoded')) {
+    const form = await request.formData();
+    const parsedAttachments = [];
+
+    for (const [key, value] of form.entries()) {
+      if ((key.startsWith('attachment') || key.startsWith('attachments')) && value instanceof File) {
+        parsedAttachments.push({
+          filename: value.name || 'attachment',
+          contentType: value.type || 'application/octet-stream',
+          file: value
+        });
+      }
+    }
+
+    const encodedAttachments = form.get('attachments');
+    const parsedEncoded = typeof encodedAttachments === 'string' ? tryParseJson(encodedAttachments, []) : [];
+
+    return {
+      from: form.get('from') || form.get('sender') || '',
+      to: form.get('to') || form.get('recipient') || form.get('recipients') || '',
+      subject: form.get('subject') || '(No subject)',
+      text: form.get('text') || form.get('body') || '',
+      html: form.get('html') || '',
+      messageId: form.get('id') || form.get('message_id') || '',
+      attachments: [...parsedAttachments, ...(Array.isArray(parsedEncoded) ? parsedEncoded : [])]
+    };
+  }
+
+  return {
+    from: '',
+    to: '',
+    subject: '(No subject)',
+    text: '',
+    html: '',
+    messageId: '',
+    attachments: []
+  };
+}
+
+async function resolveDiscordFilesFromAttachments(attachments = []) {
+  const files = [];
+
+  for (const attachment of attachments) {
+    if (!attachment) continue;
+
+    if (attachment.file instanceof File) {
+      files.push(attachment.file);
+      continue;
+    }
+
+    const fileName = attachment.filename || attachment.name || `attachment-${files.length + 1}`;
+    const fileType = attachment.contentType || attachment.type || 'application/octet-stream';
+
+    if (attachment.url) {
+      try {
+        const response = await fetch(attachment.url);
+        if (!response.ok) continue;
+        const blob = await response.blob();
+        files.push(new File([blob], fileName, { type: blob.type || fileType }));
+      } catch {
+      }
+      continue;
+    }
+
+    const base64Content = attachment.content || attachment.data || '';
+    if (typeof base64Content === 'string' && base64Content) {
+      try {
+        const cleaned = base64Content.replace(/^data:[^;]+;base64,/, '');
+        const binary = atob(cleaned);
+        const bytes = new Uint8Array(binary.length);
+        for (let index = 0; index < binary.length; index += 1) {
+          bytes[index] = binary.charCodeAt(index);
+        }
+        files.push(new File([bytes], fileName, { type: fileType }));
+      } catch {
+      }
+    }
+  }
+
+  return files;
+}
+
+async function postDiscordMessageWithFiles(env, channelId, payload, files = []) {
+  if (!env?.DISCORD_BOT_TOKEN || !channelId) return null;
+
+  if (!Array.isArray(files) || files.length === 0) {
+    return postDiscordMessage(env, channelId, payload);
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('payload_json', JSON.stringify(payload));
+    files.slice(0, 10).forEach((file, index) => {
+      const safeName = file?.name || `attachment-${index + 1}`;
+      formData.append(`files[${index}]`, file, safeName);
+    });
+
+    const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`Discord upload failed: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('[DISCORD-FILE-UPLOAD]', error);
+    return null;
+  }
+}
 
 async function postDiscordMessage(env, channelId, payload) {
   if (!env?.DISCORD_BOT_TOKEN || !channelId) return null;
@@ -888,6 +1158,108 @@ export default {
           });
         } catch (error) {
           console.error('[EMAIL]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      if (url.pathname === '/api/email/inbound' && request.method === 'POST') {
+        try {
+          const signatureCheck = await verifyResendWebhookSignature(request, env);
+          if (!signatureCheck.ok) {
+            return new Response(JSON.stringify({ success: false, error: signatureCheck.reason }), {
+              status: 401,
+              headers: corsHeaders
+            });
+          }
+
+          const inbound = await parseInboundEmailRequest(request);
+          const recipientList = [...new Set(flattenAddressList(inbound.to))];
+          const matchedRecipients = recipientList.filter(email => Boolean(DEPARTMENT_EMAIL_CHANNELS[email]));
+
+          const dedupeId = signatureCheck.eventId || inbound.messageId || '';
+          if (dedupeId && env?.DATA) {
+            const dedupeKey = `${EMAIL_INBOUND_DEDUPE_PREFIX}${dedupeId}`;
+            const alreadyProcessed = await env.DATA.get(dedupeKey);
+            if (alreadyProcessed) {
+              return new Response(JSON.stringify({ success: true, duplicate: true, dedupeId }), {
+                status: 200,
+                headers: corsHeaders
+              });
+            }
+            await env.DATA.put(dedupeKey, new Date().toISOString(), { expirationTtl: 60 * 60 * 24 * 7 });
+          }
+
+          if (matchedRecipients.length === 0) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: 'No mapped department recipient found',
+              recipients: recipientList
+            }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const textBody = String(inbound.text || '').trim();
+          const htmlBody = String(inbound.html || '').trim();
+          const finalBody = textBody || stripHtml(htmlBody) || 'No body content provided';
+          const attachmentItems = Array.isArray(inbound.attachments) ? inbound.attachments : [];
+          const discordFiles = await resolveDiscordFilesFromAttachments(attachmentItems);
+
+          const attachmentNames = attachmentItems
+            .map(item => item?.filename || item?.name || item?.url || null)
+            .filter(Boolean)
+            .slice(0, 20)
+            .map(item => `• ${truncateText(item, 120)}`)
+            .join('\n');
+
+          const fromValue = truncateText(inbound.from || 'Unknown sender', 1024);
+          const subjectValue = truncateText(inbound.subject || '(No subject)', 1024);
+          const bodyValue = truncateText(finalBody, 3900);
+          const attachmentsValue = truncateText(attachmentNames || 'None', 1024);
+
+          const results = [];
+
+          for (const recipient of matchedRecipients) {
+            const channelId = DEPARTMENT_EMAIL_CHANNELS[recipient];
+            const embed = {
+              title: '📨 Department Email Received',
+              color: 0x5865f2,
+              description: `**Body**\n${bodyValue}`,
+              fields: [
+                { name: 'From', value: fromValue, inline: false },
+                { name: 'To', value: recipient, inline: false },
+                { name: 'Subject', value: subjectValue, inline: false },
+                { name: 'Attachments', value: attachmentsValue, inline: false }
+              ],
+              timestamp: new Date().toISOString(),
+              footer: { text: `Total attachments: ${attachmentItems.length}` }
+            };
+
+            const sent = await postDiscordMessageWithFiles(env, channelId, {
+              embeds: [embed],
+              allowed_mentions: { parse: [] }
+            }, discordFiles);
+
+            results.push({ recipient, channelId, sent: Boolean(sent) });
+          }
+
+          const sentCount = results.filter(item => item.sent).length;
+          return new Response(JSON.stringify({
+            success: sentCount > 0,
+            routed: results,
+            recipients: matchedRecipients,
+            attachmentsReceived: attachmentItems.length,
+            attachmentsForwarded: discordFiles.length
+          }), {
+            status: sentCount > 0 ? 200 : 500,
+            headers: corsHeaders
+          });
+        } catch (error) {
+          console.error('[EMAIL-INBOUND]', error);
           return new Response(JSON.stringify({ success: false, error: error.message }), {
             status: 500,
             headers: corsHeaders

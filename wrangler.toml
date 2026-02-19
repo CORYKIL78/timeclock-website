@@ -11,6 +11,7 @@ compatibility_date = "2025-01-09"
 #   wrangler secret put DISCORD_CLIENT_SECRET
 #   wrangler secret put DISCORD_CLIENT_ID
 #   wrangler secret put RESEND_API_KEY
+#   wrangler secret put RESEND_WEBHOOK_SECRET
 
 # KV Namespaces for data storage
 [[kv_namespaces]]

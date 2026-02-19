@@ -34,6 +34,13 @@ function hasDeptHeadRole(interaction) {
     return interaction.member?.roles?.cache?.some(role => ALL_ALLOWED_ROLES.includes(role.id));
 }
 
+function safeEphemeralReply(interaction, payload) {
+    if (interaction.deferred || interaction.replied) {
+        return interaction.followUp({ ...payload, ephemeral: true }).catch(() => null);
+    }
+    return interaction.reply({ ...payload, ephemeral: true }).catch(() => null);
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('dept-head-management')
@@ -72,9 +79,13 @@ module.exports = {
     },
 
     async handleInteraction(interaction) {
+        if (interaction.isStringSelectMenu() && interaction.customId !== 'dhm_select_action') return;
+        if (interaction.isModalSubmit() && !interaction.customId.startsWith('dhm_modal_')) return;
+        if (interaction.isButton() && !interaction.customId.startsWith('dhm_cf:')) return;
+
         if (interaction.isStringSelectMenu() && interaction.customId === 'dhm_select_action') {
             if (!hasDeptHeadRole(interaction)) {
-                return interaction.reply({ content: 'Access denied cus youve no roles.', ephemeral: true });
+                return safeEphemeralReply(interaction, { content: 'Access denied cus youve no roles.' });
             }
 
             const choice = interaction.values[0];
@@ -129,7 +140,7 @@ module.exports = {
                         new ActionRowBuilder().addComponents(
                             new TextInputBuilder()
                                 .setCustomId('report_type')
-                                .setLabel('Report type (Monthly, Commendation, Behavioural, Other)')
+                                .setLabel('Report Type (Monthly/Commend/Behave/Other)')
                                 .setStyle(TextInputStyle.Short)
                                 .setRequired(true)
                                 .setMaxLength(64)
@@ -182,7 +193,7 @@ module.exports = {
 
         if (interaction.isModalSubmit() && interaction.customId === 'dhm_modal_analytics') {
             if (!hasDeptHeadRole(interaction)) {
-                return interaction.reply({ content: 'Access denied cus youve no roles.', ephemeral: true });
+                return safeEphemeralReply(interaction, { content: 'Access denied cus youve no roles.' });
             }
 
             await interaction.deferReply({ ephemeral: true });
@@ -226,7 +237,7 @@ module.exports = {
 
         if (interaction.isModalSubmit() && interaction.customId === 'dhm_modal_interval') {
             if (!hasDeptHeadRole(interaction)) {
-                return interaction.reply({ content: 'Access denied cus youve no roles.', ephemeral: true });
+                return safeEphemeralReply(interaction, { content: 'Access denied cus youve no roles.' });
             }
 
             const link = interaction.fields.getTextInputValue('document_link').trim();
@@ -249,16 +260,16 @@ module.exports = {
 
             const channel = await interaction.client.channels.fetch(INTERVAL_CHANNEL_ID).catch(() => null);
             if (!channel || !channel.isTextBased()) {
-                return interaction.reply({ content: '❌ Could not access interval channel.', ephemeral: true });
+                return safeEphemeralReply(interaction, { content: '❌ Could not access interval channel.' });
             }
 
             await channel.send({ embeds: [embed], components: [row] });
-            return interaction.reply({ content: 'Sent successfully.', ephemeral: true });
+            return safeEphemeralReply(interaction, { content: 'Sent successfully.' });
         }
 
         if (interaction.isModalSubmit() && interaction.customId === 'dhm_modal_report') {
             if (!hasDeptHeadRole(interaction)) {
-                return interaction.reply({ content: 'Access denied cus youve no roles.', ephemeral: true });
+                return safeEphemeralReply(interaction, { content: 'Access denied cus youve no roles.' });
             }
 
             const targetStaffId = interaction.fields.getTextInputValue('target_staff_id').trim();
@@ -286,16 +297,16 @@ module.exports = {
 
             const channel = await interaction.client.channels.fetch(DISCIPLINARY_CHANNEL_ID).catch(() => null);
             if (!channel || !channel.isTextBased()) {
-                return interaction.reply({ content: '❌ Could not access report channel.', ephemeral: true });
+                return safeEphemeralReply(interaction, { content: '❌ Could not access report channel.' });
             }
 
             await channel.send({ embeds: [embed], components: [row] });
-            return interaction.reply({ content: 'Sent successfully.', ephemeral: true });
+            return safeEphemeralReply(interaction, { content: 'Sent successfully.' });
         }
 
         if (interaction.isModalSubmit() && interaction.customId === 'dhm_modal_strike') {
             if (!hasDeptHeadRole(interaction)) {
-                return interaction.reply({ content: 'Access denied cus youve no roles.', ephemeral: true });
+                return safeEphemeralReply(interaction, { content: 'Access denied cus youve no roles.' });
             }
 
             const targetStaffId = interaction.fields.getTextInputValue('target_staff_id').trim();
@@ -323,18 +334,18 @@ module.exports = {
 
             const channel = await interaction.client.channels.fetch(DISCIPLINARY_CHANNEL_ID).catch(() => null);
             if (!channel || !channel.isTextBased()) {
-                return interaction.reply({ content: '❌ Could not access disciplinary channel.', ephemeral: true });
+                return safeEphemeralReply(interaction, { content: '❌ Could not access disciplinary channel.' });
             }
 
             await channel.send({ embeds: [embed], components: [row] });
-            return interaction.reply({ content: 'Sent successfully.', ephemeral: true });
+            return safeEphemeralReply(interaction, { content: 'Sent successfully.' });
         }
 
         if (interaction.isButton() && interaction.customId.startsWith('dhm_cf:')) {
             const [, type, requesterId] = interaction.customId.split(':');
             const originalEmbed = interaction.message.embeds?.[0];
             if (!originalEmbed) {
-                return interaction.reply({ content: '❌ Embed not found.', ephemeral: true });
+                return safeEphemeralReply(interaction, { content: '❌ Embed not found.' });
             }
 
             const newEmbed = EmbedBuilder.from(originalEmbed)
