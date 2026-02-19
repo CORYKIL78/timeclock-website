@@ -3203,12 +3203,17 @@ export default {
           const { eventId, eventTitle, eventDate, eventTime, eventDescription, mandatory, senderName, senderId } = body;
 
           const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          console.log(`[EVENTS/NOTIFY] Starting notification for event "${eventTitle}". Users to notify: ${usersIndex.length}`);
+          
           let sent = 0;
           let failed = 0;
 
           for (const userId of usersIndex) {
             if (!userId) continue;
-            if (senderId && String(senderId) === String(userId)) continue;
+            if (senderId && String(senderId) === String(userId)) {
+              console.log(`[EVENTS/NOTIFY] Skipping sender ${userId}`);
+              continue;
+            }
 
             const ok = await sendDiscordDM(env, String(userId), {
               title: '📅 New Staff Event',
@@ -3226,10 +3231,12 @@ export default {
               timestamp: new Date().toISOString()
             });
 
+            console.log(`[EVENTS/NOTIFY] User ${userId}: ${ok ? 'sent' : 'failed'}`);
             if (ok) sent += 1;
             else failed += 1;
           }
 
+          console.log(`[EVENTS/NOTIFY] Complete - Sent: ${sent}, Failed: ${failed}, Total: ${usersIndex.length}`);
           return new Response(JSON.stringify({
             success: true,
             message: 'Notifications processed',
@@ -3238,7 +3245,7 @@ export default {
             total: usersIndex.length
           }), { headers: corsHeaders });
         } catch (e) {
-          console.error('[EVENTS] Error sending notifications:', e);
+          console.error('[EVENTS/NOTIFY] Error sending notifications:', e);
           return new Response(JSON.stringify({ success: false, error: e.message }), { 
             status: 500,
             headers: corsHeaders 

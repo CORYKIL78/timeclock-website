@@ -3065,8 +3065,9 @@ document.getElementById('addStaffEventBtn')?.addEventListener('click', async () 
     await logAdminAction('event_created', `${state.admin.name} created event "${title}" on ${date}`, title);
     
     // Send notifications to all staff (via backend)
+    let notifyResult = { sent: 0, failed: 0, total: 0 };
     try {
-      await apiPost('/api/admin/events/notify', {
+      const notifyRes = await apiPost('/api/admin/events/notify', {
         eventId: response.eventId,
         eventTitle: title,
         eventDate: date,
@@ -3077,11 +3078,16 @@ document.getElementById('addStaffEventBtn')?.addEventListener('click', async () 
         senderId: state.admin.id,
         portalLink: window.location.origin
       });
+      notifyResult = notifyRes || { sent: 0, failed: 0, total: 0 };
+      console.log('[EVENT NOTIFY]', notifyResult);
     } catch (e) {
-      console.warn('Failed to send notifications:', e);
+      console.error('[EVENT NOTIFY ERROR]', e);
     }
     
-    toast('Event created and notifications sent!', 'success');
+    const notifyMsg = notifyResult.total > 0 
+      ? `Event created! Notifications sent to ${notifyResult.sent}/${notifyResult.total} staff` 
+      : `Event created but no staff profiles found to notify. Ensure staff have logged in to the portal.`;
+    toast(notifyMsg, notifyResult.sent > 0 ? 'success' : 'warning');
     closeModal('staffEventModal');
     
     // Clear form
