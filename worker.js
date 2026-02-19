@@ -2501,28 +2501,28 @@ export default {
           const requestsKey = `requests:${userId}`;
           const requests = await env.DATA.get(requestsKey, 'json') || [];
           
-          const request = requests.find(r => r.id === requestId);
-          if (request) {
+          const foundRequest = requests.find(r => r.id === requestId);
+          if (foundRequest) {
             const normalized = (status || '').toLowerCase();
-            request.status = normalized === 'approved' ? 'approved' : normalized === 'rejected' ? 'rejected' : normalized;
-            request.approvedBy = adminName;
-            request.approverName = adminName;
-            request.approvedById = adminId || request.approvedById || null;
-            request.approvedByAvatar = adminAvatar || request.approvedByAvatar || null;
-            request.response = reason || request.response || '';
-            request.approvedAt = new Date().toISOString();
-            if (reason) request.adminNotes = reason;
+            foundRequest.status = normalized === 'approved' ? 'approved' : normalized === 'rejected' ? 'rejected' : normalized;
+            foundRequest.approvedBy = adminName;
+            foundRequest.approverName = adminName;
+            foundRequest.approvedById = adminId || foundRequest.approvedById || null;
+            foundRequest.approvedByAvatar = adminAvatar || foundRequest.approvedByAvatar || null;
+            foundRequest.response = reason || foundRequest.response || '';
+            foundRequest.approvedAt = new Date().toISOString();
+            if (reason) foundRequest.adminNotes = reason;
             await env.DATA.put(requestsKey, JSON.stringify(requests));
             
             // Send Discord DM notification to user
             try {
               const embed = {
                 title: status.toLowerCase() === 'approved' ? '✅ Request Approved' : '❌ Request Denied',
-                description: `Your ${request.type || 'request'} has been **${status.toLowerCase()}** by ${adminName}.`,
+                description: `Your ${foundRequest.type || 'request'} has been **${status.toLowerCase()}** by ${adminName}.`,
                 color: status.toLowerCase() === 'approved' ? 0x4CAF50 : 0xE74C3C,
                 fields: [
-                  { name: 'Request Type', value: request.type || 'General Request', inline: true },
-                  { name: 'Details', value: request.details || request.comment || 'N/A', inline: false }
+                  { name: 'Request Type', value: foundRequest.type || 'General Request', inline: true },
+                  { name: 'Details', value: foundRequest.details || foundRequest.comment || 'N/A', inline: false }
                 ],
                 footer: { text: 'Cirkle Development HR Portal' },
                 timestamp: new Date().toISOString()
