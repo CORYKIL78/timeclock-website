@@ -117,7 +117,7 @@ Should show: Employee Management bot process
 cd discord-bot
 grep RESEND_API_KEY_MAIN .env
 ```
-Should show: `RESEND_API_KEY_MAIN=re_i2qZQr3g_...`
+Should show: `RESEND_API_KEY_MAIN=re_your_key_...`
 
 **Check 3: Bot Logs**
 ```bash

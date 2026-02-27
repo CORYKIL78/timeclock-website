@@ -12,7 +12,7 @@ Comprehensive improvements to the Cirkle Development Staff Portal, addressing em
 - Resend API key was present in `.env` but bot needed restart to apply changes
 
 ### Solution
-- **Verified configuration**: Resend API key (`RESEND_API_KEY_MAIN`) is properly configured in `discord-bot/.env`
+- **Verified configuration**: Resend API key (`RESEND_API_KEY_MAIN`) is properly configured in `discord-bot/.env` (value hidden)
 - **Bot restart**: Restarted Discord bot to load updated environment variables
 - **Removed MongoDB dependencies** that were preventing proper bot initialization
 - **Status**: Bot now successfully initializing with email capabilities
@@ -262,7 +262,7 @@ DISCORD_CLIENT_ID=your_client_id
 DISCORD_GUILD_ID=your_guild_id
 DISCORD_ADMIN_ROLE_ID=your_role_id
 BACKEND_URL=https://timeclock-backend.marcusray.workers.dev
-RESEND_API_KEY_MAIN=re_i2qZQr3g_AkgWGCU2D5kodfQ9xj6s75G8  ✅ Present
+RESEND_API_KEY_MAIN=re_your_resend_api_key_here  ✅ Present
 ```
 
 ### Cloudflare Worker

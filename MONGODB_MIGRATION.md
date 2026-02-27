@@ -89,7 +89,7 @@ wrangler secret list
 Expected secrets:
 - `DISCORD_CLIENT_SECRET` - Discord OAuth secret
 - `DISCORD_BOT_TOKEN` - Discord bot token for DMs
-- `RESEND_API_KEY` - Email API key (re_MSRHbWgd_F5RJHDF4nYWBvGWaBLB8GbDw)
+- `RESEND_API_KEY` - Email API key (get from https://resend.com/api-keys)
 
 ### Step 3: Deploy Cloudflare Worker
 
