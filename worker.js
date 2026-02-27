@@ -80,6 +80,50 @@ function pickFirstNonEmpty(...values) {
   return '';
 }
 
+// Security: Simple rate limiting using KV
+async function checkRateLimit(env, identifier, maxRequests = 30, windowSeconds = 60) {
+  const key = `ratelimit:${identifier}`;
+  const now = Date.now();
+  const windowMs = windowSeconds * 1000;
+  
+  try {
+    const data = await env.DATA.get(key, 'json') || { count: 0, resetAt: now + windowMs };
+    
+    // Reset if window expired
+    if (now > data.resetAt) {
+      data.count = 1;
+      data.resetAt = now + windowMs;
+      await env.DATA.put(key, JSON.stringify(data), { expirationTtl: windowSeconds + 10 });
+      return { allowed: true, remaining: maxRequests - 1 };
+    }
+    
+    // Check if over limit
+    if (data.count >= maxRequests) {
+      return { allowed: false, remaining: 0, retryAfter: Math.ceil((data.resetAt - now) / 1000) };
+    }
+    
+    // Increment
+    data.count += 1;
+    await env.DATA.put(key, JSON.stringify(data), { expirationTtl: windowSeconds + 10 });
+    return { allowed: true, remaining: maxRequests - data.count };
+  } catch (error) {
+    console.error('[RATE-LIMIT]', error);
+    // On error, allow the request
+    return { allowed: true, remaining: maxRequests };
+  }
+}
+
+// Security: Sanitize user input to prevent injection attacks
+function sanitizeInput(value, maxLength = 500) {
+  if (!value) return '';
+  return String(value)
+    .trim()
+    .slice(0, maxLength)
+    .replace(/[<>]/g, '') // Remove HTML tags
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, ''); // Remove event handlers
+}
+
 function toUint8ArrayFromBase64(base64Value) {
   const binary = atob(base64Value);
   const bytes = new Uint8Array(binary.length);
@@ -409,6 +453,7 @@ async function updateDiscordMessage(env, channelId, messageId, payload) {
 async function sendDiscordDM(env, userId, embed) {
   if (!env?.DISCORD_BOT_TOKEN || !userId || !embed) return false;
   try {
+    // Create DM channel
     const dmResponse = await fetch('https://discord.com/api/v10/users/@me/channels', {
       method: 'POST',
       headers: {
@@ -419,22 +464,49 @@ async function sendDiscordDM(env, userId, embed) {
     });
 
     if (!dmResponse.ok) {
-      throw new Error(`DM creation failed: ${dmResponse.status}`);
+      const errorText = await dmResponse.text();
+      console.error(`[DISCORD-DM] Failed to create channel for ${userId}: ${dmResponse.status} - ${errorText}`);
+      return false;
     }
 
     const dmChannel = await dmResponse.json();
-    const messageResponse = await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ embeds: [embed] })
-    });
+    
+    // Send message with retry logic
+    let attempts = 0;
+    const maxAttempts = 2;
+    
+    while (attempts < maxAttempts) {
+      const messageResponse = await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ embeds: [embed] })
+      });
 
-    return messageResponse.ok;
+      if (messageResponse.ok) {
+        return true;
+      }
+      
+      // Check for rate limit
+      if (messageResponse.status === 429) {
+        const retryAfter = messageResponse.headers.get('X-RateLimit-Reset-After') || '1';
+        const waitTime = Math.min(parseFloat(retryAfter) * 1000, 3000);
+        console.log(`[DISCORD-DM] Rate limited for ${userId}, waiting ${waitTime}ms`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        attempts++;
+        continue;
+      }
+      
+      const errorText = await messageResponse.text();
+      console.error(`[DISCORD-DM] Failed to send message to ${userId}: ${messageResponse.status} - ${errorText}`);
+      return false;
+    }
+    
+    return false;
   } catch (error) {
-    console.error('[DISCORD-DM]', error);
+    console.error(`[DISCORD-DM] Exception for ${userId}:`, error.message);
     return false;
   }
 }
@@ -2078,6 +2150,72 @@ export default {
         }
       }
 
+      // Create manual absence/LOA (admin)
+      if (url.pathname === '/api/admin/absences/manual' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const {
+            discordId,
+            userId,
+            startDate,
+            endDate,
+            reason,
+            comment,
+            totalDays,
+            status,
+            submittedBy
+          } = body;
+
+          const targetUserId = discordId || userId;
+          if (!targetUserId || !startDate || !endDate || !reason) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: 'Missing required fields: discordId/userId, startDate, endDate, reason'
+            }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const profile = await env.DATA.get(`profile:${targetUserId}`, 'json');
+          const absence = {
+            id: `absence_${Date.now()}`,
+            userId: targetUserId,
+            name: profile?.name || 'Unknown User',
+            startDate,
+            endDate,
+            type: reason,
+            reason,
+            comment: comment || '',
+            days: totalDays || '1',
+            totalDays: totalDays || 1,
+            status: (status || 'approved').toLowerCase(),
+            isManual: true,
+            submittedAt: new Date().toISOString(),
+            approvedAt: new Date().toISOString(),
+            approvedBy: submittedBy || 'admin'
+          };
+
+          const absencesKey = `absences:${targetUserId}`;
+          const absences = await env.DATA.get(absencesKey, 'json') || [];
+          absences.push(absence);
+          await env.DATA.put(absencesKey, JSON.stringify(absences));
+
+          const usersIndex = await env.DATA.get('users:index', 'json') || [];
+          if (!usersIndex.includes(targetUserId)) {
+            usersIndex.push(targetUserId);
+            await env.DATA.put('users:index', JSON.stringify(usersIndex));
+          }
+
+          return new Response(JSON.stringify({ success: true, absence }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
       // Get all requests for admin dashboard
       if (url.pathname === '/api/admin/requests' && request.method === 'GET') {
         try {
@@ -3207,33 +3345,52 @@ export default {
           
           let sent = 0;
           let failed = 0;
+          const batchSize = 5; // Process 5 users at a time to avoid rate limits
+          const delayBetweenBatches = 1000; // 1 second delay between batches
 
-          for (const userId of usersIndex) {
-            if (!userId) continue;
-            if (senderId && String(senderId) === String(userId)) {
-              console.log(`[EVENTS/NOTIFY] Skipping sender ${userId}`);
-              continue;
-            }
+          for (let i = 0; i < usersIndex.length; i += batchSize) {
+            const batch = usersIndex.slice(i, i + batchSize);
+            
+            // Process batch in parallel
+            const promises = batch.map(async (userId) => {
+              if (!userId) return { ok: false, userId };
+              if (senderId && String(senderId) === String(userId)) {
+                console.log(`[EVENTS/NOTIFY] Skipping sender ${userId}`);
+                return { ok: false, userId, skipped: true };
+              }
 
-            const ok = await sendDiscordDM(env, String(userId), {
-              title: '📅 New Staff Event',
-              description: `A new event has been posted in the staff portal.`,
-              color: 0x6366f1,
-              fields: [
-                { name: 'Event', value: eventTitle || 'Untitled Event', inline: false },
-                { name: 'Date', value: eventDate || 'TBA', inline: true },
-                { name: 'Time', value: eventTime || 'TBA', inline: true },
-                { name: 'Attendance', value: mandatory || 'optional', inline: true },
-                { name: 'Details', value: truncateText(eventDescription || 'Open the calendar tab in portal for full details.', 1024), inline: false },
-                { name: 'Posted By', value: senderName || 'OC Portal', inline: false }
-              ],
-              footer: { text: eventId ? `Event ID: ${eventId}` : 'Staff Portal Event' },
-              timestamp: new Date().toISOString()
+              const ok = await sendDiscordDM(env, String(userId), {
+                title: '📅 New Staff Event',
+                description: `A new event has been posted in the staff portal.`,
+                color: 0x6366f1,
+                fields: [
+                  { name: 'Event', value: eventTitle || 'Untitled Event', inline: false },
+                  { name: 'Date', value: eventDate || 'TBA', inline: true },
+                  { name: 'Time', value: eventTime || 'TBA', inline: true },
+                  { name: 'Attendance', value: mandatory || 'optional', inline: true },
+                  { name: 'Details', value: truncateText(eventDescription || 'Open the calendar tab in portal for full details.', 1024), inline: false },
+                  { name: 'Posted By', value: senderName || 'OC Portal', inline: false }
+                ],
+                footer: { text: eventId ? `Event ID: ${eventId}` : 'Staff Portal Event' },
+                timestamp: new Date().toISOString()
+              });
+
+              return { ok, userId };
             });
-
-            console.log(`[EVENTS/NOTIFY] User ${userId}: ${ok ? 'sent' : 'failed'}`);
-            if (ok) sent += 1;
-            else failed += 1;
+            
+            const results = await Promise.all(promises);
+            
+            for (const result of results) {
+              if (result.skipped) continue;
+              console.log(`[EVENTS/NOTIFY] User ${result.userId}: ${result.ok ? 'sent' : 'failed'}`);
+              if (result.ok) sent += 1;
+              else failed += 1;
+            }
+            
+            // Delay between batches to avoid rate limits
+            if (i + batchSize < usersIndex.length) {
+              await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+            }
           }
 
           console.log(`[EVENTS/NOTIFY] Complete - Sent: ${sent}, Failed: ${failed}, Total: ${usersIndex.length}`);
@@ -3269,25 +3426,47 @@ export default {
           const usersIndex = await env.DATA.get('users:index', 'json') || [];
           let sent = 0;
           let failed = 0;
+          const batchSize = 5; // Process 5 users at a time to avoid rate limits
+          const delayBetweenBatches = 1000; // 1 second delay between batches
 
-          for (const userId of usersIndex) {
-            if (!userId) continue;
-            if (senderId && String(senderId) === String(userId)) continue;
+          console.log(`[BROADCAST] Starting broadcast to ${usersIndex.length} users`);
 
-            const ok = await sendDiscordDM(env, String(userId), {
-              title: '📣 Staff Broadcast Message',
-              description: truncateText(safeMessage, 4000),
-              color: 0x3b82f6,
-              fields: [
-                { name: 'From', value: senderName || senderId || 'OC Portal', inline: false }
-              ],
-              timestamp: new Date().toISOString()
+          for (let i = 0; i < usersIndex.length; i += batchSize) {
+            const batch = usersIndex.slice(i, i + batchSize);
+            
+            // Process batch in parallel
+            const promises = batch.map(async (userId) => {
+              if (!userId) return { ok: false, userId };
+              if (senderId && String(senderId) === String(userId)) return { ok: false, userId, skipped: true };
+
+              const ok = await sendDiscordDM(env, String(userId), {
+                title: '📣 Staff Broadcast Message',
+                description: truncateText(safeMessage, 4000),
+                color: 0x3b82f6,
+                fields: [
+                  { name: 'From', value: senderName || senderId || 'OC Portal', inline: false }
+                ],
+                timestamp: new Date().toISOString()
+              });
+
+              return { ok, userId };
             });
-
-            if (ok) sent += 1;
-            else failed += 1;
+            
+            const results = await Promise.all(promises);
+            
+            for (const result of results) {
+              if (result.skipped) continue;
+              if (result.ok) sent += 1;
+              else failed += 1;
+            }
+            
+            // Delay between batches to avoid rate limits
+            if (i + batchSize < usersIndex.length) {
+              await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+            }
           }
 
+          console.log(`[BROADCAST] Complete - Sent: ${sent}, Failed: ${failed}`);
           return new Response(JSON.stringify({
             success: true,
             sent,

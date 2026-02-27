@@ -13,7 +13,6 @@ const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
-const db = require('./database');
 
 // Validate configuration
 try {
@@ -36,30 +35,11 @@ const client = new Client({
 // Store commands
 client.commands = new Collection();
 
-// ============================================================================
-// HELPER FUNCTION: GET REGISTERED EMPLOYEE COUNT
-// ============================================================================
-/**
- * Fetch the count of registered employees from the database
- * This will be used to set the bot's status
- * @returns {Promise<number>} Count of registered employees
- */
-async function getRegisteredEmployeeCount() {
-    try {
-        const employees = await db.db.collection('employees').find({}).toArray();
-        return employees?.length || 0;
-    } catch (error) {
-        console.error('[EMPLOYEE COUNT] Error fetching employee count:', error);
-        return 0;
-    }
-}
-
 // Update bot status every 5 minutes
 setInterval(async () => {
     try {
-        const employeeCount = await getRegisteredEmployeeCount();
         if (client.isReady()) {
-            client.user.setActivity(`${employeeCount} employees`, { type: 'WATCHING' });
+            client.user.setActivity('the Staff Portal', { type: 'WATCHING' });
         }
     } catch (error) {
         console.error('Error updating bot status:', error);
@@ -86,20 +66,15 @@ client.once('ready', async () => {
     console.log(`✅ Bot logged in as ${client.user.tag}`);
     console.log(`📋 Registered commands: ${client.commands.size}`);
     
-    // Initialize database connection
-    await db.connectDatabase();
-    
-    // Set bot status with employee count
+    // Set bot status
     try {
-        const employeeCount = await getRegisteredEmployeeCount();
-        client.user.setActivity(`${employeeCount} employees`, { type: 'WATCHING' });
-        console.log(`👀 Set bot status: Watching ${employeeCount} employees`);
+        client.user.setActivity('the Staff Portal', { type: 'WATCHING' });
+        console.log(`👀 Set bot status: Watching the Staff Portal`);
     } catch (error) {
         console.error('Error setting bot status:', error);
-        client.user.setActivity('the Staff Portal', { type: 'WATCHING' });
     }
     
-    console.log(`🚀 Dev Toolbox Commission System is ready!`);
+    console.log(`🚀 Staff Portal Bot is ready!`);
 });
 
 // Handle slash command interactions
@@ -165,13 +140,11 @@ client.on('error', error => {
 // Graceful shutdown
 process.on('SIGINT', async () => {
     console.log('\n🛑 Shutting down...');
-    await db.closeDatabase();
     process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
     console.log('\n🛑 Shutting down...');
-    await db.closeDatabase();
     process.exit(0);
 });
 
