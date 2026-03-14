@@ -512,7 +512,7 @@ async function sendDiscordDM(env, userId, embed) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || 'https://portal.cirkledevelopment.co.uk';
 
@@ -3341,65 +3341,67 @@ export default {
           const { eventId, eventTitle, eventDate, eventTime, eventDescription, mandatory, senderName, senderId } = body;
 
           const usersIndex = await env.DATA.get('users:index', 'json') || [];
-          console.log(`[EVENTS/NOTIFY] Starting notification for event "${eventTitle}". Users to notify: ${usersIndex.length}`);
-          
-          let sent = 0;
-          let failed = 0;
-          const batchSize = 5; // Process 5 users at a time to avoid rate limits
-          const delayBetweenBatches = 1000; // 1 second delay between batches
+          const total = usersIndex.length;
+          const batchSize = 5;
+          const delayBetweenBatches = 1000;
 
-          for (let i = 0; i < usersIndex.length; i += batchSize) {
-            const batch = usersIndex.slice(i, i + batchSize);
-            
-            // Process batch in parallel
-            const promises = batch.map(async (userId) => {
-              if (!userId) return { ok: false, userId };
-              if (senderId && String(senderId) === String(userId)) {
-                console.log(`[EVENTS/NOTIFY] Skipping sender ${userId}`);
-                return { ok: false, userId, skipped: true };
-              }
+          console.log(`[EVENTS/NOTIFY] Queuing notifications for event "${eventTitle}". Users: ${total}`);
 
-              const ok = await sendDiscordDM(env, String(userId), {
-                title: '📅 New Staff Event',
-                description: `A new event has been posted in the staff portal.`,
-                color: 0x6366f1,
-                fields: [
-                  { name: 'Event', value: eventTitle || 'Untitled Event', inline: false },
-                  { name: 'Date', value: eventDate || 'TBA', inline: true },
-                  { name: 'Time', value: eventTime || 'TBA', inline: true },
-                  { name: 'Attendance', value: mandatory || 'optional', inline: true },
-                  { name: 'Details', value: truncateText(eventDescription || 'Open the calendar tab in portal for full details.', 1024), inline: false },
-                  { name: 'Posted By', value: senderName || 'OC Portal', inline: false }
-                ],
-                footer: { text: eventId ? `Event ID: ${eventId}` : 'Staff Portal Event' },
-                timestamp: new Date().toISOString()
+          // Use ctx.waitUntil so the DM loop continues after the response is returned,
+          // preventing the Cloudflare Worker from timing out mid-send on large staff lists.
+          ctx.waitUntil((async () => {
+            let sent = 0;
+            let failed = 0;
+
+            for (let i = 0; i < usersIndex.length; i += batchSize) {
+              const batch = usersIndex.slice(i, i + batchSize);
+
+              const promises = batch.map(async (userId) => {
+                if (!userId) return { ok: false, userId };
+                if (senderId && String(senderId) === String(userId)) {
+                  console.log(`[EVENTS/NOTIFY] Skipping sender ${userId}`);
+                  return { ok: false, userId, skipped: true };
+                }
+
+                const ok = await sendDiscordDM(env, String(userId), {
+                  title: '📅 New Staff Event',
+                  description: `A new event has been posted in the staff portal.`,
+                  color: 0x6366f1,
+                  fields: [
+                    { name: 'Event', value: eventTitle || 'Untitled Event', inline: false },
+                    { name: 'Date', value: eventDate || 'TBA', inline: true },
+                    { name: 'Time', value: eventTime || 'TBA', inline: true },
+                    { name: 'Attendance', value: mandatory || 'optional', inline: true },
+                    { name: 'Details', value: truncateText(eventDescription || 'Open the calendar tab in portal for full details.', 1024), inline: false },
+                    { name: 'Posted By', value: senderName || 'OC Portal', inline: false }
+                  ],
+                  footer: { text: eventId ? `Event ID: ${eventId}` : 'Staff Portal Event' },
+                  timestamp: new Date().toISOString()
+                });
+
+                return { ok, userId };
               });
 
-              return { ok, userId };
-            });
-            
-            const results = await Promise.all(promises);
-            
-            for (const result of results) {
-              if (result.skipped) continue;
-              console.log(`[EVENTS/NOTIFY] User ${result.userId}: ${result.ok ? 'sent' : 'failed'}`);
-              if (result.ok) sent += 1;
-              else failed += 1;
-            }
-            
-            // Delay between batches to avoid rate limits
-            if (i + batchSize < usersIndex.length) {
-              await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
-            }
-          }
+              const results = await Promise.all(promises);
+              for (const result of results) {
+                if (result.skipped) continue;
+                console.log(`[EVENTS/NOTIFY] User ${result.userId}: ${result.ok ? 'sent' : 'failed'}`);
+                if (result.ok) sent += 1;
+                else failed += 1;
+              }
 
-          console.log(`[EVENTS/NOTIFY] Complete - Sent: ${sent}, Failed: ${failed}, Total: ${usersIndex.length}`);
+              if (i + batchSize < usersIndex.length) {
+                await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+              }
+            }
+
+            console.log(`[EVENTS/NOTIFY] Complete - Sent: ${sent}, Failed: ${failed}, Total: ${total}`);
+          })());
+
           return new Response(JSON.stringify({
             success: true,
-            message: 'Notifications processed',
-            sent,
-            failed,
-            total: usersIndex.length
+            message: 'Notifications queued — DMs are being sent in the background.',
+            total
           }), { headers: corsHeaders });
         } catch (e) {
           console.error('[EVENTS/NOTIFY] Error sending notifications:', e);
@@ -3424,54 +3426,54 @@ export default {
           }
 
           const usersIndex = await env.DATA.get('users:index', 'json') || [];
-          let sent = 0;
-          let failed = 0;
-          const batchSize = 5; // Process 5 users at a time to avoid rate limits
-          const delayBetweenBatches = 1000; // 1 second delay between batches
+          const total = usersIndex.length;
+          const batchSize = 5;
+          const delayBetweenBatches = 1000;
 
-          console.log(`[BROADCAST] Starting broadcast to ${usersIndex.length} users`);
+          console.log(`[BROADCAST] Queuing broadcast to ${total} users`);
 
-          for (let i = 0; i < usersIndex.length; i += batchSize) {
-            const batch = usersIndex.slice(i, i + batchSize);
-            
-            // Process batch in parallel
-            const promises = batch.map(async (userId) => {
-              if (!userId) return { ok: false, userId };
-              if (senderId && String(senderId) === String(userId)) return { ok: false, userId, skipped: true };
+          // Use ctx.waitUntil so the DM loop continues after the response is returned,
+          // preventing the Cloudflare Worker from timing out mid-send on large staff lists.
+          ctx.waitUntil((async () => {
+            let sent = 0;
+            let failed = 0;
 
-              const ok = await sendDiscordDM(env, String(userId), {
-                title: '📣 Staff Broadcast Message',
-                description: truncateText(safeMessage, 4000),
-                color: 0x3b82f6,
-                fields: [
-                  { name: 'From', value: senderName || senderId || 'OC Portal', inline: false }
-                ],
-                timestamp: new Date().toISOString()
+            for (let i = 0; i < usersIndex.length; i += batchSize) {
+              const batch = usersIndex.slice(i, i + batchSize);
+              const promises = batch.map(async (userId) => {
+                if (!userId) return { ok: false, userId };
+                if (senderId && String(senderId) === String(userId)) return { ok: false, userId, skipped: true };
+
+                const ok = await sendDiscordDM(env, String(userId), {
+                  title: '📣 Staff Broadcast Message',
+                  description: truncateText(safeMessage, 4000),
+                  color: 0x3b82f6,
+                  fields: [
+                    { name: 'From', value: senderName || senderId || 'OC Portal', inline: false }
+                  ],
+                  timestamp: new Date().toISOString()
+                });
+                return { ok, userId };
               });
 
-              return { ok, userId };
-            });
-            
-            const results = await Promise.all(promises);
-            
-            for (const result of results) {
-              if (result.skipped) continue;
-              if (result.ok) sent += 1;
-              else failed += 1;
-            }
-            
-            // Delay between batches to avoid rate limits
-            if (i + batchSize < usersIndex.length) {
-              await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
-            }
-          }
+              const results = await Promise.all(promises);
+              for (const result of results) {
+                if (result.skipped) continue;
+                if (result.ok) sent += 1;
+                else failed += 1;
+              }
 
-          console.log(`[BROADCAST] Complete - Sent: ${sent}, Failed: ${failed}`);
+              if (i + batchSize < usersIndex.length) {
+                await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+              }
+            }
+            console.log(`[BROADCAST] Complete - Sent: ${sent}, Failed: ${failed}, Total: ${total}`);
+          })());
+
           return new Response(JSON.stringify({
             success: true,
-            sent,
-            failed,
-            total: usersIndex.length
+            message: 'Broadcast queued — DMs are being sent in the background.',
+            total
           }), { headers: corsHeaders });
         } catch (e) {
           return new Response(JSON.stringify({ success: false, error: e.message }), {

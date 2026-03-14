@@ -137,6 +137,15 @@ client.on('error', error => {
     console.error('Discord client error:', error);
 });
 
+// Reconnect if the WebSocket disconnects unexpectedly
+client.on('shardDisconnect', (event, shardId) => {
+    console.warn(`[BOT] Shard ${shardId} disconnected (code ${event.code}). Discord.js will attempt to reconnect automatically.`);
+});
+
+client.on('shardError', (error, shardId) => {
+    console.error(`[BOT] Shard ${shardId} error:`, error.message);
+});
+
 // Graceful shutdown
 process.on('SIGINT', async () => {
     console.log('\n🛑 Shutting down...');
@@ -176,6 +185,16 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🌐 Keep-alive server running on port ${PORT}`);
 });
+
+// Self-ping every 14 minutes to prevent Render free-tier sleep (spins down after 15 min)
+const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL;
+if (RENDER_EXTERNAL_URL) {
+    setInterval(() => {
+        fetch(`${RENDER_EXTERNAL_URL}/health`)
+            .then(() => console.log('[KEEP-ALIVE] Self-pinged successfully'))
+            .catch(err => console.error('[KEEP-ALIVE] Self-ping failed:', err.message));
+    }, 14 * 60 * 1000); // every 14 minutes
+}
 
 // Login to Discord
 const token = config.DISCORD_BOT_TOKEN;
