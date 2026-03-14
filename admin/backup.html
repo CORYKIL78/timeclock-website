@@ -1371,7 +1371,7 @@ document.getElementById('sendBroadcastBtn')?.addEventListener('click', async () 
     });
 
     await logAdminAction('staff_broadcast', `${state.admin?.name || 'Admin'} broadcasted to staff`, state.admin?.id || '');
-    toast(`Broadcast sent. Success: ${result.sent || 0}, Failed: ${result.failed || 0}`, 'success');
+    toast(`Broadcast queued — sending DMs to ${result.total || 'all'} staff in the background.`, 'success');
     closeModal('staffBroadcastModal');
   } catch (e) {
     toast('Failed to send broadcast', 'error');
@@ -3085,9 +3085,9 @@ document.getElementById('addStaffEventBtn')?.addEventListener('click', async () 
     }
     
     const notifyMsg = notifyResult.total > 0 
-      ? `Event created! Notifications sent to ${notifyResult.sent}/${notifyResult.total} staff` 
+      ? `Event created! Notifying ${notifyResult.total} staff via DM in the background.` 
       : `Event created but no staff profiles found to notify. Ensure staff have logged in to the portal.`;
-    toast(notifyMsg, notifyResult.sent > 0 ? 'success' : 'warning');
+    toast(notifyMsg, notifyResult.total > 0 ? 'success' : 'warning');
     closeModal('staffEventModal');
     
     // Clear form
