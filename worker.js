@@ -3124,14 +3124,13 @@ export default {
 
           await env.DATA.put(staffProfileKey, JSON.stringify(profile));
 
-          // Send Discord DM notification
-          await apiPost(`/api/send-dm`, {
-            userId,
-            embed: {
-              title: '🎉 Promotion!',
-              description: `Congratulations! You have been promoted to **${newBaseLevel}**\n\n**Reason:** ${reason || 'N/A'}\n\n**Promoted by:** ${promotedBy || 'System'}`,
-              color: 0x22c55e
-            }
+          // Send Discord DM notification directly through Discord API helper.
+          // apiPost is a frontend helper and is not available in the Worker runtime.
+          await sendDiscordDM(env, String(userId), {
+            title: '🎉 Promotion!',
+            description: `Congratulations! You have been promoted to **${newBaseLevel}**\n\n**Reason:** ${reason || 'N/A'}\n\n**Promoted by:** ${promotedBy || 'System'}`,
+            color: 0x22c55e,
+            timestamp: new Date().toISOString()
           });
 
           return new Response(JSON.stringify({ success: true, promotion }), { headers: corsHeaders });
