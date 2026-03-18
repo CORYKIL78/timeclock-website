@@ -2630,6 +2630,95 @@ export default {
         }
       }
 
+      // Void absence (admin)
+      if (url.pathname === '/api/admin/absence/void' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { userId, absenceId, adminName, adminId } = body;
+
+          if (!userId || !absenceId) {
+            return new Response(JSON.stringify({ success: false, error: 'userId and absenceId are required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const absencesKey = `absences:${userId}`;
+          const absences = await env.DATA.get(absencesKey, 'json') || [];
+          const absence = absences.find(a => a.id === absenceId);
+
+          if (!absence) {
+            return new Response(JSON.stringify({ success: false, error: 'Absence not found' }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+
+          absence.status = 'voided';
+          absence.voidedAt = new Date().toISOString();
+          absence.voidedBy = adminName || 'Admin';
+          absence.voidedById = adminId || null;
+
+          await env.DATA.put(absencesKey, JSON.stringify(absences));
+
+          return new Response(JSON.stringify({ success: true, absence }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      // Extend absence (admin)
+      if (url.pathname === '/api/admin/absence/extend' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { userId, absenceId, newEndDate, adminName, adminId } = body;
+
+          if (!userId || !absenceId || !newEndDate) {
+            return new Response(JSON.stringify({ success: false, error: 'userId, absenceId and newEndDate are required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const absencesKey = `absences:${userId}`;
+          const absences = await env.DATA.get(absencesKey, 'json') || [];
+          const absence = absences.find(a => a.id === absenceId);
+
+          if (!absence) {
+            return new Response(JSON.stringify({ success: false, error: 'Absence not found' }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+
+          const startDate = absence.startDate || newEndDate;
+          const start = new Date(startDate);
+          const end = new Date(newEndDate);
+          const diffDays = Number.isFinite(start.getTime()) && Number.isFinite(end.getTime())
+            ? Math.max(1, Math.floor((end - start) / 86400000) + 1)
+            : (absence.totalDays || 1);
+
+          absence.endDate = newEndDate;
+          absence.totalDays = diffDays;
+          absence.days = String(diffDays);
+          absence.extendedAt = new Date().toISOString();
+          absence.extendedBy = adminName || 'Admin';
+          absence.extendedById = adminId || null;
+
+          await env.DATA.put(absencesKey, JSON.stringify(absences));
+
+          return new Response(JSON.stringify({ success: true, absence }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
       // Update request status (admin)
       if (url.pathname === '/api/admin/requests/update-status' && request.method === 'POST') {
         try {
