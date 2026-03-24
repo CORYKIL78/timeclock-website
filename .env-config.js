@@ -9,6 +9,7 @@ window.ENVIRONMENT_CONFIG = window.ENVIRONMENT_CONFIG || {
   REDIRECT_URI: null,
   GUILD_ID: null,
   REQUIRED_ROLE: null,
+  ADMIN_BLACKLIST: ['926568979747713095'],
   ADMINS: {}
 };
 
@@ -27,10 +28,6 @@ window.CONFIG.ADMINS = {
     "pin": "638542",
     "name": "Sam Caster"
   },
-  "926568979747713095": {
-    "pin": "287183",
-    "name": "Teejay Everil"
-  },
   "1203762560059314192": {
     "pin": "315793",
     "name": "Noelle Holiday"
@@ -39,5 +36,6 @@ window.CONFIG.ADMINS = {
 
 // Add admins to ENVIRONMENT_CONFIG as well
 window.ENVIRONMENT_CONFIG.ADMINS = window.CONFIG.ADMINS;
+window.CONFIG.ADMIN_BLACKLIST = window.ENVIRONMENT_CONFIG.ADMIN_BLACKLIST;
 
-console.log('[ADMIN CONFIG] Loaded 5 admin(s) from local credentials');
+console.log('[ADMIN CONFIG] Loaded 4 admin(s) from local credentials');

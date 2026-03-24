@@ -1187,6 +1187,12 @@ async function sendDiscordDM(userId, message) {
 document.getElementById('loginBtn').addEventListener('click', doLogin);
 document.getElementById('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
+function getBlacklistedAdminIds() {
+  const fromConfig = Array.isArray(window.CONFIG?.ADMIN_BLACKLIST) ? window.CONFIG.ADMIN_BLACKLIST : [];
+  const fromEnv = Array.isArray(window.ENVIRONMENT_CONFIG?.ADMIN_BLACKLIST) ? window.ENVIRONMENT_CONFIG.ADMIN_BLACKLIST : [];
+  return new Set([...fromConfig, ...fromEnv].map(String));
+}
+
 async function doLogin() {
   const id = document.getElementById('discordIdInput').value.trim();
   const pin = document.getElementById('pinInput').value.trim();
@@ -1194,6 +1200,11 @@ async function doLogin() {
   err.textContent = '';
 
   if (!id || !pin) { err.textContent = 'Please enter both Discord ID and PIN.'; return; }
+
+  if (getBlacklistedAdminIds().has(id)) {
+    err.textContent = 'Access denied. This account is blacklisted.';
+    return;
+  }
 
   document.getElementById('loginBtn').disabled = true;
   showScreen('loadingScreen');
