@@ -1072,7 +1072,10 @@ async function upsertUserProfile() {
             department: currentUser.profile.department,
             timezone: currentUser.profile.timezone || '',
             country: currentUser.profile.country || '',
-            staffId: currentUser.profile.staffId || ''
+            staffId: currentUser.profile.staffId || '',
+            robloxId: currentUser.profile.robloxId || '',
+            robloxUsername: currentUser.profile.robloxUsername || '',
+            avatar: currentUser.avatar || currentUser.profile.avatar || ''
         };
         console.log('[upsertUserProfile] Saving profile to backend:', payload);
         const res = await fetch(`${WORKER_URL}/api/user/profile/update`, {
@@ -1521,15 +1524,31 @@ async function fetchEmployeeReports(userId) {
 }
 
 // Calculate staff points from reports
+function getReportPointValue(report) {
+    const explicitValue = Number(report?.points ?? report?.pointValue ?? report?.staffPoints);
+    if (Number.isFinite(explicitValue) && explicitValue !== 0) {
+        return explicitValue;
+    }
+
+    const reportType = String(report?.type || report?.reportType || '').toLowerCase();
+    if (reportType === 'commendation' || reportType === 'positive behaviour' || reportType === 'positive behavior') {
+        return 1;
+    }
+    if (reportType === 'disruptive' || reportType === 'negative behaviour' || reportType === 'negative behavior') {
+        return -1;
+    }
+
+    const scale = String(report?.selectScale || '').toLowerCase();
+    if (scale.includes('commend')) return 1;
+    if (scale.includes('negative') || scale.includes('disrupt')) return -1;
+
+    return 0;
+}
+
 function calculateStaffPoints(reports) {
     let points = 0;
     reports.forEach(report => {
-        const reportType = (report.type || report.reportType || '').toLowerCase();
-        if (reportType === 'commendation') {
-            points += 1;
-        } else if (reportType === 'disruptive' || reportType === 'negative behaviour') {
-            points -= 1;
-        }
+        points += getReportPointValue(report);
         // Monthly Report doesn't affect points
     });
     return points;
@@ -1539,13 +1558,14 @@ function calculateStaffPoints(reports) {
 function updateStaffPointsCounter(points) {
     const counter = document.getElementById('staffPointsCounter');
     const needle = document.getElementById('staffPointsNeedle');
+    const safePoints = Number.isFinite(Number(points)) ? Number(points) : 0;
     
     if (counter) {
-        counter.textContent = points;
+        counter.textContent = safePoints;
         // Color code the points
-        if (points > 0) {
+        if (safePoints > 0) {
             counter.style.color = '#4ade80'; // Green for positive
-        } else if (points < 0) {
+        } else if (safePoints < 0) {
             counter.style.color = '#f87171'; // Red for negative
         } else {
             counter.style.color = 'white'; // White for zero
@@ -1556,7 +1576,7 @@ function updateStaffPointsCounter(points) {
     if (needle) {
         // Map points (-10 to +10) to rotation (-90deg to +90deg)
         // Clamp points between -10 and 10
-        const clampedPoints = Math.max(-10, Math.min(10, points));
+        const clampedPoints = Math.max(-10, Math.min(10, safePoints));
         const rotation = (clampedPoints / 10) * 90; // -90 to +90 degrees
         needle.style.transform = `rotate(${rotation}deg)`;
         needle.style.transformOrigin = '60px 70px';
@@ -5681,13 +5701,14 @@ if (setupRobloxRetryBtn) {
 
 const setupRobloxConfirmBtn = document.getElementById('setupRobloxConfirmBtn');
 if (setupRobloxConfirmBtn) {
-    setupRobloxConfirmBtn.addEventListener('click', () => {
+    setupRobloxConfirmBtn.addEventListener('click', async () => {
         if (verifiedRobloxProfile) {
             if (!currentUser) currentUser = {};
             if (!currentUser.profile) currentUser.profile = {};
             currentUser.profile.robloxId = verifiedRobloxProfile.id;
             currentUser.profile.robloxUsername = verifiedRobloxProfile.username;
             persistUserData();
+            await upsertUserProfile();
             console.log('[SETUP] Roblox ID saved:', verifiedRobloxProfile.id);
             showScreen('setupPreferences');
         }
@@ -9276,15 +9297,19 @@ async function submitEventResponse() {
     const comment = document.getElementById('eventComment').value.trim() || '';
     const userId = typeof currentUser !== 'undefined' ? currentUser.id : userData?.id;
     const userName = typeof currentUser !== 'undefined' ? 
-        `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() : 
-        `${userData?.firstName || ''} ${userData?.lastName || ''}`.trim();
+        (currentUser.profile?.name || currentUser.name || currentUser.username || `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim()) : 
+        (userData?.profile?.name || userData?.name || userData?.username || `${userData?.firstName || ''} ${userData?.lastName || ''}`.trim());
     
     const responseData = {
         eventId: currentSelectedEvent._id || currentSelectedEvent.id,
+        userDiscordId: userId,
         userId,
         userName,
+        displayName: userName,
         status: currentUserResponse.status,
+        response: currentUserResponse.status,
         comment,
+        reason: comment,
         respondedAt: new Date().toISOString()
     };
     
@@ -9915,6 +9940,7 @@ async function publishUpdate(taskId, content) {
     try {
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         const task = window.currentDetailTask;
+        const displayName = currentUser?.profile?.name || currentUser?.name || currentUser?.username || 'Unknown User';
         
         const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/tasks/update', {
             method: 'POST',
@@ -9923,7 +9949,7 @@ async function publishUpdate(taskId, content) {
                 taskId,
                 update: content,  // Worker expects 'update' field
                 threadId: task?.threadId,  // Send thread ID for Discord webhook
-                userName: currentUser.username
+                userName: displayName
             })
         });
 
@@ -9955,6 +9981,7 @@ async function completeTask() {
 
     try {
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const displayName = currentUser?.profile?.name || currentUser?.name || currentUser?.username || 'Unknown User';
         const response = await fetch(`https://timeclock-backend.marcusray.workers.dev/api/tasks/status`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -9966,7 +9993,7 @@ async function completeTask() {
                 threadId: task.threadId,  // Send thread ID for Discord webhook
                 createdBy: task.createdBy,  // Creator to ping
                 title: task.title,
-                completedBy: currentUser.username,
+                completedBy: displayName,
                 completedAt: new Date().toISOString(),
                 claimedAt: task.claimedAt,
                 updates: task.updates || []  // Send all updates for timeline

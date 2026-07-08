@@ -522,6 +522,7 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
       <button class="nav-btn" data-tab="requests"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span>Requests</span></button>
       <button class="nav-btn" data-tab="payslips"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Payslips</span></button>
       <button class="nav-btn" data-tab="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>Reports</span></button>
+      <button class="nav-btn" data-tab="admins" id="adminsNavBtn" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1l3 5 6 .9-4.3 4.2 1 6-5.7-3-5.7 3 1-6L3 6.9 9 6z"/><path d="M12 11v10"/><path d="M8 15h8"/></svg><span>ADMINS</span></button>
       <button class="nav-btn" data-tab="strikes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Strikes</span></button>
       <button class="nav-btn" data-tab="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="14" r="1"/><circle cx="12" cy="14" r="1"/><circle cx="16" cy="14" r="1"/></svg><span>Calendar</span></button>
       <button class="nav-btn" data-tab="events" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><path d="M12 1v6m8.66-1.34l-4.24 4.24M21 12h-6m1.34 8.66l-4.24-4.24M12 21v-6m-8.66 1.34l4.24-4.24M3 12h6m-1.34-8.66l4.24 4.24"/></svg><span>Events</span></button>
@@ -549,6 +550,27 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
         <div class="table-wrap">
           <div class="table-header"><h3>All Users</h3><button class="btn btn-primary" id="openBroadcastBtn">📣 Broadcast to Staff</button></div>
           <div id="usersTable" class="table-body"><div class="loading-inline">Loading users...</div></div>
+        </div>
+      </div>
+
+      <!-- ADMINS TAB -->
+      <div class="tab-content" id="tab-admins">
+        <div id="adminsLockedShell" style="position:relative;min-height:420px;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:linear-gradient(180deg, rgba(16, 20, 31, 0.92), rgba(9, 12, 20, 0.98));">
+          <div id="adminsPanel" style="filter: blur(10px); pointer-events:none; opacity:0.5; padding:16px;">
+            <div class="stats-row" id="adminsStats"></div>
+            <div class="table-wrap">
+              <div class="table-header"><h3>Admin Portal Access</h3><button class="btn btn-primary" id="openAddAdminBtn">+ Add Admin</button></div>
+              <div id="adminsTable" class="table-body"><div class="loading-inline">Loading admin access...</div></div>
+            </div>
+          </div>
+          <div id="adminsOverlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(4, 8, 18, 0.42);backdrop-filter:blur(3px);">
+            <div style="width:min(560px, 100%);background:rgba(10,14,24,0.92);border:1px solid rgba(148,163,184,0.16);border-radius:18px;padding:28px;box-shadow:0 30px 80px rgba(0,0,0,0.5);text-align:center;">
+              <div style="font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text2);margin-bottom:10px;">Restricted Area</div>
+              <h3 style="margin:0 0 10px 0;font-size:28px;">ADMINS</h3>
+              <p id="adminsLockMessage" style="margin:0 0 18px 0;color:var(--text2);line-height:1.5;">Only Marcus Ray and Sam Caster can open this section.</p>
+              <button class="btn btn-primary" id="adminsViewBtn" style="min-width:160px;">View</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -890,6 +912,24 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
   </div>
 </div>
 
+<div class="modal-overlay" id="adminAccessModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head"><h3>Give Admin Access</h3><button class="modal-close" onclick="closeModal('adminAccessModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Select Registered User</label>
+        <select id="adminAccessUserSelect">
+          <option value="">Loading users...</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('adminAccessModal')">Cancel</button>
+      <button class="btn btn-primary" id="giveAdminBtn">Give Admin</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="profileEditModal">
   <div class="modal">
     <div class="modal-head"><h3 id="profileEditTitle">Edit Profile</h3><button class="modal-close" onclick="closeModal('profileEditModal')">&times;</button></div>
@@ -956,6 +996,7 @@ tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
 // Load API config from environment or use defaults
 const API = window.CONFIG?.WORKER_URL || 'https://timeclock-backend.marcusray.workers.dev';
 const GUILD_ID = window.CONFIG?.GUILD_ID || '1310656642672627752';
+const ADMIN_ACCESS_MANAGER_IDS = new Set(['1088907566844739624', '1187751127039615086']);
 
 // Admin credentials are now fetched securely from backend via /api/admin/validate
 // No hardcoded credentials in frontend for security
@@ -985,6 +1026,17 @@ function formatDepartment(value) {
   if (!value) return '-';
   const cleaned = String(value).trim();
   return DEPARTMENT_LABELS[cleaned] || cleaned;
+}
+
+function canManageAdminAccess() {
+  return Boolean(state.admin?.id && ADMIN_ACCESS_MANAGER_IDS.has(String(state.admin.id)));
+}
+
+function syncAdminAccessVisibility() {
+  const navBtn = document.getElementById('adminsNavBtn');
+  if (navBtn) {
+    navBtn.style.display = canManageAdminAccess() ? '' : 'none';
+  }
 }
 
 function generateStaffId(dept, tier) {
@@ -1092,6 +1144,161 @@ function updateNavIndicator(targetBtn) {
   indicator.style.width = `${targetBtn.offsetWidth}px`;
   indicator.style.height = `${targetBtn.offsetHeight}px`;
   indicator.style.transform = `translateY(${targetBtn.offsetTop}px) translateX(${btnOffsetLeft}px)`;
+}
+
+function isAdminSectionUnlocked() {
+  return canManageAdminAccess() && state.admin?.id && ADMIN_ACCESS_MANAGER_IDS.has(String(state.admin.id)) && state.adminSectionUnlocked === true;
+}
+
+function renderAdminsLockedState(message, locked = true) {
+  const overlay = document.getElementById('adminsOverlay');
+  const panel = document.getElementById('adminsPanel');
+  const lockMessage = document.getElementById('adminsLockMessage');
+  if (lockMessage && message) lockMessage.textContent = message;
+  if (overlay) overlay.style.display = locked ? 'flex' : 'none';
+  if (panel) {
+    panel.style.filter = locked ? 'blur(10px)' : 'none';
+    panel.style.pointerEvents = locked ? 'none' : 'auto';
+    panel.style.opacity = locked ? '0.5' : '1';
+  }
+}
+
+async function loadAdminsSection() {
+  const container = document.getElementById('adminsTable');
+  if (!container) return;
+
+  if (!canManageAdminAccess()) {
+    renderAdminsLockedState('Unauthorised Access. If this is a mistake, contact Marcus Ray.', true);
+    container.innerHTML = '<div class="empty-state"><p>Restricted section.</p></div>';
+    return;
+  }
+
+  renderAdminsLockedState('Verifying your identity....', true);
+  container.innerHTML = '<div class="loading-inline">Verifying your identity....</div>';
+
+  await new Promise(resolve => setTimeout(resolve, 900));
+
+  if (!canManageAdminAccess()) {
+    renderAdminsLockedState('Unauthorised Access. If this is a mistake, contact Marcus Ray.', true);
+    container.innerHTML = '<div class="empty-state"><p>Unauthorised Access. If this is a mistake, contact Marcus Ray.</p></div>';
+    return;
+  }
+
+  state.adminSectionUnlocked = true;
+  renderAdminsLockedState('Verifying your identity....', false);
+
+  const admins = (state.users || []).filter(u => u.adminAccess);
+  const total = admins.length;
+  const managers = admins.filter(u => ADMIN_ACCESS_MANAGER_IDS.has(String(u.discordId))).length;
+  const staff = total - managers;
+
+  const stats = document.getElementById('adminsStats');
+  if (stats) {
+    stats.innerHTML = `
+      <div class="stat-card"><div class="label">Total Admins</div><div class="value blue">${total}</div></div>
+      <div class="stat-card"><div class="label">Managers</div><div class="value green">${managers}</div></div>
+      <div class="stat-card"><div class="label">Other Access</div><div class="value orange">${staff}</div></div>`;
+  }
+
+  if (!admins.length) {
+    container.innerHTML = '<div class="empty-state"><p>No users currently have admin access.</p></div>';
+    return;
+  }
+
+  let html = `<table><thead><tr><th>User</th><th>Discord ID</th><th>Department</th><th>Added On</th><th>Actions</th></tr></thead><tbody>`;
+  admins.forEach(user => {
+    const date = user.adminAccessUpdatedAt || user.dateOfSignup || user.createdAt || '';
+    html += `<tr>
+      <td><div class="user-cell"><img src="${user.avatar || defaultAvatar(user.discordId || '0')}" alt="" onerror="this.src='${defaultAvatar(user.discordId || '0')}'"/><div><div class="name">${esc(user.name || user.discordName || 'Unknown')}</div><div class="id">${user.adminAccess ? '<span class="badge" style="background:rgba(59,130,246,0.16);color:#60a5fa;border:1px solid rgba(96,165,250,0.35)">ADMIN ACCESS</span>' : ''}</div></div></div></td>
+      <td>${esc(user.discordId || '-')}</td>
+      <td>${esc(formatDepartment(user.department))}</td>
+      <td>${date ? new Date(date).toLocaleDateString('en-GB') : '-'}</td>
+      <td>${ADMIN_ACCESS_MANAGER_IDS.has(String(user.discordId)) ? '<span style="font-size:11px;color:var(--text2)">Core admin</span>' : `<button class="btn btn-red btn-small" onclick="removeAdminAccess('${user.discordId}')">Remove</button>`}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+async function openAddAdminModal() {
+  if (!canManageAdminAccess()) {
+    renderAdminsLockedState('Unauthorised Access. If this is a mistake, contact Marcus Ray.', true);
+    return;
+  }
+
+  populateAdminAccessSelect(state.users || []);
+  document.getElementById('adminAccessUserSelect').value = '';
+  openModal('adminAccessModal');
+}
+
+async function giveAdminAccess() {
+  const select = document.getElementById('adminAccessUserSelect');
+  const discordId = select?.value || '';
+  if (!discordId) {
+    toast('Select a user first', 'error');
+    return;
+  }
+
+  const user = state.users.find(u => u.discordId === discordId);
+  if (!user) {
+    toast('User not found', 'error');
+    return;
+  }
+
+  const ok = await customConfirm('Give Admin Access', `Give admin access to ${user.name || user.discordId}?`);
+  if (!ok) return;
+
+  try {
+    await apiPost('/api/admin/user/update', {
+      discordId,
+      adminAccess: true,
+      updatedById: state.admin?.id,
+      updatedByName: state.admin?.name
+    });
+    user.adminAccess = true;
+    user.adminAccessUpdatedAt = new Date().toISOString();
+    toast(`Admin access granted for ${user.name || user.discordId}`, 'success');
+    await logAdminAction('admin_access_granted', `Granted admin access to ${user.name || user.discordId}`, discordId);
+    closeModal('adminAccessModal');
+    await loadUsers();
+    await loadAdminsSection();
+    const idx = state.users.findIndex(u => u.discordId === discordId);
+    if (idx >= 0) await openUserPanel(idx);
+  } catch (e) {
+    toast('Failed to give admin access', 'error');
+  }
+}
+
+async function removeAdminAccess(discordId) {
+  const user = state.users.find(u => u.discordId === discordId);
+  if (!user) {
+    toast('User not found', 'error');
+    return;
+  }
+
+  const ok = await customConfirm('Remove Admin Access', `Would you like to remove admin access for ${user.name || user.discordId}?`);
+  if (!ok) return;
+
+  try {
+    renderAdminsLockedState('Verifying your identity....', true);
+    toast('Removing admin access...', 'info');
+    await apiPost('/api/admin/user/update', {
+      discordId,
+      adminAccess: false,
+      updatedById: state.admin?.id,
+      updatedByName: state.admin?.name
+    });
+    user.adminAccess = false;
+    user.adminAccessUpdatedAt = new Date().toISOString();
+    await logAdminAction('admin_access_removed', `Removed admin access for ${user.name || user.discordId}`, discordId);
+    toast(`Admin access removed for ${user.name || user.discordId}`, 'success');
+    await loadUsers();
+    await loadAdminsSection();
+    const idx = state.users.findIndex(u => u.discordId === discordId);
+    if (idx >= 0) await openUserPanel(idx);
+  } catch (e) {
+    toast('Failed to remove admin access', 'error');
+  }
 }
 
 /* ================================================================
@@ -1313,6 +1520,9 @@ document.getElementById('goToDashboard').addEventListener('click', async () => {
   showScreen('dashboard');
   document.getElementById('sidebarAvatar').src = state.admin.avatar;
   document.getElementById('sidebarName').textContent = state.admin.name;
+  syncAdminAccessVisibility();
+  state.adminSectionUnlocked = false;
+  renderAdminsLockedState('Verifying your identity....', true);
   loadTab('users');
 });
 
@@ -1345,11 +1555,25 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
   });
 });
 
+document.getElementById('adminsViewBtn')?.addEventListener('click', async () => {
+  if (!canManageAdminAccess()) {
+    renderAdminsLockedState('Unauthorised Access. If this is a mistake, contact Marcus Ray.', true);
+    return;
+  }
+  renderAdminsLockedState('Verifying your identity....', true);
+  await loadAdminsSection();
+});
+
+document.getElementById('openAddAdminBtn')?.addEventListener('click', openAddAdminModal);
+
+document.getElementById('giveAdminBtn')?.addEventListener('click', giveAdminAccess);
+
 setTimeout(() => updateNavIndicator(document.querySelector('.nav-btn.active')), 0);
 
 async function loadTab(tab) {
   switch(tab) {
     case 'users': await loadUsers(); break;
+    case 'admins': await loadAdminsSection(); break;
     case 'absences': await loadAbsences(); break;
     case 'requests': await loadRequests(); break;
     case 'payslips': await loadPayslips(); break;
@@ -1412,6 +1636,7 @@ async function loadUsers() {
     });
 
     state.users = users;
+    syncAdminAccessVisibility();
 
     // Stats
     const total = users.length;
@@ -1430,9 +1655,10 @@ async function loadUsers() {
     let html = `<table><thead><tr><th>User</th><th>Department</th><th>Date of Signup</th><th>Status</th></tr></thead><tbody>`;
     users.forEach((u, i) => {
       const status = u.suspended ? '<span class="badge badge-suspended">Suspended</span>' : '<span class="badge badge-active">Active</span>';
+      const accessBadge = u.adminAccess ? ' <span class="badge" style="background:rgba(59,130,246,0.16);color:#60a5fa;border:1px solid rgba(96,165,250,0.35);margin-left:6px">ADMIN ACCESS</span>' : '';
       const date = u.dateOfSignup ? new Date(u.dateOfSignup).toLocaleDateString('en-GB') : '-';
       html += `<tr class="clickable-row" data-idx="${i}">
-        <td><div class="user-cell"><img src="${u.avatar || ''}" alt="" onerror="this.src='${defaultAvatar(u.discordId || '0')}'"/><div><div class="name">${esc(u.name || u.discordName || 'Unknown')}</div><div class="id">${esc(u.discordId || '')}</div></div></div></td>
+        <td><div class="user-cell"><img src="${u.avatar || ''}" alt="" onerror="this.src='${defaultAvatar(u.discordId || '0')}'"/><div><div class="name">${esc(u.name || u.discordName || 'Unknown')}</div><div class="id">${esc(u.discordId || '')}${accessBadge}</div></div></div></td>
         <td>${esc(formatDepartment(u.department))}</td>
         <td>${date}</td>
         <td>${status}</td>
@@ -1448,6 +1674,7 @@ async function loadUsers() {
 
     // Populate user selects
     populateUserSelects(users);
+    populateAdminAccessSelect(users);
   } catch (e) {
     container.innerHTML = `<div class="empty-state"><p>Error loading users: ${esc(e.message)}</p></div>`;
   }
@@ -1462,6 +1689,15 @@ function populateUserSelects(users) {
     users.forEach(u => {
       sel.innerHTML += `<option value="${esc(u.discordId)}">${esc(u.name || u.discordName || u.discordId)}</option>`;
     });
+  });
+}
+
+function populateAdminAccessSelect(users) {
+  const sel = document.getElementById('adminAccessUserSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select user...</option>';
+  users.forEach(u => {
+    sel.innerHTML += `<option value="${esc(u.discordId)}" ${u.adminAccess ? 'disabled' : ''}>${esc(u.name || u.discordName || u.discordId)}${u.adminAccess ? ' (already admin)' : ''}</option>`;
   });
 }
 
@@ -2191,6 +2427,16 @@ async function openUserPanel(idx) {
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
         <div class="staff-id-display">${esc(user.staffId || 'Not assigned')}</div>
         ${!user.staffId ? `<button class="staff-id-btn" onclick="openModal('staffIdModal')">Assign ID</button>` : ''}
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h4>Admin Access</h4>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        ${user.adminAccess
+          ? `<button class="btn btn-outline" style="border-color:rgba(96,165,250,0.35);color:#60a5fa;background:rgba(59,130,246,0.12);font-weight:700" onclick="removeAdminAccess('${user.discordId}')">ADMIN ACCESS</button>`
+          : `<span style="font-size:13px;color:var(--text2)">No admin access granted</span>`
+        }
       </div>
     </div>
 

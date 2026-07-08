@@ -7,7 +7,7 @@ window.ENVIRONMENT_CONFIG = window.ENVIRONMENT_CONFIG || {
   REDIRECT_URI: null,
   GUILD_ID: null,
   REQUIRED_ROLE: null,
-  ADMIN_BLACKLIST: ['926568979747713095'],
+  ADMIN_BLACKLIST: ['926568979747713095', '1002932344799371354'],
   ADMINS: {}
 };
 
@@ -17,10 +17,6 @@ window.CONFIG.ADMINS = {
   "1088907566844739624": {
     "pin": "061021",
     "name": "Marcus Ray"
-  },
-  "1002932344799371354": {
-    "pin": "486133",
-    "name": "Appler Smith"
   },
   "1187751127039615086": {
     "pin": "638542",

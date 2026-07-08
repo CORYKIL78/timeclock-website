@@ -80,6 +80,71 @@ function pickFirstNonEmpty(...values) {
   return '';
 }
 
+async function resolveDisplayName(env, userId, fallbackName = '') {
+  const provided = String(fallbackName || '').trim();
+  if (provided) return provided;
+
+  if (!userId) return 'Unknown User';
+
+  try {
+    const profile = await env.DATA.get(`profile:${userId}`, 'json');
+    return pickFirstNonEmpty(
+      profile?.name,
+      profile?.discordTag,
+      profile?.username,
+      profile?.displayName,
+      profile?.email,
+      `User ${userId}`
+    );
+  } catch {
+    return `User ${userId}`;
+  }
+}
+
+async function appendAdminLog(env, entry) {
+  const logs = await env.DATA.get('admin:logs', 'json') || [];
+  const newLog = {
+    id: `log_${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    ...entry
+  };
+
+  logs.push(newLog);
+  if (logs.length > 1000) {
+    logs.splice(0, logs.length - 1000);
+  }
+
+  await env.DATA.put('admin:logs', JSON.stringify(logs));
+  return newLog;
+}
+
+async function appendTaskLog(env, taskId, action, details = {}, userId = 'system', userName = 'System') {
+  const logEntry = {
+    id: `log_${Date.now()}`,
+    taskId,
+    action,
+    details: { taskId, ...details },
+    userId: userId || 'system',
+    userName: userName || 'System',
+    timestamp: new Date().toISOString()
+  };
+
+  const taskLogsKey = `task:logs:${taskId}`;
+  const taskLogs = await env.DATA.get(taskLogsKey, 'json') || [];
+  taskLogs.push(logEntry);
+  await env.DATA.put(taskLogsKey, JSON.stringify(taskLogs));
+
+  const globalKey = 'tasks:activity:all';
+  const globalLogs = await env.DATA.get(globalKey, 'json') || [];
+  globalLogs.push(logEntry);
+  if (globalLogs.length > 1000) {
+    globalLogs.shift();
+  }
+  await env.DATA.put(globalKey, JSON.stringify(globalLogs));
+
+  return logEntry;
+}
+
 // Security: Simple rate limiting using KV
 async function checkRateLimit(env, identifier, maxRequests = 30, windowSeconds = 60) {
   const key = `ratelimit:${identifier}`;
@@ -644,7 +709,7 @@ export default {
       // Update user profile (PUT or POST to /api/user/profile/update)
       if ((url.pathname === '/api/user/profile/update' || url.pathname === '/api/profile/update') && request.method === 'POST') {
         const body = await request.json();
-        const { discordId, name, email, department, staffId, timezone, country, robloxId, robloxUsername } = body;
+        const { discordId, name, email, department, staffId, timezone, country, robloxId, robloxUsername, avatar } = body;
 
         if (!discordId) {
           return new Response(JSON.stringify({ error: 'Missing discordId' }), {
@@ -671,9 +736,9 @@ export default {
           country: country !== undefined ? country : existingProfile.country,
           robloxId: robloxId !== undefined ? robloxId : existingProfile.robloxId,
           robloxUsername: robloxUsername !== undefined ? robloxUsername : existingProfile.robloxUsername,
+          avatar: avatar !== undefined ? avatar : existingProfile.avatar,
           discordTag: existingProfile.discordTag,
           discordId: discordId,
-          avatar: existingProfile.avatar,
           updatedAt: new Date().toISOString()
         };
 
@@ -777,26 +842,38 @@ export default {
           await env.DATA.put('users:index', JSON.stringify(usersIndex));
         }
 
-        await postDiscordEmbed(
-          env,
-          ABSENCE_LOG_CHANNEL,
-          {
-            title: 'New Absence Request',
-            description: `Review in OC Portal: ${OC_ADMIN_URL}`,
-            color: 0xf59e0b,
-            fields: [
-              { name: 'User', value: `${name || 'Unknown'} (${discordId})`, inline: false },
-              { name: 'Type', value: reason || 'N/A', inline: true },
-              { name: 'Start', value: startDate || 'N/A', inline: true },
-              { name: 'End', value: endDate || startDate || 'N/A', inline: true },
-              { name: 'Total Days', value: totalDays ? String(totalDays) : '1', inline: true },
-              { name: 'Reason', value: comment || 'N/A', inline: false }
-            ],
-            timestamp: new Date().toISOString()
-          },
-          `<@&${STAFF_ALERT_ROLE}>`,
-          { roles: [STAFF_ALERT_ROLE] }
-        );
+        try {
+          await postDiscordEmbed(
+            env,
+            ABSENCE_LOG_CHANNEL,
+            {
+              title: 'New Absence Request',
+              description: `Review in OC Portal: ${OC_ADMIN_URL}`,
+              color: 0xf59e0b,
+              fields: [
+                { name: 'User', value: `${name || 'Unknown'} (${discordId})`, inline: false },
+                { name: 'Type', value: reason || 'N/A', inline: true },
+                { name: 'Start', value: startDate || 'N/A', inline: true },
+                { name: 'End', value: endDate || startDate || 'N/A', inline: true },
+                { name: 'Total Days', value: totalDays ? String(totalDays) : '1', inline: true },
+                { name: 'Reason', value: comment || 'N/A', inline: false }
+              ],
+              timestamp: new Date().toISOString()
+            },
+            `<@&${STAFF_ALERT_ROLE}>`,
+            { roles: [STAFF_ALERT_ROLE] }
+          );
+        } catch (embedError) {
+          console.error('[ABSENCE] Discord embed failed, but request was saved:', embedError.message);
+        }
+
+        await appendAdminLog(env, {
+          action: 'absence_submitted',
+          adminId: discordId,
+          adminName: name || 'Unknown User',
+          targetId: discordId,
+          details: `Submitted absence ${startDate} to ${endDate || startDate} (${reason || 'N/A'})`
+        });
 
         return new Response(JSON.stringify({ success: true, absence }), { headers: corsHeaders });
       }
@@ -2109,9 +2186,10 @@ export default {
                 staffId: account.profile.staffId || desiredStaffId || '',
                 robloxId: account.profile.robloxId || '',
                 robloxUsername: account.profile.robloxUsername || '',
-                avatar: avatarUrl || null,
+                avatar: avatarUrl || account.avatar || account.profile.avatar || null,
                 timezone: account.profile.timezone || '',
                 country: account.profile.country || '',
+                adminAccess: Boolean(account.profile.adminAccess || account.adminAccess),
                 suspended: account.profile.suspended || false,
                 createdAt: account.profile.createdAt || new Date().toISOString(),
                 dateOfSignup: account.profile.dateOfSignup || account.profile.createdAt || ''
@@ -2391,7 +2469,7 @@ export default {
       if (url.pathname === '/api/admin/user/update' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { discordId, name, email, department, baseLevel, utilisation, robloxId, robloxUsername, staffId } = body;
+          const { discordId, name, email, department, baseLevel, utilisation, robloxId, robloxUsername, staffId, avatar, adminAccess } = body;
           
           if (!discordId) {
             return new Response(JSON.stringify({ success: false, error: 'Missing discordId' }), {
@@ -2411,6 +2489,9 @@ export default {
           if (robloxId !== undefined) profile.robloxId = robloxId;
           if (robloxUsername !== undefined) profile.robloxUsername = robloxUsername;
           if (staffId !== undefined) profile.staffId = staffId;
+          if (avatar !== undefined) profile.avatar = avatar;
+          if (adminAccess !== undefined) profile.adminAccess = Boolean(adminAccess);
+          if (adminAccess !== undefined) profile.adminAccessUpdatedAt = new Date().toISOString();
           if (utilisation !== undefined) {
             profile.suspended = utilisation === 'Suspended';
             profile.utilisation = utilisation;
@@ -2428,7 +2509,19 @@ export default {
           if (robloxId !== undefined) account.robloxId = robloxId;
           if (robloxUsername !== undefined) account.robloxUsername = robloxUsername;
           if (staffId !== undefined) account.staffId = staffId;
+          if (avatar !== undefined) account.avatar = avatar;
+          if (adminAccess !== undefined) account.adminAccess = Boolean(adminAccess);
           await env.DATA.put(accountKey, JSON.stringify(account));
+
+          await appendAdminLog(env, {
+            action: adminAccess !== undefined ? (adminAccess ? 'admin_access_granted' : 'admin_access_removed') : 'profile_updated',
+            adminId: body.updatedById || body.actorId || 'system',
+            adminName: body.updatedByName || body.actorName || 'System',
+            targetId: discordId,
+            details: adminAccess !== undefined
+              ? `${adminAccess ? 'Granted' : 'Removed'} admin portal access${name ? ` for ${name}` : ''}`
+              : `Updated profile for ${name || discordId}`
+          });
           
           return new Response(JSON.stringify({ success: true, profile }), { headers: corsHeaders });
         } catch (e) {
@@ -3363,6 +3456,14 @@ export default {
           const eventsIndex = await env.DATA.get('events:index', 'json') || [];
           eventsIndex.push(eventId);
           await env.DATA.put('events:index', JSON.stringify(eventsIndex));
+
+          await appendAdminLog(env, {
+            action: 'staff_event_created',
+            adminId: createdBy || 'system',
+            adminName: createdByName || 'System',
+            targetId: eventId,
+            details: `Created staff event ${title} for ${date} ${startTime}-${endTime}`
+          });
           
           return new Response(JSON.stringify({ success: true, eventId, event: eventData }), { headers: corsHeaders });
         } catch (e) {
@@ -3378,7 +3479,12 @@ export default {
       if (url.pathname === '/api/events/respond' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { eventId, userId, userName, status, comment, respondedAt } = body;
+          const eventId = body.eventId;
+          const userId = body.userId || body.userDiscordId;
+          const status = body.status || body.response;
+          const comment = body.comment || body.reason || '';
+          const userName = body.userName || body.displayName || body.name || await resolveDisplayName(env, userId, 'Unknown User');
+          const respondedAt = body.respondedAt || new Date().toISOString();
           
           if (!eventId || !userId || !status) {
             return new Response(JSON.stringify({ success: false, error: 'Missing required fields' }), {
@@ -3405,12 +3511,20 @@ export default {
             userId,
             userName,
             status,
-            comment: comment || '',
-            respondedAt: respondedAt || new Date().toISOString()
+            comment,
+            respondedAt
           });
           
           // Update event
           await env.DATA.put(eventKey, JSON.stringify(event));
+
+          await appendAdminLog(env, {
+            action: 'staff_event_response',
+            adminId: userId,
+            adminName: userName,
+            targetId: eventId,
+            details: `${userName} responded ${status} to ${event.title || 'staff event'}`
+          });
           
           return new Response(JSON.stringify({ success: true, event }), { headers: corsHeaders });
         } catch (e) {
@@ -3446,10 +3560,6 @@ export default {
 
               const promises = batch.map(async (userId) => {
                 if (!userId) return { ok: false, userId };
-                if (senderId && String(senderId) === String(userId)) {
-                  console.log(`[EVENTS/NOTIFY] Skipping sender ${userId}`);
-                  return { ok: false, userId, skipped: true };
-                }
 
                 const ok = await sendDiscordDM(env, String(userId), {
                   title: '📅 New Staff Event',
@@ -3485,6 +3595,14 @@ export default {
 
             console.log(`[EVENTS/NOTIFY] Complete - Sent: ${sent}, Failed: ${failed}, Total: ${total}`);
           })());
+
+          await appendAdminLog(env, {
+            action: 'staff_event_notified',
+            adminId: senderId || 'system',
+            adminName: senderName || 'OC Portal',
+            targetId: eventId || '',
+            details: `Queued staff event notification for ${eventTitle || 'Untitled Event'} (${total} staff)`
+          });
 
           return new Response(JSON.stringify({
             success: true,
@@ -3530,7 +3648,6 @@ export default {
               const batch = usersIndex.slice(i, i + batchSize);
               const promises = batch.map(async (userId) => {
                 if (!userId) return { ok: false, userId };
-                if (senderId && String(senderId) === String(userId)) return { ok: false, userId, skipped: true };
 
                 const ok = await sendDiscordDM(env, String(userId), {
                   title: '📣 Staff Broadcast Message',
@@ -3541,6 +3658,14 @@ export default {
                   ],
                   timestamp: new Date().toISOString()
                 });
+
+                            await appendAdminLog(env, {
+                              action: 'staff_broadcast',
+                              adminId: senderId || 'system',
+                              adminName: senderName || 'OC Portal',
+                              targetId: 'all',
+                              details: `Queued staff broadcast to ${total} staff`
+                            });
                 return { ok, userId };
               });
 
@@ -3761,6 +3886,12 @@ export default {
           const taskKey = `task:${taskId}`;
           await env.DATA.put(taskKey, JSON.stringify(task));
 
+          await appendTaskLog(env, taskId, 'created', {
+            title,
+            department,
+            description: task.description
+          }, createdBy, createdByName || 'Unknown');
+
           return new Response(JSON.stringify({ success: true, task }), { headers: corsHeaders });
         } catch (error) {
           console.error('[TASKS]', error);
@@ -3814,6 +3945,12 @@ export default {
             userTasks.push(task);
           }
           await env.DATA.put(userTasksKey, JSON.stringify(userTasks));
+
+          await appendTaskLog(env, taskId, 'claimed', {
+            title: task.title,
+            claimedBy: userId,
+            claimedByName: task.claimedByName
+          }, userId, task.claimedByName || userName || 'Unknown');
 
           return new Response(JSON.stringify({ success: true, task }), { headers: corsHeaders });
         } catch (error) {
@@ -3901,6 +4038,11 @@ export default {
           task.updatedByName = userName || 'System';
 
           await env.DATA.put(taskKey, JSON.stringify(task));
+
+          await appendTaskLog(env, taskId, 'priority_set', {
+            title: task.title,
+            priority: normalizedPriority
+          }, userId || 'system', userName || 'System');
 
           if (task.claimedBy) {
             const userTasksKey = `tasks:${task.claimedBy}`;
@@ -4072,6 +4214,12 @@ export default {
             }
           }
 
+          await appendTaskLog(env, taskId, normalizedStatus === 'completed' || normalizedStatus === 'closed' ? 'completed' : 'status_changed', {
+            title: resolvedTitle,
+            status: normalizedStatus,
+            threadId: resolvedThreadId || null
+          }, userId || 'system', userName || completedBy || 'System');
+
           return new Response(JSON.stringify({ success: true, task }), { headers: corsHeaders });
         } catch (error) {
           console.error('[TASKS STATUS]', error);
@@ -4114,6 +4262,11 @@ export default {
 
           await env.DATA.put(taskKey, JSON.stringify(task));
 
+          await appendTaskLog(env, taskId, 'updated', {
+            title: task.title,
+            update
+          }, task.updatedBy || 'system', task.updatedByName || userName || 'System');
+
           const resolvedThreadId = threadId || task.threadId;
 
           // Send update to Discord thread if threadId is provided
@@ -4142,6 +4295,14 @@ export default {
               // Don't fail the request if Discord fails
             }
           }
+
+          await appendAdminLog(env, {
+            action: 'task_update_posted',
+            adminId: task.updatedBy || 'system',
+            adminName: task.updatedByName || userName || 'System',
+            targetId: taskId,
+            details: `Task update posted for ${task.title}`
+          });
 
           return new Response(JSON.stringify({ success: true, task }), { headers: corsHeaders });
         } catch (error) {
