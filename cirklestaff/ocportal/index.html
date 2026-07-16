@@ -1,0 +1,3421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OC Portal - Oversight & Corporate</title>
+<link rel="icon" type="image/webp" href="../Portal Logo.webp">
+<style>
+:root {
+  --bg: #0b0d17;
+  --bg2: #111427;
+  --bg3: #171a2e;
+  --bg4: #1e2140;
+  --border: #252845;
+  --text: #e2e5f0;
+  --text2: #8890a8;
+  --accent: #6366f1;
+  --accent2: #818cf8;
+  --green: #22c55e;
+  --red: #ef4444;
+  --orange: #f59e0b;
+  --blue: #3b82f6;
+  --radius: 10px;
+  --shadow: 0 4px 24px rgba(0,0,0,.3);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;min-height:100vh;height:100vh}
+.screen{display:none;width:100%;min-height:100vh}
+.screen.active{display:flex}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit;outline:none}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+
+/* ====== LOGIN SCREEN ====== */
+#loginScreen{align-items:center;justify-content:center;position:relative;background:radial-gradient(ellipse at center,#0f1129 0%,#060714 100%);overflow:hidden}
+.stars,.stars2,.stars3{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.stars{background:transparent;animation:animStars 80s linear infinite}
+.stars2{background:transparent;animation:animStars 100s linear infinite}
+.stars3{background:transparent;animation:animStars 120s linear infinite}
+
+.star-dot{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;animation:twinkle 3s ease-in-out infinite alternate}
+.star-dot.s2{width:1px;height:1px;opacity:.6}
+.star-dot.s3{width:3px;height:3px;opacity:.4}
+
+@keyframes twinkle{0%{opacity:.3}100%{opacity:1}}
+@keyframes animStars{0%{transform:translateY(0)}100%{transform:translateY(-2000px)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes pulse-ring{0%{transform:scale(.9);opacity:1}100%{transform:scale(1.4);opacity:0}}
+
+.login-card{
+  position:relative;z-index:10;background:rgba(17,20,39,.85);
+  backdrop-filter:blur(20px);border:1px solid rgba(99,102,241,.2);
+  border-radius:20px;padding:48px 40px;width:380px;max-width:90vw;
+  text-align:center;animation:float 6s ease-in-out infinite;
+  box-shadow:0 0 60px rgba(99,102,241,.08)
+}
+.login-card h1{font-size:28px;font-weight:700;margin-bottom:4px;background:linear-gradient(135deg,#818cf8,#6366f1);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.login-card .subtitle{color:var(--text2);font-size:13px;margin-bottom:32px}
+.login-card input{
+  width:100%;padding:14px 16px;background:rgba(255,255,255,.04);
+  border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--text);font-size:14px;margin-bottom:14px;transition:.2s
+}
+.login-card input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+.login-card input::placeholder{color:var(--text2)}
+.login-btn{
+  width:100%;padding:14px;background:var(--accent);color:#fff;
+  border:none;border-radius:var(--radius);font-size:15px;font-weight:600;
+  transition:.2s;margin-top:8px
+}
+.login-btn:hover{background:var(--accent2);transform:translateY(-1px)}
+.login-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.login-error{color:var(--red);font-size:13px;margin-top:12px;min-height:20px}
+.suspension-warning{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:var(--red);padding:12px;border-radius:var(--radius);font-size:13px;margin-bottom:16px;animation:shake .4s ease}
+@keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}100%{transform:translateX(0)}}
+@keyframes slideIn{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+.update-toast{animation:slideIn .3s ease}
+
+/* ====== LOADING SCREEN ====== */
+#loadingScreen{align-items:center;justify-content:center;flex-direction:column;background:var(--bg)}
+.loader-wrap{text-align:center}
+.orbit-loader{width:80px;height:80px;position:relative;margin:0 auto 24px}
+.orbit-loader .ring{position:absolute;inset:0;border-radius:50%;border:3px solid transparent}
+.orbit-loader .ring:nth-child(1){border-top-color:var(--accent);animation:spin 1s linear infinite}
+.orbit-loader .ring:nth-child(2){border-right-color:var(--accent2);animation:spin 1.5s linear infinite reverse;inset:8px}
+.orbit-loader .ring:nth-child(3){border-bottom-color:#818cf8;animation:spin 2s linear infinite;inset:16px}
+.orbit-loader .core{position:absolute;inset:22px;background:var(--accent);border-radius:50%;animation:pulse .8s ease-in-out infinite alternate;opacity:.6}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%{transform:scale(.8);opacity:.4}100%{transform:scale(1);opacity:.8}}
+.loader-text{color:var(--text2);font-size:15px}
+
+/* ====== FOUND SCREEN ====== */
+#foundScreen{align-items:center;justify-content:center;flex-direction:column;gap:20px;background:var(--bg)}
+.found-avatar{width:96px;height:96px;border-radius:50%;border:3px solid var(--accent);box-shadow:0 0 30px rgba(99,102,241,.3);animation:scaleIn .4s ease}
+.found-text{font-size:22px;font-weight:600}
+.found-text span{color:var(--accent2)}
+.dashboard-btn{
+  padding:14px 40px;background:var(--accent);color:#fff;border:none;
+  border-radius:var(--radius);font-size:15px;font-weight:600;transition:.2s;margin-top:8px
+}
+.dashboard-btn:hover{background:var(--accent2);transform:translateY(-1px)}
+@keyframes scaleIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* ====== DASHBOARD ====== */
+#dashboard{display:none;flex-direction:row;min-height:100vh}
+.sidebar{
+  width:240px;min-width:240px;background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50
+}
+.sidebar-logo{padding:24px 20px;display:flex;align-items:center;gap:8px}
+.sidebar-logo span:first-child{font-size:20px;font-weight:700;color:var(--text)}
+.sidebar-logo .tag{font-size:10px;background:var(--accent);color:#fff;padding:2px 8px;border-radius:20px;font-weight:600}
+.sidebar nav{flex:1;padding:8px 12px;display:flex;flex-direction:column;gap:2px;position:relative}
+.nav-indicator{
+  position:absolute;left:0;top:0;border-radius:8px;
+  background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);
+  transition:transform .25s ease;pointer-events:none
+}
+.nav-btn{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:transparent;border:none;color:var(--text2);
+  font-size:13.5px;font-weight:500;border-radius:8px;transition:.15s;width:100%;text-align:left
+}
+.nav-btn:hover{background:var(--bg4);color:var(--text)}
+.nav-btn.active{background:rgba(99,102,241,.12);color:var(--accent2)}
+.nav-btn svg{width:18px;height:18px;flex-shrink:0}
+.sidebar-user{padding:16px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-user img{width:32px;height:32px;border-radius:50%}
+.sidebar-user .name{font-size:13px;font-weight:500}
+.sidebar-user .role{font-size:11px;color:var(--text2)}
+.logout-btn{
+  margin:8px 12px 12px;padding:8px;background:transparent;border:1px solid var(--border);
+  color:var(--text2);border-radius:8px;font-size:12px;transition:.15s
+}
+.logout-btn:hover{border-color:var(--red);color:var(--red)}
+
+.main-area{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh;height:100vh;overflow:hidden}
+.topbar{
+  padding:16px 28px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:40
+}
+.topbar h2{font-size:18px;font-weight:600}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+.btn{
+  padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;
+  border:none;transition:.15s;display:inline-flex;align-items:center;gap:6px
+}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:#16a34a}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:hover{background:#dc2626}
+.btn-orange{background:var(--orange);color:#fff}
+.btn-orange:hover{background:#d97706}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-blue:hover{background:#2563eb}
+.btn-small{padding:5px 10px;font-size:12px}
+
+.content{padding:24px 28px;flex:1;position:relative;overflow:hidden;min-height:0}
+.tab-content{
+  position:absolute;inset:0;display:flex;flex-direction:column;gap:16px;min-height:0;
+  opacity:0;transform:translateX(14px);pointer-events:none;transition:opacity .25s ease,transform .25s ease
+}
+.tab-content.active{opacity:1;transform:translateX(0);pointer-events:auto}
+
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+.stat-card .label{font-size:12px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.stat-card .value{font-size:26px;font-weight:700}
+.stat-card .value.green{color:var(--green)}
+.stat-card .value.orange{color:var(--orange)}
+.stat-card .value.red{color:var(--red)}
+.stat-card .value.blue{color:var(--blue)}
+.stat-card .value.gray{color:#6b7280}
+
+/* Tables */
+.table-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;min-height:0;flex:1}
+.table-body{overflow:auto;min-height:0}
+.table-header{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.table-header h3{font-size:14px;font-weight:600}
+.data-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;margin:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg2);transition:.15s}
+.data-row:hover{border-color:var(--accent);background:var(--bg4)}
+table{width:100%;border-collapse:collapse}
+thead th{
+  padding:10px 16px;text-align:left;font-size:11px;font-weight:600;
+  color:var(--text2);text-transform:uppercase;letter-spacing:.5px;
+  background:rgba(255,255,255,.02);border-bottom:1px solid var(--border)
+}
+tbody tr{border-bottom:1px solid var(--border);transition:.1s}
+tbody tr:hover{background:rgba(99,102,241,.04)}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:12px 16px;font-size:13px;color:var(--text)}
+.user-cell{display:flex;align-items:center;gap:10px;cursor:pointer}
+.user-cell img{width:32px;height:32px;border-radius:50%;flex-shrink:0}
+.user-cell .name{font-weight:500}
+.user-cell .id{font-size:11px;color:var(--text2)}
+
+.badge{
+  display:inline-block;padding:3px 10px;border-radius:20px;
+  font-size:11px;font-weight:600;text-transform:capitalize
+}
+.badge-pending{background:rgba(245,158,11,.12);color:var(--orange)}
+.badge-approved{background:rgba(34,197,94,.12);color:var(--green)}
+.badge-rejected,.badge-denied{background:rgba(239,68,68,.12);color:var(--red)}
+.badge-suspended{background:rgba(239,68,68,.12);color:var(--red)}
+.badge-active{background:rgba(34,197,94,.12);color:var(--green)}
+.badge-issued{background:rgba(59,130,246,.12);color:var(--blue)}
+.badge-voided{background:rgba(107,114,128,.12);color:#6b7280}
+
+.clickable-row{cursor:pointer}
+.clickable-row:hover{background:rgba(99,102,241,.06)!important}
+
+.empty-state{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty-state svg{margin-bottom:12px;opacity:.4}
+.empty-state p{font-size:14px}
+
+/* ====== USER PANEL ====== */
+.user-panel{
+  position:fixed;top:0;right:-100%;width:100%;height:100vh;
+  background:var(--bg2);border-left:1px solid var(--border);
+  z-index:100;transition:right .3s ease;overflow-y:auto;
+  box-shadow:-10px 0 40px rgba(0,0,0,.4)
+}
+.user-panel.open{right:0}
+.panel-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;
+  display:none;opacity:0;transition:opacity .2s
+}
+.panel-overlay.active{display:block;opacity:1}
+.panel-head{padding:20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+.panel-close{background:transparent;border:none;color:var(--text2);font-size:20px;padding:4px 8px;border-radius:6px}
+.panel-close:hover{background:var(--bg4);color:var(--text)}
+.panel-profile{padding:24px 20px;text-align:center;border-bottom:1px solid var(--border)}
+.panel-profile img{width:80px;height:80px;border-radius:50%;border:3px solid var(--accent);margin-bottom:12px}
+.panel-profile h3{font-size:18px;margin-bottom:4px}
+.panel-profile .dept{color:var(--text2);font-size:13px;margin-bottom:10px}
+.points-display{display:inline-flex;align-items:center;gap:6px;background:var(--bg4);padding:6px 16px;border-radius:20px;font-size:14px;font-weight:600}
+.points-display.positive{color:var(--green)}
+.points-display.negative{color:var(--red)}
+.staff-id-display{background:var(--bg4);padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;color:var(--accent);font-family:monospace}
+.staff-id-btn{padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.staff-id-btn:hover{background:var(--accent2)}
+.director-profile{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border-radius:8px;margin-bottom:16px}
+.director-profile img{width:48px;height:48px;border-radius:50%;border:2px solid var(--accent)}
+.director-profile .info{flex:1}
+.director-profile .title{font-size:12px;color:var(--text2);margin-bottom:2px}
+
+.panel-section{padding:16px 20px;border-bottom:1px solid var(--border)}
+.panel-section h4{font-size:13px;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.info-item{background:var(--bg3);padding:10px 12px;border-radius:8px}
+.info-item .label{font-size:11px;color:var(--text2);margin-bottom:2px}
+.info-item .value{font-size:13px;font-weight:500}
+.info-item.editable{cursor:pointer;border:1px solid transparent;transition:.15s}
+.info-item.editable:hover{border-color:var(--accent)}
+.info-item input{background:transparent;border:none;color:var(--text);font-size:13px;font-weight:500;width:100%}
+.info-item select{background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:13px;padding:4px;border-radius:4px;width:100%}
+.info-item.editable{position:relative;padding-right:36px}
+.edit-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:4px 6px;border-radius:4px;transition:.15s;opacity:0}
+.info-item.editable:hover .edit-btn{opacity:1;color:var(--accent)}
+.panel-list-item-actions{display:flex;gap:6px;margin-top:8px}
+.btn-delete{padding:4px 10px;font-size:11px;background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:6px;cursor:pointer;transition:.15s}
+.btn-delete:hover{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.5)}
+
+.panel-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);overflow-x:auto}
+.panel-tab{
+  flex:1;min-width:100px;padding:10px;text-align:center;font-size:12px;font-weight:500;
+  color:var(--text2);background:transparent;border:none;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap
+}
+.panel-tab:hover{color:var(--text)}
+.panel-tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
+.panel-tab-content{display:none;padding:16px 20px}
+.panel-tab-content.active{display:block}
+.panel-list-item{padding:10px 12px;background:var(--bg3);border-radius:8px;margin-bottom:8px;font-size:13px}
+.panel-list-item .row{display:flex;justify-content:space-between;margin-bottom:4px}
+.panel-list-item .row:last-child{margin-bottom:0}
+
+.panel-actions{padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+.panel-actions button{width:100%;padding:10px;border-radius:8px;font-size:13px;font-weight:500;border:none}
+
+/* ====== MODALS ====== */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;
+  display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px)
+}
+.modal-overlay.active{display:flex}
+.modal{
+  background:var(--bg2);border:1px solid var(--border);border-radius:16px;
+  width:480px;max-width:90vw;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow)
+}
+.modal-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-head h3{font-size:16px;font-weight:600}
+.modal-close{background:transparent;border:none;color:var(--text2);font-size:22px}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:20px 24px}
+.modal-body .field{margin-bottom:16px}
+.modal-body label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:500}
+.modal-body input,.modal-body select,.modal-body textarea{
+  width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:13px;transition:.15s
+}
+.modal-body input:focus,.modal-body select:focus,.modal-body textarea:focus{border-color:var(--accent)}
+.modal-body textarea{resize:vertical;min-height:80px}
+.modal-body select option{background:var(--bg2)}
+.modal-foot{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.modal-foot button{padding:10px 24px}
+
+/* Reason modal */
+.reason-field{margin-top:12px}
+.reason-field textarea{width:100%;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;min-height:60px;resize:vertical}
+
+/* Notification toast */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:300;
+  padding:14px 20px;border-radius:var(--radius);font-size:13px;font-weight:500;
+  transform:translateY(100px);opacity:0;transition:.3s;max-width:360px
+}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{background:var(--green);color:#fff}
+.toast.error{background:var(--red);color:#fff}
+.toast.info{background:var(--blue);color:#fff}
+
+.loading-inline{text-align:center;padding:40px;color:var(--text2);font-size:13px}
+
+/* ====== TASKTRACK LOADING & STYLING ====== */
+.tasktrack-loader-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+  z-index: 50;
+  border-radius: var(--radius);
+}
+
+.tasktrack-logo-spin {
+  width: 100px;
+  height: 100px;
+  animation: spin-logo 2s linear;
+}
+
+.tasktrack-logo-spin img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.3));
+}
+
+@keyframes spin-logo {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* TaskTrack table dark mode optimization */
+#tab-tasktrack table thead th {
+  background: var(--bg4);
+  color: var(--accent2);
+  font-weight: 600;
+}
+
+#tab-tasktrack tbody tr {
+  transition: all 0.15s ease;
+}
+
+#tab-tasktrack tbody tr:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+#tab-tasktrack table tbody td {
+  color: var(--text);
+}
+
+#tab-tasktrack .stat-card {
+  background: linear-gradient(135deg, var(--bg3) 0%, rgba(99, 102, 241, 0.04) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+#tab-tasktrack .stat-card .value {
+  color: var(--accent2);
+}
+
+#tab-tasktrack .stat-card .label {
+  color: var(--text2);
+}
+
+#tab-tasktrack .table-wrap {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+}
+
+#tab-tasktrack input[id="taskFilterSearch"] {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  transition: all 0.2s ease;
+}
+
+#tab-tasktrack input[id="taskFilterSearch"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+#tab-tasktrack input[id="taskFilterSearch"]::placeholder {
+  color: var(--text2);
+}
+
+/* TaskTrack logo in topbar */
+.tasktrack-logo-topbar {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  opacity: 0.8;
+  margin-right: 12px;
+  filter: brightness(1.1);
+}
+
+/* Points input field for "Other" strike */
+.points-field{display:none;margin-top:8px}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar{width:60px;min-width:60px}
+  .sidebar-logo span:first-child,.sidebar-logo .tag,.nav-btn span,.sidebar-user .info{display:none}
+  .nav-btn{justify-content:center;padding:12px}
+  .main-area{margin-left:60px}
+  .user-panel{width:100%;right:-100%}
+  .content{padding:16px}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .info-grid{grid-template-columns:1fr}
+}
+</style>
+<!-- ====== Load Configuration from environment ====== -->
+<!-- Load environment config FIRST before config-loader.js -->
+<script src="../../env-config.js"></script>
+<!-- Load config loader AFTER environment config is defined -->
+<script src="../../config-loader.js"></script>
+<!-- Load local admin credentials only in local/dev contexts -->
+<script>
+(function () {
+  const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname) || window.location.hostname.endsWith('.local');
+  const params = new URLSearchParams(window.location.search);
+  if (!isLocalHost && !params.has('localConfig')) return;
+
+  const loadScript = (src, label) => new Promise((resolve) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => {
+      console.log(`[ADMIN CONFIG] Loaded ${label}`);
+      resolve(true);
+    };
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+
+  (async () => {
+    const adminsLoaded = await loadScript('../../admins.js', 'admins.js');
+    if (!adminsLoaded) {
+      console.log('[ADMIN CONFIG] Using credentials from env-config.js');
+    }
+  })();
+})();
+</script>
+</head>
+<body>
+
+<!-- ====== LOGIN SCREEN ====== -->
+<div id="loginScreen" class="screen active">
+  <div class="stars" id="starsContainer"></div>
+  <div class="login-card">
+    <h1>OC Portal</h1>
+    <p class="subtitle">Oversight & Corporate Administration</p>
+    <form id="loginForm" onsubmit="event.preventDefault(); doLogin();">
+      <input type="text" id="discordIdInput" placeholder="Discord ID" autocomplete="off" />
+      <input type="password" id="pinInput" placeholder="PIN" maxlength="6" autocomplete="off" />
+      <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+    </form>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ====== LOADING SCREEN ====== -->
+<div id="loadingScreen" class="screen">
+  <div class="loader-wrap">
+    <div class="orbit-loader">
+      <div class="ring"></div>
+      <div class="ring"></div>
+      <div class="ring"></div>
+      <div class="core"></div>
+    </div>
+    <p class="loader-text">Looking for your profile...</p>
+  </div>
+</div>
+
+<!-- ====== FOUND SCREEN ====== -->
+<div id="foundScreen" class="screen">
+  <img id="foundAvatar" class="found-avatar" src="" alt="Avatar" />
+  <p class="found-text">Found your profile, <span id="foundName"></span></p>
+  <button class="dashboard-btn" id="goToDashboard">Take me to dashboard</button>
+</div>
+
+<!-- ====== DASHBOARD ====== -->
+<div id="dashboard" class="screen">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span>OC</span><span class="tag">PORTAL</span></div>
+    <nav>
+      <div class="nav-indicator" id="navIndicator"></div>
+      <button class="nav-btn active" data-tab="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Users</span></button>
+      <button class="nav-btn" data-tab="absences"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Absences</span></button>
+      <button class="nav-btn" data-tab="requests"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span>Requests</span></button>
+      <button class="nav-btn" data-tab="payslips"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Payslips</span></button>
+      <button class="nav-btn" data-tab="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>Reports</span></button>
+      <button class="nav-btn" data-tab="admins" id="adminsNavBtn" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1l3 5 6 .9-4.3 4.2 1 6-5.7-3-5.7 3 1-6L3 6.9 9 6z"/><path d="M12 11v10"/><path d="M8 15h8"/></svg><span>ADMINS</span></button>
+      <button class="nav-btn" data-tab="strikes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Strikes</span></button>
+      <button class="nav-btn" data-tab="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="14" r="1"/><circle cx="12" cy="14" r="1"/><circle cx="16" cy="14" r="1"/></svg><span>Calendar</span></button>
+      <button class="nav-btn" data-tab="events" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><path d="M12 1v6m8.66-1.34l-4.24 4.24M21 12h-6m1.34 8.66l-4.24-4.24M12 21v-6m-8.66 1.34l4.24-4.24M3 12h6m-1.34-8.66l4.24 4.24"/></svg><span>Events</span></button>
+      <button class="nav-btn" data-tab="logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg><span>Logs</span></button>
+      <button class="nav-btn" data-tab="tasktrack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>TaskTrack</span></button>
+    </nav>
+    <div class="sidebar-user">
+      <img id="sidebarAvatar" src="" alt="" />
+      <div class="info"><div class="name" id="sidebarName"></div><div class="role">Administrator</div></div>
+    </div>
+    <button class="logout-btn" id="logoutBtn">Log Out</button>
+  </aside>
+
+  <div class="main-area">
+    <div class="topbar">
+      <h2 id="tabTitle">Users</h2>
+      <div class="topbar-actions">
+        <button class="btn btn-outline" id="refreshBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh</button>
+      </div>
+    </div>
+    <div class="content">
+      <!-- USERS TAB -->
+      <div class="tab-content active" id="tab-users">
+        <div class="stats-row" id="usersStats"></div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>All Users</h3><button class="btn btn-primary" id="openBroadcastBtn">📣 Broadcast to Staff</button></div>
+          <div id="usersTable" class="table-body"><div class="loading-inline">Loading users...</div></div>
+        </div>
+      </div>
+
+      <!-- ADMINS TAB -->
+      <div class="tab-content" id="tab-admins">
+        <div id="adminsLockedShell" style="position:relative;min-height:420px;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:linear-gradient(180deg, rgba(16, 20, 31, 0.92), rgba(9, 12, 20, 0.98));">
+          <div id="adminsPanel" style="filter: blur(10px); pointer-events:none; opacity:0.5; padding:16px;">
+            <div class="stats-row" id="adminsStats"></div>
+            <div class="table-wrap">
+              <div class="table-header"><h3>Admin Portal Access</h3><button class="btn btn-primary" id="openAddAdminBtn">+ Add Admin</button></div>
+              <div id="adminsTable" class="table-body"><div class="loading-inline">Loading admin access...</div></div>
+            </div>
+          </div>
+          <div id="adminsOverlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(4, 8, 18, 0.42);backdrop-filter:blur(3px);">
+            <div style="width:min(560px, 100%);background:rgba(10,14,24,0.92);border:1px solid rgba(148,163,184,0.16);border-radius:18px;padding:28px;box-shadow:0 30px 80px rgba(0,0,0,0.5);text-align:center;">
+              <div style="font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text2);margin-bottom:10px;">Restricted Area</div>
+              <h3 style="margin:0 0 10px 0;font-size:28px;">ADMINS</h3>
+              <p id="adminsLockMessage" style="margin:0 0 18px 0;color:var(--text2);line-height:1.5;">Only Marcus Ray and Sam Caster can open this section.</p>
+              <button class="btn btn-primary" id="adminsViewBtn" style="min-width:160px;">View</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABSENCES TAB -->
+      <div class="tab-content" id="tab-absences">
+        <div class="stats-row" id="absencesStats"></div>
+        <div style="margin-bottom:16px"><button class="btn btn-primary" onclick="openModal('manualLoaModal')">+ Manual LOA Set</button></div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>All Absence Requests</h3></div>
+          <div id="absencesTable" class="table-body"><div class="loading-inline">Loading absences...</div></div>
+        </div>
+      </div>
+
+      <!-- REQUESTS TAB -->
+      <div class="tab-content" id="tab-requests">
+        <div class="stats-row" id="requestsStats"></div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>All Requests</h3></div>
+          <div id="requestsTable" class="table-body"><div class="loading-inline">Loading requests...</div></div>
+        </div>
+      </div>
+
+      <!-- PAYSLIPS TAB -->
+      <div class="tab-content" id="tab-payslips">
+        <div class="stats-row" id="payslipsStats"></div>
+        <div style="margin-bottom:16px"><button class="btn btn-primary" onclick="openModal('payslipModal')">+ Send Payslip</button></div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>All Payslips</h3></div>
+          <div id="payslipsTable" class="table-body"><div class="loading-inline">Loading payslips...</div></div>
+        </div>
+      </div>
+
+      <!-- REPORTS TAB -->
+      <div class="tab-content" id="tab-reports">
+        <div class="stats-row" id="reportsStats"></div>
+        <div style="margin-bottom:16px"><button class="btn btn-primary" onclick="openModal('reportModal')">+ Issue Report</button></div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>All Reports</h3></div>
+          <div id="reportsTable" class="table-body"><div class="loading-inline">Loading reports...</div></div>
+        </div>
+      </div>
+
+      <!-- STRIKES TAB -->
+      <div class="tab-content" id="tab-strikes">
+        <div class="stats-row" id="strikesStats"></div>
+        <div style="margin-bottom:16px"><button class="btn btn-primary" onclick="openModal('strikeModal')">+ Issue Disciplinary</button></div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>All Disciplinaries</h3></div>
+          <div id="strikesTable" class="table-body"><div class="loading-inline">Loading disciplinaries...</div></div>
+        </div>
+      </div>
+
+      <!-- CALENDAR TAB -->
+      <div class="tab-content" id="tab-calendar">
+        <div class="stats-row">
+          <div class="stat-card"><div class="label">Total Events</div><div class="value" id="calendarEventsCount">-</div></div>
+          <div class="stat-card"><div class="label">This Month</div><div class="value" id="calendarThisMonth">-</div></div>
+          <div class="stat-card"><div class="label">Upcoming</div><div class="value" id="calendarUpcoming">-</div></div>
+        </div>
+        <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="openModal('calendarEventModal')">+ Add Calendar Event</button>
+          <button class="btn btn-primary" onclick="openModal('staffEventModal')">+ Add Staff Event</button>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>Calendar Events</h3></div>
+          <div id="calendarTable" class="table-body"><div class="loading-inline">Loading events...</div></div>
+        </div>
+        <div class="table-wrap" style="margin-top:16px">
+          <div class="table-header"><h3>Staff Events (RSVP)</h3></div>
+          <div id="calendarStaffEventsTable" class="table-body"><div class="loading-inline">Loading staff events...</div></div>
+        </div>
+      </div>
+
+      <!-- EVENTS TAB (Staff Events with RSVP) -->
+      <div class="tab-content" id="tab-events">
+        <div class="stats-row">
+          <div class="stat-card"><div class="label">Total Events</div><div class="value" id="eventsCount">-</div></div>
+          <div class="stat-card"><div class="label">Upcoming</div><div class="value" id="eventsUpcoming">-</div></div>
+          <div class="stat-card"><div class="label">Total Responses</div><div class="value" id="eventsTotalResponses">-</div></div>
+        </div>
+        <div style="margin-bottom:16px"><button class="btn btn-primary" onclick="openModal('staffEventModal')">+ Add Event</button></div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>Staff Events</h3></div>
+          <div id="eventsTable" class="table-body"><div class="loading-inline">Loading events...</div></div>
+        </div>
+      </div>
+
+      <!-- LOGS TAB -->
+      <div class="tab-content" id="tab-logs">
+        <div class="stats-row">
+          <div class="stat-card"><div class="label">Total Logs</div><div class="value" id="logsCount">-</div></div>
+          <div class="stat-card"><div class="label">Today</div><div class="value" id="logsToday">-</div></div>
+          <div class="stat-card"><div class="label">This Week</div><div class="value" id="logsThisWeek">-</div></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>Admin Activity Logs</h3></div>
+          <div id="logsTable" class="table-body"><div class="loading-inline">Loading logs...</div></div>
+        </div>
+      </div>
+
+      <!-- TASKTRACK LOGS TAB -->
+      <div class="tab-content" id="tab-tasktrack">
+        <div class="stats-row">
+          <div class="stat-card"><div class="label">Total Task Logs</div><div class="value" id="taskLogsCount">-</div></div>
+          <div class="stat-card"><div class="label">Created Today</div><div class="value" id="taskLogsToday">-</div></div>
+          <div class="stat-card"><div class="label">This Week</div><div class="value" id="taskLogsThisWeek">-</div></div>
+        </div>
+        <div style="margin-bottom:16px">
+          <input type="text" id="taskFilterSearch" placeholder="Search by task name or user..." style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;color:var(--text);font-size:13px;width:250px;max-width:100%">
+        </div>
+        <div class="table-wrap">
+          <div class="table-header"><h3>Task Activity History</h3></div>
+          <div id="taskLogsTable" class="table-body"><div class="loading-inline">Loading task logs...</div></div>
+        </div>
+      </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== USER PANEL ====== -->
+<div class="panel-overlay" id="panelOverlay"></div>
+<div class="user-panel" id="userPanel">
+  <div class="panel-head"><button class="panel-close" id="closePanelBtn">&larr;</button><h3>User Profile</h3></div>
+  <div id="panelContent"></div>
+</div>
+
+<!-- ====== PAYSLIP MODAL ====== -->
+<div class="modal-overlay" id="payslipModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Send Payslip</h3><button class="modal-close" onclick="closeModal('payslipModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Select User</label><select id="payslipUser"></select></div>
+      <div class="field"><label>Pay Period</label><input type="text" id="payslipPeriod" placeholder="e.g. January 2026" /></div>
+      <div class="field"><label>Payslip Link or Attachment URL</label><input type="text" id="payslipLink" placeholder="https://..." /></div>
+      <div class="field"><label>Comment</label><textarea id="payslipComment" placeholder="Optional comment..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('payslipModal')">Cancel</button>
+      <button class="btn btn-primary" id="sendPayslipBtn">Send Payslip</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== REPORT MODAL ====== -->
+<div class="modal-overlay" id="reportModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Issue Report</h3><button class="modal-close" onclick="closeModal('reportModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Select User</label><select id="reportUser"></select></div>
+      <div class="field"><label>Report Type</label>
+        <select id="reportType">
+          <option value="">Select type...</option>
+          <option value="Commendation">Commendation (+1 point)</option>
+          <option value="Negative Behaviour">Negative Behaviour (-1 point)</option>
+          <option value="Disruptive">Disruptive (-1 point)</option>
+          <option value="Monthly Report">Monthly Report (0 points)</option>
+        </select>
+      </div>
+      <div class="field"><label>Description</label><textarea id="reportDesc" placeholder="Describe the report..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('reportModal')">Cancel</button>
+      <button class="btn btn-primary" id="sendReportBtn">Send Report</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== STRIKE MODAL ====== -->
+<!-- ====== STRIKE MODAL ====== -->
+<div class="modal-overlay" id="strikeModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Issue Disciplinary</h3><button class="modal-close" onclick="closeModal('strikeModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Select User</label><select id="strikeUser"></select></div>
+      <div class="field"><label>Strike Type</label>
+        <select id="strikeType" onchange="toggleStrikePoints()">
+          <option value="">Select type...</option>
+          <option value="Verbal Warning">Verbal Warning (-1 point)</option>
+          <option value="Formal Warning">Formal Warning (-2 points)</option>
+          <option value="Suspension">Suspension (-4 points)</option>
+          <option value="Other">Other (custom points)</option>
+        </select>
+      </div>
+      <div class="field points-field" id="customPointsField"><label>Points to Remove</label><input type="number" id="strikeCustomPoints" placeholder="e.g. 3" min="0"/></div>
+      <div class="field"><label>Description</label><textarea id="strikeDesc" placeholder="Describe the reason..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('strikeModal')">Cancel</button>
+      <button class="btn btn-red" id="sendStrikeBtn">Issue Disciplinary</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MANUAL LOA MODAL ====== -->
+<div class="modal-overlay" id="manualLoaModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Set Manual LOA</h3><button class="modal-close" onclick="closeModal('manualLoaModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Select User</label><select id="manualLoaUser"></select></div>
+      <div class="field"><label>LOA Type</label>
+        <select id="manualLoaType">
+          <option value="">Select type...</option>
+          <option value="Sick Leave">Sick Leave</option>
+          <option value="Personal Leave">Personal Leave</option>
+          <option value="Holiday">Holiday</option>
+          <option value="Compassionate Leave">Compassionate Leave</option>
+          <option value="Maternity Leave">Maternity Leave</option>
+          <option value="Paternity Leave">Paternity Leave</option>
+          <option value="Parental Leave">Parental Leave</option>
+          <option value="Unpaid Leave">Unpaid Leave</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Start Date</label><input type="date" id="manualLoaStartDate" /></div>
+      <div class="field"><label>End Date</label><input type="date" id="manualLoaEndDate" /></div>
+      <div class="field"><label>Comment (optional)</label><textarea id="manualLoaComment" placeholder="Add optional comment..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('manualLoaModal')">Cancel</button>
+      <button class="btn btn-primary" id="confirmManualLoaBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== CALENDAR EVENT MODAL ====== -->
+<div class="modal-overlay" id="calendarEventModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Add Calendar Event</h3><button class="modal-close" onclick="closeModal('calendarEventModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Event Date</label><input type="date" id="eventDate" /></div>
+      <div class="field"><label>Event Title</label><input type="text" id="eventTitle" placeholder="Event title..." /></div>
+      <div class="field"><label>Event Type</label>
+        <select id="eventType">
+          <option value="event">General Event</option>
+          <option value="meeting">Meeting</option>
+          <option value="deadline">Deadline</option>
+          <option value="holiday">Holiday</option>
+          <option value="announcement">Announcement</option>
+        </select>
+      </div>
+      <div class="field"><label>Description</label><textarea id="eventDescription" placeholder="Event description..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('calendarEventModal')">Cancel</button>
+      <button class="btn btn-primary" id="addCalendarEventBtn">Add Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== STAFF EVENT MODAL (RSVP Events) ====== -->
+<div class="modal-overlay" id="staffEventModal">
+  <div class="modal" style="max-height: 85vh; overflow-y: auto;">
+    <div class="modal-head"><h3>Create Staff Event</h3><button class="modal-close" onclick="closeModal('staffEventModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Event Category</label>
+        <select id="eventCategory">
+          <option value="">Select Category...</option>
+          <option value="entertainment">Entertainment Purposes</option>
+          <option value="meeting">Meeting</option>
+          <option value="gathering">Gatherings</option>
+          <option value="gaming">In-Game Event</option>
+          <option value="external">External Event</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Event Date</label><input type="date" id="staffEventDate" /></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field"><label>Start Time</label><input type="time" id="staffEventStartTime" /></div>
+        <div class="field"><label>End Time</label><input type="time" id="staffEventEndTime" /></div>
+      </div>
+      <div class="field"><label style="display:flex;gap:6px;align-items:center">Total Duration: <span id="eventDuration" style="font-weight:bold;color:var(--primary)">-</span></label></div>
+      <div class="field"><label>Event Title</label><input type="text" id="staffEventTitle" placeholder="Event title..." /></div>
+      <div class="field"><label>Description</label><textarea id="staffEventDescription" placeholder="Detailed event description..."></textarea></div>
+      <div class="field"><label>Attendance</label>
+        <select id="staffEventMandatory">
+          <option value="optional">Optional</option>
+          <option value="mandatory">Mandatory</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('staffEventModal')">Cancel</button>
+      <button class="btn btn-primary" id="addStaffEventBtn">Create Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== EVENT DETAILS MODAL ====== -->
+<div class="modal-overlay" id="eventDetailsModal">
+  <div class="modal" style="max-height: 85vh; overflow-y: auto;">
+    <div class="modal-head"><h3 id="eventDetailsTitle">Event Details</h3><button class="modal-close" onclick="closeModal('eventDetailsModal')">&times;</button></div>
+    <div class="modal-body">
+      <div id="eventDetailsContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== ACTION MODAL (APPROVE/DENY) ====== -->
+<div class="modal-overlay" id="actionModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="actionModalTitle">Confirm Action</h3><button class="modal-close" onclick="closeModal('actionModal')">&times;</button></div>
+    <div class="modal-body">
+      <p id="actionModalText" style="margin-bottom:14px;font-size:14px"></p>
+      <div class="field"><label>Reason (optional)</label><textarea id="actionReason" placeholder="Enter reason..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('actionModal')">Cancel</button>
+      <button class="btn btn-primary" id="actionConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== CONFIRM MODAL (YES/NO) ====== -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head"><h3 id="confirmModalTitle">Confirm</h3><button class="modal-close" onclick="closeModal('confirmModal')">&times;</button></div>
+    <div class="modal-body">
+      <p id="confirmModalText" style="font-size:14px;line-height:1.6"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('confirmModal')">Cancel</button>
+      <button class="btn btn-primary" id="confirmModalBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="staffBroadcastModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Broadcast Message to Staff</h3><button class="modal-close" onclick="closeModal('staffBroadcastModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Message</label><textarea id="staffBroadcastMessage" placeholder="Write the message to send to all staff..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('staffBroadcastModal')">Cancel</button>
+      <button class="btn btn-primary" id="sendBroadcastBtn">Send Broadcast</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="adminAccessModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head"><h3>Give Admin Access</h3><button class="modal-close" onclick="closeModal('adminAccessModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Select Registered User</label>
+        <select id="adminAccessUserSelect">
+          <option value="">Loading users...</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('adminAccessModal')">Cancel</button>
+      <button class="btn btn-primary" id="giveAdminBtn">Give Admin</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="profileEditModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="profileEditTitle">Edit Profile</h3><button class="modal-close" onclick="closeModal('profileEditModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field" id="editFieldContainer"></div>
+      <div class="field"><label>Reason for change</label><textarea id="profileEditReason" placeholder="Explain the change..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('profileEditModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProfileEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="staffIdModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Assign Staff ID</h3><button class="modal-close" onclick="closeModal('staffIdModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Select Department</label>
+        <select id="staffIdDept">
+          <option value="">-- Select Department --</option>
+          <option value="OC">Oversight & Corporate (OC)</option>
+          <option value="FM">Finance & Marketing (FM)</option>
+          <option value="CR">Customer Relations (CR)</option>
+          <option value="DD">Development (DD)</option>
+        </select>
+      </div>
+      <div class="field"><label>Select Tier Level</label>
+        <select id="staffIdTier">
+          <option value="">-- Select Tier --</option>
+          <option value="1">Level 1 - Executive Director</option>
+          <option value="2">Level 2 - Board of Directors</option>
+          <option value="3">Level 3 - Senior Manager</option>
+          <option value="4">Level 4 - Manager</option>
+          <option value="5">Level 5 - Senior Staff</option>
+          <option value="6">Level 6 - Full-time Staff</option>
+          <option value="7">Level 7 - Part-time Staff</option>
+          <option value="8">Level 8 - Specialist</option>
+          <option value="9">Level 9 - Senior Specialist</option>
+          <option value="10">Level 10 - Consultant</option>
+          <option value="11">Level 11 - Coordinator</option>
+          <option value="12">Level 12 - Assistant</option>
+          <option value="13">Level 13 - Junior Staff</option>
+          <option value="14">Level 14 - Intern</option>
+          <option value="15">Level 15 - Customer Relations</option>
+        </select>
+      </div>
+      <div class="field"><label>Generated Staff ID</label><div id="staffIdPreview" class="staff-id-display" style="min-height:36px;display:flex;align-items:center">-- Select above --</div></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('staffIdModal')">Cancel</button>
+      <button class="btn btn-primary" id="assignStaffIdBtn" onclick="assignStaffId()">Assign ID</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== TOAST ====== -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   CONFIG & STATE
+   ================================================================ */
+// Load API config from environment or use defaults
+const API = window.CONFIG?.WORKER_URL || 'https://timeclock-backend.marcusray.workers.dev';
+const GUILD_ID = window.CONFIG?.GUILD_ID || '1310656642672627752';
+const ADMIN_ACCESS_MANAGER_IDS = new Set(['1088907566844739624', '1187751127039615086']);
+
+// Admin credentials are now fetched securely from backend via /api/admin/validate
+// No hardcoded credentials in frontend for security
+console.log('[ADMIN PORTAL] Admin credentials will be validated against backend');
+
+const REPORT_POINTS = { 'Commendation': 1, 'Negative Behaviour': -1, 'Disruptive': -1, 'Monthly Report': 0 };
+const STRIKE_POINTS = { 'Verbal Warning': -1, 'Formal Warning': -2, 'Suspension': -4 };
+const DEPARTMENT_LABELS = {
+  '1315323804528017498': 'Development',
+  '1315042036969242704': 'Customer Relations',
+  '1433453982453338122': 'Finance and Marketing',
+  '1315041666851274822': 'Oversight and Corporate',
+  'OC': 'Oversight and Corporate',
+  'FM': 'Finance and Marketing',
+  'CR': 'Customer Relations',
+  'DD': 'Development'
+};
+
+const DEPARTMENT_OPTIONS = [
+  { value: 'Oversight and Corporate', label: 'Oversight and Corporate' },
+  { value: 'Finance and Marketing', label: 'Finance and Marketing' },
+  { value: 'Customer Relations', label: 'Customer Relations' },
+  { value: 'Development', label: 'Development' }
+];
+
+function formatDepartment(value) {
+  if (!value) return '-';
+  const cleaned = String(value).trim();
+  return DEPARTMENT_LABELS[cleaned] || cleaned;
+}
+
+function canManageAdminAccess() {
+  return Boolean(state.admin?.id && ADMIN_ACCESS_MANAGER_IDS.has(String(state.admin.id)));
+}
+
+function syncAdminAccessVisibility() {
+  const navBtn = document.getElementById('adminsNavBtn');
+  if (navBtn) {
+    navBtn.style.display = canManageAdminAccess() ? '' : 'none';
+  }
+}
+
+function generateStaffId(dept, tier) {
+  if (!dept || !tier) return null;
+  const rand = String(Math.floor(Math.random() * 100000)).padStart(5, '0');
+  return `${dept}${rand}${tier}`;
+}
+
+function previewStaffId() {
+  const dept = document.getElementById('staffIdDept')?.value || '';
+  const tier = document.getElementById('staffIdTier')?.value || '';
+  const preview = document.getElementById('staffIdPreview');
+  if (!dept || !tier) { preview.textContent = '-- Select above --'; return; }
+  const id = generateStaffId(dept, tier);
+  preview.textContent = id || '-- Select above --';
+}
+
+async function assignStaffId() {
+  const user = state.selectedUser;
+  if (!user) return;
+  const dept = document.getElementById('staffIdDept')?.value || '';
+  const tier = document.getElementById('staffIdTier')?.value || '';
+  if (!dept || !tier) { toast('Select department and tier', 'error'); return; }
+  const staffId = generateStaffId(dept, tier);
+  try {
+    await apiPost('/api/admin/user/update', { discordId: user.discordId, staffId });
+    user.staffId = staffId;
+    await sendDiscordDM(user.discordId, { title: '✅ Staff ID Assigned', description: `Your staff ID is: **${staffId}**\n\nDepartment: ${dept}\nTier: ${tier}` });
+    await logAdminAction('staff_id_assigned', `Assigned staff ID ${staffId} to ${user.name}`, user.discordId);
+    toast('Staff ID assigned', 'success');
+    closeModal('staffIdModal');
+    const idx = state.users.findIndex(u => u.discordId === user.discordId);
+    await openUserPanel(idx);
+  } catch (e) {
+    toast('Failed to assign staff ID', 'error');
+  }
+}
+const BASE_LEVELS = [
+  { value: '1|Executive Director', label: 'Level 1 - Executive Director' },
+  { value: '2|Board of Directors', label: 'Level 2 - Board of Directors' },
+  { value: '3|Associate Director', label: 'Level 3 - Associate Director' },
+  { value: '4|Corporate Manager/Intern', label: 'Level 4 - Corporate Manager/Intern' },
+  { value: '5|Development Head', label: 'Level 5 - Development Head' },
+  { value: '6|Sr Developer', label: 'Level 6 - Sr Developer' },
+  { value: '7|Developer', label: 'Level 7 - Developer' },
+  { value: '8|Finance Head', label: 'Level 8 - Finance Head' },
+  { value: '9|Sr Finance Clerk', label: 'Level 9 - Sr Finance Clerk' },
+  { value: '10|Finance Clerk', label: 'Level 10 - Finance Clerk' },
+  { value: '11|Marketing Head', label: 'Level 11 - Marketing Head' },
+  { value: '12|Sr Marketing Clerk', label: 'Level 12 - Sr Marketing Clerk' },
+  { value: '13|Marketing Clerk', label: 'Level 13 - Marketing Clerk' },
+  { value: '14|Customer Relations Head', label: 'Level 14 - Customer Relations Head' },
+  { value: '15|Support Agent', label: 'Level 15 - Support Agent' }
+];
+
+let state = {
+  admin: null,
+  users: [],
+  discordMembers: [],
+  absences: [],
+  requests: [],
+  payslips: [],
+  reports: [],
+  strikes: [],
+  activeTab: 'users',
+  selectedUser: null,
+  pendingAction: null,
+  profileEdit: null
+};
+
+/* ================================================================
+   STARS GENERATION
+   ================================================================ */
+function generateStars() {
+  const c = document.getElementById('starsContainer');
+  if (!c) return;
+  for (let i = 0; i < 200; i++) {
+    const s = document.createElement('div');
+    const size = Math.random() < 0.6 ? '' : (Math.random() < 0.5 ? 's2' : 's3');
+    s.className = 'star-dot ' + size;
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 100 + '%';
+    s.style.animationDelay = (Math.random() * 5) + 's';
+    s.style.animationDuration = (2 + Math.random() * 4) + 's';
+    c.appendChild(s);
+  }
+}
+
+/* ================================================================
+   SCREEN MANAGEMENT
+   ================================================================ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) { el.classList.add('active'); if (id === 'dashboard') el.style.display = 'flex'; }
+}
+
+function updateNavIndicator(targetBtn) {
+  const indicator = document.getElementById('navIndicator');
+  if (!indicator || !targetBtn) return;
+  const nav = document.querySelector('.sidebar nav');
+  const navPaddingLeft = parseInt(window.getComputedStyle(nav).paddingLeft);
+  const navPaddingRight = parseInt(window.getComputedStyle(nav).paddingRight);
+  const btnOffsetLeft = targetBtn.offsetLeft - navPaddingLeft;
+  indicator.style.width = `${targetBtn.offsetWidth}px`;
+  indicator.style.height = `${targetBtn.offsetHeight}px`;
+  indicator.style.transform = `translateY(${targetBtn.offsetTop}px) translateX(${btnOffsetLeft}px)`;
+}
+
+function isAdminSectionUnlocked() {
+  return canManageAdminAccess() && state.admin?.id && ADMIN_ACCESS_MANAGER_IDS.has(String(state.admin.id)) && state.adminSectionUnlocked === true;
+}
+
+function renderAdminsLockedState(message, locked = true) {
+  const overlay = document.getElementById('adminsOverlay');
+  const panel = document.getElementById('adminsPanel');
+  const lockMessage = document.getElementById('adminsLockMessage');
+  if (lockMessage && message) lockMessage.textContent = message;
+  if (overlay) overlay.style.display = locked ? 'flex' : 'none';
+  if (panel) {
+    panel.style.filter = locked ? 'blur(10px)' : 'none';
+    panel.style.pointerEvents = locked ? 'none' : 'auto';
+    panel.style.opacity = locked ? '0.5' : '1';
+  }
+}
+
+async function loadAdminsSection() {
+  const container = document.getElementById('adminsTable');
+  if (!container) return;
+
+  if (!canManageAdminAccess()) {
+    renderAdminsLockedState('Unauthorised Access. If this is a mistake, contact Marcus Ray.', true);
+    container.innerHTML = '<div class="empty-state"><p>Restricted section.</p></div>';
+    return;
+  }
+
+  renderAdminsLockedState('Verifying your identity....', true);
+  container.innerHTML = '<div class="loading-inline">Verifying your identity....</div>';
+
+  await new Promise(resolve => setTimeout(resolve, 900));
+
+  if (!canManageAdminAccess()) {
+    renderAdminsLockedState('Unauthorised Access. If this is a mistake, contact Marcus Ray.', true);
+    container.innerHTML = '<div class="empty-state"><p>Unauthorised Access. If this is a mistake, contact Marcus Ray.</p></div>';
+    return;
+  }
+
+  state.adminSectionUnlocked = true;
+  renderAdminsLockedState('Verifying your identity....', false);
+
+  const admins = (state.users || []).filter(u => u.adminAccess);
+  const total = admins.length;
+  const managers = admins.filter(u => ADMIN_ACCESS_MANAGER_IDS.has(String(u.discordId))).length;
+  const staff = total - managers;
+
+  const stats = document.getElementById('adminsStats');
+  if (stats) {
+    stats.innerHTML = `
+      <div class="stat-card"><div class="label">Total Admins</div><div class="value blue">${total}</div></div>
+      <div class="stat-card"><div class="label">Managers</div><div class="value green">${managers}</div></div>
+      <div class="stat-card"><div class="label">Other Access</div><div class="value orange">${staff}</div></div>`;
+  }
+
+  if (!admins.length) {
+    container.innerHTML = '<div class="empty-state"><p>No users currently have admin access.</p></div>';
+    return;
+  }
+
+  let html = `<table><thead><tr><th>User</th><th>Discord ID</th><th>Department</th><th>Added On</th><th>Actions</th></tr></thead><tbody>`;
+  admins.forEach(user => {
+    const date = user.adminAccessUpdatedAt || user.dateOfSignup || user.createdAt || '';
+    html += `<tr>
+      <td><div class="user-cell"><img src="${user.avatar || defaultAvatar(user.discordId || '0')}" alt="" onerror="this.src='${defaultAvatar(user.discordId || '0')}'"/><div><div class="name">${esc(user.name || user.discordName || 'Unknown')}</div><div class="id">${user.adminAccess ? '<span class="badge" style="background:rgba(59,130,246,0.16);color:#60a5fa;border:1px solid rgba(96,165,250,0.35)">ADMIN ACCESS</span>' : ''}</div></div></div></td>
+      <td>${esc(user.discordId || '-')}</td>
+      <td>${esc(formatDepartment(user.department))}</td>
+      <td>${date ? new Date(date).toLocaleDateString('en-GB') : '-'}</td>
+      <td>${ADMIN_ACCESS_MANAGER_IDS.has(String(user.discordId)) ? '<span style="font-size:11px;color:var(--text2)">Core admin</span>' : `<button class="btn btn-red btn-small" onclick="removeAdminAccess('${user.discordId}')">Remove</button>`}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+async function openAddAdminModal() {
+  if (!canManageAdminAccess()) {
+    renderAdminsLockedState('Unauthorised Access. If this is a mistake, contact Marcus Ray.', true);
+    return;
+  }
+
+  populateAdminAccessSelect(state.users || []);
+  document.getElementById('adminAccessUserSelect').value = '';
+  openModal('adminAccessModal');
+}
+
+async function giveAdminAccess() {
+  const select = document.getElementById('adminAccessUserSelect');
+  const discordId = select?.value || '';
+  if (!discordId) {
+    toast('Select a user first', 'error');
+    return;
+  }
+
+  const user = state.users.find(u => u.discordId === discordId);
+  if (!user) {
+    toast('User not found', 'error');
+    return;
+  }
+
+  const ok = await customConfirm('Give Admin Access', `Give admin access to ${user.name || user.discordId}?`);
+  if (!ok) return;
+
+  try {
+    await apiPost('/api/admin/user/update', {
+      discordId,
+      adminAccess: true,
+      updatedById: state.admin?.id,
+      updatedByName: state.admin?.name
+    });
+    user.adminAccess = true;
+    user.adminAccessUpdatedAt = new Date().toISOString();
+    toast(`Admin access granted for ${user.name || user.discordId}`, 'success');
+    await logAdminAction('admin_access_granted', `Granted admin access to ${user.name || user.discordId}`, discordId);
+    closeModal('adminAccessModal');
+    await loadUsers();
+    await loadAdminsSection();
+    const idx = state.users.findIndex(u => u.discordId === discordId);
+    if (idx >= 0) await openUserPanel(idx);
+  } catch (e) {
+    toast('Failed to give admin access', 'error');
+  }
+}
+
+async function removeAdminAccess(discordId) {
+  const user = state.users.find(u => u.discordId === discordId);
+  if (!user) {
+    toast('User not found', 'error');
+    return;
+  }
+
+  const ok = await customConfirm('Remove Admin Access', `Would you like to remove admin access for ${user.name || user.discordId}?`);
+  if (!ok) return;
+
+  try {
+    renderAdminsLockedState('Verifying your identity....', true);
+    toast('Removing admin access...', 'info');
+    await apiPost('/api/admin/user/update', {
+      discordId,
+      adminAccess: false,
+      updatedById: state.admin?.id,
+      updatedByName: state.admin?.name
+    });
+    user.adminAccess = false;
+    user.adminAccessUpdatedAt = new Date().toISOString();
+    await logAdminAction('admin_access_removed', `Removed admin access for ${user.name || user.discordId}`, discordId);
+    toast(`Admin access removed for ${user.name || user.discordId}`, 'success');
+    await loadUsers();
+    await loadAdminsSection();
+    const idx = state.users.findIndex(u => u.discordId === discordId);
+    if (idx >= 0) await openUserPanel(idx);
+  } catch (e) {
+    toast('Failed to remove admin access', 'error');
+  }
+}
+
+/* ================================================================
+   API HELPERS
+   ================================================================ */
+async function apiGet(path) {
+  try {
+    const r = await fetch(API + path);
+    if (!r.ok) {
+      const errorData = await r.json().catch(() => ({ error: 'Network error' }));
+      throw new Error(errorData.error || `HTTP ${r.status}`);
+    }
+    return await r.json();
+  } catch (e) {
+    console.error('[API GET]', path, e);
+    throw e;
+  }
+}
+
+async function apiPost(path, body) {
+  try {
+    const r = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await r.json();
+    if (!r.ok) {
+      throw new Error(data?.error || `HTTP ${r.status}`);
+    }
+    return data;
+  } catch (e) {
+    console.error('[API POST]', path, e);
+    throw e;
+  }
+}
+
+function avatarUrl(userId, hash) {
+  if (hash) return `https://cdn.discordapp.com/avatars/${userId}/${hash}.png?size=128`;
+  const idx = Number((BigInt(userId) >> 22n) % 6n);
+  return `https://cdn.discordapp.com/embed/avatars/${idx}.png`;
+}
+
+function defaultAvatar(userId) {
+  const idx = Number((BigInt(userId) >> 22n) % 6n);
+  return `https://cdn.discordapp.com/embed/avatars/${idx}.png`;
+}
+
+/* ================================================================
+   CUSTOM CONFIRM MODAL
+   ================================================================ */
+function customConfirm(title, message) {
+  return new Promise((resolve) => {
+    document.getElementById('confirmModalTitle').textContent = title;
+    document.getElementById('confirmModalText').textContent = message;
+    document.getElementById('confirmModal').classList.add('active');
+    
+    const btn = document.getElementById('confirmModalBtn');
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    
+    newBtn.addEventListener('click', () => {
+      closeModal('confirmModal');
+      resolve(true);
+    });
+    
+    // Cancel on overlay click
+    const overlay = document.getElementById('confirmModal');
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        closeModal('confirmModal');
+        resolve(false);
+      }
+    }, { once: true });
+  });
+}
+
+async function sendDiscordDM(userId, message) {
+  try {
+    await apiPost('/api/send-dm', {
+      userId,
+      embed: {
+        title: message.title || '📢 Profile Update',
+        description: message.description || '',
+        color: message.color || 6366961, // Indigo
+        fields: message.fields || []
+      }
+    });
+  } catch (e) {
+    console.error('Failed to send DM:', e);
+  }
+}
+
+/* ================================================================
+   LOGIN FLOW
+   ================================================================ */
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+document.getElementById('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function getBlacklistedAdminIds() {
+  const fromConfig = Array.isArray(window.CONFIG?.ADMIN_BLACKLIST) ? window.CONFIG.ADMIN_BLACKLIST : [];
+  const fromEnv = Array.isArray(window.ENVIRONMENT_CONFIG?.ADMIN_BLACKLIST) ? window.ENVIRONMENT_CONFIG.ADMIN_BLACKLIST : [];
+  return new Set([...fromConfig, ...fromEnv].map(String));
+}
+
+async function doLogin() {
+  const id = document.getElementById('discordIdInput').value.trim();
+  const pin = document.getElementById('pinInput').value.trim();
+  const err = document.getElementById('loginError');
+  err.textContent = '';
+
+  if (!id || !pin) { err.textContent = 'Please enter both Discord ID and PIN.'; return; }
+
+  if (getBlacklistedAdminIds().has(id)) {
+    err.textContent = 'Access denied. This account is blacklisted.';
+    return;
+  }
+
+  document.getElementById('loginBtn').disabled = true;
+  showScreen('loadingScreen');
+
+  try {
+    let validation = null;
+    let isLocalAuth = false;
+    
+    // PRIORITY 1: Check local credentials first (development/simple setup)
+    if (window.CONFIG?.ADMINS?.[id]) {
+      if (window.CONFIG.ADMINS[id].pin === pin) {
+        validation = {
+          success: true,
+          adminId: id,
+          adminName: window.CONFIG.ADMINS[id].name,
+          staffId: window.CONFIG.ADMINS[id].staffId || ''
+        };
+        isLocalAuth = true;
+        console.log('[AUTH] Using local configuration for authentication');
+        
+        // Sync admin config to KV for later use by bot and other endpoints
+        try {
+          await apiPost('/api/admin/verify-pin', {
+            discordId: id,
+            pin: pin,
+            admins: window.CONFIG.ADMINS
+          });
+          console.log('[AUTH] Admin config synced to backend');
+        } catch (e) {
+          console.warn('[AUTH] Could not sync admin config to backend:', e);
+        }
+      }
+    }
+    
+    // PRIORITY 2: Fall back to backend validation if local fails
+    if (!validation) {
+      try {
+        const response = await apiPost('/api/admin/validate', { discordId: id, pin, admins: window.CONFIG.ADMINS });
+        if (response && response.success) {
+          validation = response;
+          // Cache admin config from backend if available
+          if (response.admins) {
+            window.CONFIG.ADMINS = response.admins;
+            localStorage.setItem('cachedAdminConfig', JSON.stringify(response.admins));
+          }
+          console.log('[AUTH] Backend validation successful');
+        }
+      } catch (e) {
+        // Backend validation failed or unavailable
+        console.log('[AUTH] Backend validation unavailable:', e.message);
+      }
+    }
+    
+    if (!validation || !validation.success) {
+      throw new Error(validation?.error || 'Authentication failed. Check your ID and PIN.');
+    }
+
+    // Fetch Discord profile from backend
+    let avatarSrc = defaultAvatar(id);
+    let displayName = validation.adminName || 'Admin';
+    
+    try {
+      const discordUser = await apiGet(`/api/discord/user/${id}`);
+      if (discordUser?.avatar_url) avatarSrc = discordUser.avatar_url;
+      if (discordUser?.global_name) displayName = discordUser.global_name;
+      else if (discordUser?.username) displayName = discordUser.username;
+    } catch (e) {
+      console.log('Could not fetch Discord profile, using defaults:', e);
+    }
+
+    state.admin = { id, name: displayName, avatar: avatarSrc, staffId: validation.staffId || '' };
+
+    try {
+      await logAdminAction('admin_login', `${displayName} logged in`, id);
+    } catch (e) {
+      console.warn('[ADMIN PORTAL] Failed to log admin login:', e);
+    }
+
+    // Send Discord bot notification that admin logged in (only if backend available)
+    try {
+      await apiPost('/api/webhooks/admin-login', {
+        adminId: id,
+        adminName: displayName,
+        timestamp: new Date().toISOString()
+      });
+      console.log('[ADMIN PORTAL] Sent login notification to Discord bot');
+    } catch (notifError) {
+      console.warn('[ADMIN PORTAL] Failed to send login notification (backend may be unavailable):', notifError);
+    }
+
+    await new Promise(r => setTimeout(r, 1200));
+    showScreen('foundScreen');
+    document.getElementById('foundAvatar').src = avatarSrc;
+    document.getElementById('foundName').textContent = displayName;
+    
+    if (isLocalAuth) {
+      console.warn('[AUTH] ⚠️ Using local configuration - credentials are in .env-config.js (check .gitignore)');
+    }
+
+  } catch (e) {
+    err.textContent = e.message || 'Authentication failed. Check your ID and PIN.';
+    showScreen('loginScreen');
+    document.getElementById('loginBtn').disabled = false;
+  }
+}
+
+/* ================================================================
+   GO TO DASHBOARD
+   ================================================================ */
+document.getElementById('goToDashboard').addEventListener('click', async () => {
+  showScreen('dashboard');
+  document.getElementById('sidebarAvatar').src = state.admin.avatar;
+  document.getElementById('sidebarName').textContent = state.admin.name;
+  syncAdminAccessVisibility();
+  state.adminSectionUnlocked = false;
+  renderAdminsLockedState('Verifying your identity....', true);
+  // ALWAYS set active tab to 'users' first to prevent auto-opening ADMINS
+  state.activeTab = 'users';
+  // Set users button as active
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const usersBtn = document.querySelector('[data-tab="users"]');
+  if (usersBtn) usersBtn.classList.add('active');
+  loadTab('users');
+});
+
+/* ================================================================
+   TABS
+   ================================================================ */
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab === 'events' ? 'calendar' : btn.dataset.tab;
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updateNavIndicator(btn);
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    const tabEl = document.getElementById('tab-' + tab);
+    if (tabEl) tabEl.classList.add('active');
+    
+    // Update topbar title
+    const tabTitle = document.getElementById('tabTitle');
+    const titleText = btn.querySelector('span')?.textContent || tab;
+    
+    // Add logo to topbar for TaskTrack tab
+    if (tab === 'tasktrack') {
+      tabTitle.innerHTML = `<img src="../logotransparent.png" class="tasktrack-logo-topbar" alt="TaskTrack" /> ${esc(titleText)}`;
+    } else {
+      tabTitle.textContent = titleText;
+    }
+    
+    state.activeTab = tab;
+    loadTab(tab);
+  });
+});
+
+document.getElementById('adminsViewBtn')?.addEventListener('click', async () => {
+  if (!canManageAdminAccess()) {
+    renderAdminsLockedState('Unauthorised Access. If this is a mistake, contact Marcus Ray.', true);
+    return;
+  }
+  renderAdminsLockedState('Verifying your identity....', true);
+  await loadAdminsSection();
+});
+
+document.getElementById('openAddAdminBtn')?.addEventListener('click', openAddAdminModal);
+
+document.getElementById('giveAdminBtn')?.addEventListener('click', giveAdminAccess);
+
+setTimeout(() => updateNavIndicator(document.querySelector('.nav-btn.active')), 0);
+
+async function loadTab(tab) {
+  switch(tab) {
+    case 'users': await loadUsers(); break;
+    case 'admins': await loadAdminsSection(); break;
+    case 'absences': await loadAbsences(); break;
+    case 'requests': await loadRequests(); break;
+    case 'payslips': await loadPayslips(); break;
+    case 'reports': await loadReports(); break;
+    case 'strikes': await loadStrikes(); break;
+    case 'calendar': await loadCalendar(); break;
+    case 'events': await loadCalendar(); break;
+    case 'logs': await loadLogs(); break;
+    case 'tasktrack': await loadTaskTrackLogs(); break;
+  }
+}
+
+document.getElementById('openBroadcastBtn')?.addEventListener('click', () => {
+  document.getElementById('staffBroadcastMessage').value = '';
+  openModal('staffBroadcastModal');
+});
+
+document.getElementById('sendBroadcastBtn')?.addEventListener('click', async () => {
+  const message = (document.getElementById('staffBroadcastMessage')?.value || '').trim();
+  if (!message) {
+    toast('Please enter a message', 'error');
+    return;
+  }
+
+  try {
+    const result = await apiPost('/api/admin/broadcast-staff', {
+      senderId: state.admin?.id,
+      senderName: state.admin?.name || 'OC Portal',
+      message
+    });
+
+    await logAdminAction('staff_broadcast', `${state.admin?.name || 'Admin'} broadcasted to staff`, state.admin?.id || '');
+    toast(`Broadcast queued — sending DMs to ${result.total || 'all'} staff in the background.`, 'success');
+    closeModal('staffBroadcastModal');
+  } catch (e) {
+    toast('Failed to send broadcast', 'error');
+  }
+});
+
+document.getElementById('refreshBtn').addEventListener('click', () => loadTab(state.activeTab));
+
+/* ================================================================
+   LOAD USERS
+   ================================================================ */
+async function loadUsers() {
+  const container = document.getElementById('usersTable');
+  container.innerHTML = '<div class="loading-inline">Loading users from backend...</div>';
+  try {
+    // Fetch users from Google Sheets via backend API
+    const data = await apiGet('/api/admin/users');
+    if (!data.success || !data.users) {
+      throw new Error(data.error || 'Failed to fetch users from backend');
+    }
+    
+    const users = data.users;
+
+    // Ensure all users have avatars
+    users.forEach(u => {
+      if (!u.avatar && u.discordId) u.avatar = defaultAvatar(u.discordId);
+    });
+
+    state.users = users;
+    syncAdminAccessVisibility();
+
+    // Stats
+    const total = users.length;
+    const suspended = users.filter(u => u.suspended).length;
+    const active = total - suspended;
+    document.getElementById('usersStats').innerHTML = `
+      <div class="stat-card"><div class="label">Total Users</div><div class="value blue">${total}</div></div>
+      <div class="stat-card"><div class="label">Active</div><div class="value green">${active}</div></div>
+      <div class="stat-card"><div class="label">Suspended</div><div class="value red">${suspended}</div></div>`;
+
+    if (!users.length) {
+      container.innerHTML = '<div class="empty-state"><p>No registered users found.</p></div>';
+      return;
+    }
+
+    let html = `<table><thead><tr><th>User</th><th>Department</th><th>Date of Signup</th><th>Status</th></tr></thead><tbody>`;
+    users.forEach((u, i) => {
+      const status = u.suspended ? '<span class="badge badge-suspended">Suspended</span>' : '<span class="badge badge-active">Active</span>';
+      const accessBadge = u.adminAccess ? ' <span class="badge" style="background:rgba(59,130,246,0.16);color:#60a5fa;border:1px solid rgba(96,165,250,0.35);margin-left:6px">ADMIN ACCESS</span>' : '';
+      const date = u.dateOfSignup ? new Date(u.dateOfSignup).toLocaleDateString('en-GB') : '-';
+      html += `<tr class="clickable-row" data-idx="${i}">
+        <td><div class="user-cell"><img src="${u.avatar || ''}" alt="" onerror="this.src='${defaultAvatar(u.discordId || '0')}'"/><div><div class="name">${esc(u.name || u.discordName || 'Unknown')}</div><div class="id">${esc(u.discordId || '')}${accessBadge}</div></div></div></td>
+        <td>${esc(formatDepartment(u.department))}</td>
+        <td>${date}</td>
+        <td>${status}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+
+    // Click handler for rows
+    container.querySelectorAll('.clickable-row').forEach(row => {
+      row.addEventListener('click', () => openUserPanel(parseInt(row.dataset.idx)));
+    });
+
+    // Populate user selects
+    populateUserSelects(users);
+    populateAdminAccessSelect(users);
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Error loading users: ${esc(e.message)}</p></div>`;
+  }
+}
+
+function populateUserSelects(users) {
+  const selects = ['payslipUser', 'reportUser', 'strikeUser', 'manualLoaUser'];
+  selects.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Select user...</option>';
+    users.forEach(u => {
+      sel.innerHTML += `<option value="${esc(u.discordId)}">${esc(u.name || u.discordName || u.discordId)}</option>`;
+    });
+  });
+}
+
+function populateAdminAccessSelect(users) {
+  const sel = document.getElementById('adminAccessUserSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select user...</option>';
+  users.forEach(u => {
+    sel.innerHTML += `<option value="${esc(u.discordId)}" ${u.adminAccess ? 'disabled' : ''}>${esc(u.name || u.discordName || u.discordId)}${u.adminAccess ? ' (already admin)' : ''}</option>`;
+  });
+}
+
+/* ================================================================
+   LOAD ABSENCES
+   ================================================================ */
+async function loadAbsences() {
+  const container = document.getElementById('absencesTable');
+  container.innerHTML = '<div class="loading-inline">Loading absences...</div>';
+  try {
+    const data = await apiGet('/api/admin/absences');
+    const absences = data.absences || [];
+    state.absences = absences;
+
+    const pending = absences.filter(a => a.status === 'pending').length;
+    const approved = absences.filter(a => a.status === 'approved').length;
+    const rejected = absences.filter(a => a.status === 'rejected').length;
+    const voided = absences.filter(a => a.status === 'voided').length;
+    document.getElementById('absencesStats').innerHTML = `
+      <div class="stat-card"><div class="label">Total</div><div class="value blue">${absences.length}</div></div>
+      <div class="stat-card"><div class="label">Pending</div><div class="value orange">${pending}</div></div>
+      <div class="stat-card"><div class="label">Approved</div><div class="value green">${approved}</div></div>
+      <div class="stat-card"><div class="label">Rejected</div><div class="value red">${rejected}</div></div>
+      <div class="stat-card"><div class="label">Voided</div><div class="value gray">${voided}</div></div>`;
+
+    if (!absences.length) { container.innerHTML = '<div class="empty-state"><p>No absences found.</p></div>'; return; }
+
+    let html = `<table><thead><tr><th>Name</th><th>Type</th><th>Start</th><th>End</th><th>Reason</th><th>Days</th><th>Comment</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
+    absences.forEach((a, i) => {
+      const badge = a.status === 'approved' ? 'badge-approved' : a.status === 'rejected' ? 'badge-rejected' : a.status === 'voided' ? 'badge-voided' : 'badge-pending';
+      const isManual = a.isManual ? ' style="background: rgba(59, 130, 246, 0.2);"' : '';
+      const type = a.isManual ? 'Manual LOA' : 'Normal';
+      let actions = '';
+      
+      if (a.status === 'pending') {
+        actions = `<button class="btn btn-green btn-small" onclick="absenceAction(${i},'Approved')">Approve</button> <button class="btn btn-red btn-small" onclick="absenceAction(${i},'Rejected')">Deny</button>`;
+      } else if (a.status !== 'voided') {
+        actions = `<button class="btn btn-orange btn-small" onclick="voidAbsence(${i})">Void</button> <button class="btn btn-blue btn-small" onclick="extendAbsence(${i})">Extend</button>`;
+      } else {
+        actions = `<span style="font-size:11px;color:var(--text2);">VOIDED</span>`;
+      }
+      
+      html += `<tr${isManual}>
+        <td>${esc(a.name)}</td><td>${esc(type)}</td><td>${esc(a.startDate)}</td><td>${esc(a.endDate)}</td>
+        <td>${esc(a.reason)}</td><td>${a.totalDays}</td><td>${esc(a.comment)}</td>
+        <td><span class="badge ${badge}">${a.status}</span></td><td>${actions}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Error: ${esc(e.message)}</p></div>`;
+  }
+}
+
+function absenceAction(idx, status) {
+  const a = state.absences[idx];
+  if (!a) return;
+  state.pendingAction = { type: 'absence', item: a, status };
+  document.getElementById('actionModalTitle').textContent = status === 'Approved' ? 'Approve Absence' : 'Deny Absence';
+  document.getElementById('actionModalText').textContent = `${status === 'Approved' ? 'Approve' : 'Deny'} absence for ${a.name} (${a.startDate} - ${a.endDate})?`;
+  document.getElementById('actionReason').value = '';
+  openModal('actionModal');
+}
+
+function voidAbsence(idx) {
+  const a = state.absences[idx];
+  if (!a) return;
+  state.pendingAction = { type: 'voidAbsence', item: a, index: idx };
+  document.getElementById('actionModalTitle').textContent = 'Void Absence';
+  document.getElementById('actionModalText').textContent = `Mark absence for ${a.name} (${a.startDate} - ${a.endDate}) as VOIDED? This absence will be marked complete and voided but not deleted.`;
+  document.getElementById('actionReason').value = '';
+  openModal('actionModal');
+}
+
+function extendAbsence(idx) {
+  const a = state.absences[idx];
+  if (!a) return;
+  state.pendingAction = { type: 'extendAbsence', item: a, index: idx };
+  document.getElementById('actionModalTitle').textContent = 'Extend Absence';
+  document.getElementById('actionModalText').textContent = `Extend absence for ${a.name}. Current end date: ${a.endDate}`;
+  
+  // Replace the reason textarea with a date input for extension
+  const reasonField = document.getElementById('actionReason');
+  reasonField.parentElement.innerHTML = `<label>New End Date</label><input type="date" id="extendAbsenceDate" value="${a.endDate}" />`;
+  reasonField.style.display = 'none';
+  
+  openModal('actionModal');
+}
+
+async function submitManualLoa() {
+  const userId = document.getElementById('manualLoaUser')?.value;
+  const loaType = document.getElementById('manualLoaType')?.value;
+  const startDate = document.getElementById('manualLoaStartDate')?.value;
+  const endDate = document.getElementById('manualLoaEndDate')?.value;
+  const comment = document.getElementById('manualLoaComment')?.value;
+  
+  if (!userId || !loaType || !startDate || !endDate) {
+    toast('Please fill in all required fields', 'error');
+    return;
+  }
+  
+  if (new Date(startDate) > new Date(endDate)) {
+    toast('Start date must be before end date', 'error');
+    return;
+  }
+  
+  try {
+    const user = state.users.find(u => u.discordId === userId);
+    const userName = user ? user.name : userId;
+    
+    // Calculate total days
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    
+    const payload = {
+      discordId: userId,
+      startDate,
+      endDate,
+      reason: loaType,
+      comment: comment || '',
+      isManual: true,
+      status: 'approved',
+      totalDays,
+      submittedBy: state.admin?.discordId || 'admin'
+    };
+    
+    await apiPost('/api/admin/absences/manual', payload);
+    
+    // Send DM to user
+    await sendDiscordDM(userId, {
+      title: '📋 Manual LOA Set',
+      description: `A manual LOA has been placed on your account.\n\nType: ${loaType}\nStart: ${startDate}\nEnd: ${endDate}\nDays: ${totalDays}\n${comment ? `Comment: ${comment}` : ''}`
+    });
+    
+    toast('User has been placed on a manual LOA', 'success');
+    closeModal('manualLoaModal');
+    await loadAbsences();
+  } catch (e) {
+    toast('Failed to create manual LOA: ' + (e.message || ''), 'error');
+  }
+}
+
+/* ================================================================
+   LOAD REQUESTS
+   ================================================================ */
+async function loadRequests() {
+  const container = document.getElementById('requestsTable');
+  container.innerHTML = '<div class="loading-inline">Loading requests...</div>';
+  try {
+    const data = await apiGet('/api/admin/requests');
+    const requests = data.requests || [];
+    state.requests = requests;
+
+    const pending = requests.filter(r => ['submit','pending'].includes((r.status||'').toLowerCase())).length;
+    document.getElementById('requestsStats').innerHTML = `
+      <div class="stat-card"><div class="label">Total</div><div class="value blue">${requests.length}</div></div>
+      <div class="stat-card"><div class="label">Pending</div><div class="value orange">${pending}</div></div>`;
+
+    if (!requests.length) { container.innerHTML = '<div class="empty-state"><p>No requests found.</p></div>'; return; }
+
+    let html = `<table><thead><tr><th>User</th><th>Type</th><th>Comment</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
+    requests.forEach((r, i) => {
+      const st = (r.status || 'pending').toLowerCase();
+      const isPending = ['submit','pending'].includes(st);
+      const badge = st.includes('approv') ? 'badge-approved' : st.includes('denied') || st.includes('reject') ? 'badge-rejected' : 'badge-pending';
+      const actions = isPending
+        ? `<button class="btn btn-green btn-small" onclick="requestAction(${i},true)">Approve</button> <button class="btn btn-red btn-small" onclick="requestAction(${i},false)">Deny</button>`
+        : `<span style="font-size:11px;color:var(--text2)">${r.status}</span>`;
+      const date = r.timestamp ? new Date(r.timestamp).toLocaleDateString('en-GB') : '-';
+      html += `<tr><td>${esc(r.name || r.userId)}</td><td>${esc(r.type || r.request)}</td><td>${esc(r.comment || r.userComment || '')}</td><td>${date}</td><td><span class="badge ${badge}">${esc(r.status || 'Pending')}</span></td><td>${actions}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Error: ${esc(e.message)}</p></div>`;
+  }
+}
+
+function requestAction(idx, approved) {
+  const r = state.requests[idx];
+  if (!r) return;
+  state.pendingAction = { type: 'request', item: r, approved };
+  document.getElementById('actionModalTitle').textContent = approved ? 'Approve Request' : 'Deny Request';
+  document.getElementById('actionModalText').textContent = `${approved ? 'Approve' : 'Deny'} ${r.type || 'request'} from ${r.name || r.userId}?`;
+  document.getElementById('actionReason').value = '';
+  openModal('actionModal');
+}
+
+/* ================================================================
+   LOAD PAYSLIPS
+   ================================================================ */
+async function loadPayslips() {
+  const container = document.getElementById('payslipsTable');
+  container.innerHTML = '<div class="loading-inline">Loading payslips...</div>';
+  try {
+    const data = await apiGet('/api/admin/payslips');
+    const payslips = data.payslips || [];
+    state.payslips = payslips;
+
+    document.getElementById('payslipsStats').innerHTML = `
+      <div class="stat-card"><div class="label">Total Payslips</div><div class="value blue">${payslips.length}</div></div>`;
+
+    if (!payslips.length) { container.innerHTML = '<div class="empty-state"><p>No payslips found.</p></div>'; return; }
+
+    let html = `<table><thead><tr><th>User</th><th>Period</th><th>Assigned By</th><th>Date</th><th>Status</th><th>Link</th></tr></thead><tbody>`;
+    payslips.forEach(p => {
+      const user = state.users.find(u => u.discordId === p.userId);
+      const name = user ? user.name : p.userId;
+      const date = p.dateAssigned ? new Date(p.dateAssigned).toLocaleDateString('en-GB') : '-';
+      html += `<tr><td>${esc(name)}</td><td>${esc(p.period || '-')}</td><td>${esc(p.assignedBy || '-')}</td><td>${date}</td><td><span class="badge badge-issued">${esc(p.status || 'Issued')}</span></td><td>${p.link ? `<a href="${esc(p.link)}" target="_blank" style="color:var(--accent)">View</a>` : '-'}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Error: ${esc(e.message)}</p></div>`;
+  }
+}
+
+/* ================================================================
+   LOAD REPORTS
+   ================================================================ */
+async function loadReports() {
+  const container = document.getElementById('reportsTable');
+  container.innerHTML = '<div class="loading-inline">Loading reports...</div>';
+  try {
+    const data = await apiGet('/api/admin/reports');
+    const reports = data.reports || [];
+    state.reports = reports;
+
+    const comm = reports.filter(r => r.type === 'Commendation').length;
+    const neg = reports.filter(r => r.type !== 'Commendation' && r.type !== 'Monthly Report').length;
+    document.getElementById('reportsStats').innerHTML = `
+      <div class="stat-card"><div class="label">Total</div><div class="value blue">${reports.length}</div></div>
+      <div class="stat-card"><div class="label">Commendations</div><div class="value green">${comm}</div></div>
+      <div class="stat-card"><div class="label">Negative</div><div class="value red">${neg}</div></div>`;
+
+    if (!reports.length) { container.innerHTML = '<div class="empty-state"><p>No reports found.</p></div>'; return; }
+
+    let html = `<table><thead><tr><th>User</th><th>Type</th><th>Description</th><th>Published By</th><th>Date</th><th>Points</th></tr></thead><tbody>`;
+    reports.forEach(r => {
+      const user = state.users.find(u => u.discordId === r.userId);
+      const name = user ? user.name : r.userId;
+      const pts = REPORT_POINTS[r.type] || 0;
+      const ptsClass = pts > 0 ? 'color:var(--green)' : pts < 0 ? 'color:var(--red)' : 'color:var(--text2)';
+      const date = r.timestamp ? new Date(r.timestamp).toLocaleDateString('en-GB') : '-';
+      html += `<tr><td>${esc(name)}</td><td>${esc(r.type || '-')}</td><td>${esc(r.comment || '-')}</td><td>${esc(r.publishedBy || '-')}</td><td>${date}</td><td style="${ptsClass};font-weight:600">${pts > 0 ? '+' : ''}${pts}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Error: ${esc(e.message)}</p></div>`;
+  }
+}
+
+/* ================================================================
+   LOAD STRIKES
+   ================================================================ */
+async function loadStrikes() {
+  const container = document.getElementById('strikesTable');
+  container.innerHTML = '<div class="loading-inline">Loading disciplinaries...</div>';
+  try {
+    const data = await apiGet('/api/admin/strikes');
+    const strikes = data.strikes || [];
+    state.strikes = strikes;
+
+    document.getElementById('strikesStats').innerHTML = `
+      <div class="stat-card"><div class="label">Total</div><div class="value red">${strikes.length}</div></div>`;
+
+    if (!strikes.length) { container.innerHTML = '<div class="empty-state"><p>No disciplinaries found.</p></div>'; return; }
+
+    let html = `<table><thead><tr><th>User</th><th>Type</th><th>Reason</th><th>Assigned By</th><th>Date</th><th>Points</th></tr></thead><tbody>`;
+    strikes.forEach(s => {
+      const user = state.users.find(u => u.discordId === s.userId);
+      const name = user ? user.name : s.userId;
+      const pts = STRIKE_POINTS[s.strikeType] || (s.customPoints ? -Math.abs(s.customPoints) : 0);
+      const date = s.timestamp ? new Date(s.timestamp).toLocaleDateString('en-GB') : '-';
+      html += `<tr><td>${esc(name)}</td><td>${esc(s.strikeType || '-')}</td><td>${esc(s.reason || s.comment || '-')}</td><td>${esc(s.assignedBy || '-')}</td><td>${date}</td><td style="color:var(--red);font-weight:600">${pts}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Error: ${esc(e.message)}</p></div>`;
+  }
+}
+
+/* ================================================================
+   LOAD CALENDAR EVENTS
+   ================================================================ */
+async function loadCalendar() {
+  const container = document.getElementById('calendarTable');
+  container.innerHTML = '<div class="loading-inline">Loading events...</div>';
+  try {
+    const data = await apiGet('/api/calendar/events');
+    const events = data.events || [];
+    state.calendarEvents = events;
+
+    const today = new Date();
+    const thisMonth = events.filter(e => {
+      const d = new Date(e.date);
+      return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+    });
+    const upcoming = events.filter(e => new Date(e.date) >= today);
+
+    document.getElementById('calendarEventsCount').textContent = events.length;
+    document.getElementById('calendarThisMonth').textContent = thisMonth.length;
+    document.getElementById('calendarUpcoming').textContent = upcoming.length;
+
+    if (!events.length) { container.innerHTML = '<div class="empty-state"><p>No calendar events found.</p></div>'; return; }
+
+    let html = `<table><thead><tr><th>Date</th><th>Title</th><th>Type</th><th>Description</th><th>Created By</th></tr></thead><tbody>`;
+    events.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(e => {
+      const date = e.date ? new Date(e.date).toLocaleDateString('en-GB') : '-';
+      const typeColor = e.type === 'meeting' ? 'var(--accent)' : e.type === 'deadline' ? 'var(--red)' : e.type === 'holiday' ? 'var(--green)' : 'var(--text2)';
+      html += `<tr><td>${esc(date)}</td><td style="font-weight:600">${esc(e.title || '-')}</td><td><span style="color:${typeColor};text-transform:capitalize">${esc(e.type || 'event')}</span></td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">${esc(e.description || '-')}</td><td>${esc(e.createdBy || '-')}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+
+    // Also show OC staff events inside Calendar tab
+    const staffEventsData = await apiGet('/api/admin/events').catch(() => ({ events: [] }));
+    const staffEvents = staffEventsData?.events || [];
+    renderStaffEventsCards(staffEvents, 'calendarStaffEventsTable');
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Error: ${esc(e.message)}</p></div>`;
+    renderStaffEventsCards([], 'calendarStaffEventsTable');
+  }
+}
+
+function renderStaffEventsCards(events, targetId = 'eventsTable') {
+  const container = document.getElementById(targetId);
+  if (!container) return;
+
+  if (!events.length) {
+    container.innerHTML = '<div class="empty-state"><p>No staff events found.</p></div>';
+    return;
+  }
+
+  let html = '';
+  events.forEach((event, idx) => {
+    const eventDate = new Date(`${event.date}T${event.startTime}`);
+    const now = new Date();
+    const isPast = eventDate < now;
+    const attending = event.responses?.filter(r => r.status === 'attending').length || 0;
+    const notAttending = event.responses?.filter(r => r.status === 'not_attending').length || 0;
+    const unsure = event.responses?.filter(r => r.status === 'unsure').length || 0;
+    const responseCount = event.responses?.length || 0;
+
+    html += `
+      <div class="data-row" data-idx="${idx}" style="cursor:pointer;opacity:${isPast ? 0.7 : 1}">
+        <div style="flex:1">
+          <strong>${esc(event.title || 'Untitled Event')}</strong><br>
+          <small>${esc(event.category || 'General')} • ${esc(event.date || '-')} ${esc(event.startTime || '-')} - ${esc(event.endTime || '-')}</small>
+          <div style="margin-top:6px;color:var(--text2);font-size:12px">${esc(event.description || 'No description')}</div>
+        </div>
+        <div style="text-align:right;min-width:170px">
+          <div style="font-size:13px;color:var(--text2)">Responses: ${responseCount}</div>
+          <div style="font-size:12px;margin-top:4px">
+            <span style="color:var(--green)">✓ ${attending}</span>
+            <span style="margin:0 6px;color:var(--text2)">|</span>
+            <span style="color:var(--red)">✗ ${notAttending}</span>
+            <span style="margin:0 6px;color:var(--text2)">|</span>
+            <span style="color:var(--orange)">? ${unsure}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+  container.querySelectorAll('.data-row').forEach((row, idx) => {
+    row.addEventListener('click', () => showEventDetails(events[idx]));
+  });
+}
+
+/* ================================================================
+   LOAD ADMIN LOGS
+   ================================================================ */
+async function loadLogs() {
+  const container = document.getElementById('logsTable');
+  container.innerHTML = '<div class="loading-inline">Loading logs...</div>';
+  try {
+    const data = await apiGet('/api/admin/logs');
+    const logs = Array.isArray(data) ? data : (data.logs || []);
+    state.logs = logs;
+
+    const today = new Date().toDateString();
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const logsToday = logs.filter(l => new Date(l.timestamp).toDateString() === today);
+    const logsThisWeek = logs.filter(l => new Date(l.timestamp) >= weekAgo);
+
+    document.getElementById('logsCount').textContent = logs.length;
+    document.getElementById('logsToday').textContent = logsToday.length;
+    document.getElementById('logsThisWeek').textContent = logsThisWeek.length;
+
+    if (!logs.length) { container.innerHTML = '<div class="empty-state"><p>No admin activity logs found.</p></div>'; return; }
+
+    let html = `<table><thead><tr><th>Timestamp</th><th>Admin</th><th>Action</th><th>Details</th></tr></thead><tbody>`;
+    logs.slice(0, 100).forEach(l => {
+      const time = l.timestamp ? new Date(l.timestamp).toLocaleString('en-GB') : '-';
+      const admin = state.users.find(u => u.discordId === l.adminId);
+      const adminName = admin ? admin.name : l.adminId || '-';
+      const actionColor = l.action?.includes('approv') ? 'var(--green)' : l.action?.includes('deny') || l.action?.includes('reject') ? 'var(--red)' : 'var(--text)';
+      html += `<tr><td style="white-space:nowrap">${esc(time)}</td><td>${esc(adminName)}</td><td style="color:${actionColor}">${esc(l.action || '-')}</td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">${esc(l.details || '-')}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Error: ${esc(e.message)}</p></div>`;
+  }
+}
+
+// Helper function to log admin actions
+async function logAdminAction(action, details, targetId = '') {
+  try {
+    await apiPost('/api/admin/logs', {
+      adminId: state.admin?.id,
+      action,
+      details,
+      targetId
+    });
+  } catch (e) {
+    console.error('Failed to log admin action:', e);
+  }
+}
+
+// Load TaskTrack Logs
+async function loadTaskTrackLogs() {
+  const container = document.getElementById('taskLogsTable');
+  
+  // Show loading overlay with spinning logo for 2 seconds
+  container.innerHTML = `
+    <div class="tasktrack-loader-overlay">
+      <div class="tasktrack-logo-spin">
+        <img src="../logotransparent.png" alt="Loading..." />
+      </div>
+      <div style="color: var(--text2); font-size: 13px;">Loading TaskTrack data...</div>
+    </div>
+  `;
+
+  // Wait 2 seconds for loading animation
+  await new Promise(r => setTimeout(r, 2000));
+
+  try {
+    const data = await apiGet('/api/tasks/logs');
+    const taskLogs = Array.isArray(data) ? data : (data.logs || []);
+    state.taskLogs = taskLogs;
+
+    const today = new Date().toDateString();
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const logsToday = taskLogs.filter(l => new Date(l.timestamp).toDateString() === today);
+    const logsThisWeek = taskLogs.filter(l => new Date(l.timestamp) >= weekAgo);
+
+    document.getElementById('taskLogsCount').textContent = taskLogs.length;
+    document.getElementById('taskLogsToday').textContent = logsToday.length;
+    document.getElementById('taskLogsThisWeek').textContent = logsThisWeek.length;
+
+    if (!taskLogs.length) { 
+      container.innerHTML = '<div class="empty-state"><p>No task activity logs found.</p></div>'; 
+      return; 
+    }
+
+    // Build table with task names, actions, users, and timestamps
+    let html = `<table><thead><tr><th>Task Name</th><th>Action</th><th>User</th><th>Timestamp</th><th>Details</th></tr></thead><tbody>`;
+    taskLogs.slice(0, 200).forEach(l => {
+      const time = l.timestamp ? new Date(l.timestamp).toLocaleString('en-GB') : '-';
+      const actionColor = l.action === 'created' ? 'var(--green)' : 
+                          l.action === 'completed' ? 'var(--green)' :
+                          l.action === 'overdue' ? 'var(--red)' :
+                          l.action === 'claimed' ? 'var(--blue)' :
+                          l.action === 'priority_set' ? 'var(--orange)' :
+                          'var(--text)';
+      const taskName = l.details?.title || l.taskId || '-';
+      const userName = l.userName || l.userId || '-';
+      const details = l.details ? JSON.stringify(l.details).substring(0, 100) : '-';
+      html += `<tr><td><strong>${esc(taskName)}</strong></td><td style="color:${actionColor};white-space:nowrap">${esc(l.action || '-')}</td><td>${esc(userName)}</td><td style="white-space:nowrap">${esc(time)}</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;font-size:12px">${esc(details)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+
+    // Add search filter
+    const searchInput = document.getElementById('taskFilterSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => filterTaskLogs(e.target.value, taskLogs));
+    }
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><p>Error loading task logs: ${esc(e.message)}</p></div>`;
+  }
+}
+
+// Filter TaskTrack logs by search term
+function filterTaskLogs(searchTerm, logs) {
+  const container = document.getElementById('taskLogsTable');
+  if (!searchTerm.trim()) {
+    // Reload without filter
+    let html = `<table><thead><tr><th>Task Name</th><th>Action</th><th>User</th><th>Timestamp</th><th>Details</th></tr></thead><tbody>`;
+    logs.slice(0, 200).forEach(l => {
+      const time = l.timestamp ? new Date(l.timestamp).toLocaleString('en-GB') : '-';
+      const actionColor = l.action === 'created' ? 'var(--green)' : 
+                          l.action === 'completed' ? 'var(--green)' :
+                          l.action === 'overdue' ? 'var(--red)' :
+                          l.action === 'claimed' ? 'var(--blue)' :
+                          l.action === 'priority_set' ? 'var(--orange)' :
+                          'var(--text)';
+      const taskName = l.details?.title || l.taskId || '-';
+      const userName = l.userName || l.userId || '-';
+      const details = l.details ? JSON.stringify(l.details).substring(0, 100) : '-';
+      html += `<tr><td><strong>${esc(taskName)}</strong></td><td style="color:${actionColor};white-space:nowrap">${esc(l.action || '-')}</td><td>${esc(userName)}</td><td style="white-space:nowrap">${esc(time)}</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;font-size:12px">${esc(details)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+    return;
+  }
+
+  const filtered = logs.filter(l => {
+    const taskName = (l.details?.title || l.taskId || '').toLowerCase();
+    const userName = (l.userName || l.userId || '').toLowerCase();
+    const action = (l.action || '').toLowerCase();
+    return taskName.includes(searchTerm.toLowerCase()) || 
+           userName.includes(searchTerm.toLowerCase()) ||
+           action.includes(searchTerm.toLowerCase());
+  });
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty-state"><p>No logs match your search.</p></div>';
+    return;
+  }
+
+  let html = `<table><thead><tr><th>Task Name</th><th>Action</th><th>User</th><th>Timestamp</th><th>Details</th></tr></thead><tbody>`;
+  filtered.slice(0, 200).forEach(l => {
+    const time = l.timestamp ? new Date(l.timestamp).toLocaleString('en-GB') : '-';
+    const actionColor = l.action === 'created' ? 'var(--green)' : 
+                        l.action === 'completed' ? 'var(--green)' :
+                        l.action === 'overdue' ? 'var(--red)' :
+                        l.action === 'claimed' ? 'var(--blue)' :
+                        l.action === 'priority_set' ? 'var(--orange)' :
+                        'var(--text)';
+    const taskName = l.details?.title || l.taskId || '-';
+    const userName = l.userName || l.userId || '-';
+    const details = l.details ? JSON.stringify(l.details).substring(0, 100) : '-';
+    html += `<tr><td><strong>${esc(taskName)}</strong></td><td style="color:${actionColor};white-space:nowrap">${esc(l.action || '-')}</td><td>${esc(userName)}</td><td style="white-space:nowrap">${esc(time)}</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;font-size:12px">${esc(details)}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function openProfileEdit(field) {
+  const user = state.selectedUser;
+  if (!user) return;
+  const fields = { 
+    name: { label: 'Name', type: 'text', value: user.name || '' }, 
+    email: { label: 'Email', type: 'email', value: user.email || '' }, 
+    department: { label: 'Department', type: 'select', value: formatDepartment(user.department || ''), options: DEPARTMENT_OPTIONS }, 
+    baseLevel: { label: 'Base Level', type: 'select', value: user.baseLevel || '', options: BASE_LEVELS },
+    robloxId: { label: 'Roblox ID', type: 'text', value: user.robloxId || '' },
+    robloxUsername: { label: 'Roblox Username', type: 'text', value: user.robloxUsername || '' }
+  };
+  const cfg = fields[field];
+  if (!cfg) return;
+  state.profileEdit = { field, label: cfg.label };
+  document.getElementById('profileEditTitle').textContent = `Edit ${cfg.label}`;
+  let html = '';
+  if (cfg.type === 'select') {
+    html = `<label>${cfg.label}</label><select id="profileEditInput">`;
+    cfg.options.forEach(opt => { 
+      const val = opt.value;
+      const lbl = opt.label;
+      const sel = val === cfg.value ? 'selected' : '';
+      html += `<option value="${esc(val)}" ${sel}>${esc(lbl)}</option>`;
+    });
+    html += `</select>`;
+  } else {
+    html = `<label>${cfg.label}</label><input type="${cfg.type || 'text'}" id="profileEditInput" value="${esc(cfg.value)}" />`;
+  }
+  document.getElementById('editFieldContainer').innerHTML = html;
+  document.getElementById('profileEditReason').value = '';
+  openModal('profileEditModal');
+}
+
+async function saveProfileEdit() {
+  const user = state.selectedUser;
+  const edit = state.profileEdit;
+  if (!user || !edit) return;
+  const newValue = (document.getElementById('profileEditInput')?.value || '').trim();
+  if (!newValue) { toast('Please enter a value', 'error'); return; }
+  const reason = (document.getElementById('profileEditReason')?.value || '').trim();
+  if (!reason) { toast('Please provide a reason', 'error'); return; }
+  try {
+    const payload = { discordId: user.discordId };
+    payload[edit.field] = newValue;
+    await apiPost('/api/admin/user/update', payload);
+    user[edit.field] = newValue;
+    await sendDiscordDM(user.discordId, { title: '📌 Profile Updated', description: `${edit.label}: ${newValue}\n\nReason: ${reason}` });
+    await logAdminAction('profile_update', `Updated ${edit.label} to ${newValue}`, user.discordId);
+    toast('Profile updated successfully', 'success');
+    closeModal('profileEditModal');
+    const idx = state.users.findIndex(u => u.discordId === user.discordId);
+    await openUserPanel(idx);
+  } catch (e) {
+    toast('Failed to update profile: ' + (e.message || ''), 'error');
+  }
+}
+
+async function deleteUserRecord(recordType, recordId) {
+  if (!state.selectedUser) return;
+  const ok = await customConfirm('Delete Record', 'Delete this record?');
+  if (!ok) return;
+  
+  // Map singular types to backend plural types
+  const typeMap = {
+    'absence': 'absences',
+    'payslip': 'payslips',
+    'report': 'reports',
+    'strike': 'disciplinaries',
+    'request': 'requests'
+  };
+  const backendType = typeMap[recordType] || recordType;
+  
+  try {
+    await apiPost('/api/admin/records/delete', { discordId: state.selectedUser.discordId, recordType: backendType, recordId });
+    await logAdminAction('record_deleted', `Deleted ${recordType}`, state.selectedUser.discordId);
+    toast('Record deleted', 'success');
+    const idx = state.users.findIndex(u => u.discordId === state.selectedUser.discordId);
+    await openUserPanel(idx);
+  } catch (e) {
+    toast('Failed to delete record', 'error');
+  }
+}
+
+async function eraseAllRecords(recordType) {
+  if (!state.selectedUser) return;
+  const ok = await customConfirm('Erase All', `Erase all ${recordType}?`);
+  if (!ok) return;
+  
+  // Map singular types to backend plural types
+  const typeMap = {
+    'absence': 'absences',
+    'payslip': 'payslips',
+    'report': 'reports',
+    'strike': 'disciplinaries',
+    'request': 'requests'
+  };
+  const backendType = typeMap[recordType] || recordType;
+  
+  try {
+    await apiPost('/api/admin/records/erase-all', { discordId: state.selectedUser.discordId, recordType: backendType });
+    await logAdminAction('records_erased', `Erased all ${recordType}`, state.selectedUser.discordId);
+    toast('Records erased', 'success');
+    const idx = state.users.findIndex(u => u.discordId === state.selectedUser.discordId);
+    await openUserPanel(idx);
+  } catch (e) {
+    toast('Failed to erase records', 'error');
+  }
+}
+
+/* ================================================================
+   USER PANEL
+   ================================================================ */
+async function openUserPanel(idx) {
+  const user = state.users[idx];
+  if (!user) return;
+  state.selectedUser = user;
+
+  const panel = document.getElementById('userPanel');
+  const overlay = document.getElementById('panelOverlay');
+  const content = document.getElementById('panelContent');
+
+  content.innerHTML = '<div class="loading-inline">Loading profile...</div>';
+  panel.classList.add('open');
+  overlay.classList.add('active');
+
+  // Fetch full account data
+  let account = null;
+  try {
+    if (user.discordId) {
+      const data = await apiGet(`/api/accounts/${user.discordId}`);
+      if (data && data.success === false) {
+        account = null;
+      } else if (data?.account) {
+        account = data.account;
+      } else if (data && typeof data === 'object') {
+        account = data;
+      }
+    }
+  } catch (e) {}
+
+  // Calculate points
+  let pts = parseInt(user.points) || 0;
+  if (account) {
+    // Calculate from reports and strikes
+    const reportPts = (account.reports || []).reduce((sum, r) => sum + (REPORT_POINTS[r.type] || 0), 0);
+    const strikePts = (account.disciplinaries || []).reduce((sum, s) => sum + (STRIKE_POINTS[s.strikeType] || 0), 0);
+    pts = reportPts + strikePts;
+  }
+
+  const avatarSrc = user.avatar || defaultAvatar(user.discordId || '0');
+  const statusBadge = user.suspended ? '<span class="badge badge-suspended">Suspended</span>' : '<span class="badge badge-active">Active</span>';
+  const ptsClass = pts >= 0 ? 'positive' : 'negative';
+
+  content.innerHTML = `
+    <div class="panel-profile">
+      <img src="${avatarSrc}" alt="" onerror="this.src='${defaultAvatar(user.discordId || '0')}'" />
+      <h3>${esc(user.name || user.discordName || 'Unknown')}</h3>
+      <div class="dept">${esc(formatDepartment(user.department) || 'No Department')} ${statusBadge}</div>
+      <div class="points-display ${ptsClass}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ${pts} points</div>
+    </div>
+
+    <div class="panel-section">
+      <h4>Personal Information</h4>
+      <div class="info-grid" style="grid-template-columns: 1fr 1fr; gap: 12px">
+        <div class="info-item editable"><div class="label">Name</div><div class="value">${esc(user.name || '-')}</div><button class="edit-btn" onclick="openProfileEdit('name')" title="Edit">✎</button></div>
+        <div class="info-item editable"><div class="label">Email</div><div class="value">${esc(user.email || '-')}</div><button class="edit-btn" onclick="openProfileEdit('email')" title="Edit">✎</button></div>
+        <div class="info-item editable"><div class="label">Department</div><div class="value">${esc(formatDepartment(user.department))}</div><button class="edit-btn" onclick="openProfileEdit('department')" title="Edit">✎</button></div>
+        <div class="info-item editable"><div class="label">Base Level</div><div class="value">${esc(formatBaseLevel(user.baseLevel) || '-')}</div><button class="edit-btn" onclick="openProfileEdit('baseLevel')" title="Edit">✎</button></div>
+        <div class="info-item editable"><div class="label">Roblox ID</div><div class="value">${esc(user.robloxId || '-')}</div><button class="edit-btn" onclick="openProfileEdit('robloxId')" title="Edit">✎</button></div>
+        <div class="info-item editable"><div class="label">Roblox Username</div><div class="value">${esc(user.robloxUsername || '-')}</div><button class="edit-btn" onclick="openProfileEdit('robloxUsername')" title="Edit">✎</button></div>
+        <div class="info-item"><div class="label">Timezone</div><div class="value">${esc(user.timezone || '-')}</div></div>
+        <div class="info-item"><div class="label">Country</div><div class="value">${esc(user.country || '-')}</div></div>
+        <div class="info-item"><div class="label">Discord ID</div><div class="value" style="font-size:11px">${esc(user.discordId || '-')}</div></div>
+        <div class="info-item"><div class="label">Joined</div><div class="value">${user.dateOfSignup ? new Date(user.dateOfSignup).toLocaleDateString('en-GB') : '-'}</div></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h4>Staff ID</h4>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div class="staff-id-display">${esc(user.staffId || 'Not assigned')}</div>
+        ${!user.staffId ? `<button class="staff-id-btn" onclick="openModal('staffIdModal')">Assign ID</button>` : ''}
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h4>Admin Access</h4>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        ${user.adminAccess
+          ? `<button class="btn btn-outline" style="border-color:rgba(96,165,250,0.35);color:#60a5fa;background:rgba(59,130,246,0.12);font-weight:700" onclick="removeAdminAccess('${user.discordId}')">ADMIN ACCESS</button>`
+          : `<span style="font-size:13px;color:var(--text2)">No admin access granted</span>`
+        }
+      </div>
+    </div>
+
+    <div class="panel-tabs">
+      <button class="panel-tab active" data-ptab="ptab-absences">Absences</button>
+      <button class="panel-tab" data-ptab="ptab-payslips">Payslips</button>
+      <button class="panel-tab" data-ptab="ptab-reports">Reports</button>
+      <button class="panel-tab" data-ptab="ptab-strikes">Strikes</button>
+      <button class="panel-tab" data-ptab="ptab-requests">Requests</button>
+      <button class="panel-tab" data-ptab="ptab-staff-details">Staff Details</button>
+      <button class="panel-tab" data-ptab="ptab-promotions">Promotions</button>
+    </div>
+
+    <div class="panel-tab-content active" id="ptab-absences">
+      ${renderPanelList(account?.absences, 'absence')}
+    </div>
+    <div class="panel-tab-content" id="ptab-payslips">
+      ${renderPanelList(account?.payslips, 'payslip')}
+    </div>
+    <div class="panel-tab-content" id="ptab-reports">
+      ${renderPanelList(account?.reports, 'report')}
+    </div>
+    <div class="panel-tab-content" id="ptab-strikes">
+      ${renderPanelList(account?.disciplinaries, 'strike')}
+    </div>
+    <div class="panel-tab-content" id="ptab-requests">
+      ${renderPanelList(account?.requests, 'request')}
+    </div>
+
+    <div class="panel-tab-content" id="ptab-staff-details">
+      <div id="staffDetailsContent" style="padding:16px 0">Loading staff details...</div>
+    </div>
+
+    <div class="panel-tab-content" id="ptab-promotions">
+      <div id="promotionContent" style="padding:16px 0">Loading promotion history...</div>
+    </div>
+
+    <div class="panel-actions">
+      ${!user.staffId ? `<button class="btn btn-primary" onclick="openModal('staffIdModal')">🎫 Assign Staff ID</button>` : ''}
+      ${user.suspended
+        ? `<button class="btn btn-green" onclick="toggleSuspend(false)">✅ Unsuspend User</button>`
+        : `<button class="btn btn-red" onclick="toggleSuspend(true)">⛔ Suspend User</button>`
+      }
+      <button class="btn" style="background:var(--red);color:#fff;opacity:.8" onclick="removeAccount()">🗑️ Remove Account</button>
+    </div>`;
+
+  // Panel tab switching
+  content.querySelectorAll('.panel-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      content.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+      content.querySelectorAll('.panel-tab-content').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = document.getElementById(tab.dataset.ptab);
+      if (target) target.classList.add('active');
+      // Load staff details and promotions when those tabs are clicked
+      if (tab.dataset.ptab === 'ptab-staff-details') loadStaffDetails(user.discordId);
+      if (tab.dataset.ptab === 'ptab-promotions') loadPromotionHistory(user.discordId);
+    });
+  });
+
+  // Load staff details immediately
+  loadStaffDetails(user.discordId);
+  loadPromotionHistory(user.discordId);
+}
+
+// Load staff details (description, notes, alt accounts)
+async function loadStaffDetails(userId) {
+  const container = document.getElementById('staffDetailsContent');
+  if (!container) return;
+  try {
+    const data = await apiGet(`/api/staff/profile/${userId}`);
+    const profile = data || {};
+    
+    let html = `
+      <div class="panel-section" style="border-bottom:none">
+        <h4>Staff Description</h4>
+        <div style="background:var(--bg3);padding:12px;border-radius:8px;margin-bottom:16px;cursor:pointer;position:relative;group" onmouseenter="this.querySelector('.edit-btn').style.opacity='1'" onmouseleave="this.querySelector('.edit-btn').style.opacity='0'">
+          <div style="font-size:13px;color:${profile.description ? 'var(--text)' : 'var(--text2)'};line-height:1.5;padding-right:28px">
+            ${profile.description ? esc(profile.description) : '<em>No description set - click to add</em>'}
+          </div>
+          <button class="edit-btn" onclick="editStaffDetail('description', '${esc(profile.description || '')}')" style="position:absolute;top:12px;right:12px;opacity:0;transition:opacity .2s;background:none;border:none;color:var(--accent2);font-size:16px;cursor:pointer" title="Edit">✎</button>
+        </div>
+
+        <h4>Notes</h4>
+        <div style="background:var(--bg3);padding:12px;border-radius:8px;margin-bottom:16px;cursor:pointer;position:relative" onmouseenter="this.querySelector('.edit-btn').style.opacity='1'" onmouseleave="this.querySelector('.edit-btn').style.opacity='0'">
+          <div style="font-size:13px;color:${profile.notes ? 'var(--text)' : 'var(--text2)'};line-height:1.5;padding-right:28px">
+            ${profile.notes ? esc(profile.notes) : '<em>No notes - click to add</em>'}
+          </div>
+          <button class="edit-btn" onclick="editStaffDetail('notes', '${esc(profile.notes || '')}')" style="position:absolute;top:12px;right:12px;opacity:0;transition:opacity .2s;background:none;border:none;color:var(--accent2);font-size:16px;cursor:pointer" title="Edit">✎</button>
+        </div>
+
+        <h4>Alternative Accounts</h4>
+        <div style="background:var(--bg3);padding:12px;border-radius:8px;margin-bottom:16px">
+          ${profile.altAccounts && profile.altAccounts.length > 0 ? `
+            <div style="font-size:13px">
+              ${profile.altAccounts.map(acc => `
+                <div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+                  <div>
+                    <div style="font-weight:600">${esc(acc.name)}</div>
+                    <div style="font-size:11px;color:var(--text2)">ID: ${esc(acc.accountId)}</div>
+                    <div style="font-size:11px;color:var(--text2)">${esc(acc.relationship || 'Reference account')}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : '<em style="color:var(--text2)">No alternative accounts linked</em>'}
+          <button class="btn btn-primary" onclick="editAltAccounts('${userId}')" style="margin-top:8px;width:100%">+ Add/Manage Alt Accounts</button>
+        </div>
+      </div>
+    `;
+    
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div style="padding:16px;color:var(--red)">Error loading staff details: ${esc(e.message)}</div>`;
+  }
+}
+
+// Load promotion history
+async function loadPromotionHistory(userId) {
+  const container = document.getElementById('promotionContent');
+  if (!container) return;
+  try {
+    const data = await apiGet(`/api/staff/promotions/${userId}`);
+    const promotions = data.promotions || [];
+    
+    if (!promotions.length) {
+      container.innerHTML = `
+        <div style="padding:16px;text-align:center;color:var(--text2)">
+          <p>No promotion history available</p>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="openPromotionModal('${userId}')">+ Add Promotion</button>
+        </div>
+      `;
+      return;
+    }
+    
+    let html = '<div style="padding:16px 0">';
+    promotions.forEach((promo) => {
+      const date = promo.timestamp ? new Date(promo.timestamp).toLocaleDateString('en-GB') : '-';
+      html += `
+        <div style="background:var(--bg3);padding:12px;border-radius:8px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+            <div>
+              <div style="font-weight:600;font-size:14px">${esc(promo.newBaseLevel)}</div>
+              <div style="font-size:11px;color:var(--text2)">From: ${esc(promo.previousLevel || 'Initial level')}</div>
+            </div>
+            <div style="font-size:11px;color:var(--text2);text-align:right">${date}</div>
+          </div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:6px">
+            <strong>Reason:</strong> ${esc(promo.reason || 'N/A')}
+          </div>
+          <div style="font-size:11px;color:var(--text2)">
+            Promoted by: ${esc(promo.promotedBy || 'System')}
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    html += `<button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="openPromotionModal('${userId}')">+ Add Promotion</button>`;
+    
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div style="padding:16px;color:var(--red)">Error loading promotion history: ${esc(e.message)}</div>`;
+  }
+}
+
+// Edit staff detail (description or notes)
+async function editStaffDetail(field, currentValue) {
+  const user = state.selectedUser;
+  if (!user) return;
+  
+  const title = field === 'description' ? 'Edit Staff Description' : 'Edit Notes';
+  const label = field === 'description' ? 'Staff Description' : 'Notes';
+  
+  // Create a temporary modal
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '290';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-head">
+        <h3>${title}</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>${label}</label>
+          <textarea id="staffDetailInput" style="min-height:120px">${esc(currentValue)}</textarea>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-outline">Cancel</button>
+        <button class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  const saveBtn = modal.querySelector('.btn-primary');
+  const cancelBtn = modal.querySelector('.btn-outline');
+  
+  saveBtn.addEventListener('click', async () => {
+    const value = modal.querySelector('#staffDetailInput').value.trim();
+    const payload = { [field]: value || null };
+    try {
+      await apiPost(`/api/staff/profile/${user.discordId}`, payload);
+      toast(`${label} updated successfully`, 'success');
+      modal.remove();
+      loadStaffDetails(user.discordId);
+    } catch (e) {
+      toast(`Failed to update ${label}`, 'error');
+    }
+  });
+  
+  cancelBtn.addEventListener('click', () => modal.remove());
+  modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+}
+
+// Edit alternative accounts
+async function editAltAccounts(userId) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '290';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:500px">
+      <div class="modal-head">
+        <h3>Alternative Accounts</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Add alternative or test accounts linked to this user profile.</p>
+        <div id="altAccountsList"></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:12px" id="addAltBtn">+ Add Account</button>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-outline">Close</button>
+        <button class="btn btn-primary" id="saveAltAccountsBtn">Save</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  try {
+    const data = await apiGet(`/api/staff/profile/${userId}`);
+    const accounts = data.altAccounts || [];
+    
+    const listContainer = modal.querySelector('#altAccountsList');
+    const addBtn = modal.querySelector('#addAltBtn');
+    const saveBtn = modal.querySelector('#saveAltAccountsBtn');
+    const closeBtn = modal.querySelector('.btn-outline');
+    const closeX = modal.querySelector('.modal-close');
+    
+    const renderAccounts = () => {
+      if (!accounts.length) {
+        listContainer.innerHTML = '<p style="font-size:13px;color:var(--text2);text-align:center">No accounts added yet</p>';
+        return;
+      }
+      listContainer.innerHTML = accounts.map((acc, idx) => `
+        <div style="background:var(--bg3);padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+          <div style="flex:1">
+            <input type="text" value="${esc(acc.name)}" style="width:100%;background:var(--bg);border:1px solid var(--border);padding:6px;border-radius:4px;margin-bottom:4px;color:var(--text);font-size:12px" onchange="accounts[${idx}].name = this.value" placeholder="Account name" />
+            <input type="text" value="${esc(acc.accountId)}" style="width:100%;background:var(--bg);border:1px solid var(--border);padding:6px;border-radius:4px;margin-bottom:4px;color:var(--text);font-size:12px" onchange="accounts[${idx}].accountId = this.value" placeholder="Account ID" />
+            <input type="text" value="${esc(acc.relationship || '')}" style="width:100%;background:var(--bg);border:1px solid var(--border);padding:6px;border-radius:4px;color:var(--text);font-size:12px" onchange="accounts[${idx}].relationship = this.value" placeholder="Relationship/Purpose" />
+          </div>
+          <button class="btn-delete" style="margin-left:8px;white-space:nowrap" onclick="accounts.splice(${idx}, 1); renderAccounts()">🗑️ Remove</button>
+        </div>
+      `).join('');
+    };
+    
+    renderAccounts();
+    
+    addBtn.addEventListener('click', () => {
+      accounts.push({ accountId: '', name: '', relationship: '' });
+      renderAccounts();
+    });
+    
+    saveBtn.addEventListener('click', async () => {
+      try {
+        await apiPost(`/api/staff/profile/${userId}`, { altAccounts: accounts });
+        toast('Accounts saved successfully', 'success');
+        modal.remove();
+        loadStaffDetails(userId);
+      } catch (e) {
+        toast('Failed to save accounts', 'error');
+      }
+    });
+    
+    closeBtn.addEventListener('click', () => modal.remove());
+    closeX.addEventListener('click', () => modal.remove());
+  } catch (e) {
+    modal.remove();
+    toast('Error loading accounts: ' + e.message, 'error');
+  }
+}
+
+// Open promotion modal
+async function openPromotionModal(userId) {
+  const user = state.users.find(u => u.discordId === userId);
+  if (!user) return;
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay active';
+  modal.style.zIndex = '290';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:500px">
+      <div class="modal-head">
+        <h3>Promote Staff Member</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Current Base Level</label>
+          <div style="padding:10px;background:var(--bg3);border-radius:8px;color:var(--text2);font-size:13px">${esc(formatBaseLevel(user.baseLevel) || 'Not set')}</div>
+        </div>
+        <div class="field">
+          <label>New Base Level</label>
+          <select id="newBaseLevel">
+            <option value="">Select new level...</option>
+            ${BASE_LEVELS.map(l => `<option value="${esc(l.value)}">${esc(l.label)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Reason for Promotion</label>
+          <textarea id="promotionReason" placeholder="Describe why this promotion is being given..." style="min-height:100px"></textarea>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-outline" id="cancelPromoBtn">Cancel</button>
+        <button class="btn btn-primary" id="confirmPromoBtn">Promote</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  const newLevelSelect = modal.querySelector('#newBaseLevel');
+  const reasonInput = modal.querySelector('#promotionReason');
+  const confirmBtn = modal.querySelector('#confirmPromoBtn');
+  const cancelBtn = modal.querySelector('#cancelPromoBtn');
+  const closeX = modal.querySelector('.modal-close');
+  
+  confirmBtn.addEventListener('click', async () => {
+    const newLevel = newLevelSelect.value;
+    const reason = reasonInput.value.trim();
+    
+    if (!newLevel) { toast('Select a new base level', 'error'); return; }
+    if (!reason) { toast('Please provide a reason for promotion', 'error'); return; }
+    
+    try {
+      await apiPost('/api/staff/promotion', {
+        userId,
+        newBaseLevel: newLevel,
+        reason,
+        promotedBy: state.admin.name,
+        promotedById: state.admin.id
+      });
+      
+      toast('Promotion recorded successfully', 'success');
+      await logAdminAction('promotion_recorded', `Promoted ${user.name} to ${newLevel}`, userId);
+      modal.remove();
+      loadPromotionHistory(userId);
+    } catch (e) {
+      toast('Failed to record promotion: ' + e.message, 'error');
+    }
+  });
+  
+  cancelBtn.addEventListener('click', () => modal.remove());
+  closeX.addEventListener('click', () => modal.remove());
+}
+
+function renderPanelList(items, type) {
+  if (!items || !items.length) return '<div style="padding:16px;color:var(--text2);font-size:13px;text-align:center">No records found.</div>';
+  let html = '';
+  items.forEach((item, idx) => {
+    const id = item._id || item.id || idx;
+    let content = '';
+    switch(type) {
+      case 'absence': content = `<div class="row"><span>${esc(item.reason || item.type || '-')}</span><span class="badge ${item.status === 'approved' ? 'badge-approved' : item.status === 'rejected' ? 'badge-rejected' : 'badge-pending'}">${item.status || 'pending'}</span></div><div class="row" style="color:var(--text2);font-size:12px"><span>${esc(item.startDate || '')} → ${esc(item.endDate || '')}</span><span>${item.totalDays || '-'} days</span></div>`; break;
+      case 'payslip': content = `<div class="row"><span>${esc(item.period || item.payPeriod || '-')}</span><span style="font-size:12px;color:var(--text2)">${item.dateAssigned || item.timestamp || ''}</span></div>${item.link ? `<div class="row"><a href="${esc(item.link)}" target="_blank" style="color:var(--accent);font-size:12px">View Payslip</a></div>` : ''}`; break;
+      case 'report': content = `<div class="row"><span>${esc(item.type || '-')}</span><span style="font-weight:600;${(REPORT_POINTS[item.type]||0)>0?'color:var(--green)':'color:var(--red)'}">${(REPORT_POINTS[item.type]||0) > 0 ? '+' : ''}${REPORT_POINTS[item.type]||0}pts</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(item.comment || '-')}</div>`; break;
+      case 'strike': content = `<div class="row"><span>${esc(item.strikeType || item.type || '-')}</span><span style="font-weight:600;color:var(--red)">${STRIKE_POINTS[item.strikeType || item.type] || 0}pts</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(item.reason || item.comment || item.description || '-')}</div>`; break;
+      case 'request': content = `<div class="row"><span>${esc(item.type || '-')}</span><span class="badge ${(item.status||'').toLowerCase().includes('approv') ? 'badge-approved' : (item.status||'').toLowerCase().includes('den') || (item.status||'').toLowerCase().includes('reject') ? 'badge-rejected' : 'badge-pending'}">${item.status || 'Pending'}</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(item.comment || '-')}</div>`; break;
+    }
+    html += `<div class="panel-list-item">${content}<div class="panel-list-item-actions"><button class="btn-delete" onclick="deleteUserRecord('${type}','${id}')">🗑️ Delete</button></div></div>`;
+  });
+  return html + `<div style="margin-top:12px"><button class="btn btn-red btn-small" onclick="eraseAllRecords('${type}')" style="width:100%">Erase All ${type.charAt(0).toUpperCase() + type.slice(1)}</button></div>`;
+}
+
+function closeUserPanel() {
+  document.getElementById('userPanel').classList.remove('open');
+  document.getElementById('panelOverlay').classList.remove('active');
+  state.selectedUser = null;
+}
+document.getElementById('closePanelBtn').addEventListener('click', closeUserPanel);
+document.getElementById('panelOverlay').addEventListener('click', closeUserPanel);
+
+/* ================================================================
+   USER ACTIONS
+   ================================================================ */
+async function saveUserProfile() {
+  const user = state.selectedUser;
+  if (!user) return;
+  const dept = document.getElementById('edit-dept')?.value || '';
+  const level = document.getElementById('edit-level')?.value || '';
+  try {
+    await apiPost('/api/admin/user/update', { discordId: user.discordId, department: dept, baseLevel: level });
+    toast('Profile updated successfully', 'success');
+    user.department = dept;
+    user.baseLevel = level;
+    await loadUsers();
+  } catch (e) {
+    toast('Failed to update profile', 'error');
+  }
+}
+
+async function toggleSuspend(suspend) {
+  const user = state.selectedUser;
+  if (!user) return;
+  
+  const action = suspend ? 'Suspend' : 'Unsuspend';
+  const confirmed = await customConfirm(action + ' User', `${action} ${user.name || user.discordId}?`);
+  if (!confirmed) return;
+  
+  try {
+    await apiPost('/api/admin/user/update', { discordId: user.discordId, utilisation: suspend ? 'Suspended' : 'Active' });
+    
+    // Send DM to user
+    await sendDiscordDM(user.discordId, {
+      title: suspend ? '🚫 Account Suspended' : '✅ Account Restored',
+      description: suspend 
+        ? `Your account has been suspended by ${state.admin.name}. Please contact OC for more information.`
+        : `Your account has been restored by ${state.admin.name}. You can now access the portal again.`,
+      color: suspend ? 15548997 : 5763719
+    });
+    
+    toast(suspend ? 'User suspended' : 'User unsuspended', 'success');
+    closeUserPanel();
+    await loadUsers();
+  } catch (e) {
+    toast('Failed to update user', 'error');
+  }
+}
+
+async function removeAccount() {
+  const user = state.selectedUser;
+  if (!user) return;
+  
+  const confirmed1 = await customConfirm('⚠️ Delete Account', `PERMANENTLY remove ${user.name || user.discordId}? This cannot be undone.`);
+  if (!confirmed1) return;
+  
+  const confirmed2 = await customConfirm('⚠️ Final Confirmation', 'Are you absolutely sure? All data will be deleted.');
+  if (!confirmed2) return;
+  
+  try {
+    // Delete from KV storage
+    await apiPost('/api/admin/user/delete', { discordId: user.discordId });
+    
+    // Send final DM to user
+    await sendDiscordDM(user.discordId, {
+      title: '🗑️ Account Deleted',
+      description: `Your account has been permanently deleted by ${state.admin.name}. All your data has been removed. If you wish to rejoin, you will need to create a new account.`,
+      color: 15548997
+    });
+    
+    toast('Account removed', 'success');
+    closeUserPanel();
+    await loadUsers();
+  } catch (e) {
+    toast('Failed to remove account', 'error');
+  }
+}
+
+/* ================================================================
+   ACTION MODAL (APPROVE/DENY WITH REASON)
+   ================================================================ */
+document.getElementById('actionConfirmBtn').addEventListener('click', async () => {
+  const action = state.pendingAction;
+  if (!action) return;
+  let reason = document.getElementById('actionReason')?.value?.trim() || '';
+
+  try {
+    if (action.type === 'absence') {
+      await apiPost('/api/admin/absence/update-status', {
+        userId: action.item.userId || action.item.discordId,
+        absenceId: action.item.id,
+        status: action.status,
+        reason: reason,
+        adminName: state.admin.name,
+        adminId: state.admin.id,
+        adminAvatar: state.admin.avatar
+      });
+      // Log admin action
+      await logAdminAction(
+        action.status === 'Approved' ? 'absence_approved' : 'absence_denied',
+        `${state.admin.name} ${action.status.toLowerCase()} ${action.item.name}'s absence request${reason ? ': ' + reason : ''}`,
+        action.item.userId || action.item.discordId
+      );
+      toast(`Absence ${action.status.toLowerCase()} for ${action.item.name}${reason ? ' — Reason: ' + reason : ''}`, action.status === 'Approved' ? 'success' : 'info');
+      await loadAbsences();
+    } else if (action.type === 'voidAbsence') {
+      await apiPost('/api/admin/absence/void', {
+        absenceId: action.item.id,
+        userId: action.item.userId || action.item.discordId,
+        adminName: state.admin.name,
+        adminId: state.admin.id
+      });
+      // Log admin action
+      await logAdminAction(
+        'absence_voided',
+        `${state.admin.name} voided ${action.item.name}'s absence`,
+        action.item.userId || action.item.discordId
+      );
+      toast(`Absence voided for ${action.item.name}`, 'success');
+      await loadAbsences();
+    } else if (action.type === 'extendAbsence') {
+      const newEndDate = document.getElementById('extendAbsenceDate')?.value;
+      if (!newEndDate) {
+        toast('Please select a new end date', 'error');
+        return;
+      }
+      
+      await apiPost('/api/admin/absence/extend', {
+        absenceId: action.item.id,
+        userId: action.item.userId || action.item.discordId,
+        newEndDate: newEndDate,
+        adminName: state.admin.name,
+        adminId: state.admin.id
+      });
+      // Log admin action
+      await logAdminAction(
+        'absence_extended',
+        `${state.admin.name} extended ${action.item.name}'s absence to ${newEndDate}`,
+        action.item.userId || action.item.discordId
+      );
+      toast(`Absence extended for ${action.item.name} to ${newEndDate}`, 'success');
+      await loadAbsences();
+    } else if (action.type === 'request') {
+      await apiPost('/api/admin/requests/update-status', {
+        userId: action.item.userId || action.item.discordId,
+        requestId: action.item.id,
+        status: action.approved ? 'approved' : 'rejected',
+        reason: reason,
+        adminName: state.admin.name,
+        adminId: state.admin.id,
+        adminAvatar: state.admin.avatar
+      });
+      // Log admin action
+      await logAdminAction(
+        action.approved ? 'request_approved' : 'request_denied',
+        `${state.admin.name} ${action.approved ? 'approved' : 'denied'} ${action.item.name || action.item.userId}'s ${action.item.type || 'request'}${reason ? ': ' + reason : ''}`,
+        action.item.userId || action.item.discordId
+      );
+      toast(`Request ${action.approved ? 'approved' : 'denied'} for ${action.item.name || action.item.userId}${reason ? ' — Reason: ' + reason : ''}`, action.approved ? 'success' : 'info');
+      await loadRequests();
+    }
+  } catch (e) {
+    toast('Action failed: ' + e.message, 'error');
+  }
+  closeModal('actionModal');
+  state.pendingAction = null;
+});
+
+/* ================================================================
+   SEND PAYSLIP
+   ================================================================ */
+document.getElementById('sendPayslipBtn').addEventListener('click', async () => {
+  const userId = document.getElementById('payslipUser').value;
+  const period = document.getElementById('payslipPeriod').value.trim();
+  const link = document.getElementById('payslipLink').value.trim();
+  const comment = document.getElementById('payslipComment').value.trim();
+
+  if (!userId) { toast('Select a user', 'error'); return; }
+  if (!link) { toast('Enter a payslip link', 'error'); return; }
+
+  const user = state.users.find(u => u.discordId === userId);
+  const userName = user ? user.name : userId;
+
+  try {
+    await apiPost('/api/admin/payslips/create', {
+      userId,
+      period,
+      link,
+      comment,
+      assignedBy: state.admin.name,
+      assignedById: state.admin.id,
+      assignedByAvatar: state.admin.avatar
+    });
+    // Log admin action
+    await logAdminAction('payslip_sent', `${state.admin.name} sent payslip for ${period || 'N/A'} to ${userName}`, userId);
+    toast('Payslip sent successfully', 'success');
+    closeModal('payslipModal');
+    document.getElementById('payslipPeriod').value = '';
+    document.getElementById('payslipLink').value = '';
+    document.getElementById('payslipComment').value = '';
+    await loadPayslips();
+  } catch (e) {
+    toast('Failed to send payslip', 'error');
+  }
+});
+
+/* ================================================================
+   MANUAL LOA
+   ================================================================ */
+document.getElementById('confirmManualLoaBtn')?.addEventListener('click', submitManualLoa);
+
+/* ================================================================
+   ISSUE REPORT
+   ================================================================ */
+document.getElementById('sendReportBtn').addEventListener('click', async () => {
+  const userId = document.getElementById('reportUser').value;
+  const type = document.getElementById('reportType').value;
+  const desc = document.getElementById('reportDesc').value.trim();
+
+  if (!userId || !type) { toast('Select user and report type', 'error'); return; }
+  if (!desc) { toast('Enter a description', 'error'); return; }
+
+  const user = state.users.find(u => u.discordId === userId);
+  const userName = user ? user.name : userId;
+
+  try {
+    await apiPost('/api/reports/create', {
+      userId,
+      type,
+      comment: desc,
+      publishedBy: state.admin.name,
+      publishedById: state.admin.id,
+      publishedByAvatar: state.admin.avatar,
+      scale: type
+    });
+    // Trigger DM notification
+    const pts = REPORT_POINTS[type] || 0;
+    await apiPost('/api/send-dm', {
+      userId,
+      embed: {
+        title: type === 'Commendation' ? '⭐ New Commendation!' : '📋 New Report',
+        description: `You have received a new report: **${type}**\n\n${desc}\n\n**Points:** ${pts > 0 ? '+' : ''}${pts}\n\nIssued by: ${state.admin.name}`,
+        color: pts > 0 ? 0x22c55e : pts < 0 ? 0xef4444 : 0x3b82f6
+      }
+    });
+    // Log admin action
+    await logAdminAction('report_issued', `${state.admin.name} issued ${type} to ${userName}: ${desc}`, userId);
+    toast('Report issued successfully', 'success');
+    closeModal('reportModal');
+    document.getElementById('reportDesc').value = '';
+    document.getElementById('reportType').value = '';
+    await loadReports();
+  } catch (e) {
+    toast('Failed to issue report', 'error');
+  }
+});
+
+/* ================================================================
+   ISSUE DISCIPLINARY
+   ================================================================ */
+function toggleStrikePoints() {
+  const v = document.getElementById('strikeType').value;
+  document.getElementById('customPointsField').style.display = v === 'Other' ? 'block' : 'none';
+}
+
+document.getElementById('sendStrikeBtn').addEventListener('click', async () => {
+  const userId = document.getElementById('strikeUser').value;
+  const type = document.getElementById('strikeType').value;
+  const desc = document.getElementById('strikeDesc').value.trim();
+  const customPts = parseInt(document.getElementById('strikeCustomPoints').value) || 0;
+
+  if (!userId || !type) { toast('Select user and strike type', 'error'); return; }
+  if (!desc) { toast('Enter a description', 'error'); return; }
+
+  const pts = type === 'Other' ? -Math.abs(customPts) : (STRIKE_POINTS[type] || 0);
+  const user = state.users.find(u => u.discordId === userId);
+  const userName = user ? user.name : userId;
+
+  try {
+    await apiPost('/api/disciplinaries/create', {
+      userId,
+      strikeType: type,
+      reason: desc,
+      employer: state.admin.name,
+      employerId: state.admin.id,
+      employerAvatar: state.admin.avatar,
+      customPoints: pts
+    });
+    // Send DM
+    await apiPost('/api/send-dm', {
+      userId,
+      embed: {
+        title: '⚠️ Disciplinary Notice',
+        description: `You have received a disciplinary: **${type}**\n\n${desc}\n\n**Points:** ${pts}\n\nIssued by: ${state.admin.name}`,
+        color: 0xef4444
+      }
+    });
+    // Log admin action
+    await logAdminAction('disciplinary_issued', `${state.admin.name} issued ${type} to ${userName}: ${desc}`, userId);
+    toast('Disciplinary issued', 'success');
+    closeModal('strikeModal');
+    document.getElementById('strikeDesc').value = '';
+    document.getElementById('strikeType').value = '';
+    document.getElementById('strikeCustomPoints').value = '';
+    toggleStrikePoints();
+    await loadStrikes();
+  } catch (e) {
+    toast('Failed to issue disciplinary', 'error');
+  }
+});
+
+/* ================================================================
+   ADD CALENDAR EVENT
+   ================================================================ */
+document.getElementById('staffIdDept')?.addEventListener('change', previewStaffId);
+document.getElementById('staffIdTier')?.addEventListener('change', previewStaffId);
+
+document.getElementById('addCalendarEventBtn').addEventListener('click', async () => {
+  const date = document.getElementById('eventDate').value;
+  const title = document.getElementById('eventTitle').value.trim();
+  const type = document.getElementById('eventType').value;
+  const description = document.getElementById('eventDescription').value.trim();
+
+  if (!date || !title) { toast('Enter date and title', 'error'); return; }
+
+  try {
+    await apiPost('/api/calendar/events', {
+      date, title, type, description, createdBy: state.admin.name
+    });
+    // Log admin action
+    await logAdminAction('calendar_event_added', `${state.admin.name} added event "${title}" on ${date}`, title);
+    toast('Event added successfully', 'success');
+    closeModal('calendarEventModal');
+    document.getElementById('eventDate').value = '';
+    document.getElementById('eventTitle').value = '';
+    document.getElementById('eventDescription').value = '';
+    document.getElementById('eventType').value = 'event';
+    await loadCalendar();
+  } catch (e) {
+    toast('Failed to add event', 'error');
+  }
+});
+
+/* ================================================================
+   STAFF EVENTS (with RSVP)
+   ================================================================ */
+
+// Calculate duration when start/end times change
+document.getElementById('staffEventStartTime')?.addEventListener('change', calculateDuration);
+document.getElementById('staffEventEndTime')?.addEventListener('change', calculateDuration);
+
+function calculateDuration() {
+  const startTime = document.getElementById('staffEventStartTime').value;
+  const endTime = document.getElementById('staffEventEndTime').value;
+  const durationEl = document.getElementById('eventDuration');
+  
+  if (!startTime || !endTime) {
+    durationEl.textContent = '-';
+    return;
+  }
+  
+  const start = new Date(`2000-01-01T${startTime}`);
+  const end = new Date(`2000-01-01T${endTime}`);
+  let diffMs = end - start;
+  
+  if (diffMs < 0) {
+    durationEl.textContent = 'Invalid (end before start)';
+    durationEl.style.color = 'var(--danger)';
+    return;
+  }
+  
+  const hours = Math.floor(diffMs / 3600000);
+  const minutes = Math.floor((diffMs % 3600000) / 60000);
+  durationEl.textContent = `${hours}h ${minutes}m`;
+  durationEl.style.color = 'var(--primary)';
+}
+
+// Load staff events
+async function loadEvents() {
+  const container = document.getElementById('eventsTable');
+  container.innerHTML = '<div class="loading-inline">Loading events...</div>';
+  try {
+    const data = await apiGet('/api/admin/events') || { events: [] };
+    const events = data.events || [];
+    
+    // Update stats
+    const upcoming = events.filter(e => new Date(`${e.date}T${e.endTime}`) > new Date()).length;
+    const totalResponses = events.reduce((sum, e) => sum + (e.responses?.length || 0), 0);
+    
+    document.getElementById('eventsCount').textContent = events.length;
+    document.getElementById('eventsUpcoming').textContent = upcoming;
+    document.getElementById('eventsTotalResponses').textContent = totalResponses;
+    
+    if (events.length === 0) {
+      container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-secondary)">No events created yet</div>';
+      return;
+    }
+    
+    renderStaffEventsCards(events, 'eventsTable');
+  } catch (e) {
+    console.error('Error loading events:', e);
+    container.innerHTML = `<div style="padding:20px;color:red">Error: ${e.message}</div>`;
+  }
+}
+
+function showEventDetails(event) {
+  const modal = document.getElementById('eventDetailsModal');
+  const content = document.getElementById('eventDetailsContent');
+  
+  const attending = event.responses?.filter(r => r.status === 'attending') || [];
+  const notAttending = event.responses?.filter(r => r.status === 'not_attending') || [];
+  const unsure = event.responses?.filter(r => r.status === 'unsure') || [];
+  
+  let html = `
+    <div style="margin-bottom:20px">
+      <h4>Event Details</h4>
+      <div style="background:var(--bg2);padding:12px;border-radius:6px;margin-top:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:14px">
+          <div><strong>Date:</strong> ${event.date}</div>
+          <div><strong>Time:</strong> ${event.startTime} - ${event.endTime}</div>
+          <div><strong>Category:</strong> ${event.category}</div>
+          <div><strong>Attendance:</strong> <span style="color:${event.mandatory === 'mandatory' ? 'var(--danger)' : 'var(--primary)'}">${event.mandatory}</span></div>
+        </div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div><strong>Title:</strong> ${event.title}</div>
+          <div style="margin-top:8px"><strong>Description:</strong><br>${event.description}</div>
+        </div>
+      </div>
+    </div>
+    
+    <div style="margin-bottom:20px">
+      <h4 style="color:green">Attending (${attending.length})</h4>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${attending.length === 0 ? '<div style="color:var(--text-secondary)">No responses yet</div>' : attending.map(r => `<div>${r.userName || r.userId}</div>`).join('')}
+      </div>
+    </div>
+    
+    <div style="margin-bottom:20px">
+      <h4 style="color:red">Not Attending (${notAttending.length})</h4>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${notAttending.length === 0 ? '<div style="color:var(--text-secondary)">No responses yet</div>' : notAttending.map(r => `<div>${r.userName || r.userId}</div>`).join('')}
+      </div>
+    </div>
+    
+    <div style="margin-bottom:20px">
+      <h4 style="color:orange">Unsure (${unsure.length})</h4>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${unsure.length === 0 ? '<div style="color:var(--text-secondary)">No responses yet</div>' : unsure.map(r => `<div><div>${r.userName || r.userId}</div>${r.comment ? `<small style="color:var(--text-secondary)">"${r.comment}"</small>` : ''}</div>`).join('')}
+      </div>
+    </div>
+  `;
+  
+  content.innerHTML = html;
+  openModal('eventDetailsModal');
+}
+
+// Handle staff event creation
+document.getElementById('addStaffEventBtn')?.addEventListener('click', async () => {
+  const category = document.getElementById('eventCategory').value;
+  const date = document.getElementById('staffEventDate').value;
+  const startTime = document.getElementById('staffEventStartTime').value;
+  const endTime = document.getElementById('staffEventEndTime').value;
+  const title = document.getElementById('staffEventTitle').value.trim();
+  const description = document.getElementById('staffEventDescription').value.trim();
+  const mandatory = document.getElementById('staffEventMandatory').value;
+  
+  if (!category || !date || !startTime || !endTime || !title) {
+    toast('All fields are required', 'error');
+    return;
+  }
+  
+  if (new Date(`2000-01-01T${endTime}`) <= new Date(`2000-01-01T${startTime}`)) {
+    toast('End time must be after start time', 'error');
+    return;
+  }
+  
+  try {
+    const eventData = {
+      category, date, startTime, endTime, title, description, mandatory,
+      createdBy: state.admin.id,
+      createdByName: state.admin.name,
+      createdAt: new Date().toISOString()
+    };
+    
+    const response = await apiPost('/api/admin/events', eventData);
+    
+    // Log admin action
+    await logAdminAction('event_created', `${state.admin.name} created event "${title}" on ${date}`, title);
+    
+    // Send notifications to all staff (via backend)
+    let notifyResult = { sent: 0, failed: 0, total: 0 };
+    try {
+      const notifyRes = await apiPost('/api/admin/events/notify', {
+        eventId: response.eventId,
+        eventTitle: title,
+        eventDate: date,
+        eventTime: `${startTime}-${endTime}`,
+        eventDescription: description,
+        mandatory,
+        senderName: state.admin.name,
+        senderId: state.admin.id,
+        portalLink: window.location.origin
+      });
+      notifyResult = notifyRes || { sent: 0, failed: 0, total: 0 };
+      console.log('[EVENT NOTIFY]', notifyResult);
+    } catch (e) {
+      console.error('[EVENT NOTIFY ERROR]', e);
+    }
+    
+    const notifyMsg = notifyResult.total > 0 
+      ? `Event created! Notifying ${notifyResult.total} staff via DM in the background.` 
+      : `Event created but no staff profiles found to notify. Ensure staff have logged in to the portal.`;
+    toast(notifyMsg, notifyResult.total > 0 ? 'success' : 'warning');
+    closeModal('staffEventModal');
+    
+    // Clear form
+    document.getElementById('eventCategory').value = '';
+    document.getElementById('staffEventDate').value = '';
+    document.getElementById('staffEventStartTime').value = '';
+    document.getElementById('staffEventEndTime').value = '';
+    document.getElementById('staffEventTitle').value = '';
+    document.getElementById('staffEventDescription').value = '';
+    document.getElementById('staffEventMandatory').value = 'optional';
+    document.getElementById('eventDuration').textContent = '-';
+    
+    await loadCalendar();
+    await loadEvents();
+  } catch (e) {
+    console.error('Error creating event:', e);
+    toast('Failed to create event', 'error');
+  }
+});
+
+/* ================================================================
+   MODAL & TOAST HELPERS
+   ================================================================ */
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function toast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+function formatBaseLevel(value) { if (!value) return '-'; const b = BASE_LEVELS.find(x => x.value === value); return b ? b.label : value; }
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+
+/* ================================================================
+   LOGOUT
+   ================================================================ */
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  if (await customConfirm('Log Out', 'Log out?')) {
+    state = { admin: null, users: [], discordMembers: [], absences: [], requests: [], payslips: [], reports: [], strikes: [], activeTab: 'users', selectedUser: null, pendingAction: null };
+    showScreen('loginScreen');
+    document.getElementById('discordIdInput').value = '';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('loginBtn').disabled = false;
+  }
+});
+
+/* ================================================================
+   AUTO REFRESH (every 60s)
+   ================================================================ */
+setInterval(() => {
+  if (state.admin && document.getElementById('dashboard').classList.contains('active')) {
+    loadTab(state.activeTab);
+  }
+}, 60000);
+
+/* ================================================================
+   INIT
+   ================================================================ */
+generateStars();
+</script>
+</body>
+</html>
