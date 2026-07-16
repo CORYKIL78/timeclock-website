@@ -4315,15 +4315,54 @@ export default {
       }
 
       // ============================================================================
-      // Serve portal HTML for non-API routes (SPA fallback)
+      // Portal Routing (Directory, Staff, OC, Clients, Departments)
       // ============================================================================
 
-      // For any non-API route, try to serve from static assets
-      // If static assets aren't available, serve a simple index redirect
-      if (!url.pathname.startsWith('/api/')) {
+      const pathname = url.pathname;
+      let staticPath = null;
+
+      // Route root to directory
+      if (pathname === '/') {
+        staticPath = '/portal-directory.html';
+      }
+      // Route admin
+      else if (pathname === '/admin' || pathname === '/admin/') {
+        staticPath = '/admin/backup.html';
+      }
+      // Route /cirklestaff/ocportal to OC Portal
+      else if (pathname.startsWith('/cirklestaff/ocportal')) {
+        staticPath = '/admin/backup.html';
+      }
+      // Route bare /cirklestaff to staff portal
+      else if (pathname === '/cirklestaff' || pathname === '/cirklestaff/') {
+        staticPath = '/index.html';
+      }
+      // Route prefixed /cirklestaff/* paths
+      else if (pathname.startsWith('/cirklestaff/')) {
+        const stripped = pathname.slice('/cirklestaff'.length) || '/';
+        // Check if it's a static asset
+        if (/\.(?:css|js|mjs|png|webp|jpg|jpeg|gif|svg|ico|json|txt|map|woff2?|ttf|otf|mp3|wav)$/i.test(stripped)) {
+          staticPath = stripped; // Request root-level asset
+        } else {
+          staticPath = '/index.html'; // Route to staff portal SPA
+        }
+      }
+      // Route clients and departments to maintenance
+      else if (pathname.startsWith('/clients/') || pathname.startsWith('/departments/') || pathname === '/clients' || pathname === '/departments') {
+        staticPath = '/maintenance.html';
+      }
+      // Check if it's a root-level static asset
+      else if (/\.(?:css|js|mjs|png|webp|jpg|jpeg|gif|svg|ico|json|txt|map|woff2?|ttf|otf|mp3|wav)$/i.test(pathname)) {
+        staticPath = pathname;
+      }
+      // Default: serve staff portal for any other non-API route
+      else if (!pathname.startsWith('/api/')) {
+        staticPath = '/index.html';
+      }
+
+      if (staticPath) {
         try {
-          // Try to fetch the static file
-          const response = await fetch(new URL('/index.html', request.url).toString());
+          const response = await fetch(new URL(staticPath, request.url).toString());
           if (response.ok) {
             return new Response(response.body, {
               status: 200,
@@ -4335,8 +4374,7 @@ export default {
             });
           }
         } catch (e) {
-          // If static fetch fails, return a redirect or error
-          console.log('[PORTAL-FALLBACK] Static fetch failed:', e.message);
+          console.log('[PORTAL-ROUTE] Static fetch failed for', staticPath, ':', e.message);
         }
       }
 
