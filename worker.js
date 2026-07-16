@@ -4338,62 +4338,67 @@ export default {
       // ============================================================================
 
       const pathname = url.pathname;
-      let staticPath = null;
-
-      // Route root to directory
+      
+      // Map paths to file routes for Cloudflare Pages
+      let pageRoute = null;
+      
       if (pathname === '/') {
-        staticPath = '/portal-directory.html';
-      }
-      // Route admin
-      else if (pathname === '/admin' || pathname === '/admin/') {
-        staticPath = '/admin/backup.html';
-      }
-      // Route /cirklestaff/ocportal to OC Portal
-      else if (pathname.startsWith('/cirklestaff/ocportal')) {
-        staticPath = '/admin/backup.html';
-      }
-      // Route bare /cirklestaff to staff portal
-      else if (pathname === '/cirklestaff' || pathname === '/cirklestaff/') {
-        staticPath = '/index.html';
-      }
-      // Route prefixed /cirklestaff/* paths
-      else if (pathname.startsWith('/cirklestaff/')) {
+        pageRoute = '/portal-directory.html';
+      } else if (pathname === '/admin' || pathname === '/admin/') {
+        pageRoute = '/admin/backup.html';
+      } else if (pathname.startsWith('/cirklestaff/ocportal')) {
+        pageRoute = '/admin/backup.html';
+      } else if (pathname === '/cirklestaff' || pathname === '/cirklestaff/') {
+        pageRoute = '/index.html';
+      } else if (pathname.startsWith('/cirklestaff/')) {
         const stripped = pathname.slice('/cirklestaff'.length) || '/';
-        // Check if it's a static asset
+        // Check if it's a static asset - route to root level asset
         if (/\.(?:css|js|mjs|png|webp|jpg|jpeg|gif|svg|ico|json|txt|map|woff2?|ttf|otf|mp3|wav)$/i.test(stripped)) {
-          staticPath = stripped; // Request root-level asset
+          pageRoute = stripped;
         } else {
-          staticPath = '/index.html'; // Route to staff portal SPA
+          // Non-asset routes go to staff portal SPA
+          pageRoute = '/index.html';
         }
-      }
-      // Route clients and departments to maintenance
-      else if (pathname.startsWith('/clients/') || pathname.startsWith('/departments/') || pathname === '/clients' || pathname === '/departments') {
-        staticPath = '/maintenance.html';
-      }
-      // Check if it's a root-level static asset
-      else if (/\.(?:css|js|mjs|png|webp|jpg|jpeg|gif|svg|ico|json|txt|map|woff2?|ttf|otf|mp3|wav)$/i.test(pathname)) {
-        staticPath = pathname;
-      }
-      // Default: serve staff portal for any other non-API route
-      else if (!pathname.startsWith('/api/')) {
-        staticPath = '/index.html';
+      } else if (pathname.startsWith('/clients/') || pathname.startsWith('/departments/') || pathname === '/clients' || pathname === '/departments') {
+        pageRoute = '/maintenance.html';
+      } else if (/\.(?:css|js|mjs|png|webp|jpg|jpeg|gif|svg|ico|json|txt|map|woff2?|ttf|otf|mp3|wav)$/i.test(pathname)) {
+        // Root-level static asset
+        pageRoute = pathname;
+      } else if (!pathname.startsWith('/api/')) {
+        // Default SPA handler for all other non-API routes
+        pageRoute = '/index.html';
       }
 
-      if (staticPath) {
+      // If we have a page route, try to serve it via Cloudflare Pages
+      if (pageRoute) {
+        // Create a rewrite request to the actual file
+        const pageRequest = new Request(new URL(pageRoute, request.url).toString(), {
+          method: request.method,
+          headers: request.headers,
+          body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined
+        });
+        
         try {
-          const response = await fetch(new URL(staticPath, request.url).toString());
-          if (response.ok) {
-            return new Response(response.body, {
+          const pageResponse = await env.ASSETS.fetch(pageRequest);
+          if (pageResponse.status === 200 || pageResponse.status === 304) {
+            const contentType = pageRoute.endsWith('.html') ? 'text/html; charset=utf-8' : 
+                               pageRoute.endsWith('.css') ? 'text/css; charset=utf-8' :
+                               pageRoute.endsWith('.js') || pageRoute.endsWith('.mjs') ? 'application/javascript; charset=utf-8' :
+                               pageResponse.headers.get('content-type') || 'application/octet-stream';
+            
+            return new Response(pageResponse.body, {
               status: 200,
               headers: {
-                'Content-Type': 'text/html; charset=utf-8',
+                'Content-Type': contentType,
                 'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Access-Control-Allow-Origin': origin
+                'Access-Control-Allow-Origin': origin,
+                ...Object.fromEntries(pageResponse.headers.entries())
               }
             });
           }
         } catch (e) {
-          console.log('[PORTAL-ROUTE] Static fetch failed for', staticPath, ':', e.message);
+          console.log('[PORTAL-ROUTE] ASSETS fetch failed for', pageRoute, ':', e.message);
+          // Silently fall through - let Pages handle 404
         }
       }
 
