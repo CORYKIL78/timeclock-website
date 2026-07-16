@@ -1,32 +1,4 @@
-# Portal Routing Rules
-/portal-directory.html /portal-directory.html 200
-/ /portal-directory.html 200
-
-# Admin & OC Portal
-/admin /admin/backup.html 200
-/admin/* /admin/backup.html 200
-/cirklestaff/ocportal /admin/backup.html 200
-/cirklestaff/ocportal/* /admin/backup.html 200
-
-# Staff Portal
-/cirklestaff /index.html 200
-/cirklestaff/ /index.html 200
-/cirklestaff/* /index.html 200
-
-# Legacy admin routes
-/adminportal /admin/backup.html 200
-/adminportal/* /admin/backup.html 200
-
-# Maintenance sections
-/clients /maintenance.html 200
-/clients/* /maintenance.html 200
-/departments /maintenance.html 200
-/departments/* /maintenance.html 200
-
-# Finance tools
-/financetools /maintenance.html 302
-/financetools.html /maintenance.html 302
-
-# Default SPA fallback
+# Fallback for non-existent routes - GitHub Pages SPA fallback
 /* /index.html 200
+
 
