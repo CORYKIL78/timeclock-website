@@ -4334,73 +4334,12 @@ export default {
       }
 
       // ============================================================================
-      // Portal Routing (Directory, Staff, OC, Clients, Departments)
+      // Static file & SPA routing is handled by Cloudflare Pages _redirects file
+      // Worker only handles API and webhook routes
       // ============================================================================
-
-      const pathname = url.pathname;
       
-      // Map paths to file routes for Cloudflare Pages
-      let pageRoute = null;
-      
-      if (pathname === '/') {
-        pageRoute = '/portal-directory.html';
-      } else if (pathname === '/admin' || pathname === '/admin/') {
-        pageRoute = '/admin/backup.html';
-      } else if (pathname.startsWith('/cirklestaff/ocportal')) {
-        pageRoute = '/admin/backup.html';
-      } else if (pathname === '/cirklestaff' || pathname === '/cirklestaff/') {
-        pageRoute = '/index.html';
-      } else if (pathname.startsWith('/cirklestaff/')) {
-        const stripped = pathname.slice('/cirklestaff'.length) || '/';
-        // Check if it's a static asset - route to root level asset
-        if (/\.(?:css|js|mjs|png|webp|jpg|jpeg|gif|svg|ico|json|txt|map|woff2?|ttf|otf|mp3|wav)$/i.test(stripped)) {
-          pageRoute = stripped;
-        } else {
-          // Non-asset routes go to staff portal SPA
-          pageRoute = '/index.html';
-        }
-      } else if (pathname.startsWith('/clients/') || pathname.startsWith('/departments/') || pathname === '/clients' || pathname === '/departments') {
-        pageRoute = '/maintenance.html';
-      } else if (/\.(?:css|js|mjs|png|webp|jpg|jpeg|gif|svg|ico|json|txt|map|woff2?|ttf|otf|mp3|wav)$/i.test(pathname)) {
-        // Root-level static asset
-        pageRoute = pathname;
-      } else if (!pathname.startsWith('/api/')) {
-        // Default SPA handler for all other non-API routes
-        pageRoute = '/index.html';
-      }
-
-      // If we have a page route, try to serve it via Cloudflare Pages
-      if (pageRoute) {
-        // Create a rewrite request to the actual file
-        const pageRequest = new Request(new URL(pageRoute, request.url).toString(), {
-          method: request.method,
-          headers: request.headers,
-          body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined
-        });
-        
-        try {
-          const pageResponse = await env.ASSETS.fetch(pageRequest);
-          if (pageResponse.status === 200 || pageResponse.status === 304) {
-            const contentType = pageRoute.endsWith('.html') ? 'text/html; charset=utf-8' : 
-                               pageRoute.endsWith('.css') ? 'text/css; charset=utf-8' :
-                               pageRoute.endsWith('.js') || pageRoute.endsWith('.mjs') ? 'application/javascript; charset=utf-8' :
-                               pageResponse.headers.get('content-type') || 'application/octet-stream';
-            
-            return new Response(pageResponse.body, {
-              status: 200,
-              headers: {
-                'Content-Type': contentType,
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Access-Control-Allow-Origin': origin,
-                ...Object.fromEntries(pageResponse.headers.entries())
-              }
-            });
-          }
-        } catch (e) {
-          console.log('[PORTAL-ROUTE] ASSETS fetch failed for', pageRoute, ':', e.message);
-          // Silently fall through - let Pages handle 404
-        }
-      }
+      // For non-API routes, Pages _redirects will handle routing to the proper HTML file
+      // This avoids the fetch() issue and lets Pages serve files naturally
 
       // ============================================================================
       // 404 - Endpoint not found
