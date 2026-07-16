@@ -82,6 +82,7 @@ const requestDeduplicator = {
         // Check if we have a cached result within TTL
         const lastTime = this.lastCall.get(endpoint);
         if (lastTime && Date.now() - lastTime < this.TTL) {
+            if (!this.lastResult) this.lastResult = new Map();
             console.log(`[DEDUP] Result still fresh for ${endpoint}, returning cached`);
             return this.lastResult.get(endpoint);
         }
@@ -1486,31 +1487,44 @@ function showDisciplinaryDetails(disciplinary) {
 // Fetch employee reports from backend
 async function fetchEmployeeReports(userId) {
     try {
+        if (!userId) {
+            console.log('[fetchEmployeeReports] No userId provided');
+            return [];
+        }
+        
         const cacheKey = `reports_${userId}`;
         
         // Check cache first
         const cached = apiCache.get(cacheKey);
         if (cached) {
-            console.log('[fetchEmployeeReports] Using cached reports');
+            console.log('[fetchEmployeeReports] Using cached reports for', userId, ':', cached.length, 'reports');
             return cached;
         }
         
         // Check if request is already in flight
         if (apiCache.isInFlight(cacheKey)) {
-            console.log('[fetchEmployeeReports] Request already in flight, waiting...');
+            console.log('[fetchEmployeeReports] Request already in flight for', userId);
             return await apiCache.isInFlight(cacheKey);
         }
         
-        const fetchPromise = fetch(`${BACKEND_URL}/api/reports/fetch`, {
+        const endpoint = PORTAL_BASE_PATH ? `${PORTAL_BASE_PATH}/api/reports` : '/api/reports';
+        const fetchPromise = fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId })
         }).then(async (res) => {
-            if (!res.ok) throw new Error('Failed to fetch employee reports');
+            if (!res.ok) {
+                console.warn('[fetchEmployeeReports] Bad response:', res.status);
+                throw new Error(`Failed to fetch reports: ${res.status}`);
+            }
             const data = await res.json();
-            const reports = data.reports || [];
+            const reports = Array.isArray(data) ? data : (data.reports || []);
+            console.log('[fetchEmployeeReports] Fetched', reports.length, 'reports for', userId);
             apiCache.set(cacheKey, reports);
             return reports;
+        }).catch(err => {
+            console.error('[fetchEmployeeReports] Fetch error:', err);
+            return [];
         }).finally(() => {
             apiCache.clearInFlight(cacheKey);
         });
@@ -1518,7 +1532,7 @@ async function fetchEmployeeReports(userId) {
         apiCache.setInFlight(cacheKey, fetchPromise);
         return await fetchPromise;
     } catch (e) {
-        console.error('fetchEmployeeReports error:', e);
+        console.error('[fetchEmployeeReports] Error:', e);
         return [];
     }
 }
@@ -2302,30 +2316,36 @@ document.addEventListener('DOMContentLoaded', () => {
             updateEmployee(emp);
             console.log('[submitAbsence] Employee now has', emp.absences.length, 'absences');
             
-            // Send to Google Sheets backend
+            // Send to Worker backend
             try {
-                const response = await fetch('https://timeclock-backend.marcusray.workers.dev/api/absence', {
+                const endpoint = PORTAL_BASE_PATH ? `${PORTAL_BASE_PATH}/api/absence` : '/api/absence';
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        name: currentUser.name || emp.profile?.name || 'Unknown User',  // A: Name
-                        startDate,           // B: Start Date
-                        endDate,             // C: End Date
-                        reason: type,        // D: Reason
-                        totalDays: days.toString(),  // E: Total Days
-                        comment,             // F: Comment
-                        // G: Approval (empty, filled by managers)
-                        discordId: currentUser.id  // H: Discord ID
+                        name: currentUser.name || emp.profile?.name || 'Unknown User',
+                        startDate,
+                        endDate,
+                        reason: type,
+                        totalDays: days.toString(),
+                        comment,
+                        discordId: currentUser.id,
+                        status: 'pending',
+                        createdAt: new Date().toISOString()
                     })
                 });
                 
-                console.log('[DEBUG] Absence submission response:', response.status);
+                console.log('[ABSENCE] Submission response:', response.status);
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('[DEBUG] Absence submission error:', errorData);
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('[ABSENCE] Submission error:', errorData);
+                    throw new Error(errorData.error || 'Failed to submit absence');
                 }
+                const result = await response.json();
+                console.log('[ABSENCE] Success:', result);
             } catch (e) {
-                console.error('Failed to save absence to Sheets:', e);
+                console.error('[ABSENCE] Failed to save absence:', e);
+                throw e;
             }
             
             // Send DM to user

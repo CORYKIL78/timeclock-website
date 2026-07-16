@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OC Portal - Oversight & Corporate</title>
-<link rel="icon" type="image/png" href="../Untitled_design.png">
+<link rel="icon" type="image/webp" href="../Portal Logo.webp">
 <style>
 :root {
   --bg: #0b0d17;
@@ -1449,9 +1449,14 @@ async function doLogin() {
     // PRIORITY 2: Fall back to backend validation if local fails
     if (!validation) {
       try {
-        const response = await apiPost('/api/admin/validate', { discordId: id, pin });
+        const response = await apiPost('/api/admin/validate', { discordId: id, pin, admins: window.CONFIG.ADMINS });
         if (response && response.success) {
           validation = response;
+          // Cache admin config from backend if available
+          if (response.admins) {
+            window.CONFIG.ADMINS = response.admins;
+            localStorage.setItem('cachedAdminConfig', JSON.stringify(response.admins));
+          }
           console.log('[AUTH] Backend validation successful');
         }
       } catch (e) {
@@ -1523,6 +1528,12 @@ document.getElementById('goToDashboard').addEventListener('click', async () => {
   syncAdminAccessVisibility();
   state.adminSectionUnlocked = false;
   renderAdminsLockedState('Verifying your identity....', true);
+  // ALWAYS set active tab to 'users' first to prevent auto-opening ADMINS
+  state.activeTab = 'users';
+  // Set users button as active
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const usersBtn = document.querySelector('[data-tab="users"]');
+  if (usersBtn) usersBtn.classList.add('active');
   loadTab('users');
 });
 

@@ -3159,7 +3159,7 @@ export default {
       if (url.pathname === '/api/admin/validate' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { discordId, pin } = body;
+          const { discordId, pin, admins } = body;
 
           if (!discordId || !pin) {
             return new Response(JSON.stringify({ success: false, error: 'Missing credentials' }), {
@@ -3168,14 +3168,32 @@ export default {
             });
           }
 
-          // Get admin credentials from environment variables
-          // Format: ADMIN_{DISCORD_ID}_PIN and ADMIN_{DISCORD_ID}_NAME
-          const adminPinKey = `ADMIN_${discordId}_PIN`;
-          const adminNameKey = `ADMIN_${discordId}_NAME`;
-          const adminPin = env[adminPinKey];
-          const adminName = env[adminNameKey];
+          // Try to get admin config from KV storage first
+          let adminConfig = await env.DATA.get('config:admins', 'json');
+          
+          // If provided in request, use that (for browser-based verification)
+          if (admins && !adminConfig) {
+            adminConfig = admins;
+            // Also store in KV for future use
+            try {
+              await env.DATA.put('config:admins', JSON.stringify(admins));
+            } catch (e) {
+              console.error('[ADMIN VALIDATE] Could not cache admins to KV:', e);
+            }
+          }
 
-          if (!adminPin || adminPin !== pin) {
+          // If still no config, return invalid
+          if (!adminConfig || !adminConfig[discordId]) {
+            return new Response(JSON.stringify({ success: false, error: 'Invalid credentials' }), {
+              status: 401,
+              headers: corsHeaders
+            });
+          }
+
+          const adminData = adminConfig[discordId];
+          const isValid = adminData.pin === pin;
+
+          if (!isValid) {
             return new Response(JSON.stringify({ success: false, error: 'Invalid credentials' }), {
               status: 401,
               headers: corsHeaders
@@ -3196,7 +3214,8 @@ export default {
           return new Response(JSON.stringify({
             success: true,
             adminId: discordId,
-            adminName: adminName || 'Admin'
+            adminName: adminData.name || 'Admin',
+            admins: adminConfig
           }), { headers: corsHeaders });
         } catch (e) {
           return new Response(JSON.stringify({ success: false, error: e.message }), {
