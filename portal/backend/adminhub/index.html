@@ -82,6 +82,12 @@
     }
     .assoc-card { display: flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
     .assoc-card img { width: 30px; height: 30px; border-radius: 50%; }
+    .assoc-card, .card, .panel, .modal-card, .nav button, button.btn { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, opacity .18s ease; }
+    .card:hover, .panel:hover, .assoc-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.22); }
+    .modal-card { animation: popIn .18s ease; }
+    @keyframes popIn { from { opacity: 0; transform: scale(.98) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .panel, .card, .assoc-card, section { animation: fadeUp .22s ease; }
     .error { color: #fca5a5; font-size: 12px; margin-top: 8px; }
     .success { color: #86efac; font-size: 12px; margin-top: 8px; }
     @media (max-width: 900px) {
@@ -404,9 +410,10 @@
       preview.innerHTML = 'Searching...';
       const cards = [];
       for (const id of ids) {
-        const res = await fetch(`${API}/api/discord/user/${id}`);
-        const u = await res.json();
-        cards.push(`<div class="assoc-card"><img src="${u.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" alt="avatar"><div><strong>${u.global_name || u.username || 'Unknown'}</strong><div class="label">${id}</div></div></div>`);
+        const res = await fetch(`${API}/api/discord/user/search?userId=${encodeURIComponent(id)}`);
+        const data = await res.json();
+        const u = data.user || {};
+        cards.push(`<div class="assoc-card"><img src="${u.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" alt="avatar"><div><strong>${u.global_name || u.username || 'Unknown'}</strong><div class="label">${id}${u.guildId ? ` · ${u.guildId}` : ''}</div></div></div>`);
       }
       preview.innerHTML = cards.join('');
     }
@@ -422,6 +429,8 @@
       document.getElementById('assocPreview').innerHTML = '';
       document.getElementById('companyModalMsg').textContent = '';
       document.getElementById('deleteCompanyBtn').classList.toggle('hidden', !company);
+      document.getElementById('saveCompanyBtn').textContent = company ? 'Update' : 'Publish';
+      document.getElementById('searchAssociatesBtn').textContent = 'Search User';
       document.getElementById('companyModal').classList.add('show');
     }
 

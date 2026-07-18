@@ -45,6 +45,12 @@
     th, td { border-bottom: 1px solid var(--border); padding: 8px 6px; font-size: 13px; text-align: left; }
     .notif { border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 8px; background: #111a2c; cursor: pointer; }
     .notif.unread { border-color: #7c3aed; background: rgba(124,58,237,.15); }
+    .panel, .card, .notif, .modal-card, button.btn, .nav button { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, opacity .18s ease; }
+    .panel:hover, .card:hover, .notif:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(0,0,0,.22); }
+    .modal-card { animation: popIn .18s ease; }
+    @keyframes popIn { from { opacity: 0; transform: scale(.98) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .panel, .card, .notif, section { animation: fadeUp .22s ease; }
     .status { font-size: 11px; padding: 3px 8px; border-radius: 999px; font-weight: 700; }
     .incoming { background: rgba(202,138,4,.2); color: #fde68a; }
     .approved { background: rgba(22,163,74,.2); color: #86efac; }

@@ -107,6 +107,76 @@ async function resolveDisplayName(env, userId, fallbackName = '') {
   }
 }
 
+function parseGuildIds(env) {
+  const envValue = String(env?.DISCORD_GUILD_IDS || env?.GUILD_IDS || '').trim();
+  if (envValue) {
+    return envValue.split(',').map(item => item.trim()).filter(Boolean);
+  }
+  return [
+    String(env?.GUILD_ID || '').trim(),
+    String(env?.STAFF_SERVER_ID || '').trim(),
+    STAFF_SERVER_GUILD_ID
+  ].filter(Boolean);
+}
+
+async function lookupDiscordUserInGuilds(env, userId, guildIds = []) {
+  const uniqueGuildIds = [...new Set((guildIds.length ? guildIds : parseGuildIds(env)).map(String).filter(Boolean))];
+
+  for (const guildId of uniqueGuildIds) {
+    try {
+      const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bot ${env.DISCORD_BOT_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) continue;
+      const member = await response.json();
+      const user = member.user || {};
+      const avatarHash = user.avatar || member.avatar || null;
+      return {
+        found: true,
+        guildId,
+        id: String(user.id || userId),
+        username: user.username || member.nick || `User ${userId}`,
+        global_name: user.global_name || user.username || member.nick || `User ${userId}`,
+        avatar: avatarHash,
+        avatar_url: avatarHash
+          ? `https://cdn.discordapp.com/avatars/${user.id || userId}/${avatarHash}.png?size=128`
+          : defaultDiscordAvatarUrl(user.id || userId),
+        nick: member.nick || ''
+      };
+    } catch (error) {
+      console.error('[DISCORD LOOKUP]', guildId, userId, error.message);
+    }
+  }
+
+  const profile = await env.DATA.get(`profile:${userId}`, 'json');
+  if (profile) {
+    return {
+      found: true,
+      id: String(userId),
+      username: profile.discordTag || profile.name || `User ${userId}`,
+      global_name: profile.name || profile.discordTag || `User ${userId}`,
+      avatar: profile.avatar || null,
+      avatar_url: profile.avatar
+        ? `https://cdn.discordapp.com/avatars/${userId}/${profile.avatar}.png?size=128`
+        : defaultDiscordAvatarUrl(userId)
+    };
+  }
+
+  return {
+    found: false,
+    id: String(userId),
+    username: `User ${userId}`,
+    global_name: `User ${userId}`,
+    avatar: null,
+    avatar_url: defaultDiscordAvatarUrl(userId)
+  };
+}
+
 async function appendAdminLog(env, entry) {
   const logs = await env.DATA.get('admin:logs', 'json') || [];
   const newLog = {
@@ -290,6 +360,9 @@ async function saveCdgWithdrawals(env, withdrawals) {
 }
 
 async function pushCompanyNotification(env, companyId, payload) {
+  const company = await env.DATA.get('cdg:companies', 'json')
+    .then(items => Array.isArray(items) ? items.find(item => item.id === companyId) : null)
+    .catch(() => null);
   const key = `cdg:notifications:${companyId}`;
   const existing = await env.DATA.get(key, 'json');
   const notifications = Array.isArray(existing) ? existing : [];
@@ -301,6 +374,21 @@ async function pushCompanyNotification(env, companyId, payload) {
   });
   if (notifications.length > 300) notifications.length = 300;
   await env.DATA.put(key, JSON.stringify(notifications));
+
+  if (company?.associateIds?.length) {
+    const portalLink = `https://portal.cirkledevelopment.co.uk/clients/cdgassociates/dashboard?company=${encodeURIComponent(companyId)}`;
+    for (const associateId of company.associateIds) {
+      await sendDiscordDM(env, String(associateId), {
+        title: 'New notification on the associates portal',
+        description: `${payload.title || 'Update'}\n\n${payload.message || 'View now'}`,
+        fields: [
+          { name: 'View now', value: portalLink, inline: false }
+        ],
+        color: 0x6366f1,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
 }
 
 async function sendPortalAlert(env, embed, content = `<@&${PORTAL_ALERT_ROLE}>`) {
@@ -1922,6 +2010,29 @@ export default {
           return new Response(JSON.stringify({ success: true, isMember }), { headers: corsHeaders });
         } catch (error) {
           console.error('[STAFF-SERVER-STATUS]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      if (url.pathname === '/api/discord/user/search' && request.method === 'GET') {
+        try {
+          const userId = String(url.searchParams.get('userId') || '').trim();
+          const guildParam = String(url.searchParams.get('guildIds') || '').trim();
+          const guildIds = guildParam ? guildParam.split(',').map(item => item.trim()).filter(Boolean) : [];
+
+          if (!userId) {
+            return new Response(JSON.stringify({ success: false, error: 'userId required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const result = await lookupDiscordUserInGuilds(env, userId, guildIds);
+          return new Response(JSON.stringify({ success: true, user: result }), { headers: corsHeaders });
+        } catch (error) {
           return new Response(JSON.stringify({ success: false, error: error.message }), {
             status: 500,
             headers: corsHeaders
@@ -5134,6 +5245,19 @@ export default {
         doc.lastResubmittedBy = session.username;
 
         await saveCdgDocuments(env, documents);
+
+        await sendPortalAlert(env, {
+          title: 'Document Resubmitted',
+          color: 0x3b82f6,
+          fields: [
+            { name: 'Company Name', value: doc.companyName, inline: false },
+            { name: 'Submitter', value: `${session.username} (${session.userId})`, inline: false },
+            { name: 'Title', value: doc.title, inline: false },
+            { name: 'Resubmissions', value: `${doc.resubmissionCount}`, inline: true },
+            { name: 'View Now', value: 'https://portal.cirkledevelopment.co.uk/portal/backend/adminhub/documents', inline: false }
+          ],
+          timestamp: new Date().toISOString()
+        });
 
         await pushCompanyNotification(env, session.companyId, {
           type: 'document_resubmitted',
