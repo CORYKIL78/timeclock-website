@@ -434,6 +434,26 @@
     </div>
 
     <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            const state = params.get('state') || '';
+
+            if (code && state) {
+                let target = null;
+                if (state === 'adminhub') {
+                    target = '/portal/backend/adminhub/index.html';
+                } else if (state === 'cdgassociates') {
+                    target = '/clients/cdgassociates/index.html';
+                }
+
+                if (target) {
+                    window.location.replace(`${target}${window.location.search}`);
+                    return;
+                }
+            }
+        })();
+
         const TRACK_ENDPOINT = 'https://timeclock-backend.marcusray.workers.dev/api/portal/track-view';
 
         function trackPortalEvent(action, target = '') {

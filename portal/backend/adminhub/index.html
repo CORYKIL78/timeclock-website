@@ -228,7 +228,7 @@
   <script>
     const API = (window.CONFIG && window.CONFIG.WORKER_URL) || 'https://timeclock-backend.marcusray.workers.dev';
     const CLIENT_ID = (window.CONFIG && window.CONFIG.DISCORD_CLIENT_ID) || '1417915896634277888';
-    const REDIRECT_URI = `${window.location.origin}/portal/backend/adminhub/index.html`;
+    const REDIRECT_URI = window.CONFIG?.REDIRECT_URI || window.location.origin;
     const BASE = '/portal/backend/adminhub';
 
     const state = {
@@ -577,6 +577,7 @@
       url.searchParams.set('response_type', 'code');
       url.searchParams.set('scope', 'identify');
       url.searchParams.set('redirect_uri', REDIRECT_URI);
+      url.searchParams.set('state', 'adminhub');
       window.location.href = url.toString();
     });
 
