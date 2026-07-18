@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Complete Admin Hub</title>
+  <link rel="icon" href="/Portal Logo.webp" type="image/webp">
+  <style>
+    :root {
+      --bg: #060910;
+      --panel: #101725;
+      --panel-2: #151d2f;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #6366f1;
+      --border: #283449;
+      --green: #16a34a;
+      --red: #dc2626;
+      --yellow: #ca8a04;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Segoe UI, Tahoma, sans-serif;
+      background: radial-gradient(1000px 500px at 20% -10%, rgba(99,102,241,0.24), transparent), var(--bg);
+      color: var(--text);
+    }
+    .hidden { display: none !important; }
+    .layout { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
+    .sidebar {
+      border-right: 1px solid var(--border);
+      background: #0b121f;
+      padding: 20px 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .brand img { width: 36px; height: 36px; object-fit: contain; }
+    .brand h1 { font-size: 15px; margin: 0; }
+    .user-chip { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 8px; margin-bottom: 14px; }
+    .user-chip img { width: 34px; height: 34px; border-radius: 50%; }
+    .user-chip .name { font-size: 12px; font-weight: 600; }
+    .nav button {
+      width: 100%; text-align: left; border: 1px solid transparent; background: transparent;
+      color: var(--text); border-radius: 9px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer;
+    }
+    .nav button.active { background: var(--panel); border-color: var(--border); }
+    .content { padding: 20px; }
+    .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .logo-box { display: flex; align-items: center; gap: 10px; }
+    .logo-box img { width: 30px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+    .label { color: var(--muted); font-size: 12px; }
+    .value { font-size: 22px; font-weight: 700; margin-top: 6px; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    input, select, textarea {
+      background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+      padding: 9px 10px; border-radius: 8px;
+    }
+    textarea { width: 100%; min-height: 80px; }
+    button.btn {
+      background: var(--accent); border: none; color: #fff; border-radius: 8px; padding: 9px 12px; cursor: pointer;
+    }
+    button.btn.secondary { background: #334155; }
+    button.btn.danger { background: var(--red); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid var(--border); padding: 9px 6px; text-align: left; font-size: 13px; }
+    .status { padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .incoming { background: rgba(202,138,4,.2); color: #fde68a; }
+    .approved { background: rgba(22,163,74,.2); color: #86efac; }
+    .rejected { background: rgba(220,38,38,.2); color: #fca5a5; }
+    .modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,.6);
+      display: none; align-items: center; justify-content: center; z-index: 30;
+    }
+    .modal.show { display: flex; }
+    .modal-card {
+      width: min(720px, 95vw); max-height: 90vh; overflow: auto;
+      background: #0f1626; border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+    }
+    .assoc-card { display: flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+    .assoc-card img { width: 30px; height: 30px; border-radius: 50%; }
+    .error { color: #fca5a5; font-size: 12px; margin-top: 8px; }
+    .success { color: #86efac; font-size: 12px; margin-top: 8px; }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <div id="loginScreen" class="content">
+    <div class="panel" style="max-width:520px;margin:60px auto;text-align:center;">
+      <img src="/Portal Logo.webp" alt="Logo" style="width:72px;height:72px;object-fit:contain;">
+      <h2>Portal Complete Admin Hub</h2>
+      <p class="label">Login with Discord. Only authorized IDs can access this hub.</p>
+      <button id="discordLoginBtn" class="btn">Login with Discord</button>
+      <div id="loginError" class="error"></div>
+    </div>
+  </div>
+
+  <div id="app" class="layout hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="/Portal Logo.webp" alt="Logo">
+        <h1>Admin Hub</h1>
+      </div>
+      <div class="user-chip">
+        <img id="meAvatar" src="" alt="avatar">
+        <div>
+          <div id="meName" class="name">-</div>
+          <div class="label">Portal Complete Admin</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <button data-page="dashboard" class="active">Dashboard Analytics</button>
+        <button data-page="companies">CDG Associates</button>
+        <button data-page="documents">Requests: Documents</button>
+        <button data-page="funds">Requests: Funds</button>
+      </nav>
+      <button id="logoutBtn" class="btn secondary" style="width:100%;margin-top:8px;">Log Out</button>
+    </aside>
+
+    <main class="content">
+      <div class="top">
+        <div class="logo-box"><img src="/Portal Logo.webp" alt="logo"><strong id="pageTitle">Dashboard Analytics</strong></div>
+      </div>
+
+      <section id="page-dashboard">
+        <div class="cards">
+          <div class="card"><div class="label">Portal Visits</div><div class="value" id="aVisits">0</div></div>
+          <div class="card"><div class="label">Directory Clicks</div><div class="value" id="aClicks">0</div></div>
+          <div class="card"><div class="label">CDG Companies</div><div class="value" id="aCompanies">0</div></div>
+          <div class="card"><div class="label">Incoming Documents</div><div class="value" id="aIncomingDocs">0</div></div>
+          <div class="card"><div class="label">Incoming Funds Requests</div><div class="value" id="aIncomingFunds">0</div></div>
+        </div>
+        <div class="panel">
+          <h3>Directory Click Counters</h3>
+          <div id="clickCounterList" class="label">No data yet.</div>
+        </div>
+      </section>
+
+      <section id="page-companies" class="hidden">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px;">
+          <h3 style="margin:0;">CDG Associates Companies</h3>
+          <button id="openCreateCompanyBtn" class="btn">Create Company</button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Company</th><th>Associates</th><th>Token</th><th>Funds</th><th>Created</th><th>Actions</th></tr></thead>
+            <tbody id="companiesBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="page-documents" class="hidden">
+        <div class="row" style="margin-bottom:10px;">
+          <button class="btn secondary doc-tab" data-status="incoming">Incoming</button>
+          <button class="btn secondary doc-tab" data-status="approved">Approved</button>
+          <button class="btn secondary doc-tab" data-status="rejected">Rejected</button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Status</th><th>Title</th><th>Company</th><th>Submitter</th><th>Date</th><th>Action</th></tr></thead>
+            <tbody id="documentsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="page-funds" class="hidden">
+        <div class="row" style="margin-bottom:10px;">
+          <button class="btn secondary fund-tab" data-status="incoming">Incoming</button>
+          <button class="btn secondary fund-tab" data-status="approved">Approved</button>
+          <button class="btn secondary fund-tab" data-status="rejected">Rejected</button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Status</th><th>Company</th><th>Requester</th><th>Amount</th><th>Reason</th><th>Action</th></tr></thead>
+            <tbody id="fundsBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="companyModal" class="modal">
+    <div class="modal-card">
+      <h3 id="companyModalTitle">Create Company</h3>
+      <div class="row">
+        <input id="companyNameInput" placeholder="Company name" style="flex:1;">
+        <input id="companyFundsInput" type="number" placeholder="Group funds" style="width:180px;">
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <input id="assoc1Input" placeholder="Associate Discord ID #1" style="flex:1;">
+        <input id="assoc2Input" placeholder="Associate Discord ID #2" style="flex:1;">
+        <button id="searchAssociatesBtn" class="btn secondary">Search</button>
+      </div>
+      <div id="assocPreview" class="row" style="margin-top:10px;"></div>
+      <div class="row" style="margin-top:10px;">
+        <input id="companyTokenInput" placeholder="Login token (12 chars)" style="width:220px;">
+        <button id="generateTokenBtn" class="btn secondary">Generate Login Token</button>
+      </div>
+      <div class="row" style="margin-top:12px;justify-content:flex-end;">
+        <button id="deleteCompanyBtn" class="btn danger hidden">Delete</button>
+        <button id="cancelCompanyBtn" class="btn secondary">Cancel</button>
+        <button id="saveCompanyBtn" class="btn">Publish</button>
+      </div>
+      <div id="companyModalMsg" class="label" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <div id="docActionModal" class="modal">
+    <div class="modal-card">
+      <h3 id="docModalTitle">Document Request</h3>
+      <div id="docModalDetails" class="label"></div>
+      <div id="approveBox" class="row" style="margin-top:12px;">
+        <input id="publishableLinkInput" placeholder="Publishable link" style="flex:1;">
+      </div>
+      <div id="rejectBox" class="row" style="margin-top:12px;">
+        <textarea id="rejectReasonInput" placeholder="Rejection reason"></textarea>
+      </div>
+      <div class="row" style="margin-top:10px;justify-content:flex-end;">
+        <button id="closeDocModalBtn" class="btn secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = (window.CONFIG && window.CONFIG.WORKER_URL) || 'https://timeclock-backend.marcusray.workers.dev';
+    const CLIENT_ID = (window.CONFIG && window.CONFIG.DISCORD_CLIENT_ID) || '1417915896634277888';
+    const REDIRECT_URI = `${window.location.origin}/portal/backend/adminhub/index.html`;
+    const BASE = '/portal/backend/adminhub';
+
+    const state = {
+      token: localStorage.getItem('adminhub_token') || '',
+      user: null,
+      companies: [],
+      editingCompanyId: null,
+      docsStatus: 'incoming',
+      fundsStatus: 'incoming'
+    };
+
+    function authHeaders() {
+      return state.token ? { Authorization: `Bearer ${state.token}` } : {};
+    }
+
+    async function apiGet(path) {
+      const res = await fetch(`${API}${path}`, { headers: { ...authHeaders() } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    async function apiPost(path, body) {
+      const res = await fetch(`${API}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(body || {})
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    async function apiPut(path, body) {
+      const res = await fetch(`${API}${path}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(body || {})
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    async function apiDelete(path) {
+      const res = await fetch(`${API}${path}`, { method: 'DELETE', headers: { ...authHeaders() } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    function pathSegment() {
+      const pending = sessionStorage.getItem('portal_pending_path');
+      if (pending && pending.startsWith(BASE)) {
+        history.replaceState({}, '', pending);
+        sessionStorage.removeItem('portal_pending_path');
+      }
+      const p = window.location.pathname;
+      if (p.startsWith(`${BASE}/`)) {
+        const raw = p.slice((BASE + '/').length);
+        if (raw === 'requests/documents') return 'documents';
+        if (raw === 'requests/funds') return 'funds';
+        return raw;
+      }
+      return 'dashboard';
+    }
+
+    function goto(page, push = true) {
+      document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+      document.querySelectorAll('main section').forEach(s => s.classList.add('hidden'));
+      const section = document.getElementById(`page-${page}`);
+      if (section) section.classList.remove('hidden');
+      document.getElementById('pageTitle').textContent = {
+        dashboard: 'Dashboard Analytics',
+        companies: 'CDG Associates',
+        documents: 'Requests: Documents',
+        funds: 'Requests: Funds'
+      }[page] || 'Dashboard';
+      if (push) history.pushState({ page }, '', `${BASE}/${page}`);
+
+      if (page === 'dashboard') loadAnalytics();
+      if (page === 'companies') loadCompanies();
+      if (page === 'documents') loadDocuments();
+      if (page === 'funds') loadFunds();
+    }
+
+    async function handleDiscordCallbackIfNeeded() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      if (!code) return;
+      const loginError = document.getElementById('loginError');
+      loginError.textContent = 'Completing Discord login...';
+      try {
+        const data = await apiPost('/api/adminhub/login', { code, redirectUri: REDIRECT_URI });
+        state.token = data.token;
+        localStorage.setItem('adminhub_token', state.token);
+        history.replaceState({}, '', `${BASE}/dashboard`);
+      } catch (e) {
+        loginError.textContent = e.message;
+      }
+    }
+
+    async function bootstrapAuth() {
+      await handleDiscordCallbackIfNeeded();
+      if (!state.token) {
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('app').classList.add('hidden');
+        return;
+      }
+      try {
+        const me = await apiGet('/api/adminhub/me');
+        state.user = me.user;
+        document.getElementById('meAvatar').src = me.user.avatarUrl;
+        document.getElementById('meName').textContent = me.user.username;
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        const page = ['dashboard', 'companies', 'documents', 'funds'].includes(pathSegment()) ? pathSegment() : 'dashboard';
+        goto(page, false);
+      } catch (e) {
+        localStorage.removeItem('adminhub_token');
+        state.token = '';
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('app').classList.add('hidden');
+        document.getElementById('loginError').textContent = e.message;
+      }
+    }
+
+    async function loadAnalytics() {
+      const data = await apiGet('/api/adminhub/analytics');
+      document.getElementById('aVisits').textContent = data.analytics.pageViews || 0;
+      document.getElementById('aClicks').textContent = data.analytics.directoryClicks || 0;
+      document.getElementById('aCompanies').textContent = data.summary.companies || 0;
+      document.getElementById('aIncomingDocs').textContent = data.summary.docsIncoming || 0;
+      document.getElementById('aIncomingFunds').textContent = data.summary.withdrawalsIncoming || 0;
+
+      const clickCounterList = document.getElementById('clickCounterList');
+      const entries = Object.entries(data.analytics.clicksByTarget || {});
+      if (!entries.length) {
+        clickCounterList.textContent = 'No click data yet.';
+      } else {
+        clickCounterList.innerHTML = entries.map(([k, v]) => `<div>${k}: <strong>${v}</strong></div>`).join('');
+      }
+    }
+
+    async function loadCompanies() {
+      const data = await apiGet('/api/adminhub/companies');
+      state.companies = data.companies || [];
+      const body = document.getElementById('companiesBody');
+      if (!state.companies.length) {
+        body.innerHTML = '<tr><td colspan="6">No companies published yet.</td></tr>';
+        return;
+      }
+      body.innerHTML = state.companies.map(c => `
+        <tr>
+          <td>${c.name}</td>
+          <td>${(c.associates || []).map(a => `${a.username} (${a.id})`).join('<br>')}</td>
+          <td><code>${c.loginToken}</code></td>
+          <td>${Number(c.groupFunds || 0)}</td>
+          <td>${new Date(c.createdAt).toLocaleDateString('en-GB')}</td>
+          <td>
+            <button class="btn secondary" onclick="editCompany('${c.id}')">Edit</button>
+            <button class="btn secondary" onclick="regenCompanyToken('${c.id}')">Regenerate Token</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function searchAssociatePreview() {
+      const ids = [document.getElementById('assoc1Input').value.trim(), document.getElementById('assoc2Input').value.trim()].filter(Boolean);
+      const preview = document.getElementById('assocPreview');
+      preview.innerHTML = 'Searching...';
+      const cards = [];
+      for (const id of ids) {
+        const res = await fetch(`${API}/api/discord/user/${id}`);
+        const u = await res.json();
+        cards.push(`<div class="assoc-card"><img src="${u.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" alt="avatar"><div><strong>${u.global_name || u.username || 'Unknown'}</strong><div class="label">${id}</div></div></div>`);
+      }
+      preview.innerHTML = cards.join('');
+    }
+
+    function openCompanyModal(company = null) {
+      state.editingCompanyId = company ? company.id : null;
+      document.getElementById('companyModalTitle').textContent = company ? 'Edit Company' : 'Create Company';
+      document.getElementById('companyNameInput').value = company ? company.name : '';
+      document.getElementById('companyFundsInput').value = company ? Number(company.groupFunds || 0) : '';
+      document.getElementById('assoc1Input').value = company ? (company.associateIds?.[0] || '') : '';
+      document.getElementById('assoc2Input').value = company ? (company.associateIds?.[1] || '') : '';
+      document.getElementById('companyTokenInput').value = company ? (company.loginToken || '') : '';
+      document.getElementById('assocPreview').innerHTML = '';
+      document.getElementById('companyModalMsg').textContent = '';
+      document.getElementById('deleteCompanyBtn').classList.toggle('hidden', !company);
+      document.getElementById('companyModal').classList.add('show');
+    }
+
+    function closeCompanyModal() {
+      document.getElementById('companyModal').classList.remove('show');
+    }
+
+    async function saveCompany() {
+      const name = document.getElementById('companyNameInput').value.trim();
+      const groupFunds = Number(document.getElementById('companyFundsInput').value || 0);
+      const associateIds = [document.getElementById('assoc1Input').value.trim(), document.getElementById('assoc2Input').value.trim()];
+      const loginToken = document.getElementById('companyTokenInput').value.trim();
+      const msg = document.getElementById('companyModalMsg');
+      try {
+        if (state.editingCompanyId) {
+          await apiPut(`/api/adminhub/companies/${state.editingCompanyId}`, { name, groupFunds, associateIds, loginToken });
+        } else {
+          await apiPost('/api/adminhub/companies', { name, groupFunds, associateIds });
+        }
+        closeCompanyModal();
+        loadCompanies();
+      } catch (e) {
+        msg.textContent = e.message;
+      }
+    }
+
+    async function editCompany(companyId) {
+      const company = state.companies.find(c => c.id === companyId);
+      if (company) openCompanyModal(company);
+    }
+    window.editCompany = editCompany;
+
+    async function regenCompanyToken(companyId) {
+      const ok = confirm('Are you sure you want to regenerate the login token?');
+      if (!ok) return;
+      await apiPost(`/api/adminhub/companies/${companyId}/regenerate-token`, {});
+      loadCompanies();
+    }
+    window.regenCompanyToken = regenCompanyToken;
+
+    async function deleteCompany() {
+      if (!state.editingCompanyId) return;
+      const ok = confirm('Delete this company permanently?');
+      if (!ok) return;
+      await apiDelete(`/api/adminhub/companies/${state.editingCompanyId}`);
+      closeCompanyModal();
+      loadCompanies();
+    }
+
+    async function loadDocuments() {
+      const data = await apiGet(`/api/adminhub/requests/documents?status=${state.docsStatus}`);
+      const docs = data.documents || [];
+      const body = document.getElementById('documentsBody');
+      if (!docs.length) {
+        body.innerHTML = '<tr><td colspan="6">No document requests.</td></tr>';
+        return;
+      }
+      body.innerHTML = docs.map(d => `
+        <tr>
+          <td><span class="status ${d.status}">${d.status}</span></td>
+          <td>${d.title}</td>
+          <td>${d.companyName}</td>
+          <td>${d.submitterName}</td>
+          <td>${new Date(d.submittedAt).toLocaleString('en-GB')}</td>
+          <td><button class="btn secondary" onclick="openDocModal('${d.id}')">Open</button></td>
+        </tr>
+      `).join('');
+      window.__docs = docs;
+    }
+
+    function openDocModal(docId) {
+      const doc = (window.__docs || []).find(d => d.id === docId);
+      if (!doc) return;
+      const modal = document.getElementById('docActionModal');
+      const details = document.getElementById('docModalDetails');
+      details.innerHTML = `
+        <div><strong>${doc.title}</strong> (${doc.companyName})</div>
+        <div>Submitter: ${doc.submitterName}</div>
+        <div>Priority: ${doc.priority}</div>
+        <div>Draft Link: <a href="${doc.draftLink}" target="_blank" rel="noopener">${doc.draftLink}</a></div>
+        <div>Resubmissions: ${doc.resubmissionCount || 0}</div>
+        ${(doc.rejectionHistory || []).length ? `<div>Rejection History: ${(doc.rejectionHistory || []).map(h => `${h.reason} (${new Date(h.at).toLocaleString('en-GB')})`).join(' | ')}</div>` : ''}
+      `;
+
+      document.getElementById('approveBox').innerHTML = doc.status === 'incoming'
+        ? `<input id="publishableLinkInput" placeholder="Publishable link" style="flex:1;"><button class="btn" onclick="approveDoc('${doc.id}')">Approve</button>`
+        : doc.publishableLink ? `<div class="success">Publishable link: <a href="${doc.publishableLink}" target="_blank">${doc.publishableLink}</a></div>` : '<div></div>';
+
+      document.getElementById('rejectBox').innerHTML = doc.status === 'incoming'
+        ? `<textarea id="rejectReasonInput" placeholder="Reject reason"></textarea><button class="btn danger" onclick="rejectDoc('${doc.id}')">Reject</button>`
+        : doc.rejectionReason ? `<div class="error">Rejected reason: ${doc.rejectionReason}</div>` : '<div></div>';
+
+      modal.classList.add('show');
+    }
+    window.openDocModal = openDocModal;
+
+    async function approveDoc(docId) {
+      const publishableLink = document.getElementById('publishableLinkInput').value.trim();
+      await apiPost(`/api/adminhub/requests/documents/${docId}/approve`, { publishableLink });
+      document.getElementById('docActionModal').classList.remove('show');
+      loadDocuments();
+    }
+    window.approveDoc = approveDoc;
+
+    async function rejectDoc(docId) {
+      const reason = document.getElementById('rejectReasonInput').value.trim();
+      await apiPost(`/api/adminhub/requests/documents/${docId}/reject`, { reason });
+      document.getElementById('docActionModal').classList.remove('show');
+      loadDocuments();
+    }
+    window.rejectDoc = rejectDoc;
+
+    async function loadFunds() {
+      const data = await apiGet(`/api/adminhub/requests/funds?status=${state.fundsStatus}`);
+      const rows = data.requests || [];
+      const body = document.getElementById('fundsBody');
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="6">No funds requests.</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map(r => `
+        <tr>
+          <td><span class="status ${r.status}">${r.status}</span></td>
+          <td>${r.companyName}</td>
+          <td>${r.requesterName}</td>
+          <td>${r.amount}</td>
+          <td>${r.reason || '-'}</td>
+          <td>
+            ${r.status === 'incoming' ? `
+              <button class="btn" onclick="approveFund('${r.id}')">Approve</button>
+              <button class="btn danger" onclick="rejectFund('${r.id}')">Reject</button>
+            ` : (r.rejectionReason || r.decidedBy || '-')}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function approveFund(id) {
+      await apiPost(`/api/adminhub/requests/funds/${id}/approve`, {});
+      loadFunds();
+    }
+    window.approveFund = approveFund;
+
+    async function rejectFund(id) {
+      const reason = prompt('Enter rejection reason');
+      if (!reason) return;
+      await apiPost(`/api/adminhub/requests/funds/${id}/reject`, { reason });
+      loadFunds();
+    }
+    window.rejectFund = rejectFund;
+
+    document.getElementById('discordLoginBtn').addEventListener('click', () => {
+      const url = new URL('https://discord.com/oauth2/authorize');
+      url.searchParams.set('client_id', CLIENT_ID);
+      url.searchParams.set('response_type', 'code');
+      url.searchParams.set('scope', 'identify');
+      url.searchParams.set('redirect_uri', REDIRECT_URI);
+      window.location.href = url.toString();
+    });
+
+    document.querySelectorAll('.nav button').forEach(btn => btn.addEventListener('click', () => goto(btn.dataset.page)));
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('adminhub_token');
+      state.token = '';
+      location.href = `${BASE}/dashboard`;
+    });
+
+    document.getElementById('openCreateCompanyBtn').addEventListener('click', () => openCompanyModal());
+    document.getElementById('cancelCompanyBtn').addEventListener('click', closeCompanyModal);
+    document.getElementById('saveCompanyBtn').addEventListener('click', saveCompany);
+    document.getElementById('deleteCompanyBtn').addEventListener('click', deleteCompany);
+    document.getElementById('generateTokenBtn').addEventListener('click', () => {
+      const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      let token = '';
+      for (let i = 0; i < 12; i += 1) token += alphabet[Math.floor(Math.random() * alphabet.length)];
+      document.getElementById('companyTokenInput').value = token;
+    });
+    document.getElementById('searchAssociatesBtn').addEventListener('click', searchAssociatePreview);
+    document.getElementById('closeDocModalBtn').addEventListener('click', () => document.getElementById('docActionModal').classList.remove('show'));
+
+    document.querySelectorAll('.doc-tab').forEach(btn => btn.addEventListener('click', () => {
+      state.docsStatus = btn.dataset.status;
+      loadDocuments();
+    }));
+    document.querySelectorAll('.fund-tab').forEach(btn => btn.addEventListener('click', () => {
+      state.fundsStatus = btn.dataset.status;
+      loadFunds();
+    }));
+
+    window.addEventListener('popstate', (e) => {
+      const page = (e.state && e.state.page) || pathSegment();
+      goto(['dashboard', 'companies', 'documents', 'funds'].includes(page) ? page : 'dashboard', false);
+    });
+
+    bootstrapAuth();
+  </script>
+</body>
+</html>

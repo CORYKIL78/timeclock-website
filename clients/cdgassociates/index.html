@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CDG Associates Portal</title>
+  <link rel="icon" href="/Portal Logo.webp" type="image/webp">
+  <style>
+    :root {
+      --bg: #060910;
+      --panel: #0f1729;
+      --panel-2: #182236;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #6366f1;
+      --border: #2b3850;
+      --green: #16a34a;
+      --red: #dc2626;
+      --yellow: #ca8a04;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Segoe UI, Tahoma, sans-serif; color: var(--text); background: radial-gradient(1000px 500px at 10% -10%, rgba(99,102,241,0.24), transparent), var(--bg); }
+    .hidden { display: none !important; }
+    .layout { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
+    .sidebar { background: #0b1120; border-right: 1px solid var(--border); padding: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .brand img { width: 32px; height: 32px; object-fit: contain; }
+    .nav button { width: 100%; text-align: left; margin-bottom: 6px; border: 1px solid transparent; color: var(--text); background: transparent; padding: 10px 10px; border-radius: 8px; cursor: pointer; }
+    .nav button.active { background: var(--panel); border-color: var(--border); }
+    .content { padding: 18px; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 10px; }
+    .label { color: var(--muted); font-size: 12px; }
+    .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    input, select, textarea { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; }
+    textarea { width: 100%; min-height: 80px; }
+    button.btn { border: none; border-radius: 8px; padding: 9px 12px; background: var(--accent); color: #fff; cursor: pointer; }
+    button.btn.secondary { background: #334155; }
+    button.btn.danger { background: var(--red); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 6px; font-size: 13px; text-align: left; }
+    .notif { border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 8px; background: #111a2c; cursor: pointer; }
+    .notif.unread { border-color: #7c3aed; background: rgba(124,58,237,.15); }
+    .status { font-size: 11px; padding: 3px 8px; border-radius: 999px; font-weight: 700; }
+    .incoming { background: rgba(202,138,4,.2); color: #fde68a; }
+    .approved { background: rgba(22,163,74,.2); color: #86efac; }
+    .rejected { background: rgba(220,38,38,.2); color: #fca5a5; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; }
+    .modal.show { display: flex; }
+    .modal-card { width: min(680px, 95vw); max-height: 90vh; overflow: auto; background: #11182a; border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+    .step { display: none; }
+    .step.active { display: block; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .sidebar { border-right: none; border-bottom: 1px solid var(--border); } }
+  </style>
+</head>
+<body>
+  <div id="loginScreen" class="content">
+    <div class="panel" style="max-width:520px;margin:60px auto;text-align:center;">
+      <img src="/Portal Logo.webp" alt="logo" style="width:70px;height:70px;object-fit:contain;">
+      <h2>CDG Associates Login</h2>
+      <p class="label">Select company, enter the 12 character login token, then login with Discord.</p>
+      <div class="row" style="justify-content:center;">
+        <select id="companySelect" style="min-width:260px;"></select>
+      </div>
+      <div class="row" style="justify-content:center;margin-top:8px;">
+        <input id="companyTokenInput" maxlength="12" placeholder="12 character login token" style="min-width:260px;">
+      </div>
+      <div class="row" style="justify-content:center;margin-top:8px;">
+        <button id="discordLoginBtn" class="btn">Login with Discord</button>
+      </div>
+      <div id="loginError" style="color:#fca5a5;margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <div id="app" class="layout hidden">
+    <aside class="sidebar">
+      <div class="brand"><img src="/Portal Logo.webp" alt="logo"><strong>CDG Associates</strong></div>
+      <div class="panel" style="margin-bottom:10px;">
+        <div class="row"><img id="meAvatar" src="" alt="avatar" style="width:34px;height:34px;border-radius:50%;"><div><div id="meName"></div><div class="label" id="companyNameSide"></div></div></div>
+      </div>
+      <nav class="nav">
+        <button data-page="dashboard" class="active">Dashboard</button>
+        <button data-page="documents">Documentation</button>
+        <button data-page="finance">Finance</button>
+      </nav>
+      <button id="logoutBtn" class="btn secondary" style="width:100%;margin-top:10px;">Log Out</button>
+    </aside>
+
+    <main class="content">
+      <section id="page-dashboard">
+        <h3>Hello, <span id="helloName">-</span></h3>
+        <div class="cards">
+          <div class="card"><div class="label">Documents requested this week</div><div id="mDocsWeek" class="value">0</div></div>
+          <div class="card"><div class="label">Documents requested lifetime</div><div id="mDocsLife" class="value">0</div></div>
+          <div class="card"><div class="label">Approved docs lifetime</div><div id="mDocsApproved" class="value">0</div></div>
+          <div class="card"><div class="label">Denied docs lifetime</div><div id="mDocsRejected" class="value">0</div></div>
+          <div class="card"><div class="label">Withdrawals this week</div><div id="mWdWeek" class="value">0</div></div>
+          <div class="card"><div class="label">Withdrawals lifetime</div><div id="mWdLife" class="value">0</div></div>
+        </div>
+        <div class="row" style="align-items:flex-start;">
+          <div class="panel" style="flex:1;min-width:280px;">
+            <h4>Recent Notifications</h4>
+            <div id="notifList"></div>
+          </div>
+          <div class="panel" style="flex:1;min-width:280px;">
+            <h4>Company Details</h4>
+            <div id="companyDetails" class="label"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-documents" class="hidden">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px;">
+          <h3 style="margin:0;">Documentation</h3>
+          <button id="openDocWizardBtn" class="btn">Create Document</button>
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <button class="btn secondary doc-filter" data-status="approved">Approved</button>
+          <button class="btn secondary doc-filter" data-status="rejected">Denied</button>
+          <button class="btn secondary doc-filter" data-status="incoming">Processing</button>
+          <button class="btn secondary doc-filter" data-status="draft">Drafts</button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Status</th><th>Title</th><th>Priority</th><th>Updated</th><th>Details</th></tr></thead>
+            <tbody id="docsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="page-finance" class="hidden">
+        <div class="cards">
+          <div class="card"><div class="label">Group Funds</div><div id="groupFundsValue" class="value">0</div></div>
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <button id="openWithdrawBtn" class="btn">Make Withdrawal Request</button>
+          <button id="openAddFundsBtn" class="btn secondary">Add To Funds</button>
+        </div>
+        <div class="panel">
+          <h4>Withdrawal History</h4>
+          <table>
+            <thead><tr><th>Status</th><th>Amount</th><th>Reason</th><th>Date</th><th>Decision</th></tr></thead>
+            <tbody id="withdrawalsBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="docWizardModal" class="modal">
+    <div class="modal-card">
+      <h3>Let's get started!</h3>
+      <div id="wizardMessage" class="label"></div>
+      <div id="step1" class="step active">
+        <p>Step 1: Create or Upload?</p>
+        <div class="row">
+          <button id="wizardCreateBtn" class="btn secondary">Create (Coming Soon)</button>
+          <button id="wizardUploadBtn" class="btn">Upload</button>
+        </div>
+      </div>
+      <div id="step2" class="step">
+        <p>Step 2: Please upload a document file or a link</p>
+        <input id="wizardDraftLink" placeholder="Google Docs / Word link">
+        <p class="label" style="margin:8px 0;">Or upload file:</p>
+        <input id="wizardDraftFile" type="file">
+        <div class="row" style="margin-top:10px;"><button id="toStep3Btn" class="btn">Continue</button></div>
+      </div>
+      <div id="step3" class="step">
+        <p>Step 3: Enter some quick details</p>
+        <input id="wizardTitle" placeholder="Title" style="width:100%;margin-bottom:8px;">
+        <textarea id="wizardDesc" placeholder="e.g. This is a policy on raids for discord servers"></textarea>
+        <div class="row" style="margin-top:8px;"><button id="toStep4Btn" class="btn">Continue</button></div>
+      </div>
+      <div id="step4" class="step">
+        <p>Step 4: Select priority</p>
+        <select id="wizardPriority">
+          <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
+        </select>
+        <div class="row" style="margin-top:8px;"><button id="toStep5Btn" class="btn">Continue</button></div>
+      </div>
+      <div id="step5" class="step">
+        <p>Final Step - are you sure you would like to submit this document for publishing?</p>
+        <div class="row">
+          <button id="wizardNoBtn" class="btn secondary">No</button>
+          <button id="wizardSubmitBtn" class="btn">Submit</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px;justify-content:flex-end;"><button id="closeWizardBtn" class="btn secondary">Close</button></div>
+    </div>
+  </div>
+
+  <div id="withdrawModal" class="modal"><div class="modal-card"><h3>Withdrawal Request</h3><input id="withdrawAmount" type="number" placeholder="Amount" style="width:100%;margin-bottom:8px;"><textarea id="withdrawReason" placeholder="Reason"></textarea><div class="row" style="margin-top:8px;"><button id="submitWithdrawBtn" class="btn">Submit</button><button class="btn secondary" onclick="document.getElementById('withdrawModal').classList.remove('show')">Cancel</button></div></div></div>
+  <div id="addFundsModal" class="modal"><div class="modal-card"><h3>Add To Funds</h3><input id="addFundsAmount" type="number" placeholder="Amount" style="width:100%;margin-bottom:8px;"><div class="row"><button id="submitAddFundsBtn" class="btn">Confirm</button><button class="btn secondary" onclick="document.getElementById('addFundsModal').classList.remove('show')">Cancel</button></div></div></div>
+
+  <script>
+    const API = (window.CONFIG && window.CONFIG.WORKER_URL) || 'https://timeclock-backend.marcusray.workers.dev';
+    const CLIENT_ID = (window.CONFIG && window.CONFIG.DISCORD_CLIENT_ID) || '1417915896634277888';
+    const REDIRECT_URI = `${window.location.origin}/clients/cdgassociates/index.html`;
+    const BASE = '/clients/cdgassociates';
+
+    const state = {
+      token: localStorage.getItem('cdg_token') || '',
+      companyId: '',
+      loginToken: '',
+      user: null,
+      company: null,
+      documents: [],
+      withdrawals: [],
+      notifications: [],
+      docFilter: 'incoming'
+    };
+
+    function authHeaders() { return state.token ? { Authorization: `Bearer ${state.token}` } : {}; }
+    async function apiGet(path) {
+      const res = await fetch(`${API}${path}`, { headers: { ...authHeaders() } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+    async function apiPost(path, body) {
+      const res = await fetch(`${API}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(body || {}) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    function normalizePath() {
+      const pending = sessionStorage.getItem('portal_pending_path');
+      if (pending && pending.startsWith(BASE)) {
+        history.replaceState({}, '', pending);
+        sessionStorage.removeItem('portal_pending_path');
+      }
+      const p = window.location.pathname;
+      if (p.startsWith(`${BASE}/`)) return p.slice((BASE + '/').length);
+      return 'dashboard';
+    }
+
+    function goto(page, push = true) {
+      document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+      document.querySelectorAll('main section').forEach(s => s.classList.add('hidden'));
+      document.getElementById(`page-${page}`).classList.remove('hidden');
+      if (push) history.pushState({ page }, '', `${BASE}/${page}`);
+      if (page === 'dashboard') renderDashboard();
+      if (page === 'documents') renderDocuments();
+      if (page === 'finance') renderFinance();
+    }
+
+    async function loadCompanyOptions() {
+      const data = await apiGet('/api/cdg/companies/public');
+      const select = document.getElementById('companySelect');
+      const companies = data.companies || [];
+      select.innerHTML = companies.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    }
+
+    function startDiscordLogin() {
+      const companyId = document.getElementById('companySelect').value;
+      const loginToken = document.getElementById('companyTokenInput').value.trim();
+      if (!companyId || !loginToken || loginToken.length !== 12) {
+        document.getElementById('loginError').textContent = 'Select company and enter valid 12 character token.';
+        return;
+      }
+      sessionStorage.setItem('cdg_login_company', companyId);
+      sessionStorage.setItem('cdg_login_token', loginToken);
+      const url = new URL('https://discord.com/oauth2/authorize');
+      url.searchParams.set('client_id', CLIENT_ID);
+      url.searchParams.set('response_type', 'code');
+      url.searchParams.set('scope', 'identify');
+      url.searchParams.set('redirect_uri', REDIRECT_URI);
+      window.location.href = url.toString();
+    }
+
+    async function completeCallbackLoginIfNeeded() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      if (!code) return;
+      const companyId = sessionStorage.getItem('cdg_login_company') || '';
+      const loginToken = sessionStorage.getItem('cdg_login_token') || '';
+      if (!companyId || !loginToken) return;
+
+      document.getElementById('loginError').textContent = 'Authorizing...';
+      const data = await apiPost('/api/cdg/login', { companyId, loginToken, code, redirectUri: REDIRECT_URI });
+      state.token = data.token;
+      localStorage.setItem('cdg_token', state.token);
+      sessionStorage.removeItem('cdg_login_company');
+      sessionStorage.removeItem('cdg_login_token');
+      history.replaceState({}, '', `${BASE}/dashboard`);
+    }
+
+    async function bootstrapAuth() {
+      try {
+        await completeCallbackLoginIfNeeded();
+      } catch (e) {
+        document.getElementById('loginError').textContent = e.message;
+      }
+
+      if (!state.token) {
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('app').classList.add('hidden');
+        await loadCompanyOptions();
+        return;
+      }
+
+      try {
+        const me = await apiGet('/api/cdg/me');
+        state.user = me.user;
+        state.company = me.company;
+        state.notifications = me.notifications || [];
+
+        document.getElementById('meAvatar').src = me.user.avatarUrl;
+        document.getElementById('meName').textContent = me.user.username;
+        document.getElementById('helloName').textContent = me.user.username;
+        document.getElementById('companyNameSide').textContent = me.company.name;
+
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+
+        await refreshData();
+        const page = ['dashboard', 'documents', 'finance'].includes(normalizePath()) ? normalizePath() : 'dashboard';
+        goto(page, false);
+      } catch (e) {
+        localStorage.removeItem('cdg_token');
+        state.token = '';
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('app').classList.add('hidden');
+        await loadCompanyOptions();
+        document.getElementById('loginError').textContent = e.message;
+      }
+    }
+
+    async function refreshData() {
+      const docs = await apiGet('/api/cdg/documents');
+      state.documents = docs.documents || [];
+      const finance = await apiGet('/api/cdg/finance');
+      state.withdrawals = finance.withdrawals || [];
+      document.getElementById('groupFundsValue').textContent = Number(finance.groupFunds || 0);
+      const me = await apiGet('/api/cdg/me');
+      state.notifications = me.notifications || [];
+      state.company = me.company;
+    }
+
+    function renderDashboard() {
+      const docs = state.documents;
+      const now = Date.now();
+      const weekMs = 7 * 24 * 60 * 60 * 1000;
+      const docsWeek = docs.filter(d => now - Date.parse(d.submittedAt) <= weekMs).length;
+      const docsLife = docs.length;
+      const docsApproved = docs.filter(d => d.status === 'approved').length;
+      const docsRejected = docs.filter(d => d.status === 'rejected').length;
+      const wdWeek = state.withdrawals.filter(w => now - Date.parse(w.createdAt) <= weekMs).length;
+      const wdLife = state.withdrawals.length;
+
+      document.getElementById('mDocsWeek').textContent = docsWeek;
+      document.getElementById('mDocsLife').textContent = docsLife;
+      document.getElementById('mDocsApproved').textContent = docsApproved;
+      document.getElementById('mDocsRejected').textContent = docsRejected;
+      document.getElementById('mWdWeek').textContent = wdWeek;
+      document.getElementById('mWdLife').textContent = wdLife;
+
+      const notifList = document.getElementById('notifList');
+      if (!state.notifications.length) {
+        notifList.innerHTML = '<div class="label">No notifications yet.</div>';
+      } else {
+        notifList.innerHTML = state.notifications.slice(0, 5).map(n => `<div class="notif ${n.read ? '' : 'unread'}" onclick="markNotifRead('${n.id}')"><strong>${n.title}</strong><div class="label">${n.message}</div><div class="label">${new Date(n.createdAt).toLocaleString('en-GB')}</div></div>`).join('');
+      }
+
+      document.getElementById('companyDetails').innerHTML = `
+        <div><strong>${state.company.name}</strong></div>
+        <div>Created: ${new Date(state.company.createdAt).toLocaleString('en-GB')}</div>
+        <div>Associates:</div>
+        ${(state.company.associates || []).map(a => `<div>- ${a.username} (${a.id})</div>`).join('')}
+      `;
+    }
+
+    async function markNotifRead(id) {
+      await apiPost('/api/cdg/notifications/read', { notificationId: id });
+      await refreshData();
+      renderDashboard();
+    }
+    window.markNotifRead = markNotifRead;
+
+    function renderDocuments() {
+      const rows = state.documents.filter(d => {
+        if (state.docFilter === 'draft') return d.status === 'draft';
+        return d.status === state.docFilter;
+      });
+
+      const body = document.getElementById('docsBody');
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="5">No documents in this section.</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map(d => `
+        <tr>
+          <td><span class="status ${d.status}">${d.status}</span></td>
+          <td>${d.title}</td>
+          <td>${d.priority}</td>
+          <td>${new Date(d.updatedAt || d.submittedAt).toLocaleString('en-GB')}</td>
+          <td>
+            Draft: <a href="${d.draftLink}" target="_blank">open</a><br>
+            ${d.publishableLink ? `Publishable: <a href="${d.publishableLink}" target="_blank">open</a><br>` : ''}
+            ${d.status === 'approved' ? `Approved by: ${d.decisionBy || '-'}<br>` : ''}
+            ${d.status === 'rejected' ? `Reason: ${d.rejectionReason || '-'}<br><button class="btn secondary" onclick="resubmitDoc('${d.id}')">Republish for review</button>` : ''}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function resubmitDoc(docId) {
+      const newDraftLink = prompt('Enter updated draft link for resubmission');
+      if (!newDraftLink) return;
+      await apiPost('/api/cdg/documents/resubmit', { docId, newDraftLink });
+      await refreshData();
+      renderDocuments();
+    }
+    window.resubmitDoc = resubmitDoc;
+
+    function renderFinance() {
+      const body = document.getElementById('withdrawalsBody');
+      if (!state.withdrawals.length) {
+        body.innerHTML = '<tr><td colspan="5">No withdrawal history yet.</td></tr>';
+        return;
+      }
+      body.innerHTML = state.withdrawals.map(w => `
+        <tr>
+          <td><span class="status ${w.status}">${w.status}</span></td>
+          <td>${w.amount}</td>
+          <td>${w.reason || '-'}</td>
+          <td>${new Date(w.createdAt).toLocaleString('en-GB')}</td>
+          <td>${w.status === 'rejected' ? (w.rejectionReason || '-') : (w.decidedBy || '-')}</td>
+        </tr>
+      `).join('');
+    }
+
+    const wizardState = {
+      draftType: 'upload',
+      draftLink: '',
+      title: '',
+      description: '',
+      priority: 'Medium'
+    };
+
+    function openWizard() {
+      document.getElementById('wizardMessage').textContent = '';
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById('step1').classList.add('active');
+      document.getElementById('docWizardModal').classList.add('show');
+    }
+
+    function showStep(id) {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    async function submitDocumentWizard() {
+      const msg = document.getElementById('wizardMessage');
+      msg.textContent = 'Submitting...';
+      await apiPost('/api/cdg/documents/submit', {
+        draftType: wizardState.draftType,
+        draftLink: wizardState.draftLink,
+        title: wizardState.title,
+        description: wizardState.description,
+        priority: wizardState.priority
+      });
+      msg.textContent = 'Alright. I have sent your document in for review. You can view its status in this page.';
+      setTimeout(async () => {
+        document.getElementById('docWizardModal').classList.remove('show');
+        await refreshData();
+        state.docFilter = 'incoming';
+        renderDocuments();
+      }, 2000);
+    }
+
+    async function submitWithdraw() {
+      const amount = Number(document.getElementById('withdrawAmount').value || 0);
+      const reason = document.getElementById('withdrawReason').value.trim();
+      await apiPost('/api/cdg/finance/withdraw', { amount, reason });
+      document.getElementById('withdrawModal').classList.remove('show');
+      await refreshData();
+      renderFinance();
+      renderDashboard();
+    }
+
+    async function submitAddFunds() {
+      const amount = Number(document.getElementById('addFundsAmount').value || 0);
+      await apiPost('/api/cdg/finance/add', { amount });
+      document.getElementById('addFundsModal').classList.remove('show');
+      await refreshData();
+      renderFinance();
+      renderDashboard();
+    }
+
+    document.getElementById('discordLoginBtn').addEventListener('click', startDiscordLogin);
+    document.querySelectorAll('.nav button').forEach(btn => btn.addEventListener('click', () => goto(btn.dataset.page)));
+    document.querySelectorAll('.doc-filter').forEach(btn => btn.addEventListener('click', () => { state.docFilter = btn.dataset.status; renderDocuments(); }));
+    document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.removeItem('cdg_token'); location.href = `${BASE}/dashboard`; });
+    document.getElementById('openDocWizardBtn').addEventListener('click', openWizard);
+    document.getElementById('closeWizardBtn').addEventListener('click', () => document.getElementById('docWizardModal').classList.remove('show'));
+
+    document.getElementById('wizardCreateBtn').addEventListener('click', () => {
+      document.getElementById('wizardMessage').textContent = 'Create is coming soon. Please use Upload.';
+    });
+    document.getElementById('wizardUploadBtn').addEventListener('click', () => { wizardState.draftType = 'upload'; showStep('step2'); });
+    document.getElementById('toStep3Btn').addEventListener('click', () => {
+      const link = document.getElementById('wizardDraftLink').value.trim();
+      const file = document.getElementById('wizardDraftFile').files[0];
+      wizardState.draftLink = link || (file ? `uploaded-file:${file.name}` : '');
+      if (!wizardState.draftLink) { alert('Please provide a link or file'); return; }
+      showStep('step3');
+    });
+    document.getElementById('toStep4Btn').addEventListener('click', () => {
+      wizardState.title = document.getElementById('wizardTitle').value.trim();
+      wizardState.description = document.getElementById('wizardDesc').value.trim();
+      if (!wizardState.title || !wizardState.description) { alert('Please complete title and description'); return; }
+      showStep('step4');
+    });
+    document.getElementById('toStep5Btn').addEventListener('click', () => {
+      wizardState.priority = document.getElementById('wizardPriority').value;
+      showStep('step5');
+    });
+    document.getElementById('wizardNoBtn').addEventListener('click', () => {
+      document.getElementById('wizardMessage').textContent = 'Okay! Prompt cancelled.';
+      setTimeout(() => document.getElementById('docWizardModal').classList.remove('show'), 1500);
+    });
+    document.getElementById('wizardSubmitBtn').addEventListener('click', submitDocumentWizard);
+
+    document.getElementById('openWithdrawBtn').addEventListener('click', () => document.getElementById('withdrawModal').classList.add('show'));
+    document.getElementById('openAddFundsBtn').addEventListener('click', () => document.getElementById('addFundsModal').classList.add('show'));
+    document.getElementById('submitWithdrawBtn').addEventListener('click', submitWithdraw);
+    document.getElementById('submitAddFundsBtn').addEventListener('click', submitAddFunds);
+
+    window.addEventListener('popstate', (e) => {
+      const page = (e.state && e.state.page) || normalizePath();
+      goto(['dashboard', 'documents', 'finance'].includes(page) ? page : 'dashboard', false);
+    });
+
+    bootstrapAuth();
+  </script>
+</body>
+</html>

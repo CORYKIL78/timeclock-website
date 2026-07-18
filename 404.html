@@ -9,6 +9,7 @@
     // GitHub Pages 404 fallback router for pretty URL paths.
     (function() {
       const pathname = window.location.pathname || '/';
+      const search = window.location.search || '';
 
       try {
         sessionStorage.setItem('portal_pending_path', pathname);
@@ -18,7 +19,11 @@
 
       let target = '/index.html';
 
-      if (pathname.startsWith('/cirklestaff/ocportal')) {
+      if (pathname.startsWith('/portal/backend/adminhub')) {
+        target = '/portal/backend/adminhub/index.html';
+      } else if (pathname.startsWith('/clients/cdgassociates')) {
+        target = '/clients/cdgassociates/index.html';
+      } else if (pathname.startsWith('/cirklestaff/ocportal')) {
         target = '/cirklestaff/ocportal/index.html';
       } else if (pathname.startsWith('/cirklestaff/staffportal')) {
         target = '/cirklestaff/index.html';
@@ -32,7 +37,11 @@
         target = '/admin/backup.html';
       }
 
-      window.location.replace(target);
+      if (target.endsWith('/index.html')) {
+        window.location.replace(`${target}${search}`);
+      } else {
+        window.location.replace(target);
+      }
     })();
   </script>
 </body>

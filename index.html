@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Directory - Cirkle</title>
-    <link rel="icon" href="logotransparent.png" type="image/png">
+    <link rel="icon" href="Portal Logo.webp" type="image/webp">
     <style>
         * {
             margin: 0;
@@ -374,7 +374,7 @@
                     <div class="ring"></div>
                 </div>
                 <div class="logo-image">
-                    <img src="logotransparent.png" alt="Cirkle Portal">
+                    <img src="Portal Logo.webp" alt="Cirkle Portal">
                 </div>
             </div>
             <div class="splash-badge">SENTINEL SECURED</div>
@@ -384,7 +384,7 @@
     <!-- Main content -->
     <div class="container">
         <div class="brand-section">
-            <img src="logotransparent.png" alt="Cirkle Portal" class="logo">
+            <img src="Portal Logo.webp" alt="Cirkle Portal" class="logo">
             <h1 class="heading">Welcome to Portal Directory</h1>
             <p class="subtitle">Where would you like to go?</p>
             <div class="sentinel-badge">🔐 SENTINEL SECURED NETWORK</div>
@@ -427,12 +427,28 @@
                 <div class="portal-buttons">
                     <a href="/cirklestaff/staffportal/dashboard" class="portal-button">Staff Portal</a>
                     <a href="/cirklestaff/ocportal/dashboard" class="portal-button">OC Portal</a>
+                    <a href="/portal/backend/adminhub/dashboard" class="portal-button">Portal Complete Admin</a>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        const TRACK_ENDPOINT = 'https://timeclock-backend.marcusray.workers.dev/api/portal/track-view';
+
+        function trackPortalEvent(action, target = '') {
+            fetch(TRACK_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                keepalive: true,
+                body: JSON.stringify({
+                    action,
+                    target,
+                    path: window.location.pathname
+                })
+            }).catch(() => null);
+        }
+
         // Generate star field
         const starField = document.getElementById('starField');
         for (let i = 0; i < 100; i++) {
@@ -443,6 +459,13 @@
             star.style.animationDelay = Math.random() * 5 + 's';
             starField.appendChild(star);
         }
+
+        trackPortalEvent('view');
+        document.querySelectorAll('.portal-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                trackPortalEvent('click', btn.getAttribute('href') || 'unknown');
+            });
+        });
     </script>
 </body>
 </html>

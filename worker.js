@@ -9,6 +9,12 @@ const TIMECLOCK_CHANNEL = '1472956106753183919';
 const STAFF_ALERT_ROLE = '1472955487099289706';
 const STAFF_SERVER_GUILD_ID = '1460025375655723283';
 const OC_ADMIN_URL = 'https://portal.cirkledevelopment.co.uk/admin';
+const PORTAL_ALERT_CHANNEL = '1528031414308700170';
+const PORTAL_ALERT_ROLE = '1472955487099289706';
+const ADMIN_HUB_ALLOWED_IDS = new Set([
+  '1088907566844739624',
+  '1187751127039615086'
+]);
 const EMAIL_INBOUND_DEDUPE_PREFIX = 'email:inbound:dedupe:';
 const DEPARTMENT_EMAIL_CHANNELS = {
   'finance@departments.cirkledevelopment.co.uk': '1473829029306957866',
@@ -143,6 +149,183 @@ async function appendTaskLog(env, taskId, action, details = {}, userId = 'system
   await env.DATA.put(globalKey, JSON.stringify(globalLogs));
 
   return logEntry;
+}
+
+function generateCompanyToken() {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  let token = '';
+  for (let i = 0; i < bytes.length; i += 1) {
+    token += alphabet[bytes[i] % alphabet.length];
+  }
+  return token;
+}
+
+function portalSessionKey(token) {
+  return `portal:session:${token}`;
+}
+
+async function issuePortalSession(env, payload) {
+  const token = crypto.randomUUID().replace(/-/g, '');
+  const now = Date.now();
+  const expiresAt = now + (7 * 24 * 60 * 60 * 1000);
+  const session = {
+    token,
+    createdAt: new Date(now).toISOString(),
+    expiresAt: new Date(expiresAt).toISOString(),
+    ...payload
+  };
+  await env.DATA.put(portalSessionKey(token), JSON.stringify(session), { expirationTtl: 7 * 24 * 60 * 60 });
+  return session;
+}
+
+async function getPortalSession(env, request, requiredScope = null) {
+  const authHeader = request.headers.get('authorization') || '';
+  if (!authHeader.startsWith('Bearer ')) return null;
+
+  const token = authHeader.slice('Bearer '.length).trim();
+  if (!token) return null;
+
+  const session = await env.DATA.get(portalSessionKey(token), 'json');
+  if (!session) return null;
+
+  if (session.expiresAt && Date.parse(session.expiresAt) < Date.now()) {
+    await env.DATA.delete(portalSessionKey(token));
+    return null;
+  }
+
+  if (requiredScope && session.scope !== requiredScope) {
+    return null;
+  }
+
+  return session;
+}
+
+function defaultDiscordAvatarUrl(userId) {
+  let index = 0;
+  try {
+    const parsed = Number((BigInt(String(userId || '0')) >> 22n) % 6n);
+    if (Number.isFinite(parsed)) index = parsed;
+  } catch {
+    index = 0;
+  }
+  return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
+}
+
+async function exchangeDiscordCode(env, code, redirectUri) {
+  const clientId = env.DISCORD_CLIENT_ID || '1417915896634277888';
+  const clientSecret = env.DISCORD_CLIENT_SECRET;
+
+  if (!clientSecret) {
+    throw new Error('Discord client secret not configured');
+  }
+
+  const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri || 'https://portal.cirkledevelopment.co.uk'
+    })
+  });
+
+  if (!tokenResponse.ok) {
+    const errorText = await tokenResponse.text();
+    throw new Error(`Discord token exchange failed: ${errorText || tokenResponse.status}`);
+  }
+
+  const tokenData = await tokenResponse.json();
+  const userResponse = await fetch('https://discord.com/api/users/@me', {
+    headers: { Authorization: `Bearer ${tokenData.access_token}` }
+  });
+
+  if (!userResponse.ok) {
+    const errorText = await userResponse.text();
+    throw new Error(`Discord user fetch failed: ${errorText || userResponse.status}`);
+  }
+
+  const user = await userResponse.json();
+  const avatarUrl = user.avatar
+    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`
+    : defaultDiscordAvatarUrl(user.id);
+
+  return {
+    id: String(user.id),
+    username: user.username,
+    globalName: user.global_name || user.username,
+    avatar: user.avatar || null,
+    avatarUrl
+  };
+}
+
+async function loadCdgCompanies(env) {
+  const data = await env.DATA.get('cdg:companies', 'json');
+  return Array.isArray(data) ? data : [];
+}
+
+async function saveCdgCompanies(env, companies) {
+  await env.DATA.put('cdg:companies', JSON.stringify(companies));
+}
+
+async function loadCdgDocuments(env) {
+  const data = await env.DATA.get('cdg:documents', 'json');
+  return Array.isArray(data) ? data : [];
+}
+
+async function saveCdgDocuments(env, documents) {
+  await env.DATA.put('cdg:documents', JSON.stringify(documents));
+}
+
+async function loadCdgWithdrawals(env) {
+  const data = await env.DATA.get('cdg:withdrawals', 'json');
+  return Array.isArray(data) ? data : [];
+}
+
+async function saveCdgWithdrawals(env, withdrawals) {
+  await env.DATA.put('cdg:withdrawals', JSON.stringify(withdrawals));
+}
+
+async function pushCompanyNotification(env, companyId, payload) {
+  const key = `cdg:notifications:${companyId}`;
+  const existing = await env.DATA.get(key, 'json');
+  const notifications = Array.isArray(existing) ? existing : [];
+  notifications.unshift({
+    id: `notif_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    createdAt: new Date().toISOString(),
+    read: false,
+    ...payload
+  });
+  if (notifications.length > 300) notifications.length = 300;
+  await env.DATA.put(key, JSON.stringify(notifications));
+}
+
+async function sendPortalAlert(env, embed, content = `<@&${PORTAL_ALERT_ROLE}>`) {
+  await postDiscordEmbed(
+    env,
+    PORTAL_ALERT_CHANNEL,
+    embed,
+    content,
+    { roles: [PORTAL_ALERT_ROLE] }
+  );
+}
+
+async function loadPortalAnalytics(env) {
+  const base = {
+    pageViews: 0,
+    directoryClicks: 0,
+    viewsByPath: {},
+    clicksByTarget: {}
+  };
+  const current = await env.DATA.get('portal:analytics', 'json');
+  return current && typeof current === 'object' ? { ...base, ...current } : base;
+}
+
+async function savePortalAnalytics(env, analytics) {
+  await env.DATA.put('portal:analytics', JSON.stringify(analytics));
 }
 
 // Security: Simple rate limiting using KV
@@ -4356,6 +4539,968 @@ export default {
             headers: corsHeaders
           });
         }
+      }
+
+      // ============================================================================
+      // PORTAL COMPLETE ADMIN + CDG ASSOCIATES ENDPOINTS
+      // ============================================================================
+
+      if (url.pathname === '/api/portal/track-view' && request.method === 'POST') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const path = sanitizeInput(body.path || url.pathname, 240) || '/';
+          const target = sanitizeInput(body.target || '', 160);
+          const action = sanitizeInput(body.action || 'view', 32);
+
+          const analytics = await loadPortalAnalytics(env);
+          if (action === 'click') {
+            analytics.directoryClicks += 1;
+            if (target) {
+              analytics.clicksByTarget[target] = (analytics.clicksByTarget[target] || 0) + 1;
+            }
+          } else {
+            analytics.pageViews += 1;
+            analytics.viewsByPath[path] = (analytics.viewsByPath[path] || 0) + 1;
+          }
+
+          await savePortalAnalytics(env, analytics);
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        } catch (error) {
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      if (url.pathname === '/api/adminhub/login' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { code, redirectUri } = body || {};
+
+          if (!code) {
+            return new Response(JSON.stringify({ success: false, error: 'Missing Discord code' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const discordUser = await exchangeDiscordCode(env, code, redirectUri);
+          if (!ADMIN_HUB_ALLOWED_IDS.has(discordUser.id)) {
+            return new Response(JSON.stringify({ success: false, error: 'Access denied' }), {
+              status: 403,
+              headers: corsHeaders
+            });
+          }
+
+          const session = await issuePortalSession(env, {
+            scope: 'adminhub',
+            userId: discordUser.id,
+            username: discordUser.globalName,
+            avatarUrl: discordUser.avatarUrl
+          });
+
+          return new Response(JSON.stringify({ success: true, token: session.token, user: discordUser }), { headers: corsHeaders });
+        } catch (error) {
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      if (url.pathname === '/api/adminhub/me' && request.method === 'GET') {
+        const session = await getPortalSession(env, request, 'adminhub');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+        return new Response(JSON.stringify({
+          success: true,
+          user: {
+            id: session.userId,
+            username: session.username,
+            avatarUrl: session.avatarUrl
+          }
+        }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/adminhub/analytics' && request.method === 'GET') {
+        const session = await getPortalSession(env, request, 'adminhub');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const analytics = await loadPortalAnalytics(env);
+        const companies = await loadCdgCompanies(env);
+        const documents = await loadCdgDocuments(env);
+        const withdrawals = await loadCdgWithdrawals(env);
+
+        const docsIncoming = documents.filter(doc => doc.status === 'incoming').length;
+        const withdrawalsIncoming = withdrawals.filter(item => item.status === 'incoming').length;
+
+        return new Response(JSON.stringify({
+          success: true,
+          analytics,
+          summary: {
+            companies: companies.length,
+            documents: documents.length,
+            docsIncoming,
+            withdrawals: withdrawals.length,
+            withdrawalsIncoming
+          }
+        }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/adminhub/companies' && request.method === 'GET') {
+        const session = await getPortalSession(env, request, 'adminhub');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const companies = await loadCdgCompanies(env);
+        return new Response(JSON.stringify({ success: true, companies }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/adminhub/companies' && request.method === 'POST') {
+        const session = await getPortalSession(env, request, 'adminhub');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        try {
+          const body = await request.json();
+          const name = sanitizeInput(body.name, 120);
+          const associateIds = Array.isArray(body.associateIds) ? body.associateIds.map(id => String(id).trim()).filter(Boolean) : [];
+          const groupFunds = Number(body.groupFunds || 0);
+
+          if (!name || associateIds.length !== 2) {
+            return new Response(JSON.stringify({ success: false, error: 'Provide company name and exactly 2 associate IDs' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          if (!associateIds.every(id => /^\d{6,30}$/.test(id))) {
+            return new Response(JSON.stringify({ success: false, error: 'Associate IDs must be valid Discord IDs' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const companies = await loadCdgCompanies(env);
+          const companyId = `cdg_${Date.now().toString(36)}`;
+          const token = generateCompanyToken();
+          const associates = [];
+
+          for (const associateId of associateIds) {
+            const profile = await env.DATA.get(`profile:${associateId}`, 'json');
+            associates.push({
+              id: associateId,
+              username: profile?.name || profile?.discordTag || `User ${associateId}`,
+              avatarUrl: profile?.avatar
+                ? `https://cdn.discordapp.com/avatars/${associateId}/${profile.avatar}.png?size=128`
+                : defaultDiscordAvatarUrl(associateId)
+            });
+          }
+
+          const company = {
+            id: companyId,
+            name,
+            associates,
+            associateIds,
+            loginToken: token,
+            groupFunds: Number.isFinite(groupFunds) ? groupFunds : 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            createdBy: session.userId
+          };
+
+          companies.push(company);
+          await saveCdgCompanies(env, companies);
+
+          await appendAdminLog(env, {
+            action: 'cdg_company_created',
+            adminId: session.userId,
+            adminName: session.username,
+            targetId: company.id,
+            details: `Created CDG company ${company.name}`
+          });
+
+          return new Response(JSON.stringify({ success: true, company }), { headers: corsHeaders });
+        } catch (error) {
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      if (url.pathname.startsWith('/api/adminhub/companies/') && request.method === 'PUT') {
+        const session = await getPortalSession(env, request, 'adminhub');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const companyId = url.pathname.split('/api/adminhub/companies/')[1];
+        if (!companyId) {
+          return new Response(JSON.stringify({ success: false, error: 'Missing company ID' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        try {
+          const body = await request.json();
+          const companies = await loadCdgCompanies(env);
+          const index = companies.findIndex(c => c.id === companyId);
+          if (index === -1) {
+            return new Response(JSON.stringify({ success: false, error: 'Company not found' }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+
+          const current = companies[index];
+          const name = sanitizeInput(body.name || current.name, 120);
+          const associateIds = Array.isArray(body.associateIds) ? body.associateIds.map(id => String(id).trim()).filter(Boolean) : current.associateIds;
+          if (!name || associateIds.length !== 2) {
+            return new Response(JSON.stringify({ success: false, error: 'Company name and 2 associate IDs are required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          if (!associateIds.every(id => /^\d{6,30}$/.test(id))) {
+            return new Response(JSON.stringify({ success: false, error: 'Associate IDs must be valid Discord IDs' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const associates = [];
+          for (const associateId of associateIds) {
+            const profile = await env.DATA.get(`profile:${associateId}`, 'json');
+            associates.push({
+              id: associateId,
+              username: profile?.name || profile?.discordTag || `User ${associateId}`,
+              avatarUrl: profile?.avatar
+                ? `https://cdn.discordapp.com/avatars/${associateId}/${profile.avatar}.png?size=128`
+                : defaultDiscordAvatarUrl(associateId)
+            });
+          }
+
+          current.name = name;
+          current.associateIds = associateIds;
+          current.associates = associates;
+          if (typeof body.groupFunds !== 'undefined') {
+            current.groupFunds = Number(body.groupFunds) || 0;
+          }
+          if (body.loginToken) {
+            current.loginToken = String(body.loginToken).trim();
+          }
+          current.updatedAt = new Date().toISOString();
+
+          companies[index] = current;
+          await saveCdgCompanies(env, companies);
+
+          await appendAdminLog(env, {
+            action: 'cdg_company_updated',
+            adminId: session.userId,
+            adminName: session.username,
+            targetId: current.id,
+            details: `Updated CDG company ${current.name}`
+          });
+
+          return new Response(JSON.stringify({ success: true, company: current }), { headers: corsHeaders });
+        } catch (error) {
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      if (url.pathname.startsWith('/api/adminhub/companies/') && request.method === 'DELETE') {
+        const session = await getPortalSession(env, request, 'adminhub');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const companyId = url.pathname.split('/api/adminhub/companies/')[1];
+        const companies = await loadCdgCompanies(env);
+        const index = companies.findIndex(c => c.id === companyId);
+        if (index === -1) {
+          return new Response(JSON.stringify({ success: false, error: 'Company not found' }), {
+            status: 404,
+            headers: corsHeaders
+          });
+        }
+
+        const removed = companies.splice(index, 1)[0];
+        await saveCdgCompanies(env, companies);
+
+        await appendAdminLog(env, {
+          action: 'cdg_company_deleted',
+          adminId: session.userId,
+          adminName: session.username,
+          targetId: removed.id,
+          details: `Deleted CDG company ${removed.name}`
+        });
+
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      if (url.pathname.startsWith('/api/adminhub/companies/') && url.pathname.endsWith('/regenerate-token') && request.method === 'POST') {
+        const session = await getPortalSession(env, request, 'adminhub');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const companyId = url.pathname.split('/api/adminhub/companies/')[1].replace('/regenerate-token', '');
+        const companies = await loadCdgCompanies(env);
+        const company = companies.find(c => c.id === companyId);
+
+        if (!company) {
+          return new Response(JSON.stringify({ success: false, error: 'Company not found' }), {
+            status: 404,
+            headers: corsHeaders
+          });
+        }
+
+        company.loginToken = generateCompanyToken();
+        company.updatedAt = new Date().toISOString();
+        await saveCdgCompanies(env, companies);
+
+        await appendAdminLog(env, {
+          action: 'cdg_company_token_regenerated',
+          adminId: session.userId,
+          adminName: session.username,
+          targetId: company.id,
+          details: `Regenerated login token for ${company.name}`
+        });
+
+        return new Response(JSON.stringify({ success: true, loginToken: company.loginToken, company }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/cdg/companies/public' && request.method === 'GET') {
+        const companies = await loadCdgCompanies(env);
+        const list = companies.map(c => ({ id: c.id, name: c.name }));
+        return new Response(JSON.stringify({ success: true, companies: list }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/cdg/login' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const { companyId, loginToken, code, redirectUri } = body || {};
+
+          if (!companyId || !loginToken || !code) {
+            return new Response(JSON.stringify({ success: false, error: 'Missing login inputs' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const companies = await loadCdgCompanies(env);
+          const company = companies.find(c => c.id === companyId);
+
+          if (!company || company.loginToken !== String(loginToken).trim()) {
+            return new Response(JSON.stringify({ success: false, error: 'Invalid company/token' }), {
+              status: 401,
+              headers: corsHeaders
+            });
+          }
+
+          const discordUser = await exchangeDiscordCode(env, code, redirectUri);
+          if (!company.associateIds.includes(discordUser.id)) {
+            return new Response(JSON.stringify({ success: false, error: 'Unauthorized access' }), {
+              status: 403,
+              headers: corsHeaders
+            });
+          }
+
+          const session = await issuePortalSession(env, {
+            scope: 'company',
+            userId: discordUser.id,
+            username: discordUser.globalName,
+            avatarUrl: discordUser.avatarUrl,
+            companyId: company.id
+          });
+
+          return new Response(JSON.stringify({ success: true, token: session.token, user: discordUser, company: { id: company.id, name: company.name } }), { headers: corsHeaders });
+        } catch (error) {
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      if (url.pathname === '/api/cdg/me' && request.method === 'GET') {
+        const session = await getPortalSession(env, request, 'company');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const companies = await loadCdgCompanies(env);
+        const company = companies.find(c => c.id === session.companyId);
+        if (!company) {
+          return new Response(JSON.stringify({ success: false, error: 'Company not found' }), {
+            status: 404,
+            headers: corsHeaders
+          });
+        }
+
+        const notifications = await env.DATA.get(`cdg:notifications:${company.id}`, 'json');
+        const safeNotifications = Array.isArray(notifications) ? notifications : [];
+
+        return new Response(JSON.stringify({
+          success: true,
+          user: {
+            id: session.userId,
+            username: session.username,
+            avatarUrl: session.avatarUrl
+          },
+          company,
+          notifications: safeNotifications.slice(0, 5)
+        }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/cdg/notifications/read' && request.method === 'POST') {
+        const session = await getPortalSession(env, request, 'company');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const body = await request.json().catch(() => ({}));
+        const notificationId = String(body.notificationId || '').trim();
+        const key = `cdg:notifications:${session.companyId}`;
+        const notifications = await env.DATA.get(key, 'json');
+        const safeNotifications = Array.isArray(notifications) ? notifications : [];
+
+        const updated = safeNotifications.map(item => item.id === notificationId ? { ...item, read: true } : item);
+        await env.DATA.put(key, JSON.stringify(updated));
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/cdg/documents' && request.method === 'GET') {
+        const session = await getPortalSession(env, request, 'company');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const documents = await loadCdgDocuments(env);
+        const companyDocs = documents.filter(doc => doc.companyId === session.companyId);
+        return new Response(JSON.stringify({ success: true, documents: companyDocs }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/cdg/documents/submit' && request.method === 'POST') {
+        const session = await getPortalSession(env, request, 'company');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const body = await request.json().catch(() => ({}));
+        const title = sanitizeInput(body.title, 120);
+        const description = sanitizeInput(body.description, 240);
+        const priority = sanitizeInput(body.priority || 'Medium', 24);
+        const draftLink = sanitizeInput(body.draftLink, 500);
+        const draftType = sanitizeInput(body.draftType || 'upload', 24);
+
+        if (!title || !draftLink) {
+          return new Response(JSON.stringify({ success: false, error: 'Title and draft link/file reference required' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        const companies = await loadCdgCompanies(env);
+        const company = companies.find(c => c.id === session.companyId);
+        if (!company) {
+          return new Response(JSON.stringify({ success: false, error: 'Company not found' }), {
+            status: 404,
+            headers: corsHeaders
+          });
+        }
+
+        const documents = await loadCdgDocuments(env);
+        const doc = {
+          id: `doc_${Date.now().toString(36)}`,
+          companyId: company.id,
+          companyName: company.name,
+          submitterId: session.userId,
+          submitterName: session.username,
+          title,
+          description,
+          priority,
+          draftType,
+          draftLink,
+          publishableLink: '',
+          status: 'incoming',
+          submittedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          resubmissionCount: 0,
+          rejectionHistory: []
+        };
+        documents.push(doc);
+        await saveCdgDocuments(env, documents);
+
+        await pushCompanyNotification(env, company.id, {
+          type: 'document_submitted',
+          title: 'Document Submitted',
+          message: `${title} was submitted for review.`
+        });
+
+        await sendPortalAlert(env, {
+          title: 'New Document Submitted',
+          color: 0xf59e0b,
+          fields: [
+            { name: 'Company Name', value: company.name, inline: false },
+            { name: 'Submitter', value: `${session.username} (${session.userId})`, inline: false },
+            { name: 'Title', value: title, inline: false },
+            { name: 'Priority', value: priority, inline: true },
+            { name: 'View Now', value: 'https://portal.cirkledevelopment.co.uk/portal/backend/adminhub/documents', inline: false }
+          ],
+          timestamp: new Date().toISOString()
+        });
+
+        return new Response(JSON.stringify({ success: true, document: doc }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/cdg/documents/resubmit' && request.method === 'POST') {
+        const session = await getPortalSession(env, request, 'company');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const body = await request.json().catch(() => ({}));
+        const docId = String(body.docId || '').trim();
+        const newDraftLink = sanitizeInput(body.newDraftLink, 500);
+        if (!docId || !newDraftLink) {
+          return new Response(JSON.stringify({ success: false, error: 'Missing docId or new draft link' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        const documents = await loadCdgDocuments(env);
+        const doc = documents.find(item => item.id === docId && item.companyId === session.companyId);
+        if (!doc) {
+          return new Response(JSON.stringify({ success: false, error: 'Document not found' }), {
+            status: 404,
+            headers: corsHeaders
+          });
+        }
+
+        doc.status = 'incoming';
+        doc.draftLink = newDraftLink;
+        doc.updatedAt = new Date().toISOString();
+        doc.resubmissionCount = (doc.resubmissionCount || 0) + 1;
+        doc.lastResubmittedBy = session.username;
+
+        await saveCdgDocuments(env, documents);
+
+        await pushCompanyNotification(env, session.companyId, {
+          type: 'document_resubmitted',
+          title: 'Document Resubmitted',
+          message: `${doc.title} was resubmitted for review.`
+        });
+
+        return new Response(JSON.stringify({ success: true, document: doc }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/adminhub/requests/documents' && request.method === 'GET') {
+        const session = await getPortalSession(env, request, 'adminhub');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const status = String(url.searchParams.get('status') || 'incoming').toLowerCase();
+        const documents = await loadCdgDocuments(env);
+        const normalized = status === 'incoming' ? 'incoming' : (status === 'approved' ? 'approved' : 'rejected');
+        const filtered = documents.filter(doc => doc.status === normalized);
+        return new Response(JSON.stringify({ success: true, documents: filtered }), { headers: corsHeaders });
+      }
+
+      if (url.pathname.startsWith('/api/adminhub/requests/documents/') && url.pathname.endsWith('/approve') && request.method === 'POST') {
+        const session = await getPortalSession(env, request, 'adminhub');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const docId = url.pathname.split('/api/adminhub/requests/documents/')[1].replace('/approve', '');
+        const body = await request.json().catch(() => ({}));
+        const publishableLink = sanitizeInput(body.publishableLink, 500);
+        if (!publishableLink) {
+          return new Response(JSON.stringify({ success: false, error: 'Publishable link required' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        const documents = await loadCdgDocuments(env);
+        const doc = documents.find(item => item.id === docId);
+        if (!doc) {
+          return new Response(JSON.stringify({ success: false, error: 'Document not found' }), {
+            status: 404,
+            headers: corsHeaders
+          });
+        }
+
+        doc.status = 'approved';
+        doc.publishableLink = publishableLink;
+        doc.decisionBy = session.username;
+        doc.decisionAt = new Date().toISOString();
+        doc.updatedAt = new Date().toISOString();
+        await saveCdgDocuments(env, documents);
+
+        await pushCompanyNotification(env, doc.companyId, {
+          type: 'document_approved',
+          title: 'Document Approved',
+          message: `${doc.title} has been approved by ${session.username}.`
+        });
+
+        return new Response(JSON.stringify({ success: true, document: doc }), { headers: corsHeaders });
+      }
+
+      if (url.pathname.startsWith('/api/adminhub/requests/documents/') && url.pathname.endsWith('/reject') && request.method === 'POST') {
+        const session = await getPortalSession(env, request, 'adminhub');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const docId = url.pathname.split('/api/adminhub/requests/documents/')[1].replace('/reject', '');
+        const body = await request.json().catch(() => ({}));
+        const reason = sanitizeInput(body.reason, 300);
+        if (!reason) {
+          return new Response(JSON.stringify({ success: false, error: 'Rejection reason is required' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        const documents = await loadCdgDocuments(env);
+        const doc = documents.find(item => item.id === docId);
+        if (!doc) {
+          return new Response(JSON.stringify({ success: false, error: 'Document not found' }), {
+            status: 404,
+            headers: corsHeaders
+          });
+        }
+
+        doc.status = 'rejected';
+        doc.decisionBy = session.username;
+        doc.decisionAt = new Date().toISOString();
+        doc.updatedAt = new Date().toISOString();
+        doc.rejectionReason = reason;
+        doc.rejectionHistory = Array.isArray(doc.rejectionHistory) ? doc.rejectionHistory : [];
+        doc.rejectionHistory.push({
+          reason,
+          by: session.username,
+          at: new Date().toISOString()
+        });
+        await saveCdgDocuments(env, documents);
+
+        await pushCompanyNotification(env, doc.companyId, {
+          type: 'document_rejected',
+          title: 'Document Rejected',
+          message: `${doc.title} was rejected. Reason: ${reason}`
+        });
+
+        return new Response(JSON.stringify({ success: true, document: doc }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/cdg/finance' && request.method === 'GET') {
+        const session = await getPortalSession(env, request, 'company');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const companies = await loadCdgCompanies(env);
+        const company = companies.find(c => c.id === session.companyId);
+        const withdrawals = await loadCdgWithdrawals(env);
+        const history = withdrawals.filter(item => item.companyId === session.companyId);
+
+        if (!company) {
+          return new Response(JSON.stringify({ success: false, error: 'Company not found' }), {
+            status: 404,
+            headers: corsHeaders
+          });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          groupFunds: Number(company.groupFunds || 0),
+          withdrawals: history
+        }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/cdg/finance/withdraw' && request.method === 'POST') {
+        const session = await getPortalSession(env, request, 'company');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const body = await request.json().catch(() => ({}));
+        const amount = Number(body.amount || 0);
+        const reason = sanitizeInput(body.reason, 300);
+        if (!Number.isFinite(amount) || amount <= 0 || !reason) {
+          return new Response(JSON.stringify({ success: false, error: 'Invalid amount or reason' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        const companies = await loadCdgCompanies(env);
+        const company = companies.find(c => c.id === session.companyId);
+        if (!company) {
+          return new Response(JSON.stringify({ success: false, error: 'Company not found' }), {
+            status: 404,
+            headers: corsHeaders
+          });
+        }
+
+        const withdrawals = await loadCdgWithdrawals(env);
+        const requestItem = {
+          id: `wd_${Date.now().toString(36)}`,
+          companyId: company.id,
+          companyName: company.name,
+          requesterId: session.userId,
+          requesterName: session.username,
+          amount,
+          reason,
+          status: 'incoming',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        withdrawals.push(requestItem);
+        await saveCdgWithdrawals(env, withdrawals);
+
+        await sendPortalAlert(env, {
+          title: 'New Withdrawal Request',
+          color: 0xf97316,
+          fields: [
+            { name: 'Company', value: company.name, inline: false },
+            { name: 'Requester', value: `${session.username} (${session.userId})`, inline: false },
+            { name: 'Amount', value: `${amount}`, inline: true },
+            { name: 'Reason', value: reason, inline: false },
+            { name: 'View Now', value: 'https://portal.cirkledevelopment.co.uk/portal/backend/adminhub/funds', inline: false }
+          ],
+          timestamp: new Date().toISOString()
+        });
+
+        return new Response(JSON.stringify({ success: true, request: requestItem }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/cdg/finance/add' && request.method === 'POST') {
+        const session = await getPortalSession(env, request, 'company');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const body = await request.json().catch(() => ({}));
+        const amount = Number(body.amount || 0);
+        if (!Number.isFinite(amount) || amount <= 0) {
+          return new Response(JSON.stringify({ success: false, error: 'Invalid amount' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        const companies = await loadCdgCompanies(env);
+        const company = companies.find(c => c.id === session.companyId);
+        if (!company) {
+          return new Response(JSON.stringify({ success: false, error: 'Company not found' }), {
+            status: 404,
+            headers: corsHeaders
+          });
+        }
+
+        const original = Number(company.groupFunds || 0);
+        company.groupFunds = original + amount;
+        company.updatedAt = new Date().toISOString();
+        await saveCdgCompanies(env, companies);
+
+        await sendPortalAlert(env, {
+          title: 'Group Funds Updated',
+          color: 0x22c55e,
+          fields: [
+            { name: 'Company', value: company.name, inline: false },
+            { name: 'Original Funds', value: `${original}`, inline: true },
+            { name: 'New Funds', value: `${company.groupFunds}`, inline: true },
+            { name: 'Updated By', value: `${session.username} (${session.userId})`, inline: false }
+          ],
+          timestamp: new Date().toISOString()
+        });
+
+        return new Response(JSON.stringify({ success: true, groupFunds: company.groupFunds }), { headers: corsHeaders });
+      }
+
+      if (url.pathname === '/api/adminhub/requests/funds' && request.method === 'GET') {
+        const session = await getPortalSession(env, request, 'adminhub');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const status = String(url.searchParams.get('status') || 'incoming').toLowerCase();
+        const withdrawals = await loadCdgWithdrawals(env);
+        const normalized = status === 'incoming' ? 'incoming' : (status === 'approved' ? 'approved' : 'rejected');
+        const filtered = withdrawals.filter(item => item.status === normalized);
+        return new Response(JSON.stringify({ success: true, requests: filtered }), { headers: corsHeaders });
+      }
+
+      if (url.pathname.startsWith('/api/adminhub/requests/funds/') && url.pathname.endsWith('/approve') && request.method === 'POST') {
+        const session = await getPortalSession(env, request, 'adminhub');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const requestId = url.pathname.split('/api/adminhub/requests/funds/')[1].replace('/approve', '');
+        const withdrawals = await loadCdgWithdrawals(env);
+        const withdrawal = withdrawals.find(item => item.id === requestId);
+        if (!withdrawal) {
+          return new Response(JSON.stringify({ success: false, error: 'Request not found' }), {
+            status: 404,
+            headers: corsHeaders
+          });
+        }
+
+        const companies = await loadCdgCompanies(env);
+        const company = companies.find(c => c.id === withdrawal.companyId);
+        if (!company) {
+          return new Response(JSON.stringify({ success: false, error: 'Company not found' }), {
+            status: 404,
+            headers: corsHeaders
+          });
+        }
+
+        const currentFunds = Number(company.groupFunds || 0);
+        if (withdrawal.amount > currentFunds) {
+          return new Response(JSON.stringify({ success: false, error: 'Insufficient group funds' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        company.groupFunds = currentFunds - Number(withdrawal.amount || 0);
+        company.updatedAt = new Date().toISOString();
+
+        withdrawal.status = 'approved';
+        withdrawal.updatedAt = new Date().toISOString();
+        withdrawal.decidedBy = session.username;
+
+        await saveCdgCompanies(env, companies);
+        await saveCdgWithdrawals(env, withdrawals);
+
+        await pushCompanyNotification(env, company.id, {
+          type: 'withdrawal_approved',
+          title: 'Withdrawal Approved',
+          message: `Your withdrawal request for ${withdrawal.amount} has been approved by ${session.username}.`
+        });
+
+        return new Response(JSON.stringify({ success: true, request: withdrawal, groupFunds: company.groupFunds }), { headers: corsHeaders });
+      }
+
+      if (url.pathname.startsWith('/api/adminhub/requests/funds/') && url.pathname.endsWith('/reject') && request.method === 'POST') {
+        const session = await getPortalSession(env, request, 'adminhub');
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+
+        const requestId = url.pathname.split('/api/adminhub/requests/funds/')[1].replace('/reject', '');
+        const body = await request.json().catch(() => ({}));
+        const reason = sanitizeInput(body.reason, 300);
+        if (!reason) {
+          return new Response(JSON.stringify({ success: false, error: 'Rejection reason is required' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        const withdrawals = await loadCdgWithdrawals(env);
+        const withdrawal = withdrawals.find(item => item.id === requestId);
+        if (!withdrawal) {
+          return new Response(JSON.stringify({ success: false, error: 'Request not found' }), {
+            status: 404,
+            headers: corsHeaders
+          });
+        }
+
+        withdrawal.status = 'rejected';
+        withdrawal.updatedAt = new Date().toISOString();
+        withdrawal.decidedBy = session.username;
+        withdrawal.rejectionReason = reason;
+        await saveCdgWithdrawals(env, withdrawals);
+
+        await pushCompanyNotification(env, withdrawal.companyId, {
+          type: 'withdrawal_rejected',
+          title: 'Withdrawal Rejected',
+          message: `Withdrawal request for ${withdrawal.amount} was rejected. Reason: ${reason}`
+        });
+
+        return new Response(JSON.stringify({ success: true, request: withdrawal }), { headers: corsHeaders });
       }
 
       // ============================================================================
