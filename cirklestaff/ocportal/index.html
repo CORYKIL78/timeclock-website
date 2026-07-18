@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OC Portal - Oversight & Corporate</title>
-<link rel="icon" type="image/webp" href="../Portal Logo.webp">
+<link rel="icon" type="image/png" href="../../logotransparent.png">
 <style>
 :root {
   --bg: #0b0d17;
@@ -1107,6 +1107,49 @@ let state = {
   profileEdit: null
 };
 
+const OC_PORTAL_BASE = '/cirklestaff/ocportal';
+
+try {
+  const pendingPath = sessionStorage.getItem('portal_pending_path');
+  if (pendingPath && pendingPath.startsWith(OC_PORTAL_BASE)) {
+    history.replaceState({}, '', pendingPath);
+  }
+  if (pendingPath) {
+    sessionStorage.removeItem('portal_pending_path');
+  }
+} catch (e) {
+  console.warn('[ROUTING] Pending path restore failed:', e.message);
+}
+
+function getOcPathSegment(pathname) {
+  const path = pathname || '/';
+  if (path.startsWith(OC_PORTAL_BASE + '/')) {
+    return path.slice((OC_PORTAL_BASE + '/').length) || 'dashboard';
+  }
+  return 'dashboard';
+}
+
+function routeToOcTab(segment) {
+  const tabMap = {
+    dashboard: 'users',
+    users: 'users',
+    admins: 'admins',
+    absences: 'absences',
+    requests: 'requests',
+    payslips: 'payslips',
+    reports: 'reports',
+    strikes: 'strikes',
+    calendar: 'calendar',
+    logs: 'logs',
+    tasktrack: 'tasktrack'
+  };
+  return tabMap[segment] || 'users';
+}
+
+function ocTabToRoute(tab) {
+  return tab === 'users' ? 'dashboard' : tab;
+}
+
 /* ================================================================
    STARS GENERATION
    ================================================================ */
@@ -1528,13 +1571,16 @@ document.getElementById('goToDashboard').addEventListener('click', async () => {
   syncAdminAccessVisibility();
   state.adminSectionUnlocked = false;
   renderAdminsLockedState('Verifying your identity....', true);
-  // ALWAYS set active tab to 'users' first to prevent auto-opening ADMINS
-  state.activeTab = 'users';
+  // Resolve requested tab from pathname; default is dashboard/users.
+  state.activeTab = routeToOcTab(getOcPathSegment(window.location.pathname));
   // Set users button as active
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  const usersBtn = document.querySelector('[data-tab="users"]');
-  if (usersBtn) usersBtn.classList.add('active');
-  loadTab('users');
+  const currentBtn = document.querySelector(`[data-tab="${state.activeTab}"]`) || document.querySelector('[data-tab="users"]');
+  if (currentBtn) currentBtn.classList.add('active');
+  if (window.history.pushState) {
+    window.history.pushState({ tab: state.activeTab }, '', `${OC_PORTAL_BASE}/${ocTabToRoute(state.activeTab)}`);
+  }
+  loadTab(state.activeTab);
 });
 
 /* ================================================================
@@ -1556,14 +1602,33 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     
     // Add logo to topbar for TaskTrack tab
     if (tab === 'tasktrack') {
-      tabTitle.innerHTML = `<img src="../logotransparent.png" class="tasktrack-logo-topbar" alt="TaskTrack" /> ${esc(titleText)}`;
+      tabTitle.innerHTML = `<img src="../../logotransparent.png" class="tasktrack-logo-topbar" alt="TaskTrack" /> ${esc(titleText)}`;
     } else {
       tabTitle.textContent = titleText;
     }
     
     state.activeTab = tab;
+    if (window.history.pushState) {
+      window.history.pushState({ tab }, '', `${OC_PORTAL_BASE}/${ocTabToRoute(tab)}`);
+    }
     loadTab(tab);
   });
+});
+
+window.addEventListener('popstate', () => {
+  if (!state.admin) return;
+  const tab = routeToOcTab(getOcPathSegment(window.location.pathname));
+  state.activeTab = tab;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`[data-tab="${tab}"]`) || document.querySelector('[data-tab="users"]');
+  if (btn) {
+    btn.classList.add('active');
+    updateNavIndicator(btn);
+  }
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  const tabEl = document.getElementById('tab-' + tab);
+  if (tabEl) tabEl.classList.add('active');
+  loadTab(tab);
 });
 
 document.getElementById('adminsViewBtn')?.addEventListener('click', async () => {
@@ -2144,7 +2209,7 @@ async function loadTaskTrackLogs() {
   container.innerHTML = `
     <div class="tasktrack-loader-overlay">
       <div class="tasktrack-logo-spin">
-        <img src="../logotransparent.png" alt="Loading..." />
+        <img src="../../logotransparent.png" alt="Loading..." />
       </div>
       <div style="color: var(--text2); font-size: 13px;">Loading TaskTrack data...</div>
     </div>

@@ -3168,13 +3168,11 @@ export default {
             });
           }
 
-          // Try to get admin config from KV storage first
-          let adminConfig = await env.DATA.get('config:admins', 'json');
-          
-          // If provided in request, use that (for browser-based verification)
-          if (admins && !adminConfig) {
-            adminConfig = admins;
-            // Also store in KV for future use
+          // Prefer browser-provided config first to avoid stale KV credentials.
+          let adminConfig = (admins && typeof admins === 'object') ? admins : null;
+          if (!adminConfig) {
+            adminConfig = await env.DATA.get('config:admins', 'json');
+          } else {
             try {
               await env.DATA.put('config:admins', JSON.stringify(admins));
             } catch (e) {
@@ -3364,12 +3362,39 @@ export default {
       
       // Get admin logs
       if (url.pathname === '/api/admin/logs' && request.method === 'GET') {
-        return new Response(JSON.stringify([]), { headers: corsHeaders });
+        try {
+          const logs = await env.DATA.get('admin:logs', 'json');
+          return new Response(JSON.stringify({ success: true, logs: Array.isArray(logs) ? logs : [] }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message, logs: [] }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
       }
 
       // Log admin action
       if (url.pathname === '/api/admin/logs' && request.method === 'POST') {
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        try {
+          const body = await request.json();
+          const existing = await env.DATA.get('admin:logs', 'json');
+          const logs = Array.isArray(existing) ? existing : [];
+          logs.push({
+            id: `log_${Date.now()}`,
+            ...body,
+            timestamp: new Date().toISOString()
+          });
+          if (logs.length > 1000) {
+            logs.splice(0, logs.length - 1000);
+          }
+          await env.DATA.put('admin:logs', JSON.stringify(logs));
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
       }
 
       // ============================================================================

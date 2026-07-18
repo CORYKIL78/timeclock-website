@@ -6,41 +6,33 @@
 </head>
 <body>
   <script>
-    // GitHub Pages 404.html router
-    // This file is served for all non-existent paths, allowing us to route to the correct HTML
-    
+    // GitHub Pages 404 fallback router for pretty URL paths.
     (function() {
-      const pathname = window.location.pathname;
-      let target = '/index.html'; // Default fallback
-      
-      if (pathname === '/' || pathname === '') {
-        target = '/portal-directory.html';
-      } 
-      else if (pathname === '/admin' || pathname === '/admin/' || pathname.startsWith('/admin/')) {
-        target = '/admin/backup.html';
-      } 
-      else if (pathname.startsWith('/cirklestaff/ocportal')) {
-        target = '/admin/backup.html';
-      } 
-      else if (pathname.startsWith('/cirklestaff/')) {
-        target = '/index.html';
-      } 
-      else if (pathname.startsWith('/clients')) {
-        target = '/maintenance.html';
-      } 
-      else if (pathname.startsWith('/departments')) {
-        target = '/maintenance.html';
+      const pathname = window.location.pathname || '/';
+
+      try {
+        sessionStorage.setItem('portal_pending_path', pathname);
+      } catch (e) {
+        // Ignore storage failures.
       }
-      else if (pathname.startsWith('/adminportal')) {
+
+      let target = '/index.html';
+
+      if (pathname.startsWith('/cirklestaff/ocportal')) {
+        target = '/cirklestaff/ocportal/index.html';
+      } else if (pathname.startsWith('/cirklestaff/staffportal')) {
+        target = '/cirklestaff/index.html';
+      } else if (pathname === '/cirklestaff' || pathname === '/cirklestaff/') {
+        target = '/cirklestaff/index.html';
+      } else if (pathname.startsWith('/clients/') || pathname.startsWith('/departments/')) {
+        target = '/maintenance.html';
+      } else if (pathname === '/admin' || pathname === '/admin/' || pathname.startsWith('/admin/')) {
+        target = '/admin/backup.html';
+      } else if (pathname.startsWith('/adminportal')) {
         target = '/admin/backup.html';
       }
-      else if (pathname.startsWith('/financetools')) {
-        target = '/maintenance.html';
-      }
-      
-      // Redirect to the appropriate file while preserving the original pathname
-      // so client-side routing (history API) can use it
-      window.location.replace(target + '?redirect=' + encodeURIComponent(pathname));
+
+      window.location.replace(target);
     })();
   </script>
 </body>

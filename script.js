@@ -47,6 +47,43 @@ function setAuthDebug(msg, isError) {
     }
 }
 
+const STAFF_PORTAL_BASE = '/cirklestaff/staffportal';
+
+function normalizePortalPath(pathname) {
+    const currentPath = pathname || '/';
+    if (currentPath.startsWith(STAFF_PORTAL_BASE)) {
+        const stripped = currentPath.slice(STAFF_PORTAL_BASE.length);
+        return stripped || '/';
+    }
+    if (currentPath.startsWith('/cirklestaff')) {
+        const stripped = currentPath.slice('/cirklestaff'.length);
+        return stripped || '/';
+    }
+    return currentPath;
+}
+
+function withPortalBasePath(routePath) {
+    const route = routePath || '/';
+    if (route === '/') return `${STAFF_PORTAL_BASE}/dashboard`;
+    return `${STAFF_PORTAL_BASE}${route}`;
+}
+
+function restorePendingPortalPath() {
+    try {
+        const pending = sessionStorage.getItem('portal_pending_path');
+        if (pending && pending.startsWith(STAFF_PORTAL_BASE)) {
+            history.replaceState({}, '', pending);
+        }
+        if (pending) {
+            sessionStorage.removeItem('portal_pending_path');
+        }
+    } catch (e) {
+        console.warn('[ROUTING] Could not restore pending path:', e.message);
+    }
+}
+
+restorePendingPortalPath();
+
 const DEPARTMENT_LABELS = {
     '1315323804528017498': 'Development',
     '1315042036969242704': 'Customer Relations',
@@ -1507,7 +1544,7 @@ async function fetchEmployeeReports(userId) {
             return await apiCache.isInFlight(cacheKey);
         }
         
-        const endpoint = PORTAL_BASE_PATH ? `${PORTAL_BASE_PATH}/api/reports` : '/api/reports';
+        const endpoint = `${WORKER_URL}/api/reports`;
         const fetchPromise = fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2318,7 +2355,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Send to Worker backend
             try {
-                const endpoint = PORTAL_BASE_PATH ? `${PORTAL_BASE_PATH}/api/absence` : '/api/absence';
+                const endpoint = `${WORKER_URL}/api/absence`;
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2772,8 +2809,9 @@ function showScreen(screenId) {
         };
         
         const route = routeMap[screenId] || '/';
+        const routeWithBase = withPortalBasePath(route);
         if (window.history.pushState) {
-            window.history.pushState({ screen: screenId }, '', route);
+            window.history.pushState({ screen: screenId }, '', routeWithBase);
         }
         
         const sidebar = document.getElementById('sidebar');
@@ -2827,6 +2865,11 @@ const pathToScreenMap = {
     '/': 'mainMenu'
 };
 
+function pathToScreen(pathname) {
+    const normalizedPath = normalizePortalPath(pathname);
+    return pathToScreenMap[normalizedPath] || 'mainMenu';
+}
+
 // Handle browser back/forward buttons
 window.addEventListener('popstate', (event) => {
     if (event.state && event.state.screen) {
@@ -2841,8 +2884,7 @@ window.addEventListener('popstate', (event) => {
         }
     } else {
         // Handle direct URL access or page refresh
-        const path = window.location.pathname;
-        const screenId = pathToScreenMap[path] || 'mainMenu';
+        const screenId = pathToScreen(window.location.pathname);
         if (currentUser && currentUser.id) {
             showScreen(screenId);
         }
@@ -2851,8 +2893,7 @@ window.addEventListener('popstate', (event) => {
 
 // Initialize routing on page load for direct URL access
 function initializeRoute() {
-    const path = window.location.pathname;
-    const screenId = pathToScreenMap[path];
+    const screenId = pathToScreen(window.location.pathname);
     if (screenId && currentUser && currentUser.id) {
         // Don't use showScreen during auth flow, just note the intended route
         window.initialRoute = screenId;
@@ -2907,7 +2948,7 @@ function updateActiveNavButton(screenId) {
 // Helper function to close mobile sidebar after navigation
 function closeMobileSidebar() {
     const sidebar = document.getElementById('sidebar');
-    if (sidebar && window.innerWidth <= 700) {
+    if (sidebar && window.innerWidth <= 768) {
         sidebar.classList.remove('extended');
     }
 }
@@ -8457,6 +8498,12 @@ if (mobileNavBtn) {
         }
     });
 }
+
+document.querySelectorAll('#sidebarNav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        closeMobileSidebar();
+    });
+});
 
 document.querySelectorAll('.modal .close').forEach(closeBtn => {
     closeBtn.addEventListener('click', () => {
