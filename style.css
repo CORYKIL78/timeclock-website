@@ -2277,3 +2277,329 @@ body.light {
     transform: translateY(0);
   }
 }
+
+/* ================================================================
+   STAFF PORTAL REFERENCE REDESIGN OVERRIDES
+   Match the provided screenshots more closely
+   ================================================================ */
+
+body:not(.light) {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08), transparent 20%),
+    radial-gradient(circle at 80% 10%, rgba(255,255,255,0.06), transparent 18%),
+    linear-gradient(135deg, #070816 0%, #120d24 42%, #26103f 100%);
+}
+
+body.light {
+  background: #f5f6fb;
+}
+
+#discordScreen,
+#loadingScreen,
+#searchingScreen,
+#sequentialLoadingScreen,
+#portalWelcomeScreen {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.18), transparent 22%),
+    radial-gradient(circle at 80% 10%, rgba(255,255,255,0.15), transparent 18%),
+    radial-gradient(circle at 50% 85%, rgba(255,255,255,0.08), transparent 20%),
+    linear-gradient(135deg, #080816 0%, #17112d 44%, #2a1045 100%) !important;
+}
+
+#discordScreen::before,
+#loadingScreen::before,
+#searchingScreen::before,
+#sequentialLoadingScreen::before,
+#portalWelcomeScreen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255,255,255,0.85) 1px, transparent 1px);
+  background-size: 36px 36px;
+  opacity: 0.16;
+}
+
+#discordScreen .container,
+#loadingScreen .container,
+#searchingScreen .container,
+#sequentialLoadingScreen .container,
+#portalWelcomeScreen .container {
+  position: relative;
+  z-index: 1;
+  width: min(760px, calc(100vw - 28px));
+  background: rgba(255,255,255,0.97) !important;
+  color: #111 !important;
+  border: 1px solid rgba(0,0,0,0.22) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 28px 72px rgba(0,0,0,0.42) !important;
+}
+
+#discordScreen .auth-shell,
+#loadingScreen .auth-shell,
+#searchingScreen .auth-shell,
+#sequentialLoadingScreen .auth-shell,
+#portalWelcomeScreen .auth-shell {
+  max-width: 760px !important;
+  padding: 42px 46px !important;
+  gap: 22px !important;
+}
+
+#discordScreen .auth-brand,
+#portalWelcomeScreen .auth-brand {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+#discordScreen .auth-brand h1,
+#portalWelcomeScreen h2,
+#loadingScreen h2,
+#searchingScreen h2,
+#sequentialLoadingScreen h2 {
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #111 !important;
+  font-weight: 700;
+}
+
+#discordScreen .auth-brand h1 {
+  font-size: clamp(34px, 5vw, 54px);
+  line-height: 0.95;
+  margin-bottom: 8px;
+}
+
+#discordScreen .auth-brand p,
+#discordScreen .auth-step-title,
+#portalWelcomeScreen p,
+#loadingScreen p,
+#searchingScreen p,
+#sequentialLoadingScreen p,
+.auth-footer-note,
+.auth-status {
+  color: #666 !important;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+#discordScreen .auth-logo {
+  width: 96px;
+  height: 96px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+#discordScreen .auth-step.active {
+  gap: 14px;
+}
+
+#discordScreen input,
+#discordScreen select,
+#discordScreen textarea {
+  background: transparent;
+  border: 1px solid #2b2b2b;
+  border-radius: 0;
+  color: #111;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 18px;
+}
+
+#discordScreen input::placeholder {
+  color: #919191;
+}
+
+#discordScreen .btn,
+#discordScreen button[id*='Btn']:not(.sidebar button) {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+  min-width: 0;
+  padding: 14px 18px;
+}
+
+#discordScreen .auth-primary {
+  background: #111 !important;
+  color: #fff !important;
+}
+
+#discordScreen .auth-secondary {
+  background: #5563ff !important;
+  color: #fff !important;
+}
+
+#discordScreen .auth-disabled {
+  background: #ef1d1d !important;
+  color: #fff !important;
+}
+
+#discordScreen .auth-divider {
+  color: #777;
+}
+
+#discordScreen .code-grid {
+  gap: 14px;
+}
+
+#discordScreen .code-box {
+  height: 114px;
+  font-size: 26px;
+  background: linear-gradient(180deg, #fbfbfb 0%, #efefef 100%);
+  border: 1px solid #2f2f2f;
+  border-radius: 0;
+}
+
+#discordScreen .auth-loading,
+#loadingScreen .container,
+#searchingScreen .container,
+#sequentialLoadingScreen .container,
+#portalWelcomeScreen .container {
+  color: #111;
+}
+
+#discordScreen .auth-spinner,
+.spinner,
+.loading-spinner {
+  border-top-color: #111;
+}
+
+#portalWelcomeScreen .container {
+  text-align: center;
+  padding: 44px 40px !important;
+}
+
+#portalWelcomeScreen .profile-img {
+  width: 130px !important;
+  height: 130px !important;
+  border-radius: 50% !important;
+  border: none !important;
+  background: #e9edf5;
+}
+
+#portalWelcomeScreen h2 {
+  font-size: clamp(34px, 4.2vw, 50px);
+  margin-top: 18px;
+}
+
+#portalWelcomeScreen p {
+  font-size: 16px;
+  color: #7a7a7a;
+  margin-top: 4px;
+}
+
+#portalWelcomeScreen .btn,
+#portalWelcomeScreen button[id*='Btn'] {
+  width: 280px;
+  margin: 12px auto 0;
+  border-radius: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+body.light .screen {
+  background: linear-gradient(180deg, #fbfbfe 0%, #f2f4fb 100%);
+}
+
+body.light #sidebar {
+  background: #ffffff;
+  border-right: 1px solid #ece9f8;
+}
+
+body.light .sidebar-header,
+body.light .sidebar-footer {
+  border-color: #ece9f8;
+}
+
+body.light #sidebarNav button {
+  color: #52607a;
+}
+
+body.light #sidebarNav button.active,
+body.light #sidebarNav button:hover {
+  color: #6d28d9;
+  background: #f4ecff;
+  box-shadow: inset 2px 0 0 #7c3aed;
+}
+
+body.light .user-header-card,
+body.light .stat-card,
+body.light .profile-section,
+body.light .status-card {
+  background: #ffffff !important;
+  border-color: #e6e7f1 !important;
+  color: #111 !important;
+  box-shadow: 0 14px 30px rgba(15,23,42,0.06) !important;
+}
+
+body.light .user-header-card h2,
+body.light .user-header-card p,
+body.light .stat-card h3,
+body.light .profile-section-header,
+body.light .profile-info-row label,
+body.light .profile-info-row span,
+body.light .status-card,
+body.light .status-card span,
+body.light .stat-card p {
+  color: #111 !important;
+}
+
+body.light .user-header-card h2,
+body.light .profile-section-header {
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+body.light .profile-info-row {
+  background: #f8f8fd;
+  border-color: #ececf5;
+}
+
+body.light .stat-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbff 100%) !important;
+}
+
+body.light .stat-card h3,
+body.light .profile-section-header {
+  color: #1f2937 !important;
+}
+
+body.light .status-badge.verified {
+  background: rgba(34,197,94,0.16);
+}
+
+body.light .status-card {
+  border-radius: 999px;
+}
+
+body.light .notifications-panel,
+body.light .modal-content {
+  background: #ffffff;
+  border-color: #e6e7f1;
+}
+
+@media (max-width: 768px) {
+  #discordScreen .auth-shell,
+  #loadingScreen .auth-shell,
+  #searchingScreen .auth-shell,
+  #sequentialLoadingScreen .auth-shell,
+  #portalWelcomeScreen .auth-shell {
+    padding: 28px 20px !important;
+  }
+
+  #discordScreen .auth-brand h1 {
+    font-size: 34px;
+  }
+
+  #discordScreen .code-grid {
+    gap: 8px;
+  }
+
+  #discordScreen .code-box {
+    height: 84px;
+    font-size: 20px;
+  }
+
+  #portalWelcomeScreen .btn,
+  #portalWelcomeScreen button[id*='Btn'] {
+    width: 100%;
+  }
+}

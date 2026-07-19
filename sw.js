@@ -8,7 +8,7 @@ const urlsToCache = [
   '/index.html',
   '/cirklestaff/index.html',
   '/cirklestaff/ocportal/index.html',
-  '/style.css?v=3.0.3',
+  '/style.css?v=3.0.4',
   '/script.js?v=2.1.0'
 ];
 
@@ -128,7 +128,22 @@ self.addEventListener('fetch', event => {
         return fetch(request)
           .then(response => {
             if (!response || response.status !== 200 || response.type === 'error') {
-              return caches.match('/cirklestaff/index.html').then(cached => cached || caches.match('/index.html'));
+              if (request.destination === 'style') {
+                return caches.match(request).then(cached => cached || new Response('', {
+                  status: 503,
+                  headers: { 'Content-Type': 'text/css; charset=utf-8' }
+                }));
+              }
+              if (request.destination === 'script') {
+                return caches.match(request).then(cached => cached || new Response('', {
+                  status: 503,
+                  headers: { 'Content-Type': 'application/javascript; charset=utf-8' }
+                }));
+              }
+              return caches.match(request).then(cached => cached || new Response('', {
+                status: 503,
+                headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+              }));
             }
             const responseToCache = response.clone();
             caches.open(DYNAMIC_CACHE)
@@ -136,9 +151,19 @@ self.addEventListener('fetch', event => {
             return response;
           })
           .catch(() => {
-            // Return cached or offline page
-            return caches.match('/cirklestaff/index.html')
-              .then(cached => cached || caches.match('/index.html'))
+            if (request.destination === 'style') {
+              return caches.match(request).then(cached => cached || new Response('', {
+                status: 503,
+                headers: { 'Content-Type': 'text/css; charset=utf-8' }
+              }));
+            }
+            if (request.destination === 'script') {
+              return caches.match(request).then(cached => cached || new Response('', {
+                status: 503,
+                headers: { 'Content-Type': 'application/javascript; charset=utf-8' }
+              }));
+            }
+            return caches.match(request)
               .then(cached => cached || new Response('offline', {
                 status: 503,
                 headers: { 'Content-Type': 'text/plain; charset=utf-8' }

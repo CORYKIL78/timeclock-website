@@ -8560,7 +8560,8 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
     preloadAudio();
     
     // Initialize theme mode (light/dark) from localStorage
-    const savedLightMode = localStorage.getItem('lightMode') === 'true';
+    const savedLightModeRaw = localStorage.getItem('lightMode');
+    const savedLightMode = savedLightModeRaw === null ? true : savedLightModeRaw === 'true';
     let modeToggle = document.getElementById('modeToggle');
     const themeText = document.getElementById('themeText');
 
