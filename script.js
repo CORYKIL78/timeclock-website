@@ -64,7 +64,7 @@ function normalizePortalPath(pathname) {
 
 function withPortalBasePath(routePath) {
     const route = routePath || '/';
-    if (route === '/') return `${STAFF_PORTAL_BASE}/dashboard`;
+        if (route === '/') return `${STAFF_PORTAL_BASE}/login`;
     return `${STAFF_PORTAL_BASE}${route}`;
 }
 
@@ -2850,6 +2850,7 @@ function showScreen(screenId) {
 
 // Route mapping for URL paths to screen IDs
 const pathToScreenMap = {
+    '/login': 'discord',
     '/dashboard': 'mainMenu',
     '/profile': 'myProfile',
     '/absences': 'absences',
@@ -2862,12 +2863,13 @@ const pathToScreenMap = {
     '/clickup': 'clickup',
     '/handbooks': 'handbooks',
     '/tasks': 'tasks',
-    '/': 'mainMenu'
+    '/': 'discord'
 };
 
 function pathToScreen(pathname) {
     const normalizedPath = normalizePortalPath(pathname);
-    return pathToScreenMap[normalizedPath] || 'mainMenu';
+    if (normalizedPath === '/' && !currentUser) return 'discord';
+    return pathToScreenMap[normalizedPath] || (currentUser ? 'mainMenu' : 'discord');
 }
 
 // Handle browser back/forward buttons
@@ -2894,10 +2896,11 @@ window.addEventListener('popstate', (event) => {
 // Initialize routing on page load for direct URL access
 function initializeRoute() {
     const screenId = pathToScreen(window.location.pathname);
-    if (screenId && currentUser && currentUser.id) {
-        // Don't use showScreen during auth flow, just note the intended route
-        window.initialRoute = screenId;
+    const normalizedPath = normalizePortalPath(window.location.pathname);
+    if (normalizedPath === '/' || normalizedPath === '') {
+        history.replaceState({}, '', `${STAFF_PORTAL_BASE}/login`);
     }
+    if (screenId) window.initialRoute = screenId;
 }
 
 // Update active navigation button and slide indicator
@@ -2905,7 +2908,7 @@ function updateActiveNavButton(screenId) {
     // Map screen IDs to button IDs
     const screenToButton = {
         'mainMenu': 'homeBtn',
-        'myProfile': 'homeBtn', // Profile is accessed via clicking avatar, keep home active
+        'myProfile': 'myRolesBtn',
         'myRoles': 'myRolesBtn',
         'absences': 'absencesBtn',
         'payslips': 'payslipsBtn',
@@ -2957,19 +2960,180 @@ function showModal(modalId, message = '') {
     console.log('Showing modal:', modalId, message);
     const modal = modals[modalId];
     if (modal) {
-        if (modalId === 'alert' && message.includes('success-tick')) {
-            modal.classList.add('success');
-            playSuccessSound();
-            setTimeout(() => closeModal(modalId), 2000);
-        } else {
-            modal.classList.remove('success');
-        }
         if (modalId === 'alert') {
             document.getElementById('alertMessage').innerHTML = message;
+            const plainMessage = String(message || '').replace(/<[^>]+>/g, '').trim();
+            if (message.includes('success-tick') || plainMessage.startsWith('✓') || plainMessage.startsWith('✅') || plainMessage.toLowerCase().includes('success')) {
+                showToast(plainMessage || 'Success', 'success');
+                playSuccessSound();
+                closeModal(modalId);
+                return;
+            }
         }
         modal.style.display = 'flex';
     } else {
         console.error('Modal not found:', modalId);
+    }
+}
+
+function showToast(message, type = 'info') {
+    let toastHost = document.getElementById('toastHost');
+    if (!toastHost) {
+        toastHost = document.createElement('div');
+        toastHost.id = 'toastHost';
+        toastHost.className = 'toast-host';
+        document.body.appendChild(toastHost);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `portal-toast ${type}`;
+    toast.innerHTML = `
+        <div class="portal-toast__bar"></div>
+        <div class="portal-toast__icon">${type === 'success' ? '✓' : 'i'}</div>
+        <div class="portal-toast__body"><strong>${type === 'success' ? 'Success' : 'Portal'}</strong><span>${message}</span></div>
+    `;
+    toastHost.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 250);
+    }, 3200);
+}
+
+const staffLoginState = {
+    email: '',
+    staffId: '',
+    resendCountdown: 0,
+    resendTimer: null,
+    verified: false,
+    pendingCode: ''
+};
+
+function setStaffAuthStep(step) {
+    document.getElementById('loginStepOne')?.classList.toggle('active', step === 1);
+    document.getElementById('loginStepTwo')?.classList.toggle('active', step === 2);
+    document.getElementById('staffAuthLoading')?.classList.toggle('hidden', step !== 3);
+}
+
+function setStaffAuthStatus(message, isError = false, codeStatus = false) {
+    const target = document.getElementById(codeStatus ? 'staffCodeStatus' : 'staffLoginStatus');
+    if (!target) return;
+    target.textContent = message || '';
+    target.classList.toggle('error', isError);
+}
+
+function getStaffCodeValue() {
+    return Array.from(document.querySelectorAll('.code-box')).map(input => input.value.trim()).join('');
+}
+
+function setStaffCodeValue(value) {
+    const digits = String(value || '').replace(/\D/g, '').slice(0, 6).padEnd(6, '');
+    document.querySelectorAll('.code-box').forEach((input, index) => {
+        input.value = digits[index] || '';
+    });
+}
+
+function focusStaffCodeBox(index) {
+    const boxes = Array.from(document.querySelectorAll('.code-box'));
+    if (boxes[index]) boxes[index].focus();
+}
+
+function startResendCountdown(seconds = 60) {
+    const button = document.getElementById('resendCodeBtn');
+    if (!button) return;
+    clearInterval(staffLoginState.resendTimer);
+    staffLoginState.resendCountdown = seconds;
+    button.disabled = true;
+    button.textContent = `Resend email (${seconds}s)`;
+    staffLoginState.resendTimer = setInterval(() => {
+        staffLoginState.resendCountdown -= 1;
+        if (staffLoginState.resendCountdown <= 0) {
+            clearInterval(staffLoginState.resendTimer);
+            button.disabled = false;
+            button.textContent = 'Resend email';
+            return;
+        }
+        button.textContent = `Resend email (${staffLoginState.resendCountdown}s)`;
+    }, 1000);
+}
+
+async function requestStaffCode(resend = false) {
+    const email = document.getElementById('staffEmailInput')?.value.trim() || staffLoginState.email;
+    const staffId = document.getElementById('staffIdInput')?.value.trim() || staffLoginState.staffId;
+    const status = document.getElementById('staffLoginStatus');
+    if (!email || !staffId) {
+        setStaffAuthStatus('Enter your staff email and staff ID.', true);
+        return;
+    }
+
+    staffLoginState.email = email;
+    staffLoginState.staffId = staffId;
+    setStaffAuthStep(3);
+    setStaffAuthStatus('Sending authentication email...', false);
+
+    try {
+        const response = await fetch(`${WORKER_URL}/api/staff/login/request`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, staffId })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Could not send code');
+        }
+
+        setStaffAuthStep(2);
+        setStaffAuthStatus(resend ? 'Authentication email has been resent. Please check your inbox and spam.' : 'Authentication email sent. Check your inbox and spam.', false, true);
+        startResendCountdown(data.resendAfter || 60);
+        setTimeout(() => focusStaffCodeBox(0), 50);
+    } catch (error) {
+        setStaffAuthStep(1);
+        setStaffAuthStatus(error.message || 'Failed to send code', true);
+    }
+}
+
+async function verifyStaffCode() {
+    const code = getStaffCodeValue();
+    if (code.length !== 6) {
+        setStaffAuthStatus('Enter the full 6-digit code.', true, true);
+        return;
+    }
+
+    setStaffAuthStep(3);
+    setStaffAuthStatus('Verifying code...', false);
+
+    try {
+        const response = await fetch(`${WORKER_URL}/api/staff/login/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: staffLoginState.email, staffId: staffLoginState.staffId, code })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Code invalid');
+        }
+
+        staffLoginState.verified = true;
+        const profile = await fetchUserProfile(data.userId);
+        currentUser = {
+            id: data.userId,
+            name: profile?.name || data.name || 'User',
+            avatar: profile?.avatar || '',
+            profile: profile || {}
+        };
+        window.currentUser = currentUser;
+        persistUserData();
+        setStaffAuthStatus('', false, true);
+        showScreen('loading');
+        await new Promise(r => setTimeout(r, 900));
+        document.getElementById('portalWelcomeName').textContent = currentUser.profile?.name || currentUser.name || 'User';
+        document.getElementById('portalLastLogin').textContent = new Date().toLocaleString();
+        showScreen('portalWelcome');
+    } catch (error) {
+        setStaffAuthStep(2);
+        setStaffAuthStatus('Code invalid. Please retry.', true, true);
+        setStaffCodeValue('');
+        focusStaffCodeBox(0);
     }
 }
 
@@ -5696,6 +5860,42 @@ if (discordLoginBtn) {
     });
 }
 
+const portalDiscordLoginBtn = document.getElementById('portalDiscordLoginBtn');
+if (portalDiscordLoginBtn) {
+    portalDiscordLoginBtn.addEventListener('click', () => discordLoginBtn?.click());
+}
+
+const staffLoginRequestBtn = document.getElementById('staffLoginRequestBtn');
+if (staffLoginRequestBtn) {
+    staffLoginRequestBtn.addEventListener('click', () => requestStaffCode(false));
+}
+
+const staffCodeVerifyBtn = document.getElementById('staffCodeVerifyBtn');
+if (staffCodeVerifyBtn) {
+    staffCodeVerifyBtn.addEventListener('click', () => verifyStaffCode());
+}
+
+const resendCodeBtn = document.getElementById('resendCodeBtn');
+if (resendCodeBtn) {
+    resendCodeBtn.addEventListener('click', () => requestStaffCode(true));
+}
+
+document.querySelectorAll('.code-box').forEach((input, index, inputs) => {
+    input.addEventListener('input', (event) => {
+        const digit = String(event.target.value || '').replace(/\D/g, '').slice(-1);
+        event.target.value = digit;
+        if (digit && inputs[index + 1]) inputs[index + 1].focus();
+    });
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Backspace' && !event.target.value && inputs[index - 1]) {
+            inputs[index - 1].focus();
+        }
+        if (event.key === 'Enter') {
+            verifyStaffCode();
+        }
+    });
+});
+
 const setupStartBtn = document.getElementById('setupStartBtn');
 if (setupStartBtn) {
     setupStartBtn.addEventListener('click', () => {
@@ -5964,94 +6164,15 @@ if (continueBtn) {
 const portalLoginBtn = document.getElementById('portalLoginBtn');
 if (portalLoginBtn) {
     portalLoginBtn.addEventListener('click', async () => {
-        console.log('[Portal Login] Starting sequential loading...');
-        
-        // Show sequential loading screen
         const userName = currentUser?.profile?.name || currentUser?.name || 'User';
-        document.getElementById('loadingUserName').textContent = userName;
-        showScreen('sequentialLoading');
-        
-        // Helper function to activate a loading step
-        const activateStep = (stepName) => {
-            const step = document.querySelector(`.loading-step[data-step="${stepName}"]`);
-            if (step) {
-                step.classList.add('active');
-                step.classList.remove('completed');
-            }
-        };
-        
-        // Helper function to complete a loading step
-        const completeStep = (stepName) => {
-            const step = document.querySelector(`.loading-step[data-step="${stepName}"]`);
-            if (step) {
-                step.classList.remove('active');
-                step.classList.add('completed');
-            }
-        };
-        
-        try {
-            // Step 1: Loading Discord data
-            activateStep('discord');
-            await new Promise(r => setTimeout(r, 800));
-            await updateStaffServerStatus(true);
-            completeStep('discord');
-            
-            // Step 2: Loading database data
-            activateStep('database');
-            await new Promise(r => setTimeout(r, 700));
-            const memberResponse = await fetch(`${WORKER_URL}/api/user/profile`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                mode: 'cors',
-                body: JSON.stringify({ discordId: currentUser.id })
-            });
-            if (memberResponse.ok) {
-                const memberData = await memberResponse.json();
-                if (!currentUser.profile) currentUser.profile = {};
-                currentUser.profile.name = memberData.name || currentUser.profile.name || currentUser.name;
-                currentUser.profile.email = memberData.email || currentUser.profile.email || 'Not set';
-                currentUser.profile.department = memberData.department || currentUser.profile.department || 'Not set';
-                currentUser.profile.baseLevel = memberData.baseLevel || currentUser.profile.baseLevel || '';
-                currentUser.profile.timezone = memberData.timezone || currentUser.profile.timezone || '';
-                currentUser.profile.country = memberData.country || currentUser.profile.country || '';
-            }
-            completeStep('database');
-            
-            // Step 3: Loading backend and Cloudflare
-            activateStep('backend');
-            await new Promise(r => setTimeout(r, 600));
-            await fetchEmployees();
-            // Sync all user data from backend for cross-device support
-            await syncUserDataFromBackend(currentUser.id);
-            completeStep('backend');
-            
-            // Step 4: Loading Sentinel
-            activateStep('sentinel');
-            await new Promise(r => setTimeout(r, 500));
-            completeStep('sentinel');
-            
-            // Step 5: Loading contents
-            activateStep('contents');
-            await new Promise(r => setTimeout(r, 600));
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            updateSidebarProfile();
-            completeStep('contents');
-            
-            // Step 6: Success!
-            activateStep('success');
-            completeStep('success');
-            await new Promise(r => setTimeout(r, 800));
-            
-            // Transition to main menu or initialRoute if direct URL access
-            const targetScreen = window.initialRoute || 'mainMenu';
-            showScreen(targetScreen);
-            updateMainScreen();
-            
-        } catch (error) {
-            console.error('[Portal Login] Error during loading:', error);
-            showModal('alert', 'Failed to load profile data. Please try again.');
-            showScreen('portalWelcome');
-        }
+        showScreen('loading');
+        await new Promise(r => setTimeout(r, 900));
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        updateSidebarProfile();
+        showScreen(window.initialRoute || 'mainMenu');
+        updateMainScreen();
+        closeMobileSidebar();
+        showToast(`Welcome back, ${userName}`, 'success');
     });
 }
 
@@ -6059,100 +6180,22 @@ const sidebarProfilePic = document.getElementById('sidebarProfilePic');
 if (sidebarProfilePic) {
     sidebarProfilePic.addEventListener('click', async () => {
         showScreen('myProfile');
-        
-        // Trigger profile sync to get latest data and wait for it
-        // Update profile directly from current user data
         updateProfileDisplay();
-        
         const emp = getEmployee(currentUser.id);
-        
-        // Update profile header with fresh data
-        const profileDisplayName = document.getElementById('profileDisplayName');
-        const profileSubtitle = document.getElementById('profileSubtitle');
-        
-        const headerDisplayName = currentUser.profile?.name || emp.profile?.name || currentUser.name || 'User';
-        const headerDisplayEmail = currentUser.profile?.email || emp.profile?.email || 'No Email';
-        const headerDisplayDept = currentUser.profile?.department || emp.profile?.department || 'Staff';
-        
-        if (profileDisplayName) {
-            profileDisplayName.textContent = headerDisplayName;
-        }
-        if (profileSubtitle) {
-            profileSubtitle.textContent = `${headerDisplayDept} • ${headerDisplayEmail}`;
-        }
-        
-        const profileDepartmentEl = document.getElementById('profileDepartment');
-        
-        if (profileDepartmentEl) {
-            profileDepartmentEl.classList.toggle('pending-department', !!emp.pendingDeptChange);
-        }
-        
-        closeMobileSidebar();
-        
-        // Update profile inputs if they exist (use currentUser.profile with emp.profile fallback)
-        const updateNameInput = document.getElementById('updateNameInput');
-        const updateEmailInput = document.getElementById('updateEmailInput');
-        const inputDisplayName = currentUser.profile?.name || emp.profile?.name || '';
-        const inputDisplayEmail = currentUser.profile?.email || emp.profile?.email || '';
-        if (updateNameInput) updateNameInput.value = inputDisplayName;
-        if (updateEmailInput) updateEmailInput.value = inputDisplayEmail;
-        
-        // Update department badge
-        const deptBadge = document.getElementById('deptBadge');
-        if (deptBadge) {
-            const deptDisplayText = currentUser.profile?.department || emp.profile?.department || '';
-            if (deptDisplayText) {
-                deptBadge.textContent = deptDisplayText;
-                deptBadge.style.display = 'inline-block';
-            } else {
-                deptBadge.style.display = 'none';
-            }
-        }
-        
-        // Update status indicator
-        const statusIndicator = document.getElementById('profileStatusIndicator');
-        if (statusIndicator) {
-            statusIndicator.className = `profile-status-indicator online`;
-        }
-        
-        // Update profile information
         const profileNameEl = document.getElementById('profileName');
         const profileEmailEl = document.getElementById('profileEmail');
-        const profileDeptEl = document.getElementById('profileDepartment');
-        const updateNameInputEl = document.getElementById('updateNameInput');
-        const updateEmailInputEl = document.getElementById('updateEmailInput');
-        
-        // Apply pending change styling
-        if (profileNameEl) {
-            profileNameEl.classList.toggle('pending-name', !!emp.pendingNameChange);
-        }
-        if (profileEmailEl) {
-            profileEmailEl.classList.toggle('pending-email', !!emp.pendingEmailChange);
-        }
-        if (profileDeptEl) {
-            profileDeptEl.classList.toggle('pending-department', !!emp.pendingDeptChange);
-        }
-        
-        // Use currentUser profile data if available, otherwise use emp data
-        const profileDisplayName2 = currentUser.profile?.name || emp.profile?.name || currentUser.name || 'Not set';
-        const profileDisplayEmail2 = currentUser.profile?.email || emp.profile?.email || 'Not set';
-        const profileDisplayDept2 = currentUser.profile?.department || emp.profile?.department || 'Not set';
-        
-        console.log('[DEBUG] Profile display data:', {
-            currentUserProfile: currentUser.profile,
-            empProfile: emp.profile,
-            displayName: profileDisplayName2,
-            displayEmail: profileDisplayEmail2,
-            displayDept: profileDisplayDept2
-        });
-        
-        if (profileNameEl) profileNameEl.textContent = profileDisplayName2;
-        if (profileEmailEl) profileEmailEl.textContent = profileDisplayEmail2;
-        if (profileDeptEl) profileDeptEl.textContent = profileDisplayDept2;
-        if (updateNameInputEl) updateNameInputEl.value = profileDisplayName2 === 'Not set' ? '' : profileDisplayName2;
-        if (updateEmailInputEl) updateEmailInputEl.value = profileDisplayEmail2 === 'Not set' ? '' : profileDisplayEmail2;
-        
-        // Update profile pictures
+        const profileDepartmentEl = document.getElementById('profileDepartment');
+        const updateNameInputEl = document.getElementById('newNameInput');
+        const updateEmailInputEl = document.getElementById('newEmailInput');
+        const profileDisplayName = currentUser.profile?.name || emp.profile?.name || currentUser.name || 'Not set';
+        const profileDisplayEmail = currentUser.profile?.email || emp.profile?.email || 'Not set';
+        const profileDisplayDept = currentUser.profile?.department || emp.profile?.department || 'Not set';
+
+        if (profileNameEl) profileNameEl.textContent = profileDisplayName;
+        if (profileEmailEl) profileEmailEl.textContent = profileDisplayEmail;
+        if (profileDepartmentEl) profileDepartmentEl.textContent = profileDisplayDept;
+        if (updateNameInputEl) updateNameInputEl.value = profileDisplayName === 'Not set' ? '' : profileDisplayName;
+        if (updateEmailInputEl) updateEmailInputEl.value = profileDisplayEmail === 'Not set' ? '' : profileDisplayEmail;
         updateProfilePictures();
     });
 }
@@ -6533,22 +6576,19 @@ if (profileLanguageSelect) {
 const myRolesBtn = document.getElementById('myRolesBtn');
 if (myRolesBtn) {
     myRolesBtn.addEventListener('click', async () => {
-        showScreen('myRoles');
-        
-        const list = document.getElementById('rolesList');
-        list.innerHTML = '';
-        
-        // Display baseLevel (job title/role) if available
-        if (currentUser?.profile?.baseLevel) {
-            const li = document.createElement('li');
-            li.textContent = currentUser.profile.baseLevel;
-            li.style.cssText = 'padding: 12px; background: var(--primary); color: white; border-radius: 8px; margin-bottom: 8px; font-weight: 500; list-style: none;';
-            list.appendChild(li);
-        } else {
-            list.innerHTML = '<li style="color: var(--text-secondary); list-style: none;">No roles assigned</li>';
-        }
-        
+        showScreen('myProfile');
         closeMobileSidebar();
+    });
+}
+
+const directoryBtn = document.getElementById('directoryBtn');
+if (directoryBtn) {
+    directoryBtn.addEventListener('click', () => {
+        if (!window.confirm('Are you sure you would like to return to the directory?')) return;
+        showToast('Redirecting...', 'info');
+        setTimeout(() => {
+            window.location.href = 'https://portal.cirkledevelopment.co.uk';
+        }, 700);
     });
 }
 
@@ -8379,6 +8419,7 @@ function updateTabSlider() {
 const logoutBtn = document.getElementById('logoutBtn');
 if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
+        if (!window.confirm('Are you sure you want to log out?')) return;
         console.log('Logging out user:', currentUser.id);
         const emp = getEmployee(currentUser.id);
         const goodbyeName = document.getElementById('goodbyeName');
@@ -8404,8 +8445,8 @@ if (logoutBtn) {
         clearAllLocalData();
         
         playLogoffSound();
-        showScreen('setupVerify'); // show loading spinner screen
-        setTimeout(() => showScreen('discord'), 2000);
+        showToast(`Goodbye, ${emp.profile.name || 'User'}`, 'success');
+        setTimeout(() => showScreen('discord'), 1000);
     });
 }
 

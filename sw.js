@@ -6,6 +6,8 @@ const DYNAMIC_CACHE = 'staff-portal-dynamic-v4';
 const urlsToCache = [
   '/',
   '/index.html',
+  '/cirklestaff/index.html',
+  '/cirklestaff/ocportal/index.html',
   '/style.css?v=3.0.3',
   '/script.js?v=2.1.0'
 ];
@@ -92,14 +94,26 @@ self.addEventListener('fetch', event => {
       fetch(request)
         .then(response => {
           if (!response || response.status !== 200 || response.type === 'error') {
-            return caches.match(request);
+            return caches.match(request)
+              .then(cached => cached || caches.match('/cirklestaff/index.html'))
+              .then(cached => cached || caches.match('/index.html'))
+              .then(cached => cached || new Response('<!doctype html><title>Portal offline</title><p>Portal is temporarily unavailable.</p>', {
+                status: 503,
+                headers: { 'Content-Type': 'text/html; charset=utf-8' }
+              }));
           }
           const responseToCache = response.clone();
           caches.open(DYNAMIC_CACHE)
             .then(cache => cache.put(request, responseToCache));
           return response;
         })
-        .catch(() => caches.match(request))
+        .catch(() => caches.match(request)
+          .then(cached => cached || caches.match('/cirklestaff/index.html'))
+          .then(cached => cached || caches.match('/index.html'))
+          .then(cached => cached || new Response('<!doctype html><title>Portal offline</title><p>Portal is temporarily unavailable.</p>', {
+            status: 503,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' }
+          })))
     );
     return;
   }
@@ -114,7 +128,7 @@ self.addEventListener('fetch', event => {
         return fetch(request)
           .then(response => {
             if (!response || response.status !== 200 || response.type === 'error') {
-              return response;
+              return caches.match('/cirklestaff/index.html').then(cached => cached || caches.match('/index.html'));
             }
             const responseToCache = response.clone();
             caches.open(DYNAMIC_CACHE)
@@ -123,7 +137,12 @@ self.addEventListener('fetch', event => {
           })
           .catch(() => {
             // Return cached or offline page
-            return caches.match('/index.html');
+            return caches.match('/cirklestaff/index.html')
+              .then(cached => cached || caches.match('/index.html'))
+              .then(cached => cached || new Response('offline', {
+                status: 503,
+                headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+              }));
           });
       })
   );

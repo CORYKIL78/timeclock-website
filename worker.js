@@ -283,6 +283,75 @@ function defaultDiscordAvatarUrl(userId) {
   return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
 }
 
+function buildStaffAuthEmailHtml({ name, staffId, code }) {
+  const safeName = truncateText(name || 'User', 80);
+  const safeStaffId = truncateText(staffId || 'Not assigned', 80);
+  const groupedCode = String(code || '').split('').join(' ');
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:0;background:#0b1020;color:#e5e7eb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;"><div style="max-width:640px;margin:0 auto;padding:32px 18px;"><div style="background:linear-gradient(180deg,#111827 0%,#0f172a 100%);border:1px solid rgba(99,102,241,.25);border-radius:20px;padding:28px;box-shadow:0 18px 60px rgba(0,0,0,.35)"><div style="text-align:center;margin-bottom:18px;"><img src="https://portal.cirkledevelopment.co.uk/Portal%20Logo.webp" alt="Portal" style="width:120px;height:120px;border-radius:24px;box-shadow:0 0 30px rgba(99,102,241,.25);object-fit:cover"></div><h1 style="margin:0 0 10px 0;font-size:32px;text-align:center;color:#f8fafc;">You attempted to sign-in to Portal.</h1><p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;color:#cbd5e1;text-align:center;">Hello ${safeName},</p><p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#cbd5e1;text-align:center;">We received a sign-in attempt for staff ID <strong style="color:#fff;">${safeStaffId}</strong>. Use the code below to continue.</p><div style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.35);border-radius:18px;padding:22px;text-align:center;margin:24px 0;"><div style="font-size:13px;letter-spacing:.18em;color:#93c5fd;text-transform:uppercase;margin-bottom:14px;">Your 6-digit code</div><div style="font-size:42px;line-height:1;font-weight:800;letter-spacing:.25em;color:#ffffff;">${groupedCode}</div></div><p style="margin:0 0 8px 0;font-size:14px;color:#94a3b8;text-align:center;">If this was not you, you can safely ignore this message.</p><p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">portal.cirkledevelopment.co.uk</p></div></div></body></html>`;
+}
+
+function buildBroadcastEmailHtml({ senderName, message }) {
+  const safeSender = truncateText(senderName || 'Portal', 80);
+  const safeMessage = truncateText(message || '', 5000).replace(/\n/g, '<br>');
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:0;background:#0b1020;color:#e5e7eb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;"><div style="max-width:640px;margin:0 auto;padding:32px 18px;"><div style="background:linear-gradient(180deg,#111827 0%,#0f172a 100%);border:1px solid rgba(59,130,246,.25);border-radius:20px;padding:28px;box-shadow:0 18px 60px rgba(0,0,0,.35)"><div style="text-align:center;margin-bottom:18px;"><img src="https://portal.cirkledevelopment.co.uk/Portal%20Logo.webp" alt="Portal" style="width:120px;height:120px;border-radius:24px;box-shadow:0 0 30px rgba(59,130,246,.25);object-fit:cover"></div><h1 style="margin:0 0 10px 0;font-size:30px;text-align:center;color:#f8fafc;">New Notification</h1><p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;color:#cbd5e1;text-align:center;">You have received a broadcast message from ${safeSender}. Please see below, or check your Discord DMs.</p><div style="background:#dbdbdb;border-radius:10px;padding:18px 20px;margin:20px 0;color:#000;">${safeMessage || '<strong>BROADCAST MESSAGE HERE</strong>'}</div><p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">This is an automated message from Portal | portal.cirkledevelopment.co.uk</p></div></div></body></html>`;
+}
+
+async function sendResendEmail(env, { from, to, subject, html, cc, bcc, replyTo }) {
+  const resendApiKey = env.RESEND_API_KEY;
+  if (!resendApiKey) {
+    throw new Error('Resend API key not configured');
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ from, to, cc, bcc, subject, html, reply_to: replyTo })
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.message || data?.error || `Resend request failed (${response.status})`);
+  }
+  return data;
+}
+
+async function findProfileByEmailAndStaffId(env, email, staffId) {
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedStaffId = String(staffId || '').trim().toLowerCase();
+  const usersIndex = await env.DATA.get('users:index', 'json') || [];
+
+  for (const userId of usersIndex) {
+    const profile = await env.DATA.get(`profile:${userId}`, 'json');
+    if (!profile) continue;
+    const profileEmail = normalizeEmail(profile.email);
+    const profileStaffId = String(profile.staffId || '').trim().toLowerCase();
+    if (profileEmail === normalizedEmail && profileStaffId === normalizedStaffId) {
+      return { userId: String(userId), profile };
+    }
+  }
+
+  return null;
+}
+
+async function storeStaffLoginCode(env, authKey, payload, ttlSeconds = 600) {
+  await env.DATA.put(authKey, JSON.stringify(payload), { expirationTtl: ttlSeconds });
+}
+
+async function getStaffLoginCode(env, authKey) {
+  return await env.DATA.get(authKey, 'json');
+}
+
+function buildStaffAuthKey(email, staffId) {
+  return `staff-auth:${normalizeEmail(email)}:${String(staffId || '').trim().toLowerCase()}`;
+}
+
+function buildStaffLoginCodeKey(email, staffId) {
+  return buildStaffAuthKey(email, staffId);
+}
+
 async function exchangeDiscordCode(env, code, redirectUri) {
   const clientId = env.DISCORD_CLIENT_ID || '1417915896634277888';
   const clientSecret = env.DISCORD_CLIENT_SECRET;
@@ -1621,40 +1690,105 @@ export default {
 
       if (url.pathname === '/api/email/send' && request.method === 'POST') {
         const body = await request.json();
-        const resendApiKey = env.RESEND_API_KEY;
-
-        if (!resendApiKey) {
-          return new Response(JSON.stringify({ success: false, error: 'Resend API key not configured' }), {
-            status: 500,
-            headers: corsHeaders
-          });
-        }
-
         try {
-          const response = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${resendApiKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              from: body.from,
-              to: body.to,
-              cc: body.cc,
-              bcc: body.bcc,
-              subject: body.subject,
-              html: body.html,
-              reply_to: body.replyTo
-            })
+          const data = await sendResendEmail(env, {
+            from: body.from,
+            to: body.to,
+            cc: body.cc,
+            bcc: body.bcc,
+            subject: body.subject,
+            html: body.html,
+            replyTo: body.replyTo
           });
 
-          const data = await response.json();
-          return new Response(JSON.stringify({ success: response.ok, ...data }), {
-            status: response.status,
+          return new Response(JSON.stringify({ success: true, ...data }), {
             headers: corsHeaders
           });
         } catch (error) {
           console.error('[EMAIL]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      if (url.pathname === '/api/staff/login/request' && request.method === 'POST') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const email = normalizeEmail(body.email);
+          const staffId = String(body.staffId || '').trim();
+
+          if (!email || !staffId) {
+            return new Response(JSON.stringify({ success: false, error: 'email and staffId required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const match = await findProfileByEmailAndStaffId(env, email, staffId);
+          if (!match) {
+            return new Response(JSON.stringify({ success: false, error: 'No matching account found' }), {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+
+          const code = String(Math.floor(100000 + Math.random() * 900000));
+          const authKey = buildStaffLoginCodeKey(email, staffId);
+          await storeStaffLoginCode(env, authKey, {
+            code,
+            userId: match.userId,
+            email,
+            staffId,
+            name: match.profile?.name || match.profile?.discordTag || 'User',
+            createdAt: new Date().toISOString()
+          });
+
+          await sendResendEmail(env, {
+            from: 'Portal <portal@portal.cirkledevelopment.co.uk>',
+            to: email,
+            subject: 'You attempted to sign-in to Portal.',
+            html: buildStaffAuthEmailHtml({ name: match.profile?.name || 'User', staffId, code })
+          });
+
+          return new Response(JSON.stringify({ success: true, resendAfter: 60 }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[STAFF AUTH REQUEST]', error);
+          return new Response(JSON.stringify({ success: false, error: error.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      if (url.pathname === '/api/staff/login/verify' && request.method === 'POST') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const email = normalizeEmail(body.email);
+          const staffId = String(body.staffId || '').trim();
+          const code = String(body.code || '').replace(/\D/g, '').trim();
+
+          if (!email || !staffId || !code) {
+            return new Response(JSON.stringify({ success: false, error: 'email, staffId and code required' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          const authKey = buildStaffLoginCodeKey(email, staffId);
+          const stored = await getStaffLoginCode(env, authKey);
+          if (!stored || String(stored.code || '') !== code) {
+            return new Response(JSON.stringify({ success: false, error: 'Code invalid' }), {
+              status: 401,
+              headers: corsHeaders
+            });
+          }
+
+          await env.DATA.delete(authKey);
+          return new Response(JSON.stringify({ success: true, userId: stored.userId, name: stored.name }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[STAFF AUTH VERIFY]', error);
           return new Response(JSON.stringify({ success: false, error: error.message }), {
             status: 500,
             headers: corsHeaders
@@ -3987,6 +4121,8 @@ export default {
               const promises = batch.map(async (userId) => {
                 if (!userId) return { ok: false, userId };
 
+                const profile = await env.DATA.get(`profile:${userId}`, 'json');
+
                 const ok = await sendDiscordDM(env, String(userId), {
                   title: '📣 Staff Broadcast Message',
                   description: truncateText(safeMessage, 4000),
@@ -4012,6 +4148,22 @@ export default {
                 if (result.skipped) continue;
                 if (result.ok) sent += 1;
                 else failed += 1;
+              }
+
+              for (const userId of batch) {
+                const profile = await env.DATA.get(`profile:${userId}`, 'json');
+                const recipientEmail = normalizeEmail(profile?.email);
+                if (!recipientEmail || recipientEmail === 'not set') continue;
+                try {
+                  await sendResendEmail(env, {
+                    from: 'Portal <portal@portal.cirkledevelopment.co.uk>',
+                    to: recipientEmail,
+                    subject: 'New broadcast! Check email or discord DMs.',
+                    html: buildBroadcastEmailHtml({ senderName: senderName || senderId || 'Portal', message: safeMessage })
+                  });
+                } catch (emailError) {
+                  console.error('[BROADCAST EMAIL]', userId, emailError.message);
+                }
               }
 
               if (i + batchSize < usersIndex.length) {

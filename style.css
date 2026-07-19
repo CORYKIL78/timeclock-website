@@ -3,6 +3,236 @@
   background: #23273a !important; /* dark gray for contrast */
   color: var(--text) !important;
 }
+
+.auth-shell {
+  max-width: 520px !important;
+  gap: 20px;
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+  margin-bottom: 6px;
+}
+
+.auth-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  box-shadow: 0 14px 40px rgba(99, 102, 241, 0.22);
+}
+
+.auth-brand h1 {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+.auth-brand p,
+.auth-step-title,
+.auth-footer-note,
+.auth-status {
+  color: var(--text2);
+}
+
+.auth-status {
+  min-height: 20px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.auth-status.error {
+  color: #fca5a5;
+}
+
+.auth-step {
+  display: none;
+  width: 100%;
+}
+
+.auth-step.active {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: authSlideIn 0.35s ease;
+}
+
+@keyframes authSlideIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--text2);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+}
+
+.auth-primary,
+.auth-secondary,
+.auth-disabled {
+  width: 100%;
+}
+
+.auth-secondary {
+  background: #182036 !important;
+  box-shadow: none !important;
+}
+
+.auth-disabled {
+  background: rgba(255,255,255,0.08) !important;
+  color: var(--text2) !important;
+  box-shadow: none !important;
+}
+
+.code-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.code-box {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  padding: 16px 10px;
+  letter-spacing: 0.05em;
+}
+
+.auth-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 0 4px;
+}
+
+.auth-spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 4px solid rgba(255,255,255,0.08);
+  border-top-color: var(--primary);
+  animation: authSpin 0.9s linear infinite;
+}
+
+@keyframes authSpin {
+  to { transform: rotate(360deg); }
+}
+
+.hidden { display: none !important; }
+
+.toast-host {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: min(380px, calc(100vw - 24px));
+}
+
+.portal-toast {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 8px 34px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px 14px 0;
+  background: rgba(12, 18, 35, 0.96);
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.32);
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.28s ease, opacity 0.28s ease;
+}
+
+.portal-toast.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.portal-toast__bar {
+  width: 8px;
+  height: 100%;
+  background: linear-gradient(180deg, #60a5fa, #2563eb);
+}
+
+.portal-toast__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.16);
+  color: #93c5fd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  margin-left: 2px;
+}
+
+.portal-toast__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 6px;
+}
+
+.portal-toast__body strong {
+  color: #eff6ff;
+  font-size: 14px;
+}
+
+.portal-toast__body span {
+  color: #dbeafe;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.portal-toast.success .portal-toast__bar {
+  background: linear-gradient(180deg, #60a5fa, #0ea5e9);
+}
+
+.portal-toast.success .portal-toast__icon {
+  background: rgba(59, 130, 246, 0.28);
+}
+
+@media (max-width: 640px) {
+  .auth-brand {
+    align-items: flex-start;
+  }
+
+  .code-grid {
+    gap: 8px;
+  }
+
+  .code-box {
+    padding: 14px 8px;
+    font-size: 18px;
+  }
+
+  .toast-host {
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+}
 /* ================================================================
    CIRKLE STAFF PORTAL - MODERN DARK THEME
    Complete redesign for 2026 - Mobile-first, responsive, beautiful
