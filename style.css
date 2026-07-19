@@ -2329,12 +2329,13 @@ body.light {
 #portalWelcomeScreen .container {
   position: relative;
   z-index: 1;
-  width: min(760px, calc(100vw - 28px));
-  background: rgba(255,255,255,0.97) !important;
-  color: #111 !important;
-  border: 1px solid rgba(0,0,0,0.22) !important;
-  border-radius: 18px !important;
-  box-shadow: 0 28px 72px rgba(0,0,0,0.42) !important;
+  width: min(860px, calc(100vw - 28px));
+  background: linear-gradient(180deg, rgba(14,18,31,0.96) 0%, rgba(8,10,18,0.98) 100%) !important;
+  color: #f4f7fb !important;
+  border: 1px solid rgba(148,163,184,0.16) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 34px 96px rgba(0,0,0,0.58) !important;
+  backdrop-filter: blur(26px);
 }
 
 #discordScreen .auth-shell,
@@ -2342,15 +2343,15 @@ body.light {
 #searchingScreen .auth-shell,
 #sequentialLoadingScreen .auth-shell,
 #portalWelcomeScreen .auth-shell {
-  max-width: 760px !important;
-  padding: 42px 46px !important;
+  max-width: 860px !important;
+  padding: 42px 44px !important;
   gap: 22px !important;
 }
 
 #discordScreen .auth-brand,
 #portalWelcomeScreen .auth-brand {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 18px;
 }
@@ -2360,14 +2361,15 @@ body.light {
 #loadingScreen h2,
 #searchingScreen h2,
 #sequentialLoadingScreen h2 {
-  font-family: Georgia, 'Times New Roman', serif;
-  color: #111 !important;
-  font-weight: 700;
+  font-family: Inter, 'Segoe UI', sans-serif;
+  color: #f8fafc !important;
+  font-weight: 800;
+  letter-spacing: -0.04em;
 }
 
 #discordScreen .auth-brand h1 {
-  font-size: clamp(34px, 5vw, 54px);
-  line-height: 0.95;
+  font-size: clamp(38px, 5vw, 60px);
+  line-height: 0.92;
   margin-bottom: 8px;
 }
 
@@ -2379,15 +2381,15 @@ body.light {
 #sequentialLoadingScreen p,
 .auth-footer-note,
 .auth-status {
-  color: #666 !important;
-  font-family: Georgia, 'Times New Roman', serif;
+  color: rgba(226,232,240,0.76) !important;
+  font-family: Inter, 'Segoe UI', sans-serif;
 }
 
 #discordScreen .auth-logo {
   width: 96px;
   height: 96px;
-  border-radius: 0;
-  box-shadow: none;
+  border-radius: 22px;
+  box-shadow: 0 16px 36px rgba(0,0,0,0.35);
 }
 
 #discordScreen .auth-step.active {
@@ -2397,45 +2399,47 @@ body.light {
 #discordScreen input,
 #discordScreen select,
 #discordScreen textarea {
-  background: transparent;
-  border: 1px solid #2b2b2b;
-  border-radius: 0;
-  color: #111;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 18px;
+  background: rgba(13,18,31,0.9);
+  border: 1px solid rgba(148,163,184,0.18);
+  border-radius: 16px;
+  color: #f8fafc;
+  font-family: Inter, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
 }
 
 #discordScreen input::placeholder {
-  color: #919191;
+  color: rgba(226,232,240,0.42);
 }
 
 #discordScreen .btn,
 #discordScreen button[id*='Btn']:not(.sidebar button) {
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 17px;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.24) !important;
+  font-family: Inter, 'Segoe UI', sans-serif;
+  font-size: 16px;
   min-width: 0;
   padding: 14px 18px;
 }
 
 #discordScreen .auth-primary {
-  background: #111 !important;
-  color: #fff !important;
+  background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%) !important;
+  color: #050816 !important;
 }
 
 #discordScreen .auth-secondary {
-  background: #5563ff !important;
-  color: #fff !important;
+  background: rgba(29, 78, 216, 0.32) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(96,165,250,0.35) !important;
 }
 
 #discordScreen .auth-disabled {
-  background: #ef1d1d !important;
-  color: #fff !important;
+  background: rgba(71,85,105,0.38) !important;
+  color: rgba(226,232,240,0.88) !important;
 }
 
 #discordScreen .auth-divider {
-  color: #777;
+  color: rgba(226,232,240,0.45);
 }
 
 #discordScreen .code-grid {
@@ -2445,9 +2449,10 @@ body.light {
 #discordScreen .code-box {
   height: 114px;
   font-size: 26px;
-  background: linear-gradient(180deg, #fbfbfb 0%, #efefef 100%);
-  border: 1px solid #2f2f2f;
-  border-radius: 0;
+  background: rgba(8,12,24,0.92);
+  border: 1px solid rgba(148,163,184,0.2);
+  border-radius: 18px;
+  color: #f8fafc;
 }
 
 #discordScreen .auth-loading,
@@ -2455,13 +2460,13 @@ body.light {
 #searchingScreen .container,
 #sequentialLoadingScreen .container,
 #portalWelcomeScreen .container {
-  color: #111;
+  color: #f8fafc;
 }
 
 #discordScreen .auth-spinner,
 .spinner,
 .loading-spinner {
-  border-top-color: #111;
+  border-top-color: #f8fafc;
 }
 
 #portalWelcomeScreen .container {
@@ -2473,8 +2478,9 @@ body.light {
   width: 130px !important;
   height: 130px !important;
   border-radius: 50% !important;
-  border: none !important;
-  background: #e9edf5;
+  border: 1px solid rgba(148,163,184,0.22) !important;
+  background: rgba(15,23,42,0.7);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.28);
 }
 
 #portalWelcomeScreen h2 {
@@ -2484,7 +2490,7 @@ body.light {
 
 #portalWelcomeScreen p {
   font-size: 16px;
-  color: #7a7a7a;
+  color: rgba(226,232,240,0.76);
   margin-top: 4px;
 }
 
@@ -2492,43 +2498,62 @@ body.light {
 #portalWelcomeScreen button[id*='Btn'] {
   width: 280px;
   margin: 12px auto 0;
-  border-radius: 0;
-  font-family: Georgia, 'Times New Roman', serif;
+  border-radius: 16px;
+  font-family: Inter, 'Segoe UI', sans-serif;
 }
 
-body.light .screen {
-  background: linear-gradient(180deg, #fbfbfe 0%, #f2f4fb 100%);
+body.light,
+body:not(.dark) {
+  color-scheme: dark;
 }
 
-body.light #sidebar {
-  background: #ffffff;
-  border-right: 1px solid #ece9f8;
+body.light .screen,
+body:not(.dark) .screen {
+  background:
+    radial-gradient(circle at top left, rgba(59,130,246,0.14), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(14,165,233,0.08), transparent 30%),
+    linear-gradient(180deg, #050816 0%, #090d1a 100%);
+}
+
+body.light #sidebar,
+body:not(.dark) #sidebar {
+  background: rgba(8,12,24,0.92);
+  border-right: 1px solid rgba(148,163,184,0.14);
 }
 
 body.light .sidebar-header,
-body.light .sidebar-footer {
-  border-color: #ece9f8;
+body.light .sidebar-footer,
+body:not(.dark) .sidebar-header,
+body:not(.dark) .sidebar-footer {
+  border-color: rgba(148,163,184,0.14);
 }
 
-body.light #sidebarNav button {
-  color: #52607a;
+body.light #sidebarNav button,
+body:not(.dark) #sidebarNav button {
+  color: rgba(226,232,240,0.72);
 }
 
 body.light #sidebarNav button.active,
-body.light #sidebarNav button:hover {
-  color: #6d28d9;
-  background: #f4ecff;
-  box-shadow: inset 2px 0 0 #7c3aed;
+body.light #sidebarNav button:hover,
+body:not(.dark) #sidebarNav button.active,
+body:not(.dark) #sidebarNav button:hover {
+  color: #f8fafc;
+  background: rgba(37,99,235,0.18);
+  box-shadow: inset 2px 0 0 #60a5fa;
 }
 
 body.light .user-header-card,
 body.light .stat-card,
 body.light .profile-section,
-body.light .status-card {
-  background: #ffffff !important;
-  border-color: #e6e7f1 !important;
-  color: #111 !important;
-  box-shadow: 0 14px 30px rgba(15,23,42,0.06) !important;
+body.light .status-card,
+body:not(.dark) .user-header-card,
+body:not(.dark) .stat-card,
+body:not(.dark) .profile-section,
+body:not(.dark) .status-card {
+  background: rgba(15,23,42,0.86) !important;
+  border-color: rgba(148,163,184,0.16) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 18px 46px rgba(0,0,0,0.28) !important;
 }
 
 body.light .user-header-card h2,
@@ -2539,41 +2564,62 @@ body.light .profile-info-row label,
 body.light .profile-info-row span,
 body.light .status-card,
 body.light .status-card span,
-body.light .stat-card p {
-  color: #111 !important;
+body.light .stat-card p,
+body:not(.dark) .user-header-card h2,
+body:not(.dark) .user-header-card p,
+body:not(.dark) .stat-card h3,
+body:not(.dark) .profile-section-header,
+body:not(.dark) .profile-info-row label,
+body:not(.dark) .profile-info-row span,
+body:not(.dark) .status-card,
+body:not(.dark) .status-card span,
+body:not(.dark) .stat-card p {
+  color: #f8fafc !important;
 }
 
 body.light .user-header-card h2,
-body.light .profile-section-header {
-  font-family: Georgia, 'Times New Roman', serif;
+body.light .profile-section-header,
+body:not(.dark) .user-header-card h2,
+body:not(.dark) .profile-section-header {
+  font-family: Inter, 'Segoe UI', sans-serif;
+  letter-spacing: -0.03em;
 }
 
-body.light .profile-info-row {
-  background: #f8f8fd;
-  border-color: #ececf5;
+body.light .profile-info-row,
+body:not(.dark) .profile-info-row {
+  background: rgba(15,23,42,0.9);
+  border-color: rgba(148,163,184,0.14);
 }
 
-body.light .stat-card {
-  background: linear-gradient(180deg, #ffffff 0%, #fbfbff 100%) !important;
+body.light .stat-card,
+body:not(.dark) .stat-card {
+  background: linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(10,14,24,0.96) 100%) !important;
 }
 
 body.light .stat-card h3,
-body.light .profile-section-header {
-  color: #1f2937 !important;
+body.light .profile-section-header,
+body:not(.dark) .stat-card h3,
+body:not(.dark) .profile-section-header {
+  color: #e2e8f0 !important;
 }
 
-body.light .status-badge.verified {
+body.light .status-badge.verified,
+body:not(.dark) .status-badge.verified {
   background: rgba(34,197,94,0.16);
 }
 
-body.light .status-card {
-  border-radius: 999px;
+body.light .status-card,
+body:not(.dark) .status-card {
+  border-radius: 20px;
 }
 
 body.light .notifications-panel,
-body.light .modal-content {
-  background: #ffffff;
-  border-color: #e6e7f1;
+body.light .modal-content,
+body:not(.dark) .notifications-panel,
+body:not(.dark) .modal-content {
+  background: rgba(8,12,24,0.94);
+  border-color: rgba(148,163,184,0.14);
+  color: #f8fafc;
 }
 
 @media (max-width: 768px) {

@@ -324,12 +324,16 @@ async function findProfileByEmailAndStaffId(env, email, staffId) {
   const usersIndex = await env.DATA.get('users:index', 'json') || [];
 
   for (const userId of usersIndex) {
-    const profile = await env.DATA.get(`profile:${userId}`, 'json');
-    if (!profile) continue;
-    const profileEmail = normalizeEmail(profile.email);
-    const profileStaffId = String(profile.staffId || '').trim().toLowerCase();
+    const [profile, account] = await Promise.all([
+      env.DATA.get(`profile:${userId}`, 'json'),
+      env.DATA.get(`user:${userId}`, 'json')
+    ]);
+
+    const candidateProfile = profile || account?.profile || {};
+    const profileEmail = normalizeEmail(candidateProfile.email || account?.email || '');
+    const profileStaffId = String(candidateProfile.staffId || account?.staffId || '').trim().toLowerCase();
     if (profileEmail === normalizedEmail && profileStaffId === normalizedStaffId) {
-      return { userId: String(userId), profile };
+      return { userId: String(userId), profile: candidateProfile, account: account || null };
     }
   }
 
