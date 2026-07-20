@@ -287,7 +287,7 @@ function buildStaffAuthEmailHtml({ name, staffId, code }) {
   const safeName = truncateText(name || 'User', 80);
   const safeStaffId = truncateText(staffId || 'Not assigned', 80);
   const groupedCode = String(code || '').split('').join(' ');
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:0;background:#0b1020;color:#e5e7eb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;"><div style="max-width:640px;margin:0 auto;padding:32px 18px;"><div style="background:linear-gradient(180deg,#111827 0%,#0f172a 100%);border:1px solid rgba(99,102,241,.25);border-radius:20px;padding:28px;box-shadow:0 18px 60px rgba(0,0,0,.35)"><div style="text-align:center;margin-bottom:18px;"><img src="https://portal.cirkledevelopment.co.uk/Portal%20Logo.webp" alt="Portal" style="width:120px;height:120px;border-radius:24px;box-shadow:0 0 30px rgba(99,102,241,.25);object-fit:cover"></div><h1 style="margin:0 0 10px 0;font-size:32px;text-align:center;color:#f8fafc;">You attempted to sign-in to Portal.</h1><p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;color:#cbd5e1;text-align:center;">Hello ${safeName},</p><p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#cbd5e1;text-align:center;">We received a sign-in attempt for staff ID <strong style="color:#fff;">${safeStaffId}</strong>. Use the code below to continue.</p><div style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.35);border-radius:18px;padding:22px;text-align:center;margin:24px 0;"><div style="font-size:13px;letter-spacing:.18em;color:#93c5fd;text-transform:uppercase;margin-bottom:14px;">Your 6-digit code</div><div style="font-size:42px;line-height:1;font-weight:800;letter-spacing:.25em;color:#ffffff;">${groupedCode}</div></div><p style="margin:0 0 8px 0;font-size:14px;color:#94a3b8;text-align:center;">If this was not you, you can safely ignore this message.</p><p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">portal.cirkledevelopment.co.uk</p></div></div></body></html>`;
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:0;background:#0b1020;color:#e5e7eb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;"><div style="max-width:640px;margin:0 auto;padding:32px 18px;"><div style="background:linear-gradient(180deg,#111827 0%,#0f172a 100%);border:1px solid rgba(99,102,241,.25);border-radius:20px;padding:28px;box-shadow:0 18px 60px rgba(0,0,0,.35)"><div style="text-align:center;margin-bottom:18px;"><img src="https://portal.cirkledevelopment.co.uk/Portal%20Logo.webp" alt="Portal" style="width:120px;height:120px;border-radius:24px;box-shadow:0 0 30px rgba(99,102,241,.25);object-fit:cover"></div><h1 style="margin:0 0 10px 0;font-size:32px;text-align:center;color:#f8fafc;">You attempted to sign-in to Portal.</h1><p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;color:#cbd5e1;text-align:center;">Hello ${safeName},</p><p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#cbd5e1;text-align:center;">We received a sign-in attempt for staff ID <strong style="color:#fff;">${safeStaffId}</strong>. Use the code below to continue.</p><div style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.35);border-radius:18px;padding:22px;text-align:center;margin:24px 0;"><div style="font-size:13px;letter-spacing:.18em;color:#93c5fd;text-transform:uppercase;margin-bottom:14px;">Your 6-digit code</div><div style="font-size:42px;line-height:1;font-weight:800;letter-spacing:.25em;color:#ffffff;">${groupedCode}</div></div><p style="margin:0 0 8px 0;font-size:14px;color:#94a3b8;text-align:center;">If this wasn't you, please safely ignore this email. If you are concerned, we urge you to contact a Portal admin.</p><p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">This is an automated message sent from Portal | portal.cirkledevelopment.co.uk</p></div></div></body></html>`;
 }
 
 function buildBroadcastEmailHtml({ senderName, message }) {
@@ -335,6 +335,28 @@ async function findProfileByEmailAndStaffId(env, email, staffId) {
     const profileEmail = normalizeEmail(candidateProfile.email || account?.email || '');
     const profileStaffId = String(candidateProfile.staffId || account?.staffId || '').trim().toLowerCase();
     if (profileEmail === normalizedEmail && profileStaffId === normalizedStaffId) {
+      return { userId: String(userId), profile: candidateProfile, account: account || null };
+    }
+  }
+
+  return null;
+}
+
+async function findProfileByRobloxId(env, robloxId) {
+  const normalizedRobloxId = String(robloxId || '').trim();
+  if (!normalizedRobloxId) return null;
+
+  const usersIndex = await env.DATA.get('users:index', 'json') || [];
+
+  for (const userId of usersIndex) {
+    const [profile, account] = await Promise.all([
+      env.DATA.get(`profile:${userId}`, 'json'),
+      env.DATA.get(`user:${userId}`, 'json')
+    ]);
+
+    const candidateProfile = profile || account?.profile || {};
+    const candidateRobloxId = String(candidateProfile.robloxId || account?.robloxId || '').trim();
+    if (candidateRobloxId === normalizedRobloxId) {
       return { userId: String(userId), profile: candidateProfile, account: account || null };
     }
   }
@@ -1684,6 +1706,88 @@ export default {
 
         } catch (e) {
           return new Response(JSON.stringify({ error: 'Auth error', message: e.message }), {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+
+      if (url.pathname === '/auth/roblox' && request.method === 'GET') {
+        const code = url.searchParams.get('code');
+        const redirectUri = url.searchParams.get('redirect_uri');
+
+        if (!code) {
+          return new Response(JSON.stringify({ error: 'No code provided' }), {
+            status: 400,
+            headers: corsHeaders
+          });
+        }
+
+        try {
+          const clientId = env.ROBLOX_CLIENT_ID;
+          const clientSecret = env.ROBLOX_SECRET;
+
+          if (!clientId || !clientSecret) {
+            return new Response(JSON.stringify({ error: 'Roblox OAuth not configured' }), {
+              status: 500,
+              headers: corsHeaders
+            });
+          }
+
+          const tokenResponse = await fetch('https://apis.roblox.com/oauth/v1/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              client_id: clientId,
+              client_secret: clientSecret,
+              grant_type: 'authorization_code',
+              code,
+              redirect_uri: redirectUri || 'https://portal.cirkledevelopment.co.uk/cirklestaff/staffportal/login?provider=roblox'
+            })
+          });
+
+          if (!tokenResponse.ok) {
+            const tokenError = await tokenResponse.text();
+            return new Response(JSON.stringify({ error: `Roblox token exchange failed: ${tokenError}` }), {
+              status: tokenResponse.status,
+              headers: corsHeaders
+            });
+          }
+
+          const tokenData = await tokenResponse.json();
+          const userInfoResponse = await fetch('https://apis.roblox.com/oauth/v1/userinfo', {
+            headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+          });
+
+          if (!userInfoResponse.ok) {
+            const userInfoError = await userInfoResponse.text();
+            return new Response(JSON.stringify({ error: `Roblox userinfo failed: ${userInfoError}` }), {
+              status: userInfoResponse.status,
+              headers: corsHeaders
+            });
+          }
+
+          const userInfo = await userInfoResponse.json();
+          const robloxId = String(userInfo.sub || userInfo.userId || userInfo.id || '').trim();
+          const robloxUsername = String(userInfo.preferred_username || userInfo.name || userInfo.nickname || '').trim();
+          const avatarUrl = userInfo.picture || (robloxId ? `https://www.roblox.com/headshot-thumbnail/image?userId=${encodeURIComponent(robloxId)}&width=420&height=420&format=png` : '');
+          const linked = await findProfileByRobloxId(env, robloxId);
+
+          return new Response(JSON.stringify({
+            success: true,
+            profile: {
+              id: robloxId,
+              username: robloxUsername,
+              avatar: avatarUrl
+            },
+            linkedUser: linked ? {
+              userId: linked.userId,
+              profile: linked.profile
+            } : null
+          }), { headers: corsHeaders });
+        } catch (error) {
+          console.error('[ROBLOX OAUTH]', error);
+          return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
             headers: corsHeaders
           });

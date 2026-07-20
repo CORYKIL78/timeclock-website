@@ -8,10 +8,12 @@
 window.CONFIG = window.CONFIG || {
   // Discord OAuth
   DISCORD_CLIENT_ID: null,
+  ROBLOX_CLIENT_ID: null,
   
   // Backend URLs
   WORKER_URL: null,
   REDIRECT_URI: null,
+  ROBLOX_REDIRECT_URI: null,
   
   // Discord Server
   GUILD_ID: null,
@@ -68,8 +70,10 @@ function loadConfig() {
   console.log('[CONFIG] Loaded configuration:', {
     WORKER_URL: window.CONFIG.WORKER_URL,
     REDIRECT_URI: window.CONFIG.REDIRECT_URI,
+    ROBLOX_REDIRECT_URI: window.CONFIG.ROBLOX_REDIRECT_URI,
     GUILD_ID: window.CONFIG.GUILD_ID,
     DISCORD_CLIENT_ID: window.CONFIG.DISCORD_CLIENT_ID,
+    ROBLOX_CLIENT_ID: window.CONFIG.ROBLOX_CLIENT_ID,
     ADMINS: Object.keys(window.CONFIG.ADMINS || {})
   });
   

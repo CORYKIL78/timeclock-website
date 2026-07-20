@@ -101,6 +101,18 @@ function resolveDepartmentName(value) {
     return DEPARTMENT_LABELS[cleaned] || cleaned;
 }
 
+function getRobloxAvatarUrl(robloxId) {
+    const id = String(robloxId || '').trim();
+    if (!id) return '';
+    return `https://www.roblox.com/headshot-thumbnail/image?userId=${encodeURIComponent(id)}&width=420&height=420&format=png`;
+}
+
+function resolveStaffAvatar(user = window.currentUser) {
+    const robloxAvatar = user?.profile?.robloxId ? getRobloxAvatarUrl(user.profile.robloxId) : '';
+    const backendAvatar = user?.profile?.avatar || user?.avatar || '';
+    return robloxAvatar || backendAvatar || '';
+}
+
 // Simple profile display update using Discord data - GLOBAL FUNCTION
 
 // Global request deduplicator - prevents duplicate API calls within 30 seconds
@@ -619,8 +631,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         profilePics.forEach(pic => {
             if (window.currentUser) {
-                // Priority: backend profile avatar > Discord avatar > initials
-                const avatarUrl = window.currentUser.profile?.avatar || window.currentUser.avatar || null;
+                // Priority: Roblox headshot > backend profile avatar > Discord avatar > initials
+                const avatarUrl = resolveStaffAvatar(window.currentUser) || null;
                 
                 if (avatarUrl) {
                     // Use backend or Discord avatar if available
@@ -2482,6 +2494,8 @@ const STAFF_SERVER_ID = window.CONFIG?.STAFF_SERVER_ID || '1460025375655723283';
 const WORKER_URL = window.CONFIG?.WORKER_URL || 'https://timeclock-backend.marcusray.workers.dev';
 const CLIENT_ID = window.CONFIG?.DISCORD_CLIENT_ID || '1417915896634277888';
 const REDIRECT_URI = window.CONFIG?.STAFF_REDIRECT_URI || `${window.location.origin}/cirklestaff/staffportal/login`;
+const ROBLOX_CLIENT_ID = window.CONFIG?.ROBLOX_CLIENT_ID || '';
+const ROBLOX_REDIRECT_URI = window.CONFIG?.ROBLOX_REDIRECT_URI || `${window.location.origin}/cirklestaff/staffportal/login?provider=roblox`;
 
 const staffServerStatusCache = {
     lastChecked: 0,
@@ -2834,9 +2848,9 @@ function showScreen(screenId) {
             if (mobileNavBtn) mobileNavBtn.style.display = 'none';
         }
         // Set profile pic on portal welcome screen
-        if (screenId === 'portalWelcome' && currentUser && currentUser.avatar) {
+        if (screenId === 'portalWelcome' && currentUser) {
             const portalPic = document.getElementById('portalWelcomeProfilePic');
-            if (portalPic) portalPic.src = currentUser.avatar;
+            if (portalPic) portalPic.src = resolveStaffAvatar(currentUser) || currentUser.avatar || '';
         }
         
         // Update active navigation button
@@ -3637,8 +3651,8 @@ function renderPreviousSessions(skipSync = false) {
 
 function updateSidebarProfile() {
     const emp = getEmployee(currentUser.id);
-    // Use profile avatar from backend if available, otherwise fallback to currentUser.avatar
-    const avatarUrl = currentUser.profile?.avatar || currentUser.avatar || `https://cdn.discordapp.com/embed/avatars/${Math.floor(Math.random() * 5)}.png`;
+    // Use Roblox headshot if linked, otherwise fallback to backend/Discord avatar
+    const avatarUrl = resolveStaffAvatar(currentUser) || `https://cdn.discordapp.com/embed/avatars/${Math.floor(Math.random() * 5)}.png`;
     document.getElementById('sidebarProfilePic').src = avatarUrl;
 }
 
@@ -3709,9 +3723,9 @@ function updateMainScreen() {
     }
     console.log('[updateMainScreen] Base Level display:', baseLevelDisplay);
     
-    document.getElementById('greeting').textContent = `Good ${getGreeting()}, ${userName}!`;
+    document.getElementById('greeting').textContent = userName;
     document.getElementById('lastLogin').textContent = `Last Log In: ${emp.lastLogin || 'Never'}`;
-    document.getElementById('mainProfilePic').src = currentUser.avatar || 'https://via.placeholder.com/100';
+    document.getElementById('mainProfilePic').src = resolveStaffAvatar(currentUser) || 'https://via.placeholder.com/100';
     const absences = emp.absences || [];
     document.getElementById('totalAbsences').textContent = absences.length;
     let totalDays = 0;
@@ -3917,15 +3931,114 @@ async function handleOAuthRedirect() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const error = urlParams.get('error');
+    const oauthProvider = (urlParams.get('provider') || 'discord').toLowerCase();
+    const callbackUrl = oauthProvider === 'roblox' ? ROBLOX_REDIRECT_URI : REDIRECT_URI;
+    const processedCodeKey = oauthProvider === 'roblox' ? 'lastProcessedRobloxCode' : 'lastProcessedCode';
     let backendProfile = null; // Declare at function scope
     console.log('OAuth callback received:', { code, error, url: window.location.href });
 
     if (error) {
         console.error('OAuth error:', urlParams.get('error_description') || 'Unknown error');
         showModal('alert', `OAuth error: ${urlParams.get('error_description') || 'Unknown error'}`);
-        window.history.replaceState({}, document.title, REDIRECT_URI);
+        window.history.replaceState({}, document.title, callbackUrl);
+        localStorage.removeItem(processedCodeKey);
         showScreen('discord');
         return;
+    }
+
+    if (oauthProvider === 'roblox' && code) {
+        if (localStorage.getItem(processedCodeKey) === code) {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                } catch (e) {
+                    console.error('[ROBLOX] Error parsing saved user:', e);
+                }
+            }
+            if (currentUser?.profile?.robloxId) {
+                showScreen(currentUser.id ? 'portalWelcome' : 'setupRoblox');
+            } else {
+                showScreen('setupRoblox');
+            }
+            return;
+        }
+
+        localStorage.setItem(processedCodeKey, code);
+        showScreen('searching');
+
+        try {
+            const authUrl = `${WORKER_URL}/auth/roblox?code=${code}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
+            console.log('[OAUTH] Exchanging code with Roblox OAuth endpoint:', authUrl);
+            const response = await fetch(authUrl, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                mode: 'cors'
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[OAUTH] Roblox auth response error:', { status: response.status, body: errorText });
+                throw new Error(`Roblox auth failed: ${response.status} ${errorText}`);
+            }
+
+            const robloxAuth = await response.json();
+            const robloxProfile = robloxAuth.profile || {};
+            const linkedUser = robloxAuth.linkedUser || null;
+
+            if (linkedUser?.profile) {
+                currentUser = {
+                    id: linkedUser.userId,
+                    name: linkedUser.profile.discordTag || linkedUser.profile.name || robloxProfile.username || 'User',
+                    avatar: robloxProfile.avatar || linkedUser.profile.avatar || '',
+                    profile: {
+                        ...linkedUser.profile,
+                        robloxId: robloxProfile.id,
+                        robloxUsername: robloxProfile.username,
+                        avatar: robloxProfile.avatar || linkedUser.profile.avatar || ''
+                    }
+                };
+                persistUserData();
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateSidebarProfile();
+                updateMainScreen();
+                updateProfileDisplay();
+                showScreen('portalWelcome');
+                window.history.replaceState({}, document.title, callbackUrl);
+                return;
+            }
+
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                } catch (e) {
+                    console.error('[ROBLOX] Error parsing saved user:', e);
+                }
+            }
+
+            if (!currentUser) currentUser = {};
+            if (!currentUser.profile) currentUser.profile = {};
+            currentUser.profile.robloxId = robloxProfile.id;
+            currentUser.profile.robloxUsername = robloxProfile.username;
+            if (robloxProfile.avatar) currentUser.profile.avatar = robloxProfile.avatar;
+            currentUser.avatar = robloxProfile.avatar || currentUser.avatar || '';
+            persistUserData();
+            await upsertUserProfile();
+            updateSidebarProfile();
+            updateMainScreen();
+            updateProfileDisplay();
+            showScreen('setupPreferences');
+            window.history.replaceState({}, document.title, callbackUrl);
+            return;
+        } catch (e) {
+            console.error('[OAUTH] Roblox code exchange failed:', e.message);
+            showModal('alert', `Failed to authenticate with Roblox: ${e.message}. Please try again.`);
+            localStorage.removeItem(processedCodeKey);
+            window.history.replaceState({}, document.title, callbackUrl);
+            showScreen('discord');
+            return;
+        }
     }
 
     if (!code) {
@@ -3951,7 +4064,7 @@ async function handleOAuthRedirect() {
                         if (!bpIsComplete) {
                             console.log('[OAUTH-SAVED] Profile incomplete - must login with Discord first');
                             // Force Discord OAuth - after auth, the code path will redirect to signup
-                            localStorage.removeItem('lastProcessedCode');
+                            localStorage.removeItem(processedCodeKey);
                             showScreen('discord');
                             return;
                         }
@@ -3991,9 +4104,9 @@ async function handleOAuthRedirect() {
         return;
     }
 
-    if (localStorage.getItem('lastProcessedCode') === code) {
+    if (localStorage.getItem(processedCodeKey) === code) {
         console.log('Code already processed, redirecting to portalWelcome');
-        window.history.replaceState({}, document.title, REDIRECT_URI);
+        window.history.replaceState({}, document.title, callbackUrl);
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
             try {
@@ -4052,13 +4165,13 @@ async function handleOAuthRedirect() {
         return;
     }
 
-    localStorage.setItem('lastProcessedCode', code);
+    localStorage.setItem(processedCodeKey, code);
     showScreen('searching');
     await new Promise(r => setTimeout(r, 1000));
 
     let user;
     try {
-        const authUrl = `${WORKER_URL}/auth?code=${code}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+        const authUrl = `${WORKER_URL}/auth?code=${code}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
         console.log('[OAUTH] Exchanging code with Discord OAuth endpoint:', authUrl);
         const response = await fetch(authUrl, {
             method: 'GET',
@@ -4076,7 +4189,7 @@ async function handleOAuthRedirect() {
         console.error('[OAUTH] Code exchange failed:', e.message);
         showModal('alert', `Failed to authenticate with Discord: ${e.message}. Please try again.`);
         localStorage.removeItem('lastProcessedCode');
-        window.history.replaceState({}, document.title, REDIRECT_URI);
+        window.history.replaceState({}, document.title, callbackUrl);
         showScreen('discord');
         return;
     }
@@ -4219,8 +4332,8 @@ async function handleOAuthRedirect() {
         };
         
         persistUserData(); // Save to localStorage before redirecting
-        localStorage.setItem('lastProcessedCode', code);
-        window.history.replaceState({}, document.title, REDIRECT_URI);
+        localStorage.setItem(processedCodeKey, code);
+        window.history.replaceState({}, document.title, callbackUrl);
         
         // Mark that they need to complete profile before accessing portal
         sessionStorage.setItem('needsProfileSetup', 'true');
@@ -4250,8 +4363,8 @@ async function handleOAuthRedirect() {
         };
         window.currentUser = currentUser;
         persistUserData();
-        localStorage.setItem('lastProcessedCode', code);
-        window.history.replaceState({}, document.title, REDIRECT_URI);
+        localStorage.setItem(processedCodeKey, code);
+        window.history.replaceState({}, document.title, callbackUrl);
         showScreen('suspended');
         return;
     }
@@ -4293,8 +4406,8 @@ async function handleOAuthRedirect() {
     if (!member.roles.includes(REQUIRED_ROLE)) {
         console.log('User lacks required role:', REQUIRED_ROLE);
         showModal('alert', 'You do not have the required permissions');
-        localStorage.removeItem('lastProcessedCode');
-        window.history.replaceState({}, document.title, REDIRECT_URI);
+        localStorage.removeItem(processedCodeKey);
+        window.history.replaceState({}, document.title, callbackUrl);
         showScreen('discord');
         return;
     }
@@ -4407,7 +4520,7 @@ async function handleOAuthRedirect() {
         showScreen('portalWelcome');
     }
 
-    window.history.replaceState({}, document.title, REDIRECT_URI);
+    window.history.replaceState({}, document.title, callbackUrl);
     console.log('[LOGIN] OAuth redirect complete, clearing code from URL');
 }
 
@@ -5860,9 +5973,30 @@ if (discordLoginBtn) {
     });
 }
 
+function startRobloxOAuth() {
+    if (!ROBLOX_CLIENT_ID) {
+        showModal('alert', 'Roblox sign-in is not configured yet.');
+        return;
+    }
+
+    const oauthUrl = `https://apis.roblox.com/oauth/v1/authorize?client_id=${encodeURIComponent(ROBLOX_CLIENT_ID)}&redirect_uri=${encodeURIComponent(ROBLOX_REDIRECT_URI)}&response_type=code&scope=openid%20profile%20avatar`;
+    console.log('[OAUTH] Initiating Roblox OAuth redirect:', { clientId: ROBLOX_CLIENT_ID, redirectUri: ROBLOX_REDIRECT_URI });
+    window.location.href = oauthUrl;
+}
+
 const portalDiscordLoginBtn = document.getElementById('portalDiscordLoginBtn');
 if (portalDiscordLoginBtn) {
     portalDiscordLoginBtn.addEventListener('click', () => discordLoginBtn?.click());
+}
+
+const robloxLoginBtn = document.getElementById('robloxLoginBtn');
+if (robloxLoginBtn) {
+    robloxLoginBtn.addEventListener('click', () => startRobloxOAuth());
+}
+
+const setupRobloxOauthBtn = document.getElementById('setupRobloxOauthBtn');
+if (setupRobloxOauthBtn) {
+    setupRobloxOauthBtn.addEventListener('click', () => startRobloxOAuth());
 }
 
 const staffLoginRequestBtn = document.getElementById('staffLoginRequestBtn');
@@ -8483,6 +8617,16 @@ if (notificationBtn) {
     });
 }
 
+const openNotificationCenterBtn = document.getElementById('openNotificationCenterBtn');
+if (openNotificationCenterBtn) {
+    openNotificationCenterBtn.addEventListener('click', () => notificationBtn?.click());
+}
+
+const viewAllDashboardNotifications = document.getElementById('viewAllDashboardNotifications');
+if (viewAllDashboardNotifications) {
+    viewAllDashboardNotifications.addEventListener('click', () => notificationBtn?.click());
+}
+
 if (closeNotifications) {
     closeNotifications.addEventListener('click', () => {
         notificationPanel.classList.add('hidden');
@@ -8638,7 +8782,7 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
                         console.warn('[INIT] ⚠️ Saved profile NOT found in backend (404) - forcing fresh login');
                         localStorage.removeItem('currentUser');
                         localStorage.removeItem('lastLogin');
-                        localStorage.removeItem('lastProcessedCode');
+                            localStorage.removeItem(processedCodeKey);
                         showScreen('discord');
                         return;
                     }

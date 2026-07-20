@@ -3,8 +3,10 @@
 
 window.ENVIRONMENT_CONFIG = window.ENVIRONMENT_CONFIG || {
   DISCORD_CLIENT_ID: null,
+  ROBLOX_CLIENT_ID: null,
   WORKER_URL: 'https://timeclock-backend.marcusray.workers.dev',
   REDIRECT_URI: null,
+  ROBLOX_REDIRECT_URI: null,
   GUILD_ID: null,
   REQUIRED_ROLE: null,
   ADMIN_BLACKLIST: ['926568979747713095', '1002932344799371354'],

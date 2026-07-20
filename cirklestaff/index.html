@@ -358,7 +358,7 @@
                 <button id="staffLoginRequestBtn" class="btn auth-primary">Enter</button>
                 <button id="discordLoginBtn" class="btn auth-secondary brand-btn"><span class="brand-icon discord-icon" aria-hidden="true"></span><span>Login with Discord</span></button>
                 <div class="auth-divider"><span>or</span></div>
-                <button class="btn auth-disabled brand-btn" disabled><span class="brand-icon roblox-icon" aria-hidden="true"></span><span>Roblox - Coming Soon</span></button>
+                <button id="robloxLoginBtn" class="btn auth-secondary brand-btn"><span class="brand-icon roblox-icon" aria-hidden="true"></span><span>Login with Roblox</span></button>
                 <div id="staffLoginStatus" class="auth-status"></div>
             </div>
             <div id="loginStepTwo" class="auth-step">
@@ -441,6 +441,7 @@
             <p>We need this to verify your Roblox profile</p>
             <input type="text" id="setupRobloxInput" placeholder="Enter your Roblox ID (numbers only)">
             <div id="robloxVerifyMessage" style="margin-top: 12px; font-size: 13px; color: var(--text2); min-height: 20px;"></div>
+            <button id="setupRobloxOauthBtn" style="margin-top: 12px; background: var(--primary); cursor: pointer;">Sign in with Roblox</button>
             <button id="setupRobloxVerifyBtn" style="margin-top: 12px;">Verify Profile</button>
             <button id="setupRobloxRetryBtn" style="display: none; margin-top: 8px; background: var(--primary); cursor: pointer;">Try Again</button>
             <div id="robloxProfileConfirm" style="display: none; margin-top: 16px; padding: 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius);">
@@ -686,83 +687,152 @@
                 </div>
             </div>
 
-            <!-- Your Details Card -->
-            <div style="background: var(--bg2); border: 1px solid var(--primary); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; box-shadow: 0 0 20px rgba(99,102,241,.1);">
-                <h3 style="font-size: 13px; font-weight: 700; margin: 0 0 14px 0; color: var(--primary-light); text-transform: uppercase; letter-spacing: .5px;">Your Details</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
-                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
-                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Staff ID</label>
-                        <span id="yourDetailsStaffId" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">Not Set</span>
+            <div class="dashboard-grid">
+                <div class="dashboard-card dashboard-card--staff-info">
+                    <div class="card-title-row">
+                        <h3>Staff Information</h3>
+                        <span>Profile</span>
                     </div>
-                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
-                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Full Name</label>
-                        <span id="yourDetailsName" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">-</span>
+                    <div class="info-grid">
+                        <div class="info-tile">
+                            <label>Staff ID</label>
+                            <span id="yourDetailsStaffId">Not Set</span>
+                        </div>
+                        <div class="info-tile">
+                            <label>Full Name</label>
+                            <span id="yourDetailsName">-</span>
+                        </div>
+                        <div class="info-tile">
+                            <label>Email</label>
+                            <span id="yourDetailsEmail">-</span>
+                        </div>
+                        <div class="info-tile">
+                            <label>Discord ID</label>
+                            <span id="yourDetailsDiscordId">-</span>
+                        </div>
+                        <div class="info-tile">
+                            <label>Discord User</label>
+                            <span id="yourDetailsDiscordUser">-</span>
+                        </div>
+                        <div class="info-tile">
+                            <label>Roblox ID</label>
+                            <span id="yourDetailsRobloxId">Not Set</span>
+                        </div>
+                        <div class="info-tile info-tile--wide">
+                            <label>Roblox User</label>
+                            <span id="yourDetailsRobloxUser">-</span>
+                        </div>
                     </div>
-                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
-                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Email</label>
-                        <span id="yourDetailsEmail" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">-</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
-                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Discord ID</label>
-                        <span id="yourDetailsDiscordId" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">-</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
-                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Discord User</label>
-                        <span id="yourDetailsDiscordUser" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">-</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
-                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Roblox ID</label>
-                        <span id="yourDetailsRobloxId" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">Not Set</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; padding: 10px 12px; background: rgba(255,255,255,.02); border: 1px solid var(--border); border-radius: var(--radius);">
-                        <label style="font-size: 11px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Roblox User</label>
-                        <span id="yourDetailsRobloxUser" style="font-size: 13px; color: var(--text); font-weight: 600; word-break: break-all;">-</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Three-column dashboard (absences, department, base level) -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; width: 100%; margin-top: 0px;">
-                <!-- Absences Card -->
-                <div class="stat-card" style="padding: 20px 24px; min-height: 200px;">
-                    <h3 style="font-size: 14px; margin-bottom: 10px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        </svg>
-                        Absences
-                    </h3>
-                    <p id="totalAbsences" style="font-size: 42px; font-weight: 800; margin: 0 0 10px 0; color: var(--primary);">0</p>
-                    <p style="font-size: 12px; color: var(--text2); border-top: 1px solid var(--border); padding-top: 10px; margin-bottom: 8px;">Days</p>
-                    <p id="totalAbsenceDays" style="font-size: 32px; font-weight: 700; margin: 0; color: var(--primary);">0</p>
-                </div>
-                
-                <!-- Department Card -->
-                <div class="stat-card" style="padding: 20px 24px; display: flex; flex-direction: column; min-height: 200px;">
-                    <h3 style="font-size: 14px; margin-bottom: 10px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
-                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                        </svg>
-                        Department
-                    </h3>
-                    <p id="currentDepartment" style="font-size: 32px; font-weight: 800; margin: 0 0 auto 0; color: var(--primary); line-height: 1.1;">Development</p>
-                    <button id="changeDepartmentBtn" style="width: 100%; padding: 10px; font-size: 12px; font-weight: 700; background: var(--primary); color: white; border: none; border-radius: var(--radius); cursor: pointer; transition: all 0.3s ease; margin-top: 10px;">Change</button>
                 </div>
 
-                <!-- Base Level Card -->
-                <div class="stat-card" style="padding: 20px 24px; min-height: 200px;">
-                    <h3 style="font-size: 14px; margin-bottom: 10px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
-                            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                        </svg>
-                        Base Level
-                    </h3>
-                    <p id="baseLevel" style="font-size: 32px; font-weight: 800; margin: 0; color: var(--primary);">Not Set</p>
+                <div class="dashboard-card dashboard-card--notifications">
+                    <div class="card-title-row">
+                        <h3>Notifications</h3>
+                        <button id="viewAllDashboardNotifications" class="text-action-btn" type="button">View all</button>
+                    </div>
+                    <div class="dashboard-notification">
+                        <div class="dashboard-notification__dot"></div>
+                        <div class="dashboard-notification__body">
+                            <strong>You have 1 unread notification</strong>
+                            <p>New system update available.</p>
+                            <span>2h ago</span>
+                        </div>
+                        <button id="openNotificationCenterBtn" class="dashboard-notification__open" type="button">›</button>
+                    </div>
                 </div>
-            </div>
-            <div class="status-row">
-                <div class="status-card">
-                    <span>Is in Staff Server:</span>
-                    <span id="staffServerStatus" class="status-badge pending">Checking...</span>
+
+                <div class="dashboard-card dashboard-card--quick-actions">
+                    <div class="card-title-row">
+                        <h3>Quick Actions</h3>
+                    </div>
+                    <div class="quick-actions-grid">
+                        <button type="button" class="quick-action-btn" onclick="showScreen('absences')">
+                            <span class="quick-action-icon">📅</span>
+                            <span>View Absences</span>
+                        </button>
+                        <button type="button" class="quick-action-btn" onclick="showScreen('myProfile')">
+                            <span class="quick-action-icon">👤</span>
+                            <span>Edit Profile</span>
+                        </button>
+                        <button type="button" class="quick-action-btn" onclick="showScreen('myProfile')">
+                            <span class="quick-action-icon">🏢</span>
+                            <span>Department Settings</span>
+                        </button>
+                        <button type="button" class="quick-action-btn" onclick="document.getElementById('notificationBtn')?.click()">
+                            <span class="quick-action-icon">🔔</span>
+                            <span>Notification Center</span>
+                        </button>
+                        <button type="button" class="quick-action-btn quick-action-btn--full" onclick="showScreen('myProfile')">
+                            <span class="quick-action-icon">⚙️</span>
+                            <span>Account Settings</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dashboard-card dashboard-card--metric dashboard-card--metric-wide">
+                    <div class="metric-header">
+                        <div class="metric-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect></svg>
+                        </div>
+                        <div>
+                            <h3>Absences</h3>
+                            <p>Complete days absent</p>
+                        </div>
+                    </div>
+                    <div class="metric-body">
+                        <div class="metric-value"><span id="totalAbsences">0</span></div>
+                        <div class="metric-separator"></div>
+                        <div class="metric-subvalue">
+                            <span id="totalAbsenceDays">0</span>
+                            <small>Total allowed</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card dashboard-card--metric dashboard-card--metric-wide">
+                    <div class="metric-header">
+                        <div class="metric-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect></svg>
+                        </div>
+                        <div>
+                            <h3>Department</h3>
+                            <p>Your assigned team</p>
+                        </div>
+                    </div>
+                    <div class="metric-copy">
+                        <strong id="currentDepartment">Development</strong>
+                        <button id="changeDepartmentBtn" type="button">Change my Department</button>
+                    </div>
+                </div>
+
+                <div class="dashboard-card dashboard-card--metric">
+                    <div class="metric-header">
+                        <div class="metric-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"></path></svg>
+                        </div>
+                        <div>
+                            <h3>Base Level</h3>
+                            <p>Current access tier</p>
+                        </div>
+                    </div>
+                    <div class="metric-copy">
+                        <strong id="baseLevel">Not Set</strong>
+                    </div>
+                </div>
+
+                <div class="dashboard-card dashboard-card--metric dashboard-card--status">
+                    <div class="metric-header">
+                        <div class="metric-icon metric-icon--green">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"></path></svg>
+                        </div>
+                        <div>
+                            <h3>Staff Server</h3>
+                            <p>Membership status</p>
+                        </div>
+                    </div>
+                    <div class="metric-copy metric-copy--status">
+                        <span id="staffServerStatus" class="status-badge pending">Checking...</span>
+                    </div>
                 </div>
             </div>
             </div>
@@ -1523,7 +1593,7 @@
     </div>
     <div id="mailDeliveryAnimation" class="mail-delivery-animation hidden"></div>
 
-    <footer>© Cirkle Development 2024 | Portal V4</footer>
+    <footer>© Cirkle Development 2024 | Portal V5</footer>
 
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script>
