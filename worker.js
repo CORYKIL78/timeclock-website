@@ -1077,7 +1077,7 @@ export default {
       // Update user profile (PUT or POST to /api/user/profile/update)
       if ((url.pathname === '/api/user/profile/update' || url.pathname === '/api/profile/update') && request.method === 'POST') {
         const body = await request.json();
-        const { discordId, name, email, department, staffId, timezone, country, robloxId, robloxUsername, avatar } = body;
+        const { discordId, name, email, department, staffId, timezone, country, robloxId, robloxUsername, avatar, discordAvatar } = body;
 
         if (!discordId) {
           return new Response(JSON.stringify({ error: 'Missing discordId' }), {
@@ -1104,6 +1104,7 @@ export default {
           country: country !== undefined ? country : existingProfile.country,
           robloxId: robloxId !== undefined ? robloxId : existingProfile.robloxId,
           robloxUsername: robloxUsername !== undefined ? robloxUsername : existingProfile.robloxUsername,
+          discordAvatar: discordAvatar !== undefined ? discordAvatar : existingProfile.discordAvatar,
           avatar: avatar !== undefined ? avatar : existingProfile.avatar,
           discordTag: existingProfile.discordTag,
           discordId: discordId,
@@ -1666,6 +1667,7 @@ export default {
               department: 'Not set',
               discordTag: userData.username,
               discordId: userId,
+              discordAvatar: userData.avatar,
               avatar: userData.avatar,
               createdAt: new Date().toISOString()
             };

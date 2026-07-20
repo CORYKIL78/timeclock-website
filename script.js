@@ -107,10 +107,21 @@ function getRobloxAvatarUrl(robloxId) {
     return `https://www.roblox.com/headshot-thumbnail/image?userId=${encodeURIComponent(id)}&width=420&height=420&format=png`;
 }
 
+function getDiscordAvatarUrl(discordId, avatarHash) {
+    const id = String(discordId || '').trim();
+    const avatar = String(avatarHash || '').trim();
+    if (!id || !avatar) return '';
+    if (avatar.startsWith('http')) return avatar;
+    return `https://cdn.discordapp.com/avatars/${id}/${avatar}.png?size=256`;
+}
+
 function resolveStaffAvatar(user = window.currentUser) {
-    const robloxAvatar = user?.profile?.robloxId ? getRobloxAvatarUrl(user.profile.robloxId) : '';
-    const backendAvatar = user?.profile?.avatar || user?.avatar || '';
-    return robloxAvatar || backendAvatar || '';
+    return (
+        user?.avatar ||
+        getDiscordAvatarUrl(user?.id, user?.profile?.discordAvatar) ||
+        getDiscordAvatarUrl(user?.id, user?.profile?.avatar) ||
+        ''
+    );
 }
 
 // Simple profile display update using Discord data - GLOBAL FUNCTION
@@ -3428,32 +3439,19 @@ function renderNotifications() {
     if (!list) return;
     list.innerHTML = '';
     
-    // Update badge count
-    const badge = document.getElementById('notificationBadge');
-    const count = currentNotifications.length;
-    if (badge) {
-        if (count > 0) {
-            badge.textContent = count;
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
-        }
-    }
-    
     if (currentNotifications.length === 0) {
-        list.innerHTML = '<li style="text-align: center; color: #9ca3af; padding: 20px;">No notifications</li>';
+        list.innerHTML = '<li><div></div><div><strong>No notifications</strong><p>You are all caught up.</p><small>New updates will appear here.</small></div></li>';
         return;
     }
     
     currentNotifications.forEach((n, index) => {
         const li = document.createElement('li');
-        li.style.cursor = 'pointer';
         li.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: start;">
-                <div style="flex: 1;">
-                    <strong>${n.type}</strong>: ${n.message}
-                    ${n.timestamp ? `<br><small style="color: #888;">${n.timestamp}</small>` : ''}
-                </div>
+            <div class="dashboard-notification__dot"></div>
+            <div class="dashboard-notification__body">
+                <strong>${n.type}</strong>
+                <p>${n.message}</p>
+                ${n.timestamp ? `<small>${n.timestamp}</small>` : ''}
             </div>
         `;
         li.addEventListener('click', () => {
@@ -3470,7 +3468,6 @@ function renderNotifications() {
             emp.notifications = currentNotifications;
             updateEmployee(emp);
             renderNotifications();
-            updateNotificationBadge();
         });
         list.appendChild(li);
     });
@@ -8619,12 +8616,16 @@ if (notificationBtn) {
 
 const openNotificationCenterBtn = document.getElementById('openNotificationCenterBtn');
 if (openNotificationCenterBtn) {
-    openNotificationCenterBtn.addEventListener('click', () => notificationBtn?.click());
+    openNotificationCenterBtn.addEventListener('click', () => {
+        if (notificationPanel) notificationPanel.classList.toggle('hidden');
+    });
 }
 
 const viewAllDashboardNotifications = document.getElementById('viewAllDashboardNotifications');
 if (viewAllDashboardNotifications) {
-    viewAllDashboardNotifications.addEventListener('click', () => notificationBtn?.click());
+    viewAllDashboardNotifications.addEventListener('click', () => {
+        if (notificationPanel) notificationPanel.classList.toggle('hidden');
+    });
 }
 
 if (closeNotifications) {
@@ -8652,7 +8653,7 @@ if (clearAllNotifications) {
 // Close notification panel when clicking outside
 document.addEventListener('click', (e) => {
     if (notificationPanel && !notificationPanel.classList.contains('hidden')) {
-        if (!notificationPanel.contains(e.target) && !notificationBtn.contains(e.target)) {
+        if (!notificationPanel.contains(e.target) && !(notificationBtn && notificationBtn.contains(e.target))) {
             notificationPanel.classList.add('hidden');
         }
     }

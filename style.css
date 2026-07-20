@@ -3,7 +3,6 @@
   background: #23273a !important; /* dark gray for contrast */
   color: var(--text) !important;
 }
-
 .auth-shell {
   max-width: 520px !important;
   gap: 20px;
@@ -892,22 +891,77 @@ label input[type="radio"]:checked, label input[type="checkbox"]:checked {
   transform: scale(0.95) translateY(20px);
   opacity: 0;
   pointer-events: none;
+.notification-btn:hover {
+  transform: scale(1.1) translateY(-4px);
+  box-shadow: 0 8px 24px rgba(99,102,241,0.6);
+}
+.notification-btn:active {
+  transform: scale(0.95);
+}
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--danger);
+  color: white;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  animation: popIn 0.3s ease-out;
+}
+.notification-badge.hidden {
+  display: none;
+}
+.notifications-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 92px;
+  width: 360px;
+  max-width: calc(100vw - 48px);
+  max-height: 480px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  z-index: 998;
+  transform: scale(0.95) translateY(20px);
+  opacity: 0;
+  pointer-events: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .notifications-panel:not(.hidden) {
   transform: scale(1) translateY(0);
   opacity: 1;
   pointer-events: all;
   animation: slideInUp 0.3s ease-out;
 }
-
 .notifications-header {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 12px;
+}
+.notifications-header h3 {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+}
+.close-notifications-btn, .clear-all-notifications-btn {
+  background: transparent;
+  color: var(--text2);
+  padding: 4px 8px;
+  font-size: 20px;
+  min-width: auto;
+  box-shadow: none;
+}
+#notificationList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
 }
 
 .notifications-header h3 {
@@ -2832,6 +2886,44 @@ body:not(.dark) .modal-content {
   min-height: 110px;
 }
 
+#mainMenuScreen .dashboard-notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#mainMenuScreen .dashboard-notification-list li {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px 0;
+  border-top: 1px solid rgba(148,163,184,0.12);
+  cursor: pointer;
+}
+
+#mainMenuScreen .dashboard-notification-list li:first-child {
+  border-top: 0;
+}
+
+#mainMenuScreen .dashboard-notification-list strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+#mainMenuScreen .dashboard-notification-list p {
+  margin: 0 0 6px 0;
+  color: rgba(226,232,240,0.72);
+}
+
+#mainMenuScreen .dashboard-notification-list small {
+  color: rgba(226,232,240,0.48);
+}
+
 #mainMenuScreen .dashboard-notification__dot {
   width: 8px;
   height: 8px;
@@ -3233,3 +3325,272 @@ body:not(.dark) .modal-content {
     flex-direction: column;
   }
 }
+
+/* PORTAL SURFACE REWRITE */
+#myProfileScreen.screen.active,
+#absencesScreen.screen.active,
+#payslipsScreen.screen.active,
+#disciplinariesScreen.screen.active,
+#requestsScreen.screen.active,
+#timeclockScreen.screen.active,
+#mailScreen.screen.active,
+#calendarScreen.screen.active,
+#tasktrackScreen.screen.active,
+#clickupScreen.screen.active,
+#myRolesScreen.screen.active,
+#handbooksScreen.screen.active {
+  display: block;
+  padding: 24px 24px 24px 320px;
+  background:
+    radial-gradient(circle at top left, rgba(124,58,237,0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(59,130,246,0.10), transparent 24%),
+    linear-gradient(180deg, #050816 0%, #070b14 100%);
+  animation: screenFadeIn 0.35s ease-out;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#myProfileScreen .container,
+#absencesScreen > div,
+#payslipsScreen > div,
+#disciplinariesScreen > div,
+#requestsScreen > div,
+#timeclockScreen > div,
+#mailScreen > div,
+#calendarScreen > div,
+#tasktrackScreen > div,
+#clickupScreen .container,
+#myRolesScreen .container,
+#handbooksScreen .container {
+  max-width: 1440px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+}
+
+#myProfileScreen .container > div,
+#absencesScreen > div,
+#payslipsScreen > div,
+#disciplinariesScreen > div,
+#requestsScreen > div,
+#timeclockScreen > div,
+#mailScreen > div,
+#calendarScreen > div,
+#tasktrackScreen > div,
+#clickupScreen .container > div,
+#myRolesScreen .container,
+#handbooksScreen .container {
+  color: #e2e8f0;
+}
+
+#myProfileScreen .profile-section,
+#absencesScreen > div > div,
+#payslipsScreen > div > div,
+#disciplinariesScreen > div > div,
+#requestsScreen > div > div,
+#timeclockScreen > div > div,
+#mailScreen > div > div,
+#calendarScreen > div > div,
+#tasktrackScreen > div > div,
+#clickupScreen .container > div > div,
+#myRolesScreen .container,
+#handbooksScreen .container {
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(10,14,24,0.96) 100%);
+  border: 1px solid rgba(148,163,184,0.14);
+  box-shadow: 0 22px 52px rgba(0,0,0,0.28);
+  backdrop-filter: blur(18px);
+}
+
+#myProfileScreen .profile-section {
+  padding: 20px;
+}
+
+#myProfileScreen .profile-section-header,
+#absencesScreen h2,
+#payslipsScreen h2,
+#disciplinariesScreen h2,
+#requestsScreen h2,
+#timeclockScreen h2,
+#mailScreen h2,
+#calendarScreen h2,
+#tasktrackScreen h2,
+#clickupScreen h2,
+#myRolesScreen h2,
+#handbooksScreen h2 {
+  color: #f8fafc !important;
+  letter-spacing: -0.04em;
+}
+
+#myProfileScreen .profile-info-row,
+#myProfileScreen .profile-info-row select,
+#myProfileScreen .profile-info-row input {
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(148,163,184,0.14) !important;
+  color: #f8fafc !important;
+}
+
+#myProfileScreen .pencil-btn,
+#requestsScreen #submitRequestBtn,
+#timeclockScreen .clock-btn,
+#mailScreen #composeMailBtn,
+#clickupScreen #clickupConnectBtn,
+#clickupScreen #clickupDisconnectBtn,
+#calendarScreen #calendarPrevMonth,
+#calendarScreen #calendarNextMonth,
+#calendarScreen #addEventBtn,
+#disciplinariesScreen .section-tab-btn,
+#mailScreen .tab-btn,
+#tasktrackScreen .tasktrack-main-tab,
+#absencesScreen .absence-tab-btn,
+#clickupScreen .clickup-tab-btn,
+#requestsScreen #submitRequestBtn,
+#notificationPanel .clear-all-notifications-btn,
+#notificationPanel .close-notifications-btn {
+  background: rgba(124,58,237,0.18) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(167,139,250,0.18) !important;
+  box-shadow: none !important;
+}
+
+#absencesScreen .absence-tabs,
+#mailScreen .mail-tabs,
+#tasktrackScreen .tasktrack-main-tab,
+#disciplinariesScreen .section-tab-btn,
+#clickupScreen .clickup-tabs {
+  border-color: rgba(148,163,184,0.14) !important;
+}
+
+#absencesScreen .absence-tab-btn.active,
+#mailScreen .tab-btn.active,
+#tasktrackScreen .tasktrack-main-tab.active,
+#disciplinariesScreen .section-tab-btn.active,
+#clickupScreen .clickup-tab-btn.active {
+  background: rgba(124,58,237,0.24) !important;
+  color: #fff !important;
+  border-color: rgba(167,139,250,0.24) !important;
+}
+
+#absencesScreen .absence-content,
+#payslipsScreen #payslipsContent,
+#disciplinariesScreen .content-section,
+#requestsScreen #requestsContent,
+#timeclockScreen .timeclock-panel,
+#mailScreen .mail-content,
+#calendarScreen > div > div:nth-child(2),
+#tasktrackScreen #tasktrackContent,
+#clickupScreen #clickupTasksSection,
+#clickupScreen #clickupConnectionSection,
+#myRolesScreen .container,
+#handbooksScreen .container {
+  background: rgba(15,23,42,0.9) !important;
+  border: 1px solid rgba(148,163,184,0.14) !important;
+  color: #e2e8f0 !important;
+}
+
+#requestsScreen #requestsContent,
+#timeclockScreen .timeclock-panel,
+#mailScreen .mail-content,
+#clickupScreen #clickupTasksSection,
+#calendarScreen > div > div:nth-child(2) {
+  overflow: auto;
+}
+
+#mailScreen .mail-item,
+#mailScreen .no-mail,
+#requestsScreen .request-item,
+#absencesScreen .absence-item,
+#disciplinariesScreen .disciplinary-item,
+#disciplinariesScreen .report-item,
+#payslipsScreen .payslip-item,
+#tasktrackScreen .task-item,
+#clickupScreen .clickup-task-card,
+#calendarScreen .event-card {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(148,163,184,0.14) !important;
+  color: #e2e8f0 !important;
+  border-radius: 18px !important;
+}
+
+#timeclockScreen .clock-display,
+#timeclockScreen .session-item,
+#timeclockScreen .timeclock-panel,
+#tasktrackScreen #tasktrackLoadingScreen,
+#clickupScreen #clickupDisconnected,
+#clickupScreen #clickupConnected {
+  background: rgba(255,255,255,0.03) !important;
+  border-radius: 20px;
+}
+
+#calendarScreen #calendarDays > div,
+#calendarScreen .day-cell,
+#calendarScreen .events-count-card {
+  background: rgba(255,255,255,0.04) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(148,163,184,0.12) !important;
+}
+
+#mailScreen .mail-tabs,
+#tasktrackScreen .tasktrack-main-tab,
+#disciplinariesScreen .section-tab-btn,
+#clickupScreen .clickup-tabs,
+#absencesScreen .absence-tabs {
+  background: rgba(255,255,255,0.03) !important;
+}
+
+#myProfileScreen .profile-info-row span,
+#myProfileScreen .profile-info-row label,
+#absencesScreen p,
+#payslipsScreen p,
+#disciplinariesScreen p,
+#requestsScreen p,
+#timeclockScreen p,
+#mailScreen p,
+#calendarScreen p,
+#tasktrackScreen p,
+#clickupScreen p,
+#myRolesScreen p,
+#handbooksScreen p,
+#timeclockScreen span,
+#mailScreen span,
+#requestsScreen span,
+#disciplinariesScreen span {
+  color: rgba(226,232,240,0.76) !important;
+}
+
+@media (max-width: 1200px) {
+  #myProfileScreen.screen.active,
+  #absencesScreen.screen.active,
+  #payslipsScreen.screen.active,
+  #disciplinariesScreen.screen.active,
+  #requestsScreen.screen.active,
+  #timeclockScreen.screen.active,
+  #mailScreen.screen.active,
+  #calendarScreen.screen.active,
+  #tasktrackScreen.screen.active,
+  #clickupScreen.screen.active,
+  #myRolesScreen.screen.active,
+  #handbooksScreen.screen.active {
+    padding-left: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  #myProfileScreen.screen.active,
+  #absencesScreen.screen.active,
+  #payslipsScreen.screen.active,
+  #disciplinariesScreen.screen.active,
+  #requestsScreen.screen.active,
+  #timeclockScreen.screen.active,
+  #mailScreen.screen.active,
+  #calendarScreen.screen.active,
+  #tasktrackScreen.screen.active,
+  #clickupScreen.screen.active,
+  #myRolesScreen.screen.active,
+  #handbooksScreen.screen.active {
+    padding: 80px 16px 16px 16px;
+  }
+}
+
+}
+
