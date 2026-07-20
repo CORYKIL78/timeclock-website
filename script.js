@@ -690,21 +690,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // New streamlined edit handlers - open modals instead of inline editing
     if (editNameBtn) {
         editNameBtn.onclick = () => {
-            document.getElementById('nameChangeModal').style.display = 'block';
+            document.getElementById('nameChangeModal').style.display = 'flex';
             document.getElementById('nameChangeSuccess').style.display = 'none';
         };
     }
     
     if (editEmailBtn) {
         editEmailBtn.onclick = () => {
-            document.getElementById('emailChangeModal').style.display = 'block';
+            document.getElementById('emailChangeModal').style.display = 'flex';
             document.getElementById('emailChangeSuccess').style.display = 'none';
         };
     }
     
     if (editDeptBtn) {
         editDeptBtn.onclick = () => {
-            document.getElementById('deptChangeModal').style.display = 'block';
+            document.getElementById('deptChangeModal').style.display = 'flex';
             document.getElementById('deptChangeSuccess').style.display = 'none';
         };
     }
@@ -9379,7 +9379,7 @@ function showCalendarEventModal(dateStr) {
         }
     };
     
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
 }
 
 function deleteCalendarEvent(dateStr, idx) {
