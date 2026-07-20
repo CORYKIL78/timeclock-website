@@ -8736,6 +8736,23 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
     console.log('Current URL:', window.location.href);
     console.log('Has saved user?', !!localStorage.getItem('currentUser'));
     console.log('Has OAuth code?', new URLSearchParams(window.location.search).has('code'));
+
+    const portalParams = new URLSearchParams(window.location.search);
+    const forceFreshLogin = portalParams.get('fresh') === '1';
+
+    if (forceFreshLogin) {
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('lastLogin');
+        localStorage.removeItem('lastProcessedCode');
+        localStorage.removeItem('lastProcessedRobloxCode');
+        currentUser = null;
+        window.currentUser = null;
+
+        portalParams.delete('fresh');
+        const cleanedQuery = portalParams.toString();
+        const cleanedUrl = `${window.location.pathname}${cleanedQuery ? `?${cleanedQuery}` : ''}${window.location.hash || ''}`;
+        window.history.replaceState({}, document.title, cleanedUrl);
+    }
     
     const savedUser = localStorage.getItem('currentUser');
     const savedClockIn = localStorage.getItem('clockInTime');
