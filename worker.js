@@ -302,13 +302,15 @@ async function sendResendEmail(env, { from, to, subject, html, cc, bcc, replyTo 
     throw new Error('Resend API key not configured');
   }
 
+  const fromAddress = from || env.RESEND_FROM || 'Portal <portal@departments.cirkledevelopment.co.uk>';
+
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${resendApiKey}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ from, to, cc, bcc, subject, html, reply_to: replyTo })
+    body: JSON.stringify({ from: fromAddress, to, cc, bcc, subject, html, reply_to: replyTo })
   });
 
   const data = await response.json().catch(() => ({}));
@@ -1750,7 +1752,6 @@ export default {
           });
 
           await sendResendEmail(env, {
-            from: 'Portal <portal@portal.cirkledevelopment.co.uk>',
             to: email,
             subject: 'You attempted to sign-in to Portal.',
             html: buildStaffAuthEmailHtml({ name: match.profile?.name || 'User', staffId, code })

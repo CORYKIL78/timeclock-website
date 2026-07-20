@@ -2481,7 +2481,7 @@ const GUILD_ID = window.CONFIG?.GUILD_ID || '1310656642672627752';
 const STAFF_SERVER_ID = window.CONFIG?.STAFF_SERVER_ID || '1460025375655723283';
 const WORKER_URL = window.CONFIG?.WORKER_URL || 'https://timeclock-backend.marcusray.workers.dev';
 const CLIENT_ID = window.CONFIG?.DISCORD_CLIENT_ID || '1417915896634277888';
-const REDIRECT_URI = window.CONFIG?.REDIRECT_URI || 'https://portal.cirkledevelopment.co.uk';
+const REDIRECT_URI = window.CONFIG?.STAFF_REDIRECT_URI || `${window.location.origin}/cirklestaff/staffportal/login`;
 
 const staffServerStatusCache = {
     lastChecked: 0,
@@ -8561,7 +8561,7 @@ document.querySelectorAll('.modal .close').forEach(closeBtn => {
     
     // Initialize theme mode (light/dark) from localStorage
     const savedLightModeRaw = localStorage.getItem('lightMode');
-    const savedLightMode = savedLightModeRaw === null ? true : savedLightModeRaw === 'true';
+    const savedLightMode = savedLightModeRaw === null ? false : savedLightModeRaw === 'true';
     let modeToggle = document.getElementById('modeToggle');
     const themeText = document.getElementById('themeText');
 
